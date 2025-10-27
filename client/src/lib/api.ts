@@ -156,8 +156,8 @@ class APIClient {
   }
 
   // AI endpoints
-  async chat(message: string, conversationHistory: any[] = []) {
-    const response = await this.client.post('/ai/chat', { message, conversationHistory });
+  async chat(message: string, conversationHistory: any[] = [], userContext?: any) {
+    const response = await this.client.post('/ai/chat', { message, conversationHistory, userContext });
     return response.data;
   }
 
@@ -191,6 +191,45 @@ class APIClient {
 
   async getAllFeedback(params?: any) {
     const response = await this.client.get('/admin/feedback', { params });
+    return response.data;
+  }
+
+  // DPR Analytics endpoints
+  async getDPRAnalytics(projectId: string) {
+    const response = await this.client.get(`/dpr/analytics/${projectId}`);
+    return response.data;
+  }
+
+  async downloadDPRAnalyticsReport(projectId: string) {
+    const response = await this.client.get(`/dpr/analytics/${projectId}/report`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
+  // AP MSME integration endpoints
+  async getAPMSMESchemes() {
+    const response = await this.client.get('/apmsme/schemes');
+    return response.data;
+  }
+
+  async getSectorGuidelines(sector: string) {
+    const response = await this.client.get(`/apmsme/guidelines/${sector}`);
+    return response.data;
+  }
+
+  async getFinancialInstitutions() {
+    const response = await this.client.get('/apmsme/financial-institutions');
+    return response.data;
+  }
+
+  async submitDPRToAPMSME(projectId: string, dprId: string, data: any) {
+    const response = await this.client.post(`/apmsme/submit/${projectId}/${dprId}`, data);
+    return response.data;
+  }
+
+  async checkDPRStatus(dprId: string) {
+    const response = await this.client.get(`/apmsme/status/${dprId}`);
     return response.data;
   }
 }

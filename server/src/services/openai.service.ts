@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { IProject } from '../types';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
+  apiKey: process.env.OPENAI_API_KEY || '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',
 });
 
 export class OpenAIService {
@@ -226,19 +226,39 @@ export class OpenAIService {
   }
 
   /**
-   * Generate AI chat response
+   * Generate AI chat response with enhanced DPR guidance
    */
   static async chatResponse(
     userMessage: string,
-    conversationHistory: Array<{ role: string; content: string }> = []
-  ): Promise<string> {
+    conversationHistory: Array<{ role: string; content: string }> = [],
+    userContext?: any
+  ): Promise<{ response: string; suggestions?: any; nextSteps?: string[] }> {
     try {
+      const systemPrompt = `You are an expert MSME AI DPR Assistant specializing in helping Indian entrepreneurs create bank-ready Detailed Project Reports. 
+
+Your capabilities include:
+1. Step-by-step DPR guidance through all sections
+2. Financial data auto-suggestions based on industry benchmarks
+3. Government scheme recommendations (AP MSME ONE Portal compatible)
+4. Sector-specific insights and cost structures
+5. Bank approval optimization strategies
+6. Telugu and English language support
+
+Guidance Framework:
+- Always provide actionable next steps
+- Suggest specific financial figures based on industry data
+- Recommend relevant government schemes
+- Ensure bank-ready quality standards
+- Provide both English and Telugu responses when requested
+
+Current Context: ${userContext ? JSON.stringify(userContext) : 'New user'}
+
+Be professional, supportive, and focus on creating high-quality, bankable DPRs.`;
+
       const messages: any[] = [
         {
           role: 'system',
-          content: `You are an MSME AI DPR Assistant helping Indian entrepreneurs create Detailed Project Reports. 
-          You guide users through data collection, provide sector insights, suggest government schemes, and answer questions about DPR creation.
-          Be helpful, professional, and supportive. Keep responses concise and actionable.`,
+          content: systemPrompt,
         },
         ...conversationHistory,
         {
@@ -250,14 +270,161 @@ export class OpenAIService {
       const response = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages,
-        temperature: 0.8,
-        max_tokens: 500,
+        temperature: 0.7,
+        max_tokens: 800,
       });
 
-      return response.choices[0].message.content || '';
+      const responseText = response.choices[0].message.content || '';
+
+      // Extract suggestions and next steps using AI
+      let suggestions = {};
+      let nextSteps: string[] = [];
+
+      try {
+        suggestions = await this.extractSuggestions(userMessage, responseText, userContext);
+      } catch (error) {
+        console.error('Failed to extract suggestions, continuing without them:', error);
+        suggestions = {};
+      }
+
+      try {
+        nextSteps = await this.generateNextSteps(userMessage, responseText, userContext);
+      } catch (error) {
+        console.error('Failed to generate next steps, continuing without them:', error);
+        nextSteps = [];
+      }
+
+      return {
+        response: responseText,
+        suggestions,
+        nextSteps
+      };
     } catch (error) {
       console.error('Error in chat response:', error);
       throw new Error('Failed to generate chat response');
+    }
+  }
+
+  /**
+   * Extract financial and scheme suggestions from conversation
+   */
+  static async extractSuggestions(
+    userMessage: string,
+    response: string,
+    userContext?: any
+  ): Promise<any> {
+    try {
+      const prompt = `Analyze this DPR conversation and extract relevant suggestions:
+
+User Message: ${userMessage}
+AI Response: ${response}
+User Context: ${userContext ? JSON.stringify(userContext) : 'None'}
+
+Extract and return JSON with:
+1. financialSuggestions: Cost estimates, funding recommendations, financial ratios
+2. schemeSuggestions: Relevant government schemes for the project
+3. sectorBenchmarks: Industry-specific data and benchmarks
+4. nextActions: Specific steps the user should take
+
+IMPORTANT: Return only valid JSON. Do not wrap in markdown code blocks or include any extra text.`;
+
+      const suggestionResponse = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a data extraction specialist. Return only valid JSON. Do not include markdown formatting, code blocks, or any text outside of the JSON object.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 800,
+      });
+
+      const content = suggestionResponse.choices[0].message.content || '{}';
+
+      // Clean the response to remove markdown code blocks and extra text
+      let cleanContent = content
+        .replace(/```json\s*/g, '') // Remove opening ```json
+        .replace(/```\s*/g, '')     // Remove closing ```
+        .replace(/^[^{]*{/, '{')   // Remove any text before first {
+        .replace(/}[^}]*$/, '}')   // Remove any text after last }
+        .trim();
+
+      // If cleaning didn't work, try to extract JSON from the middle
+      if (!cleanContent.startsWith('{') || !cleanContent.endsWith('}')) {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          cleanContent = jsonMatch[0];
+        }
+      }
+
+      try {
+        return JSON.parse(cleanContent);
+      } catch (parseError) {
+        console.error('JSON parse error after cleaning:', parseError);
+        console.error('Cleaned content:', cleanContent);
+        return {};
+      }
+    } catch (error) {
+      console.error('Error extracting suggestions:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Generate next steps for DPR creation
+   */
+  static async generateNextSteps(
+    userMessage: string,
+    response: string,
+    userContext?: any
+  ): Promise<string[]> {
+    try {
+      const prompt = `Based on this DPR conversation, suggest 3-5 specific next steps:
+
+User Message: ${userMessage}
+AI Response: ${response}
+User Context: ${userContext ? JSON.stringify(userContext) : 'None'}
+
+Provide actionable, specific steps the user should take next in their DPR creation process. Format your response as a numbered list (1, 2, 3, etc.) with each step on a new line.`;
+
+      const stepsResponse = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a DPR creation guide. Provide specific, actionable next steps. List each step on a new line, numbered 1-5.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 400,
+      });
+
+      const stepsText = stepsResponse.choices[0].message.content || '';
+
+      // Clean the response and extract steps
+      let cleanSteps = stepsText
+        .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+        .replace(/^\d+\.\s*/gm, '')     // Remove numbered prefixes
+        .replace(/^[•\-\*]\s*/gm, '')  // Remove bullet points
+        .trim();
+
+      return cleanSteps
+        .split('\n')
+        .map(step => step.trim())
+        .filter(step => step.length > 0)
+        .slice(0, 5); // Limit to 5 steps
+    } catch (error) {
+      console.error('Error generating next steps:', error);
+      return [];
     }
   }
 }

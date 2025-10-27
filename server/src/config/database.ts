@@ -1,8 +1,11 @@
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+dotenv.config();
 
 export const connectDatabase = async (): Promise<void> => {
   try {
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://bandarin29:@Naveen2611@creation-dpr.vhweeva.mongodb.net/';
+    console.log("MONGODB_URI",  process.env.MONGODB_URI);
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://bandarin29:%40Naveen2611@creation-dpr.vhweeva.mongodb.net/';
     
     await mongoose.connect(MONGODB_URI);
     

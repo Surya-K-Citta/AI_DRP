@@ -4,6 +4,8 @@ import { User } from '../models/User.model';
 import { Project } from '../models/Project.model';
 import { DPRVersion } from '../models/DPRVersion.model';
 import { Feedback } from '../models/Feedback.model';
+import { DPRAnalytics } from '../models/DPRAnalytics.model';
+import { MLService } from '../services/ml.service';
 
 export class AdminController {
   /**
@@ -80,6 +82,61 @@ export class AdminController {
         { $limit: 12 },
       ]);
 
+      // DPR Quality Analytics
+      const dprQualityStats = await DPRAnalytics.aggregate([
+        {
+          $group: {
+            _id: null,
+            avgQualityScore: { $avg: '$qualityScore' },
+            avgCompletenessScore: { $avg: '$completenessScore' },
+            avgBankabilityScore: { $avg: '$bankabilityScore' },
+            avgUserSatisfaction: { $avg: '$userSatisfactionScore' },
+            totalAnalytics: { $sum: 1 },
+          },
+        },
+      ]);
+
+      // Funding outcomes
+      const fundingOutcomes = await DPRAnalytics.aggregate([
+        {
+          $group: {
+            _id: '$fundingOutcome',
+            count: { $sum: 1 },
+            avgLoanAmount: { $avg: '$loanAmountApproved' },
+          },
+        },
+      ]);
+
+      // Sector-wise DPR performance
+      const sectorDPRPerformance = await DPRAnalytics.aggregate([
+        {
+          $lookup: {
+            from: 'projects',
+            localField: 'projectId',
+            foreignField: '_id',
+            as: 'project',
+          },
+        },
+        { $unwind: '$project' },
+        {
+          $group: {
+            _id: '$project.industrySector',
+            avgQualityScore: { $avg: '$qualityScore' },
+            avgBankabilityScore: { $avg: '$bankabilityScore' },
+            count: { $sum: 1 },
+            approvalRate: {
+              $avg: {
+                $cond: [{ $eq: ['$fundingOutcome', 'approved'] }, 1, 0],
+              },
+            },
+          },
+        },
+        { $sort: { avgQualityScore: -1 } },
+      ]);
+
+      // Get ML insights
+      const mlInsights = await MLService.getMLInsights();
+
       res.status(200).json({
         success: true,
         data: {
@@ -93,11 +150,18 @@ export class AdminController {
             totalDPRs,
             averageRating: feedbackStats[0]?.averageRating?.toFixed(2) || 0,
             totalFeedback: feedbackStats[0]?.totalFeedback || 0,
+            avgQualityScore: dprQualityStats[0]?.avgQualityScore?.toFixed(2) || 0,
+            avgBankabilityScore: dprQualityStats[0]?.avgBankabilityScore?.toFixed(2) || 0,
+            totalAnalytics: dprQualityStats[0]?.totalAnalytics || 0,
           },
           projectsBySector,
           projectsByLocation,
           recentProjects,
           monthlyTrend,
+          dprQualityStats: dprQualityStats[0] || {},
+          fundingOutcomes,
+          sectorDPRPerformance,
+          mlInsights,
         },
       });
     } catch (error: any) {

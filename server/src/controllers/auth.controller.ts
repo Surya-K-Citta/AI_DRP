@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { User } from '../models/User.model';
 
 export class AuthController {
@@ -34,14 +34,12 @@ export class AuthController {
       // Generate JWT token
       const token = jwt.sign(
         {
-          userId: user._id,
+          userId: user._id.toString(),
           email: user.email,
           role: user.role,
         },
         process.env.JWT_SECRET || 'your-secret-key',
-        {
-          expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-        }
+        { expiresIn: '7d' }
       );
 
       res.status(201).json({
@@ -95,14 +93,12 @@ export class AuthController {
       // Generate JWT token
       const token = jwt.sign(
         {
-          userId: user._id,
+          userId: user._id.toString(),
           email: user.email,
           role: user.role,
         },
         process.env.JWT_SECRET || 'your-secret-key',
-        {
-          expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-        }
+        { expiresIn: '7d' }
       );
 
       res.status(200).json({

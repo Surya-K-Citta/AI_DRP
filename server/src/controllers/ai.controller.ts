@@ -12,7 +12,7 @@ export class AIController {
    */
   static async chat(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { message, conversationHistory = [] } = req.body;
+      const { message, conversationHistory = [], userContext } = req.body;
 
       if (!message) {
         res.status(400).json({
@@ -22,15 +22,18 @@ export class AIController {
         return;
       }
 
-      const response = await OpenAIService.chatResponse(
+      const result = await OpenAIService.chatResponse(
         message,
-        conversationHistory
+        conversationHistory,
+        userContext
       );
 
       res.status(200).json({
         success: true,
         data: {
-          response,
+          response: result.response,
+          suggestions: result.suggestions,
+          nextSteps: result.nextSteps,
           timestamp: new Date(),
         },
       });

@@ -6,6 +6,7 @@ import schemeRoutes from './scheme.routes';
 import feedbackRoutes from './feedback.routes';
 import adminRoutes from './admin.routes';
 import aiRoutes from './ai.routes';
+import apmsmeRoutes from './apmsme.routes';
 
 const router = Router();
 
@@ -26,6 +27,7 @@ router.use('/schemes', schemeRoutes);
 router.use('/feedback', feedbackRoutes);
 router.use('/admin', adminRoutes);
 router.use('/ai', aiRoutes);
+router.use('/apmsme', apmsmeRoutes);
 
 export default router;
 

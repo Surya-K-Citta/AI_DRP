@@ -7,13 +7,23 @@ import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Send, Mic, MicOff, Trash2 } from 'lucide-react';
+import { Send, Mic, MicOff, Trash2, Lightbulb, CheckCircle, TrendingUp, DollarSign } from 'lucide-react';
 
 export const Chat: React.FC = () => {
   const { t } = useTranslation();
-  const { messages, addMessage, clearMessages, isLoading, setLoading } = useChatStore();
+  const { 
+    messages, 
+    addMessage, 
+    clearMessages, 
+    isLoading, 
+    setLoading, 
+    currentSuggestions, 
+    currentNextSteps,
+    clearSuggestions 
+  } = useChatStore();
   const [inputMessage, setInputMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -51,6 +61,8 @@ export const Chat: React.FC = () => {
         role: 'assistant',
         content: response.data.response,
         timestamp: new Date(),
+        suggestions: response.data.suggestions,
+        nextSteps: response.data.nextSteps,
       });
     } catch (error) {
       toast.error('Failed to get response from AI');
@@ -183,6 +195,67 @@ export const Chat: React.FC = () => {
                   <p className="text-xs opacity-70 mt-2">
                     {message.timestamp.toLocaleTimeString()}
                   </p>
+                  
+                  {/* Display suggestions and next steps for assistant messages */}
+                  {message.role === 'assistant' && (message.suggestions || message.nextSteps) && (
+                    <div className="mt-4 space-y-3">
+                      {message.suggestions && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Lightbulb className="h-4 w-4 text-blue-600" />
+                            <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                              AI Suggestions
+                            </span>
+                          </div>
+                          {message.suggestions.financialSuggestions && (
+                            <div className="mb-2">
+                              <div className="flex items-center gap-1 mb-1">
+                                <DollarSign className="h-3 w-3 text-green-600" />
+                                <span className="text-xs font-medium text-green-700 dark:text-green-300">
+                                  Financial Recommendations
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-700 dark:text-gray-300">
+                                {JSON.stringify(message.suggestions.financialSuggestions, null, 2)}
+                              </p>
+                            </div>
+                          )}
+                          {message.suggestions.schemeSuggestions && (
+                            <div className="mb-2">
+                              <div className="flex items-center gap-1 mb-1">
+                                <TrendingUp className="h-3 w-3 text-purple-600" />
+                                <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
+                                  Government Schemes
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-700 dark:text-gray-300">
+                                {JSON.stringify(message.suggestions.schemeSuggestions, null, 2)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {message.nextSteps && message.nextSteps.length > 0 && (
+                        <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                              Next Steps
+                            </span>
+                          </div>
+                          <ul className="space-y-1">
+                            {message.nextSteps.map((step, stepIndex) => (
+                              <li key={stepIndex} className="text-xs text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                                <span className="text-green-600 mt-1">•</span>
+                                {step}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
