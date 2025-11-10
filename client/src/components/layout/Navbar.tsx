@@ -1,18 +1,22 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
-import { Building2, Languages, LogOut, User } from 'lucide-react';
+import { Building2, Languages, LogOut, User, Menu, X } from 'lucide-react';
+import { useState } from 'react';
 
 export const Navbar: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user, isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+    setMobileMenuOpen(false);
   };
 
   const toggleLanguage = () => {
@@ -20,39 +24,50 @@ export const Navbar: React.FC = () => {
     i18n.changeLanguage(newLang);
   };
 
+  const isActive = (path: string) => {
+    return location.pathname === path || location.pathname.startsWith(path + '/');
+  };
+
+  const navLinks = isAuthenticated ? [
+    { path: '/dashboard', label: t('nav.dashboard'), icon: '📊' },
+    { path: '/dprs', label: 'All DPRs', icon: '📄' },
+    { path: '/projects', label: t('nav.projects'), icon: '📁' },
+    { path: '/chat', label: t('nav.chat'), icon: '💬' },
+    ...(user?.role === 'admin' ? [
+      { path: '/admin', label: t('nav.admin'), icon: '⚙️' },
+      { path: '/admin/documents', label: 'Documents', icon: '📄' },
+    ] : []),
+  ] : [];
+
   return (
-    <nav className="bg-primary text-primary-foreground shadow-lg">
+    <nav className="sticky top-0 z-50 bg-white border-b-2 border-primary/20 shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          <Link to="/" className="flex items-center space-x-2">
-            <Building2 className="h-8 w-8" />
-            <span className="text-xl font-bold">MSME DPR Tool</span>
+          <Link to="/" className="flex items-center space-x-3 group">
+            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center group-hover:scale-105 transition-transform">
+              <Building2 className="h-6 w-6 text-white" />
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              MSME DPR Tool
+            </span>
           </Link>
 
+          {/* Desktop Navigation */}
           {isAuthenticated && (
-            <div className="flex items-center space-x-6">
-              <Link to="/dashboard" className="hover:text-primary-foreground/80">
-                {t('nav.dashboard')}
-              </Link>
-              <Link to="/projects" className="hover:text-primary-foreground/80">
-                {t('nav.projects')}
-              </Link>
-              {/* <Link to="/schemes" className="hover:text-primary-foreground/80">
-                {t('nav.schemes')}
-              </Link> */}
-              <Link to="/chat" className="hover:text-primary-foreground/80">
-                {t('nav.chat')}
-              </Link>
-              {user?.role === 'admin' && (
-                <>
-                  <Link to="/admin" className="hover:text-primary-foreground/80">
-                    {t('nav.admin')}
-                  </Link>
-                  <Link to="/admin/documents" className="hover:text-primary-foreground/80">
-                    Documents
-                  </Link>
-                </>
-              )}
+            <div className="hidden md:flex items-center space-x-1">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    isActive(link.path)
+                      ? 'bg-primary text-white shadow-md'
+                      : 'text-foreground hover:bg-primary/10 hover:text-primary'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
             </div>
           )}
 
@@ -61,39 +76,49 @@ export const Navbar: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={toggleLanguage}
-              className="text-primary-foreground hover:text-primary-foreground/80"
+              className="hidden sm:flex items-center gap-2"
             >
-              <Languages className="h-5 w-5 mr-1" />
-              {i18n.language === 'en' ? 'తెలుగు' : 'English'}
+              <Languages className="h-4 w-4" />
+              <span className="font-medium">{i18n.language === 'en' ? 'తెలుగు' : 'English'}</span>
             </Button>
 
             {isAuthenticated ? (
               <>
-                <Link to="/profile">
-                  <Button variant="ghost" size="sm" className="text-primary-foreground">
-                    <User className="h-5 w-5 mr-1" />
-                    {user?.name}
+                <div className="hidden sm:flex items-center gap-3">
+                  <Link to="/profile">
+                    <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span className="font-medium">{user?.name}</span>
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    {t('common.logout')}
                   </Button>
-                </Link>
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleLogout}
-                  className="text-primary-foreground"
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="md:hidden"
                 >
-                  <LogOut className="h-5 w-5 mr-1" />
-                  {t('common.logout')}
+                  {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                 </Button>
               </>
             ) : (
               <>
                 <Link to="/login">
-                  <Button variant="ghost" size="sm" className="text-primary-foreground">
+                  <Button variant="ghost" size="sm">
                     {t('common.login')}
                   </Button>
                 </Link>
                 <Link to="/register">
-                  <Button variant="secondary" size="sm">
+                  <Button size="sm" className="bg-primary hover:bg-primary/90">
                     {t('common.register')}
                   </Button>
                 </Link>
@@ -101,8 +126,46 @@ export const Navbar: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && isAuthenticated && (
+          <div className="md:hidden py-4 border-t border-border">
+            <div className="flex flex-col space-y-2">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-4 py-3 rounded-lg font-medium transition-all ${
+                    isActive(link.path)
+                      ? 'bg-primary text-white'
+                      : 'text-foreground hover:bg-primary/10'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <div className="pt-4 border-t border-border space-y-2">
+                <Link
+                  to="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-accent"
+                >
+                  <User className="h-4 w-4" />
+                  <span>{user?.name}</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-4 py-3 rounded-lg text-destructive hover:bg-destructive/10 text-left"
+                >
+                  <LogOut className="h-4 w-4" />
+                  {t('common.logout')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
 };
-

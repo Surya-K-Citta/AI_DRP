@@ -33,5 +33,14 @@ router.get('/project/:projectId', DPRController.getProjectDPRs);
 router.get('/:dprId', DPRController.getDPR);
 router.get('/:dprId/download/pdf', DPRController.downloadPDF);
 router.get('/:dprId/download/docx', DPRController.downloadDOCX);
+router.get('/:dprId/download/xls', DPRController.downloadXLS);
+
+// DPR quality and management
+router.get('/:dprId/quality', DPRController.analyzeQuality);
+router.put('/:dprId/content', DPRController.updateDPRContent);
+router.post('/:dprId/submit', DPRController.submitDPR);
+
+// User DPRs
+router.get('/user/list', DPRController.getUserDPRs);
 
 export { router as dprRoutes };

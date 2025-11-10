@@ -125,6 +125,18 @@ export interface IDPRVersion extends Document {
   };
   generatedAt: Date;
   language: 'english' | 'telugu' | 'bilingual';
+  status?: 'draft' | 'submitted' | 'approved' | 'rejected';
+  qualityScore?: number;
+  qualityFeedback?: {
+    score: number;
+    feedback: string[];
+    weakSections: string[];
+    lastAnalyzedAt: Date;
+  };
+  submittedAt?: Date;
+  submittedTo?: 'admin' | 'bank' | 'apmsme';
+  approvedAt?: Date;
+  approvedBy?: string;
 }
 
 export interface IFeedback extends Document {

@@ -1,181 +1,396 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { useProjectStore } from '@/store/projectStore';
 import { api } from '@/lib/api';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { FolderPlus, FileText, TrendingUp, MessageSquare, Building, CheckCircle, Clock } from 'lucide-react';
+import { 
+  FolderPlus, 
+  FileText, 
+  MessageSquare, 
+  Building, 
+  CheckCircle, 
+  Clock,
+  AlertCircle,
+  Sparkles,
+  BarChart3,
+  Eye,
+  ArrowRight,
+} from 'lucide-react';
 import { formatDate } from '@/lib/utils';
+import { toast } from 'react-hot-toast';
+
+interface DPR {
+  _id: string;
+  projectId: any;
+  versionNumber: number;
+  status?: 'draft' | 'submitted' | 'approved' | 'rejected';
+  qualityScore?: number;
+  generatedAt?: Date;
+  createdAt?: Date;
+}
 
 export const Dashboard: React.FC = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { projects, setProjects } = useProjectStore();
+  const [dprs, setDprs] = useState<DPR[]>([]);
   const [stats, setStats] = useState({
     total: 0,
-    completed: 0,
-    inProgress: 0,
+    draft: 0,
+    submitted: 0,
+    approved: 0,
+    avgQualityScore: 0,
   });
+  const [loading, setLoading] = useState(true);
+  const [insights, setInsights] = useState<any>(null);
 
   useEffect(() => {
-    loadProjects();
+    loadData();
   }, []);
 
-  const loadProjects = async () => {
+  const loadData = async () => {
     try {
-      const response = await api.getProjects({ limit: 5 });
-      setProjects(response.data.projects);
-      
-      const total = response.data.pagination.total;
-      const completed = response.data.projects.filter((p: any) => p.status === 'completed').length;
-      const inProgress = response.data.projects.filter((p: any) => p.status === 'in-progress').length;
-      
-      setStats({ total, completed, inProgress });
+      setLoading(true);
+      const [dprsResponse] = await Promise.all([
+        api.getUserDPRs(),
+        api.getProjects({ limit: 100 }),
+      ]);
+
+      const dprsData = dprsResponse.data || [];
+      setDprs(dprsData);
+
+      // Calculate stats
+      const draft = dprsData.filter((d: DPR) => d.status === 'draft').length;
+      const submitted = dprsData.filter((d: DPR) => d.status === 'submitted').length;
+      const approved = dprsData.filter((d: DPR) => d.status === 'approved').length;
+      const qualityScores = dprsData
+        .filter((d: DPR) => d.qualityScore !== undefined)
+        .map((d: DPR) => d.qualityScore || 0);
+      const avgQualityScore = qualityScores.length > 0
+        ? Math.round(qualityScores.reduce((a: number, b: number) => a + b, 0) / qualityScores.length)
+        : 0;
+
+      setStats({
+        total: dprsData.length,
+        draft,
+        submitted,
+        approved,
+        avgQualityScore,
+      });
+
+      // Generate AI insights
+      if (dprsData.length > 0) {
+        generateInsights(dprsData);
+      }
     } catch (error) {
-      console.error('Failed to load projects');
+      console.error('Failed to load data:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const generateInsights = async (dprsData: DPR[]) => {
+    try {
+      const sectorCounts: Record<string, number> = {};
+      dprsData.forEach((dpr: DPR) => {
+        const sector = dpr.projectId?.industrySector || 'Unknown';
+        sectorCounts[sector] = (sectorCounts[sector] || 0) + 1;
+      });
+
+      const topSector = Object.entries(sectorCounts).sort((a, b) => b[1] - a[1])[0];
+      
+      setInsights({
+        topSector: topSector ? { name: topSector[0], count: topSector[1] } : null,
+        totalProjects: dprsData.length,
+        avgQuality: stats.avgQualityScore,
+      });
+    } catch (error) {
+      console.error('Error generating insights:', error);
+    }
+  };
+
+  const getStatusColor = (status?: string) => {
+    if (!status) return 'bg-muted text-muted-foreground border-border';
+    switch (status) {
+      case 'approved':
+        return 'bg-success/10 text-success border-success/20';
+      case 'submitted':
+        return 'bg-secondary/10 text-secondary border-secondary/20';
+      case 'draft':
+        return 'bg-warning/10 text-warning border-warning/20';
+      case 'rejected':
+        return 'bg-destructive/10 text-destructive border-destructive/20';
+      default:
+        return 'bg-muted text-muted-foreground border-border';
+    }
+  };
+
+  const getStatusIcon = (status?: string) => {
+    if (!status) return <FileText className="h-4 w-4" />;
+    switch (status) {
+      case 'approved':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'submitted':
+        return <AlertCircle className="h-4 w-4" />;
+      case 'draft':
+        return <Clock className="h-4 w-4" />;
+      default:
+        return <FileText className="h-4 w-4" />;
+    }
+  };
+
+  const getQualityColor = (score?: number) => {
+    if (!score) return 'text-muted-foreground';
+    if (score >= 80) return 'text-success';
+    if (score >= 60) return 'text-warning';
+    return 'text-destructive';
+  };
+
+  const getQualityLabel = (score?: number) => {
+    if (!score) return 'Not Analyzed';
+    if (score >= 80) return 'Excellent';
+    if (score >= 60) return 'Good';
+    return 'Needs Improvement';
+  };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading dashboard...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
-      <div className="space-y-6">
-        {/* Welcome Section */}
-        <div>
-          <h1 className="text-3xl font-bold">
-            {t('common.welcome')}, {user?.name}!
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            {t('dashboard.title')}
-          </p>
+      <div className="space-y-8 pb-8">
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-secondary p-8 text-white">
+          <div className="relative z-10">
+            <h1 className="text-4xl font-bold mb-2">
+              Welcome back, {user?.name}! 👋
+            </h1>
+            <p className="text-white/90 text-lg mb-6">
+              Manage your Detailed Project Reports and track your business growth
+            </p>
+            <Button
+              onClick={() => navigate('/dpr/builder')}
+              size="lg"
+              className="bg-white text-primary hover:bg-white/90 shadow-lg"
+            >
+              <Sparkles className="h-5 w-5 mr-2" />
+              Create New DPR
+              <ArrowRight className="h-5 w-5 ml-2" />
+            </Button>
+          </div>
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="border-l-4 border-l-primary hover:shadow-lg transition-shadow">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {t('dashboard.totalProjects')}
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Total DPRs
                   </p>
-                  <h3 className="text-3xl font-bold mt-2">{stats.total}</h3>
+                  <h3 className="text-3xl font-bold text-primary">{stats.total}</h3>
                 </div>
-                <Building className="h-12 w-12 text-primary opacity-20" />
+                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-primary" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-l-4 border-l-warning hover:shadow-lg transition-shadow">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {t('dashboard.completedDPRs')}
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Draft
                   </p>
-                  <h3 className="text-3xl font-bold mt-2">{stats.completed}</h3>
+                  <h3 className="text-3xl font-bold text-warning">{stats.draft}</h3>
                 </div>
-                <CheckCircle className="h-12 w-12 text-green-500 opacity-20" />
+                <div className="h-12 w-12 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <Clock className="h-6 w-6 text-warning" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-l-4 border-l-secondary hover:shadow-lg transition-shadow">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {t('dashboard.inProgress')}
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Submitted
                   </p>
-                  <h3 className="text-3xl font-bold mt-2">{stats.inProgress}</h3>
+                  <h3 className="text-3xl font-bold text-secondary">{stats.submitted}</h3>
                 </div>
-                <Clock className="h-12 w-12 text-yellow-500 opacity-20" />
+                <div className="h-12 w-12 rounded-lg bg-secondary/10 flex items-center justify-center">
+                  <AlertCircle className="h-6 w-6 text-secondary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-success hover:shadow-lg transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Avg Quality
+                  </p>
+                  <h3 className={`text-3xl font-bold ${getQualityColor(stats.avgQualityScore)}`}>
+                    {stats.avgQualityScore || 'N/A'}
+                  </h3>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-success/10 flex items-center justify-center">
+                  <BarChart3 className="h-6 w-6 text-success" />
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('dashboard.quickActions')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
-              <Button
-                onClick={() => navigate('/projects/create')}
-                className="h-24 flex-col"
-              >
-                <FolderPlus className="h-8 w-8 mb-2" />
-                {t('dashboard.createNewProject')}
-              </Button>
-              {/* <Button
-                onClick={() => navigate('/schemes')}
-                variant="outline"
-                className="h-24 flex-col"
-              >
-                <FileText className="h-8 w-8 mb-2" />
-                {t('dashboard.viewSchemes')}
-              </Button> */}
-              <Button
-                onClick={() => navigate('/chat')}
-                variant="outline"
-                className="h-24 flex-col"
-              >
-                <MessageSquare className="h-8 w-8 mb-2" />
-                {t('dashboard.chatWithAI')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* AI Insights */}
+        {insights && (
+          <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>AI-Powered Insights</CardTitle>
+                  <CardDescription>Personalized recommendations for your business</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-4">
+                {insights.topSector && (
+                  <div className="p-4 rounded-lg bg-white/50 border border-primary/10">
+                    <p className="text-sm text-muted-foreground mb-1">Top Business Sector</p>
+                    <p className="text-xl font-bold text-primary">{insights.topSector.name}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {insights.topSector.count} {insights.topSector.count === 1 ? 'project' : 'projects'}
+                    </p>
+                  </div>
+                )}
+                <div className="p-4 rounded-lg bg-white/50 border border-primary/10">
+                  <p className="text-sm text-muted-foreground mb-1">Average DPR Quality</p>
+                  <p className={`text-xl font-bold ${getQualityColor(insights.avgQuality)}`}>
+                    {insights.avgQuality || 'N/A'}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {getQualityLabel(insights.avgQuality)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Recent Projects */}
+        {/* Recent DPRs */}
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle>{t('dashboard.recentProjects')}</CardTitle>
-              <Button variant="ghost" onClick={() => navigate('/projects')}>
-                View All
-              </Button>
+              <div>
+                <CardTitle>Your DPRs</CardTitle>
+                <CardDescription>Manage and track your Detailed Project Reports</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => navigate('/dprs')}>
+                  View All DPRs
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/projects')}>
+                  View Projects
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
-            {projects.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                No projects yet. Create your first project to get started!
-              </p>
+            {dprs.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="h-20 w-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                  <FileText className="h-10 w-10 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">No DPRs yet</h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  Create your first Detailed Project Report to get started with AI-powered business planning
+                </p>
+                <Button onClick={() => navigate('/dpr/builder')} size="lg">
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Create Your First DPR
+                </Button>
+              </div>
             ) : (
-              <div className="space-y-4">
-                {projects.slice(0, 5).map((project: any) => (
+              <div className="space-y-3">
+                {dprs.slice(0, 8).map((dpr: DPR) => (
                   <div
-                    key={project._id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent cursor-pointer"
-                    onClick={() => navigate(`/projects/${project._id}`)}
+                    key={dpr._id}
+                    className="group flex items-center justify-between p-5 border-2 rounded-xl hover:border-primary/50 hover:shadow-md transition-all cursor-pointer bg-white"
+                    onClick={() => navigate(`/dpr/view/${dpr._id}`)}
                   >
-                    <div>
-                      <h4 className="font-semibold">{project.projectName}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {project.industrySector} • {project.location}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatDate(project.createdAt)}
-                      </p>
+                    <div className="flex-1 flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                        <FileText className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                          <h4 className="font-semibold text-lg">
+                            {dpr.projectId?.projectName || 'Untitled Project'}
+                          </h4>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(dpr.status)}`}>
+                            {getStatusIcon(dpr.status)}
+                            {dpr.status ? (dpr.status.charAt(0).toUpperCase() + dpr.status.slice(1)) : 'Unknown'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>{dpr.projectId?.industrySector || 'Unknown Sector'}</span>
+                          <span>•</span>
+                          <span>Version {dpr.versionNumber}</span>
+                          <span>•</span>
+                          <span>{formatDate(dpr.generatedAt || dpr.createdAt || new Date())}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          project.status === 'completed'
-                            ? 'bg-green-100 text-green-800'
-                            : project.status === 'in-progress'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
+                    <div className="flex items-center gap-4">
+                      {dpr.qualityScore !== undefined && (
+                        <div className="text-right">
+                          <p className={`text-sm font-semibold ${getQualityColor(dpr.qualityScore)}`}>
+                            {dpr.qualityScore}/100
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {getQualityLabel(dpr.qualityScore)}
+                          </p>
+                        </div>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/dpr/view/${dpr._id}`);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        {t(`projects.${project.status}`)}
-                      </span>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -183,8 +398,51 @@ export const Dashboard: React.FC = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Access frequently used features</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button
+                onClick={() => navigate('/dpr/builder')}
+                className="h-28 flex-col gap-3 bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              >
+                <div className="h-12 w-12 rounded-lg bg-white/20 flex items-center justify-center">
+                  <FolderPlus className="h-6 w-6" />
+                </div>
+                <span className="font-semibold">Create New DPR</span>
+                <span className="text-sm opacity-90">AI-Guided Builder</span>
+              </Button>
+              <Button
+                onClick={() => navigate('/chat')}
+                variant="outline"
+                className="h-28 flex-col gap-3 border-2 hover:border-secondary hover:bg-secondary/5"
+              >
+                <div className="h-12 w-12 rounded-lg bg-secondary/10 flex items-center justify-center">
+                  <MessageSquare className="h-6 w-6 text-secondary" />
+                </div>
+                <span className="font-semibold">AI Assistant</span>
+                <span className="text-sm text-muted-foreground">Get instant help</span>
+              </Button>
+              <Button
+                onClick={() => navigate('/projects')}
+                variant="outline"
+                className="h-28 flex-col gap-3 border-2 hover:border-primary hover:bg-primary/5"
+              >
+                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Building className="h-6 w-6 text-primary" />
+                </div>
+                <span className="font-semibold">My Projects</span>
+                <span className="text-sm text-muted-foreground">View all projects</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
 };
-

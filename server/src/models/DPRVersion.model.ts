@@ -46,6 +46,29 @@ const dprVersionSchema = new Schema<IDPRVersion>(
       enum: ['english', 'telugu', 'bilingual'],
       default: 'bilingual',
     },
+    status: {
+      type: String,
+      enum: ['draft', 'submitted', 'approved', 'rejected'],
+      default: 'draft',
+    },
+    qualityScore: {
+      type: Number,
+      min: 0,
+      max: 100,
+    },
+    qualityFeedback: {
+      score: Number,
+      feedback: [String],
+      weakSections: [String],
+      lastAnalyzedAt: Date,
+    },
+    submittedAt: Date,
+    submittedTo: {
+      type: String,
+      enum: ['admin', 'bank', 'apmsme'],
+    },
+    approvedAt: Date,
+    approvedBy: String,
   },
   {
     timestamps: true,

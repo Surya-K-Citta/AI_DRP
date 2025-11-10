@@ -3,6 +3,7 @@ import { DPRVersion } from '../models/DPRVersion.model';
 import { Project } from '../models/Project.model';
 import { OpenAIService } from './openai.service';
 import { FinancialService } from './financial.service';
+import { QualityService } from './quality.service';
 import { processMarkdownBold, removeMarkdownBold, processMarkdownText, ProcessedParagraph } from '../utils/textProcessor';
 import PDFDocument from 'pdfkit';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
@@ -18,8 +19,10 @@ export class DPRService {
     language: 'english' | 'telugu' | 'bilingual' = 'bilingual'
   ): Promise<any> {
     try {
-      // Fetch project data
-      const project = await Project.findById(projectId);
+      // OPTIMIZATION: Fetch project with only needed fields
+      const project = await Project.findById(projectId)
+        .select('projectName industrySector projectType totalCost loanAmount location inputs')
+        .lean(); // Use lean() for faster queries
       if (!project) {
         throw new Error('Project not found');
       }
@@ -32,9 +35,11 @@ export class DPRService {
       console.log('Generating financial projections...');
       const financials = FinancialService.generateCompleteFinancials(project);
 
-      // Get next version number
+      // OPTIMIZATION: Get next version number with lean query
       const lastVersion = await DPRVersion.findOne({ projectId })
-        .sort({ versionNumber: -1 });
+        .select('versionNumber')
+        .sort({ versionNumber: -1 })
+        .lean();
       const versionNumber = lastVersion ? lastVersion.versionNumber + 1 : 1;
 
       // Create DPR version
@@ -45,6 +50,19 @@ export class DPRService {
         financials,
         language,
         generatedAt: new Date(),
+        status: 'draft',
+      });
+
+      // Verify DPR was saved successfully
+      if (!dprVersion || !dprVersion._id) {
+        throw new Error('Failed to save DPR to database');
+      }
+
+      console.log(`✅ DPR saved successfully: ${dprVersion._id} for project ${projectId}`);
+
+      // Calculate and update quality score (async, don't wait)
+      QualityService.updateDPRQuality(dprVersion._id.toString()).catch(err => {
+        console.error('Error calculating quality score:', err);
       });
 
       // Update project status
@@ -56,6 +74,7 @@ export class DPRService {
         content: dprVersion.content,
         financials: dprVersion.financials,
         generatedAt: dprVersion.generatedAt,
+        status: dprVersion.status,
       };
     } catch (error) {
       console.error('Error generating DPR:', error);
@@ -90,159 +109,218 @@ export class DPRService {
    * Generate PDF document
    */
   static async generatePDF(dprId: string, language: 'english' | 'telugu'): Promise<Buffer> {
-    const dpr = await this.getDPR(dprId);
-    const project = dpr.projectId;
-    const contentLang = language === 'telugu' ? dpr.content.telugu : dpr.content.english;
-
-    return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ margin: 50 });
-      const chunks: Buffer[] = [];
-
-      doc.on('data', (chunk) => chunks.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
-
-      // Title Page
-      doc.fontSize(24).text('Detailed Project Report', { align: 'center' });
-      doc.moveDown();
-      doc.fontSize(18).text(project.projectName, { align: 'center' });
-      doc.moveDown();
-      doc.fontSize(12).text(`Sector: ${project.industrySector}`, { align: 'center' });
-      doc.text(`Location: ${project.location}`, { align: 'center' });
-      doc.moveDown(2);
-
-      // Helper function to add text with formatting (bold and headings)
-      const addFormattedText = (text: string, fontSize: number = 11) => {
-        if (!text) return;
-        
-        // Process markdown text (handles both bold and headings)
-        const paragraphs = processMarkdownText(text);
-        
-        paragraphs.forEach((para) => {
-          if (para.type === 'heading') {
-            // Render heading as semi-bold subheading
-            doc.moveDown(0.5);
-            let headingFontSize: number;
-            let spacingAfter: number;
-            
-            if (para.headingLevel === 1) {
-              headingFontSize = fontSize + 5; // Largest for heading-1
-              spacingAfter = 1.0;
-            } else if (para.headingLevel === 2) {
-              headingFontSize = fontSize + 3; // Medium for heading-2
-              spacingAfter = 0.8;
-            } else {
-              headingFontSize = fontSize + 1; // Smallest for heading-3
-              spacingAfter = 0.5;
-            }
-            
-            para.content.forEach((segment, index) => {
-              const isLast = index === para.content.length - 1;
-              if (segment.bold) {
-                doc.fontSize(headingFontSize).font('Helvetica-Bold').text(segment.text, { 
-                  continued: !isLast 
-                });
-              } else {
-                // Semi-bold for headings (font-weight 600 equivalent)
-                doc.fontSize(headingFontSize).font('Helvetica-Bold').text(segment.text, { 
-                  continued: !isLast 
-                });
-              }
-            });
-            doc.moveDown(spacingAfter);
-          } else if (para.originalText.trim().length > 0) {
-            // Regular text paragraph
-            para.content.forEach((segment, index) => {
-              const isLast = index === para.content.length - 1;
-              if (segment.bold) {
-                doc.fontSize(fontSize).font('Helvetica-Bold').text(segment.text, { 
-                  align: 'justify', 
-                  continued: !isLast 
-                });
-              } else {
-                doc.fontSize(fontSize).font('Helvetica').text(segment.text, { 
-                  align: 'justify', 
-                  continued: !isLast 
-                });
-              }
-            });
-            doc.moveDown(0.3);
-          }
-        });
-      };
-
-      // Executive Summary
-      doc.addPage();
-      doc.fontSize(16).text('1. Executive Summary', { underline: true });
-      doc.moveDown();
-      addFormattedText(contentLang.executiveSummary || '');
-      doc.moveDown();
-
-      // Business Profile
-      doc.addPage();
-      doc.fontSize(16).text('2. Business Profile', { underline: true });
-      doc.moveDown();
-      addFormattedText(contentLang.businessProfile || '');
-      doc.moveDown();
-
-      // Market Analysis
-      doc.addPage();
-      doc.fontSize(16).text('3. Market Analysis', { underline: true });
-      doc.moveDown();
-      addFormattedText(contentLang.marketAnalysis || '');
-      doc.moveDown();
-
-      // Technical Feasibility
-      doc.addPage();
-      doc.fontSize(16).text('4. Technical Feasibility', { underline: true });
-      doc.moveDown();
-      addFormattedText(contentLang.technicalFeasibility || '');
-      doc.moveDown();
-
-      // Financial Projections
-      doc.addPage();
-      doc.fontSize(16).text('5. Financial Projections', { underline: true });
-      doc.moveDown();
-      addFormattedText(contentLang.financialProjections || '');
-      doc.moveDown();
-
-      // Financial Tables
-      doc.addPage();
-      doc.fontSize(14).text('Financial Summary', { underline: true });
-      doc.moveDown();
+    try {
+      const dpr = await this.getDPR(dprId);
+      if (!dpr) {
+        throw new Error('DPR not found');
+      }
       
-      // Project Cost
-      doc.fontSize(12).text('Project Cost Breakdown:', { underline: true });
-      doc.fontSize(10);
-      doc.text(`Total Fixed Capital: ₹${dpr.financials.projectCost.fixedCapital.total.toLocaleString()}`);
-      doc.text(`Total Working Capital: ₹${dpr.financials.projectCost.workingCapital.total.toLocaleString()}`);
-      doc.text(`Total Project Cost: ₹${dpr.financials.projectCost.totalProjectCost.toLocaleString()}`);
-      doc.moveDown();
+      const project = dpr.projectId;
+      if (!project) {
+        throw new Error('Project not found for DPR');
+      }
 
-      // Means of Finance
-      doc.fontSize(12).text('Means of Finance:', { underline: true });
-      doc.fontSize(10);
-      doc.text(`Own Contribution: ₹${dpr.financials.meansOfFinance.ownContribution.amount.toLocaleString()} (${dpr.financials.meansOfFinance.ownContribution.percentage}%)`);
-      doc.text(`Term Loan: ₹${dpr.financials.meansOfFinance.termLoan.amount.toLocaleString()} (${dpr.financials.meansOfFinance.termLoan.percentage}%)`);
-      doc.moveDown();
+      // Safely access content with fallback
+      const content = dpr.content || {};
+      const contentLang = language === 'telugu' 
+        ? (content.telugu || content.english || {}) 
+        : (content.english || {});
 
-      // Conclusion
-      doc.addPage();
-      doc.fontSize(16).text('6. Conclusion', { underline: true });
-      doc.moveDown();
-      addFormattedText(contentLang.conclusion || '');
+      if (!contentLang || Object.keys(contentLang).length === 0) {
+        throw new Error(`No ${language} content available for this DPR`);
+      }
 
-      doc.end();
-    });
+      return new Promise((resolve, reject) => {
+        try {
+          const doc = new PDFDocument({ margin: 50 });
+          const chunks: Buffer[] = [];
+
+          doc.on('data', (chunk) => chunks.push(chunk));
+          doc.on('end', () => resolve(Buffer.concat(chunks)));
+          doc.on('error', (error) => {
+            console.error('PDF generation error:', error);
+            reject(error);
+          });
+
+          // Title Page
+          doc.fontSize(24).text('Detailed Project Report', { align: 'center' });
+          doc.moveDown();
+          doc.fontSize(18).text(project.projectName, { align: 'center' });
+          doc.moveDown();
+          doc.fontSize(12).text(`Sector: ${project.industrySector}`, { align: 'center' });
+          doc.text(`Location: ${project.location}`, { align: 'center' });
+          doc.moveDown(2);
+
+          // Helper function to add text with formatting (bold and headings)
+          const addFormattedText = (text: string, fontSize: number = 11) => {
+            if (!text) return;
+            
+            // Process markdown text (handles both bold and headings)
+            const paragraphs = processMarkdownText(text);
+            
+            paragraphs.forEach((para) => {
+              if (para.type === 'heading') {
+                // Render heading as semi-bold subheading
+                doc.moveDown(0.5);
+                let headingFontSize: number;
+                let spacingAfter: number;
+                
+                if (para.headingLevel === 1) {
+                  headingFontSize = fontSize + 5; // Largest for heading-1
+                  spacingAfter = 1.0;
+                } else if (para.headingLevel === 2) {
+                  headingFontSize = fontSize + 3; // Medium for heading-2
+                  spacingAfter = 0.8;
+                } else {
+                  headingFontSize = fontSize + 1; // Smallest for heading-3
+                  spacingAfter = 0.5;
+                }
+                
+                para.content.forEach((segment, index) => {
+                  const isLast = index === para.content.length - 1;
+                  if (segment.bold) {
+                    doc.fontSize(headingFontSize).font('Helvetica-Bold').text(segment.text, { 
+                      continued: !isLast 
+                    });
+                  } else {
+                    // Semi-bold for headings (font-weight 600 equivalent)
+                    doc.fontSize(headingFontSize).font('Helvetica-Bold').text(segment.text, { 
+                      continued: !isLast 
+                    });
+                  }
+                });
+                doc.moveDown(spacingAfter);
+              } else if (para.originalText.trim().length > 0) {
+                // Regular text paragraph
+                para.content.forEach((segment, index) => {
+                  const isLast = index === para.content.length - 1;
+                  if (segment.bold) {
+                    doc.fontSize(fontSize).font('Helvetica-Bold').text(segment.text, { 
+                      align: 'justify', 
+                      continued: !isLast 
+                    });
+                  } else {
+                    doc.fontSize(fontSize).font('Helvetica').text(segment.text, { 
+                      align: 'justify', 
+                      continued: !isLast 
+                    });
+                  }
+                });
+                doc.moveDown(0.3);
+              }
+            });
+          };
+
+          // Executive Summary
+          doc.addPage();
+          doc.fontSize(16).text('1. Executive Summary', { underline: true });
+          doc.moveDown();
+          addFormattedText(contentLang.executiveSummary || '');
+          doc.moveDown();
+
+          // Business Profile
+          doc.addPage();
+          doc.fontSize(16).text('2. Business Profile', { underline: true });
+          doc.moveDown();
+          addFormattedText(contentLang.businessProfile || '');
+          doc.moveDown();
+
+          // Market Analysis
+          doc.addPage();
+          doc.fontSize(16).text('3. Market Analysis', { underline: true });
+          doc.moveDown();
+          addFormattedText(contentLang.marketAnalysis || '');
+          doc.moveDown();
+
+          // Technical Feasibility
+          doc.addPage();
+          doc.fontSize(16).text('4. Technical Feasibility', { underline: true });
+          doc.moveDown();
+          addFormattedText(contentLang.technicalFeasibility || '');
+          doc.moveDown();
+
+          // Financial Projections
+          doc.addPage();
+          doc.fontSize(16).text('5. Financial Projections', { underline: true });
+          doc.moveDown();
+          addFormattedText(contentLang.financialProjections || '');
+          doc.moveDown();
+
+          // Financial Tables (if available)
+          if (dpr.financials && dpr.financials.projectCost) {
+            doc.addPage();
+            doc.fontSize(14).text('Financial Summary', { underline: true });
+            doc.moveDown();
+            
+            // Project Cost
+            doc.fontSize(12).text('Project Cost Breakdown:', { underline: true });
+            doc.fontSize(10);
+            if (dpr.financials.projectCost.fixedCapital) {
+              doc.text(`Total Fixed Capital: ₹${dpr.financials.projectCost.fixedCapital.total?.toLocaleString() || '0'}`);
+            }
+            if (dpr.financials.projectCost.workingCapital) {
+              doc.text(`Total Working Capital: ₹${dpr.financials.projectCost.workingCapital.total?.toLocaleString() || '0'}`);
+            }
+            if (dpr.financials.projectCost.totalProjectCost) {
+              doc.text(`Total Project Cost: ₹${dpr.financials.projectCost.totalProjectCost.toLocaleString()}`);
+            }
+            doc.moveDown();
+
+            // Means of Finance
+            if (dpr.financials.meansOfFinance) {
+              doc.fontSize(12).text('Means of Finance:', { underline: true });
+              doc.fontSize(10);
+              if (dpr.financials.meansOfFinance.ownContribution) {
+                doc.text(`Own Contribution: ₹${dpr.financials.meansOfFinance.ownContribution.amount?.toLocaleString() || '0'} (${dpr.financials.meansOfFinance.ownContribution.percentage || 0}%)`);
+              }
+              if (dpr.financials.meansOfFinance.termLoan) {
+                doc.text(`Term Loan: ₹${dpr.financials.meansOfFinance.termLoan.amount?.toLocaleString() || '0'} (${dpr.financials.meansOfFinance.termLoan.percentage || 0}%)`);
+              }
+              doc.moveDown();
+            }
+          }
+
+          // Conclusion
+          doc.addPage();
+          doc.fontSize(16).text('6. Conclusion', { underline: true });
+          doc.moveDown();
+          addFormattedText(contentLang.conclusion || '');
+
+          doc.end();
+        } catch (error) {
+          reject(error);
+        }
+      });
+    } catch (error: any) {
+      console.error('Error in generatePDF:', error);
+      throw new Error(`Failed to generate PDF: ${error.message}`);
+    }
   }
 
   /**
    * Generate DOCX document
    */
   static async generateDOCX(dprId: string, language: 'english' | 'telugu'): Promise<Buffer> {
-    const dpr = await this.getDPR(dprId);
-    const project = dpr.projectId;
-    const contentLang = language === 'telugu' ? dpr.content.telugu : dpr.content.english;
+    try {
+      const dpr = await this.getDPR(dprId);
+      if (!dpr) {
+        throw new Error('DPR not found');
+      }
+      
+      const project = dpr.projectId;
+      if (!project) {
+        throw new Error('Project not found for DPR');
+      }
+
+      // Safely access content with fallback
+      const content = dpr.content || {};
+      const contentLang = language === 'telugu' 
+        ? (content.telugu || content.english || {}) 
+        : (content.english || {});
+
+      if (!contentLang || Object.keys(contentLang).length === 0) {
+        throw new Error(`No ${language} content available for this DPR`);
+      }
 
     // Helper function to create paragraphs with formatting (bold and headings)
     const createFormattedParagraphs = (text: string): Paragraph[] => {
@@ -374,6 +452,10 @@ export class DPRService {
     });
 
     return Packer.toBuffer(doc);
+    } catch (error: any) {
+      console.error('Error in generateDOCX:', error);
+      throw new Error(`Failed to generate DOCX: ${error.message}`);
+    }
   }
 
   /**

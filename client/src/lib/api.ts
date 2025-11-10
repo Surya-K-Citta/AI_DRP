@@ -129,6 +129,34 @@ class APIClient {
     return response.data;
   }
 
+  async downloadXLS(dprId: string, language: string = 'english') {
+    const response = await this.client.get(`/dpr/${dprId}/download/xls`, {
+      params: { language },
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
+  async analyzeDPRQuality(dprId: string) {
+    const response = await this.client.get(`/dpr/${dprId}/quality`);
+    return response.data;
+  }
+
+  async updateDPRContent(dprId: string, content: any, language: string) {
+    const response = await this.client.put(`/dpr/${dprId}/content`, { content, language });
+    return response.data;
+  }
+
+  async submitDPR(dprId: string, submittedTo: string = 'admin') {
+    const response = await this.client.post(`/dpr/${dprId}/submit`, { submittedTo });
+    return response.data;
+  }
+
+  async getUserDPRs() {
+    const response = await this.client.get('/dpr/user/list');
+    return response.data;
+  }
+
   // Scheme endpoints
   async getSchemes() {
     const response = await this.client.get('/schemes');

@@ -5,10 +5,10 @@ import { toast } from 'react-hot-toast';
 import { useProjectStore } from '@/store/projectStore';
 import { api } from '@/lib/api';
 import { Layout } from '@/components/layout/Layout';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Plus, Search, Trash2, Edit, FileText } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, FileText, Building2, Sparkles, ArrowRight } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export const Projects: React.FC = () => {
@@ -53,86 +53,134 @@ export const Projects: React.FC = () => {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-8 pb-8">
+        {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">{t('projects.title')}</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage your project portfolio
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
+              {t('projects.title')}
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Manage your project portfolio and create DPRs
             </p>
           </div>
-          <Button onClick={() => navigate('/projects/create')}>
-            <Plus className="h-4 w-4 mr-2" />
-            {t('projects.create')}
-          </Button>
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/dpr/builder')}
+              className="border-2"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              New DPR
+            </Button>
+            <Button 
+              onClick={() => navigate('/projects/create')}
+              className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {t('projects.create')}
+            </Button>
+          </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Search className="h-5 w-5 text-muted-foreground" />
+        {/* Search */}
+        <Card className="border-2 shadow-lg">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Search className="h-5 w-5 text-primary" />
+              </div>
               <Input
                 placeholder={t('common.search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1"
+                className="flex-1 h-12 text-base"
               />
             </div>
-          </CardHeader>
+          </CardContent>
         </Card>
 
         {isLoading ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">{t('common.loading')}</p>
+          <div className="flex items-center justify-center min-h-[40vh]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+              <p className="text-muted-foreground">{t('common.loading')}</p>
+            </div>
           </div>
         ) : filteredProjects.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">
-                {searchTerm ? 'No projects found matching your search.' : 'No projects yet. Create your first project!'}
+          <Card className="border-2">
+            <CardContent className="py-16 text-center">
+              <div className="h-20 w-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                <Building2 className="h-10 w-10 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">
+                {searchTerm ? 'No projects found' : 'No projects yet'}
+              </h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                {searchTerm 
+                  ? 'Try adjusting your search terms' 
+                  : 'Create your first project to get started with DPR generation'}
               </p>
+              {!searchTerm && (
+                <Button 
+                  onClick={() => navigate('/projects/create')}
+                  size="lg"
+                  className="bg-gradient-to-r from-primary to-primary/90"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Create Your First Project
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProjects.map((project) => (
-              <Card key={project._id} className="hover:shadow-lg transition-shadow">
+              <Card 
+                key={project._id} 
+                className="hover:shadow-xl transition-all border-2 hover:border-primary/50 group"
+              >
                 <CardHeader>
-                  <CardTitle className="text-lg">{project.projectName}</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {project.industrySector}
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Total Cost</p>
-                    <p className="font-semibold">{formatCurrency(project.totalCost)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Location</p>
-                    <p className="text-sm">{project.location}</p>
-                  </div>
-                  <div>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Building2 className="h-6 w-6 text-white" />
+                    </div>
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      className={`px-3 py-1 rounded-full text-xs font-medium border ${
                         project.status === 'completed'
-                          ? 'bg-green-100 text-green-800'
+                          ? 'bg-success/10 text-success border-success/20'
                           : project.status === 'in-progress'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-gray-100 text-gray-800'
+                          ? 'bg-warning/10 text-warning border-warning/20'
+                          : 'bg-muted text-muted-foreground border-border'
                       }`}
                     >
                       {t(`projects.${project.status}`)}
                     </span>
                   </div>
+                  <CardTitle className="text-xl mb-1">{project.projectName}</CardTitle>
+                  <CardDescription className="text-base">
+                    {project.industrySector}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+                      <p className="text-xs text-muted-foreground mb-1">Total Cost</p>
+                      <p className="font-bold text-primary">{formatCurrency(project.totalCost)}</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-secondary/5 border border-secondary/10">
+                      <p className="text-xs text-muted-foreground mb-1">Location</p>
+                      <p className="font-semibold text-secondary text-sm">{project.location}</p>
+                    </div>
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     Created {formatDate(project.createdAt)}
                   </p>
-                  <div className="flex space-x-2 pt-2">
+                  <div className="flex gap-2 pt-2 border-t">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1"
+                      className="flex-1 border-2 hover:bg-primary/5 hover:border-primary"
                       onClick={() => navigate(`/projects/${project._id}`)}
                     >
                       <Edit className="h-4 w-4 mr-1" />
@@ -141,14 +189,18 @@ export const Projects: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/dpr/${project._id}`)}
+                      className="flex-1 border-2 hover:bg-secondary/5 hover:border-secondary"
+                      onClick={() => navigate(`/dpr/builder/${project._id}`)}
+                      title="Create DPR for this project"
                     >
-                      <FileText className="h-4 w-4" />
+                      <Sparkles className="h-4 w-4 mr-1" />
+                      DPR
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
                       onClick={() => handleDelete(project._id)}
+                      className="border-2"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -162,4 +214,3 @@ export const Projects: React.FC = () => {
     </Layout>
   );
 };
-

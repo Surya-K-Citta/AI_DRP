@@ -4,6 +4,8 @@ import { DPRTemplate } from '../models/DPRTemplate.model';
 import { DPRSession } from '../models/DPRSession.model';
 import { Document } from '../models/Document.model';
 import { DPRService } from '../services/dpr.service';
+import { QualityService } from '../services/quality.service';
+import { DPRVersion } from '../models/DPRVersion.model';
 import { AuthRequest } from '../types';
 
 export class DPRController {
@@ -218,15 +220,22 @@ export class DPRController {
         session.metadata.progress = 100;
 
         // Generate complete DPR
-        const template = await DPRTemplate.findById(session.templateId);
-        if (template) {
-          const generatedDPR = await OpenAIService.generateCompleteDPR(
-            template.structure,
-            session.responses,
-            session.metadata.language
-          );
-          session.generatedDPR = generatedDPR;
-        }
+        // NOTE: This legacy code path is not supported. Use DPRService.generateDPR() instead.
+        // const template = await DPRTemplate.findById(session.templateId);
+        // if (template) {
+        //   // This method signature is deprecated - use DPRService.generateDPR() instead
+        // }
+        // Set empty DPR since legacy method is not supported
+        session.generatedDPR = {
+          content: 'Legacy DPR generation method not supported. Please use the new DPR builder.',
+          sections: [],
+          metadata: {
+            generatedAt: new Date().toISOString(),
+            language: session.metadata.language || 'english',
+            totalSections: 0,
+            wordCount: 0,
+          },
+        };
 
         await session.save();
 
@@ -371,28 +380,13 @@ export class DPRController {
       }
 
       // Generate complete DPR
-      const generatedDPR = await OpenAIService.generateCompleteDPR(
-        template.structure,
-        responses,
-        language
-      );
-
-      // Update template usage count
-      await DPRTemplate.findByIdAndUpdate(template._id, {
-        $inc: { usageCount: 1 }
+      // NOTE: This legacy code path is not supported. Use DPRService.generateDPR() instead.
+      // The generateCompleteDPR method signature has changed - it now requires a Project object
+      res.status(400).json({
+        success: false,
+        message: 'Legacy DPR generation method not supported. Please use the new DPR builder at /dpr/builder',
       });
-
-      res.status(200).json({
-        success: true,
-        message: 'DPR generated successfully',
-        data: {
-          dpr: generatedDPR,
-          template: {
-            name: template.name,
-            category: template.category,
-          },
-        },
-      });
+      return;
     } catch (error: any) {
       console.error('Error generating DPR from chat:', error);
       res.status(500).json({
@@ -435,15 +429,24 @@ export class DPRController {
       const { projectId } = req.params;
       const { language = 'bilingual' } = req.body;
 
+      console.log(`📝 Generating DPR for project ${projectId} in ${language}...`);
+
       const dpr = await DPRService.generateDPR(projectId, language);
+
+      // Verify DPR was created and saved
+      if (!dpr || !dpr.dprId) {
+        throw new Error('DPR generation completed but failed to save to database');
+      }
+
+      console.log(`✅ DPR generated and saved successfully: ${dpr.dprId}`);
 
       res.status(200).json({
         success: true,
-        message: 'DPR generated successfully',
+        message: 'DPR generated and saved successfully',
         data: dpr,
       });
     } catch (error: any) {
-      console.error('Error generating DPR:', error);
+      console.error('❌ Error generating DPR:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to generate DPR',
@@ -663,37 +666,274 @@ export class DPRController {
       }
 
       // Generate complete DPR using template structure
-      const generatedDPR = await OpenAIService.generateCompleteDPR(
-        template.structure,
-        responses,
-        language
-      );
-
-      // Update template usage count if it's a database template
-      if (template._id) {
-        await DPRTemplate.findByIdAndUpdate(template._id, {
-          $inc: { usageCount: 1 }
-        });
-      }
-
-      res.status(200).json({
-        success: true,
-        message: 'Enhanced DPR generated successfully',
-        data: {
-          dpr: generatedDPR,
-          template: {
-            name: template.name,
-            category: template.category,
-            source: templateStructure ? 'RAG-extracted' : 'database',
-            sourceDocuments: templateStructure?.sourceDocuments || [],
-          },
-        },
+      // NOTE: This legacy code path is not supported. Use DPRService.generateDPR() instead.
+      // The generateCompleteDPR method signature has changed - it now requires a Project object
+      res.status(400).json({
+        success: false,
+        message: 'Legacy DPR generation method not supported. Please use the new DPR builder at /dpr/builder',
       });
+      return;
     } catch (error: any) {
       console.error('Error generating enhanced DPR from chat:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to generate enhanced DPR',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Analyze DPR quality and get score
+   */
+  static async analyzeQuality(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { dprId } = req.params;
+
+      const analysis = await QualityService.analyzeDPRQuality(dprId);
+      
+      // Update DPR with quality analysis
+      await QualityService.updateDPRQuality(dprId);
+
+      res.status(200).json({
+        success: true,
+        data: analysis,
+      });
+    } catch (error: any) {
+      console.error('Error analyzing DPR quality:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to analyze DPR quality',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Update DPR content (for inline editing)
+   */
+  static async updateDPRContent(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { dprId } = req.params;
+      const { content, language } = req.body;
+
+      const dpr = await DPRVersion.findById(dprId);
+      if (!dpr) {
+        res.status(404).json({
+          success: false,
+          message: 'DPR not found',
+        });
+        return;
+      }
+
+      // Update content
+      if (content && language) {
+        if (language === 'english' || language === 'telugu') {
+          const langKey = language as 'english' | 'telugu';
+          dpr.content[langKey] = { ...dpr.content[langKey], ...content };
+        }
+      }
+
+      await dpr.save();
+
+      // Recalculate quality score
+      QualityService.updateDPRQuality(dprId).catch(err => {
+        console.error('Error recalculating quality score:', err);
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'DPR content updated successfully',
+        data: dpr,
+      });
+    } catch (error: any) {
+      console.error('Error updating DPR content:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update DPR content',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Submit DPR to admin/bank/APMSME
+   */
+  static async submitDPR(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { dprId } = req.params;
+      const { submittedTo } = req.body;
+
+      const dpr = await DPRVersion.findById(dprId);
+      if (!dpr) {
+        res.status(404).json({
+          success: false,
+          message: 'DPR not found',
+        });
+        return;
+      }
+
+      // Update DPR status
+      dpr.status = 'submitted';
+      dpr.submittedAt = new Date();
+      dpr.submittedTo = submittedTo || 'admin';
+      await dpr.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'DPR submitted successfully',
+        data: {
+          dprId,
+          status: dpr.status,
+          submittedAt: dpr.submittedAt,
+          submittedTo: dpr.submittedTo,
+        },
+      });
+    } catch (error: any) {
+      console.error('Error submitting DPR:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to submit DPR',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get user's DPRs with statuses
+   */
+  static async getUserDPRs(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const { Project } = await import('../models/Project.model');
+      const projects = await Project.find({ userId });
+      const projectIds = projects.map(p => p._id.toString());
+
+      if (projectIds.length === 0) {
+        res.status(200).json({
+          success: true,
+          data: [],
+        });
+        return;
+      }
+
+      const dprs = await DPRVersion.find({ projectId: { $in: projectIds } })
+        .sort({ createdAt: -1 })
+        .lean(); // Use lean() for faster queries
+
+      // Manually populate project data since projectId is stored as String
+      const dprsWithProjects = await Promise.all(
+        dprs.map(async (dpr: any) => {
+          const project = await Project.findById(dpr.projectId)
+            .select('projectName industrySector location')
+            .lean();
+          return {
+            ...dpr,
+            projectId: project || { projectName: 'Unknown Project', industrySector: 'Unknown', location: 'Unknown' },
+          };
+        })
+      );
+
+      console.log(`📊 Retrieved ${dprsWithProjects.length} DPRs for user ${userId}`);
+
+      res.status(200).json({
+        success: true,
+        data: dprsWithProjects,
+      });
+    } catch (error: any) {
+      console.error('Error getting user DPRs:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get user DPRs',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Download DPR as XLS (Excel) - CSV format as fallback
+   */
+  static async downloadXLS(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { dprId } = req.params;
+      const { language = 'english' } = req.query;
+
+      const dpr = await DPRService.getDPR(dprId);
+      const project = dpr.projectId;
+      const contentLang = language === 'telugu' ? dpr.content.telugu : dpr.content.english;
+
+      // Try to use exceljs if available, otherwise use CSV
+      try {
+        const ExcelJS = require('exceljs');
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('DPR');
+
+        // Add title
+        worksheet.addRow(['Detailed Project Report']);
+        worksheet.addRow([project.projectName]);
+        worksheet.addRow([]);
+
+        // Add sections
+        const sections = [
+          { title: 'Executive Summary', content: contentLang.executiveSummary },
+          { title: 'Business Profile', content: contentLang.businessProfile },
+          { title: 'Market Analysis', content: contentLang.marketAnalysis },
+          { title: 'Technical Feasibility', content: contentLang.technicalFeasibility },
+          { title: 'Financial Projections', content: contentLang.financialProjections },
+          { title: 'Conclusion', content: contentLang.conclusion },
+        ];
+
+        sections.forEach(section => {
+          worksheet.addRow([section.title]);
+          worksheet.addRow([section.content]);
+          worksheet.addRow([]);
+        });
+
+        // Generate buffer
+        const buffer = await workbook.xlsx.writeBuffer();
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="DPR_${dprId}.xlsx"`
+        );
+        res.send(buffer);
+      } catch (excelError) {
+        // Fallback to CSV format
+        const sections = [
+          { title: 'Executive Summary', content: contentLang.executiveSummary },
+          { title: 'Business Profile', content: contentLang.businessProfile },
+          { title: 'Market Analysis', content: contentLang.marketAnalysis },
+          { title: 'Technical Feasibility', content: contentLang.technicalFeasibility },
+          { title: 'Financial Projections', content: contentLang.financialProjections },
+          { title: 'Conclusion', content: contentLang.conclusion },
+        ];
+
+        let csv = `Detailed Project Report\n${project.projectName}\n\n`;
+        sections.forEach(section => {
+          csv += `${section.title}\n${section.content}\n\n`;
+        });
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="DPR_${dprId}.csv"`
+        );
+        res.send(csv);
+      }
+    } catch (error: any) {
+      console.error('Error downloading XLS:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to download XLS',
         error: error.message,
       });
     }

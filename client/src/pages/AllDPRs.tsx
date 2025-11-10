@@ -1,0 +1,403 @@
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/store/authStore';
+import { api } from '@/lib/api';
+import { Layout } from '@/components/layout/Layout';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { 
+  FileText, 
+  Search,
+  Filter,
+  Download,
+  Eye,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  X,
+  Sparkles,
+} from 'lucide-react';
+import { formatDate } from '@/lib/utils';
+import { toast } from 'react-hot-toast';
+
+interface DPR {
+  _id: string;
+  projectId: any;
+  versionNumber: number;
+  status?: 'draft' | 'submitted' | 'approved' | 'rejected';
+  qualityScore?: number;
+  generatedAt?: Date;
+  createdAt?: Date;
+  content?: any;
+}
+
+type SortField = 'date' | 'status' | 'quality' | 'name';
+type SortOrder = 'asc' | 'desc';
+type StatusFilter = 'all' | 'draft' | 'submitted' | 'approved' | 'rejected';
+
+export const AllDPRs: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const [dprs, setDprs] = useState<DPR[]>([]);
+  const [filteredDprs, setFilteredDprs] = useState<DPR[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+  useEffect(() => {
+    loadDPRs();
+  }, []);
+
+  useEffect(() => {
+    filterAndSortDPRs();
+  }, [dprs, searchQuery, statusFilter, sortField, sortOrder]);
+
+  const loadDPRs = async () => {
+    try {
+      setLoading(true);
+      const response = await api.getUserDPRs();
+      const dprsData = response.data || [];
+      setDprs(dprsData);
+    } catch (error) {
+      console.error('Failed to load DPRs:', error);
+      toast.error('Failed to load DPRs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterAndSortDPRs = () => {
+    let filtered = [...dprs];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((dpr) => {
+        const projectName = dpr.projectId?.projectName || '';
+        const sector = dpr.projectId?.industrySector || '';
+        const status = dpr.status || '';
+        return (
+          projectName.toLowerCase().includes(query) ||
+          sector.toLowerCase().includes(query) ||
+          status.toLowerCase().includes(query)
+        );
+      });
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((dpr) => dpr.status === statusFilter);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortField) {
+        case 'date':
+          const dateA = new Date(a.generatedAt || a.createdAt || 0).getTime();
+          const dateB = new Date(b.generatedAt || b.createdAt || 0).getTime();
+          comparison = dateA - dateB;
+          break;
+        case 'status':
+          const statusA = a.status || '';
+          const statusB = b.status || '';
+          comparison = statusA.localeCompare(statusB);
+          break;
+        case 'quality':
+          const qualityA = a.qualityScore || 0;
+          const qualityB = b.qualityScore || 0;
+          comparison = qualityA - qualityB;
+          break;
+        case 'name':
+          const nameA = a.projectId?.projectName || '';
+          const nameB = b.projectId?.projectName || '';
+          comparison = nameA.localeCompare(nameB);
+          break;
+      }
+
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    setFilteredDprs(filtered);
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const getStatusColor = (status?: string) => {
+    if (!status) return 'bg-muted text-muted-foreground border-border';
+    switch (status) {
+      case 'approved':
+        return 'bg-success/10 text-success border-success/20';
+      case 'submitted':
+        return 'bg-secondary/10 text-secondary border-secondary/20';
+      case 'draft':
+        return 'bg-warning/10 text-warning border-warning/20';
+      case 'rejected':
+        return 'bg-destructive/10 text-destructive border-destructive/20';
+      default:
+        return 'bg-muted text-muted-foreground border-border';
+    }
+  };
+
+  const getStatusIcon = (status?: string) => {
+    if (!status) return <FileText className="h-4 w-4" />;
+    switch (status) {
+      case 'approved':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'submitted':
+        return <AlertCircle className="h-4 w-4" />;
+      case 'draft':
+        return <Clock className="h-4 w-4" />;
+      default:
+        return <FileText className="h-4 w-4" />;
+    }
+  };
+
+  const getQualityColor = (score?: number) => {
+    if (!score) return 'text-muted-foreground';
+    if (score >= 80) return 'text-success';
+    if (score >= 60) return 'text-warning';
+    return 'text-destructive';
+  };
+
+  const getQualityLabel = (score?: number) => {
+    if (!score) return 'Not Analyzed';
+    if (score >= 80) return 'Excellent';
+    if (score >= 60) return 'Good';
+    return 'Needs Improvement';
+  };
+
+  const handleDownloadPDF = async (dprId: string, language: 'english' | 'telugu' = 'english') => {
+    try {
+      const response = await api.downloadPDF(dprId, language);
+      const blob = new Blob([response], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `DPR_${dprId}_${language}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('PDF downloaded successfully');
+    } catch (error) {
+      console.error('Failed to download PDF:', error);
+      toast.error('Failed to download PDF');
+    }
+  };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading DPRs...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="space-y-6 pb-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">All DPRs</h1>
+            <p className="text-muted-foreground mt-1">
+              View and manage all your Detailed Project Reports ({filteredDprs.length} {filteredDprs.length === 1 ? 'DPR' : 'DPRs'})
+            </p>
+          </div>
+          <Button onClick={() => navigate('/dpr/builder')} className="bg-primary hover:bg-primary/90 text-white">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Create New DPR
+          </Button>
+        </div>
+
+        {/* Filters and Search */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Search */}
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by project name, sector, or status..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Status Filter */}
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                  className="px-4 py-2 border-2 border-primary/20 rounded-lg focus:outline-none focus:border-primary bg-white"
+                >
+                  <option value="all">All Status</option>
+                  <option value="draft">Draft</option>
+                  <option value="submitted">Submitted</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+
+              {/* Sort */}
+              <div className="flex items-center gap-2">
+                <select
+                  value={`${sortField}-${sortOrder}`}
+                  onChange={(e) => {
+                    const [field, order] = e.target.value.split('-');
+                    setSortField(field as SortField);
+                    setSortOrder(order as SortOrder);
+                  }}
+                  className="px-4 py-2 border-2 border-primary/20 rounded-lg focus:outline-none focus:border-primary bg-white"
+                >
+                  <option value="date-desc">Newest First</option>
+                  <option value="date-asc">Oldest First</option>
+                  <option value="name-asc">Name (A-Z)</option>
+                  <option value="name-desc">Name (Z-A)</option>
+                  <option value="quality-desc">Quality (High to Low)</option>
+                  <option value="quality-asc">Quality (Low to High)</option>
+                  <option value="status-asc">Status (A-Z)</option>
+                  <option value="status-desc">Status (Z-A)</option>
+                </select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* DPRs List */}
+        {filteredDprs.length === 0 ? (
+          <Card>
+            <CardContent className="pt-12 pb-12">
+              <div className="text-center">
+                <div className="h-20 w-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
+                  <FileText className="h-10 w-10 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">
+                  {searchQuery || statusFilter !== 'all' ? 'No DPRs found' : 'No DPRs yet'}
+                </h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  {searchQuery || statusFilter !== 'all'
+                    ? 'Try adjusting your search or filter criteria'
+                    : 'Create your first Detailed Project Report to get started'}
+                </p>
+                {!searchQuery && statusFilter === 'all' && (
+                  <Button onClick={() => navigate('/dpr/builder')} size="lg">
+                    <Sparkles className="h-5 w-5 mr-2" />
+                    Create Your First DPR
+                  </Button>
+                )}
+                {(searchQuery || statusFilter !== 'all') && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setStatusFilter('all');
+                    }}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {filteredDprs.map((dpr) => (
+              <Card
+                key={dpr._id}
+                className="group hover:shadow-lg transition-all border-2 hover:border-primary/50"
+              >
+                <CardContent className="pt-6">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="flex-1 flex items-start gap-4">
+                      <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                        <FileText className="h-7 w-7 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
+                          <h3 className="font-semibold text-xl">
+                            {dpr.projectId?.projectName || 'Untitled Project'}
+                          </h3>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(dpr.status)}`}>
+                            {getStatusIcon(dpr.status)}
+                            {dpr.status ? (dpr.status.charAt(0).toUpperCase() + dpr.status.slice(1)) : 'Unknown'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                          <span className="flex items-center gap-1">
+                            <span className="font-medium">Sector:</span>
+                            {dpr.projectId?.industrySector || 'Unknown'}
+                          </span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <span className="font-medium">Version:</span>
+                            {dpr.versionNumber}
+                          </span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <span className="font-medium">Created:</span>
+                            {formatDate(dpr.generatedAt || dpr.createdAt || new Date())}
+                          </span>
+                          {dpr.qualityScore !== undefined && (
+                            <>
+                              <span>•</span>
+                              <span className={`flex items-center gap-1 font-medium ${getQualityColor(dpr.qualityScore)}`}>
+                                <span>Quality:</span>
+                                {dpr.qualityScore}/100 ({getQualityLabel(dpr.qualityScore)})
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/dpr/view/${dpr._id}`)}
+                        className="border-2"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadPDF(dpr._id, 'english')}
+                        className="border-2"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        PDF
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </Layout>
+  );
+};
+

@@ -9,6 +9,9 @@ import { Projects } from './pages/Projects';
 import { ProjectForm } from './pages/ProjectForm';
 import { Chat } from './pages/Chat';
 import { DPRGeneration } from './pages/DPRGeneration';
+import { AIGuidedDPRBuilder } from './pages/AIGuidedDPRBuilder';
+import { DPRPreview } from './pages/DPRPreview';
+import { AllDPRs } from './pages/AllDPRs';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminDocuments } from './pages/AdminDocuments';
 import { useAuthStore } from './store/authStore';
@@ -24,8 +27,30 @@ function App() {
         toastOptions={{
           duration: 3000,
           style: {
-            background: '#363636',
+            background: 'hsl(217, 91%, 40%)',
             color: '#fff',
+            borderRadius: '0.75rem',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+            fontWeight: '500',
+          },
+          success: {
+            style: {
+              background: 'hsl(142, 76%, 36%)',
+            },
+            iconTheme: {
+              primary: '#fff',
+              secondary: 'hsl(142, 76%, 36%)',
+            },
+          },
+          error: {
+            style: {
+              background: 'hsl(0, 84%, 60%)',
+            },
+            iconTheme: {
+              primary: '#fff',
+              secondary: 'hsl(0, 84%, 60%)',
+            },
           },
         }}
       />
@@ -80,6 +105,42 @@ function App() {
           element={
             <ProtectedRoute>
               <DPRGeneration />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/dpr/builder"
+          element={
+            <ProtectedRoute>
+              <AIGuidedDPRBuilder />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/dpr/builder/:projectId"
+          element={
+            <ProtectedRoute>
+              <AIGuidedDPRBuilder />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/dpr/view/:dprId"
+          element={
+            <ProtectedRoute>
+              <DPRPreview />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/dprs"
+          element={
+            <ProtectedRoute>
+              <AllDPRs />
             </ProtectedRoute>
           }
         />

@@ -6,8 +6,8 @@ import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Building2 } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
+import { Building2, Sparkles, ArrowRight, CheckCircle } from 'lucide-react';
 
 export const Register: React.FC = () => {
   const { t } = useTranslation();
@@ -40,86 +40,136 @@ export const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-12">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Building2 className="h-12 w-12 text-primary" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-white to-secondary/5 p-4 py-12">
+      <div className="w-full max-w-lg">
+        {/* Logo and Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-secondary mb-4 shadow-lg">
+            <Building2 className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-2xl">{t('auth.registerTitle')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label={t('auth.name')}
-              type="text"
-              placeholder="John Doe"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              required
-            />
-            <Input
-              label={t('auth.email')}
-              type="email"
-              placeholder="your@email.com"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              required
-            />
-            <Input
-              label={t('auth.password')}
-              type="password"
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
-              required
-            />
-            <Input
-              label={t('auth.phoneNumber')}
-              type="tel"
-              placeholder="+91 9876543210"
-              value={formData.phoneNumber}
-              onChange={(e) =>
-                setFormData({ ...formData, phoneNumber: e.target.value })
-              }
-            />
-            <Input
-              label={t('auth.location')}
-              type="text"
-              placeholder="Hyderabad, Telangana"
-              value={formData.location}
-              onChange={(e) =>
-                setFormData({ ...formData, location: e.target.value })
-              }
-            />
-            <Input
-              label={t('auth.udyamNumber')}
-              type="text"
-              placeholder="UDYAM-XX-00-0000000"
-              value={formData.udyamNumber}
-              onChange={(e) =>
-                setFormData({ ...formData, udyamNumber: e.target.value })
-              }
-            />
-            <Button type="submit" className="w-full" isLoading={isLoading}>
-              {t('common.register')}
-            </Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            {t('auth.hasAccount')}{' '}
-            <Link to="/login" className="text-primary hover:underline">
-              {t('common.login')}
-            </Link>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
+            Get Started
+          </h1>
+          <p className="text-muted-foreground">
+            Create your account and start building professional DPRs
           </p>
-        </CardContent>
-      </Card>
+        </div>
+
+        <Card className="border-2 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">{t('auth.registerTitle')}</CardTitle>
+            <CardDescription className="text-center">
+              Fill in your details to create an account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <Input
+                  label={t('auth.name')}
+                  type="text"
+                  placeholder="John Doe"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  required
+                  className="h-12"
+                />
+                <Input
+                  label={t('auth.phoneNumber')}
+                  type="tel"
+                  placeholder="+91 9876543210"
+                  value={formData.phoneNumber}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phoneNumber: e.target.value })
+                  }
+                  className="h-12"
+                />
+              </div>
+              <Input
+                label={t('auth.email')}
+                type="email"
+                placeholder="your@email.com"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                required
+                className="h-12"
+              />
+              <Input
+                label={t('auth.password')}
+                type="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                required
+                className="h-12"
+              />
+              <div className="grid md:grid-cols-2 gap-4">
+                <Input
+                  label={t('auth.location')}
+                  type="text"
+                  placeholder="Hyderabad, Telangana"
+                  value={formData.location}
+                  onChange={(e) =>
+                    setFormData({ ...formData, location: e.target.value })
+                  }
+                  className="h-12"
+                />
+                <Input
+                  label={t('auth.udyamNumber')}
+                  type="text"
+                  placeholder="UDYAM-XX-00-0000000"
+                  value={formData.udyamNumber}
+                  onChange={(e) =>
+                    setFormData({ ...formData, udyamNumber: e.target.value })
+                  }
+                  className="h-12"
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg mt-6" 
+                isLoading={isLoading}
+              >
+                {!isLoading && <CheckCircle className="h-5 w-5 mr-2" />}
+                {t('common.register')}
+              </Button>
+            </form>
+            <div className="mt-6 pt-6 border-t">
+              <p className="text-center text-sm text-muted-foreground">
+                {t('auth.hasAccount')}{' '}
+                <Link to="/login" className="text-primary font-semibold hover:underline">
+                  {t('common.login')}
+                </Link>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Benefits */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 rounded-lg bg-white/50 border border-primary/10 text-center">
+            <Sparkles className="h-6 w-6 text-primary mx-auto mb-2" />
+            <p className="text-sm font-semibold mb-1">AI Assistance</p>
+            <p className="text-xs text-muted-foreground">Smart suggestions and guidance</p>
+          </div>
+          <div className="p-4 rounded-lg bg-white/50 border border-primary/10 text-center">
+            <Building2 className="h-6 w-6 text-secondary mx-auto mb-2" />
+            <p className="text-sm font-semibold mb-1">Bank Ready</p>
+            <p className="text-xs text-muted-foreground">Professional DPRs for approval</p>
+          </div>
+          <div className="p-4 rounded-lg bg-white/50 border border-primary/10 text-center">
+            <ArrowRight className="h-6 w-6 text-success mx-auto mb-2" />
+            <p className="text-sm font-semibold mb-1">Quick Setup</p>
+            <p className="text-xs text-muted-foreground">Get started in minutes</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
-

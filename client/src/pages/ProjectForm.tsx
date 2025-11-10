@@ -89,16 +89,29 @@ export const ProjectForm: React.FC = () => {
 
   return (
     <Layout>
-      <div className="max-w-3xl mx-auto space-y-6">
-        <Button variant="ghost" onClick={() => navigate('/projects')}>
+      <div className="max-w-4xl mx-auto space-y-6 pb-8">
+        <Button variant="ghost" onClick={() => navigate('/projects')} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
           {t('common.back')}
         </Button>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>
+        {/* Header */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-secondary p-8 text-white mb-6">
+          <div className="relative z-10">
+            <h1 className="text-3xl font-bold mb-2">
               {id ? 'Edit Project' : t('projects.create')}
+            </h1>
+            <p className="text-white/90">
+              {id ? 'Update your project details' : 'Create a new project to start generating DPRs'}
+            </p>
+          </div>
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+        </div>
+
+        <Card className="border-2 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-2xl">
+              Project Information
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -234,16 +247,21 @@ export const ProjectForm: React.FC = () => {
                 />
               </div>
 
-              <div className="flex space-x-3">
-                <Button type="submit" isLoading={isLoading}>
-                  {t('common.save')}
-                </Button>
-                <Button
+              <div className="flex gap-3 pt-4">
+                <Button 
                   type="button"
-                  variant="outline"
+                  variant="outline" 
                   onClick={() => navigate('/projects')}
+                  className="flex-1 border-2"
                 >
                   {t('common.cancel')}
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="flex-1 bg-primary hover:bg-primary/90 text-white shadow-lg" 
+                  isLoading={isLoading}
+                >
+                  {id ? t('common.update') : t('common.create')}
                 </Button>
               </div>
             </form>

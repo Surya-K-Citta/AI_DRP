@@ -6,8 +6,8 @@ import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Building2 } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
+import { Building2, Sparkles, ArrowRight } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const { t } = useTranslation();
@@ -36,49 +36,88 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Building2 className="h-12 w-12 text-primary" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-white to-secondary/5 p-4">
+      <div className="w-full max-w-md">
+        {/* Logo and Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-secondary mb-4 shadow-lg">
+            <Building2 className="h-8 w-8 text-white" />
           </div>
-          <CardTitle className="text-2xl">{t('auth.loginTitle')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label={t('auth.email')}
-              type="email"
-              placeholder="your@email.com"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              required
-            />
-            <Input
-              label={t('auth.password')}
-              type="password"
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
-              required
-            />
-            <Button type="submit" className="w-full" isLoading={isLoading}>
-              {t('common.login')}
-            </Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            {t('auth.noAccount')}{' '}
-            <Link to="/register" className="text-primary hover:underline">
-              {t('common.register')}
-            </Link>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
+            Welcome Back
+          </h1>
+          <p className="text-muted-foreground">
+            Sign in to continue to MSME DPR Tool
           </p>
-        </CardContent>
-      </Card>
+        </div>
+
+        <Card className="border-2 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">{t('auth.loginTitle')}</CardTitle>
+            <CardDescription className="text-center">
+              Enter your credentials to access your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <Input
+                label={t('auth.email')}
+                type="email"
+                placeholder="your@email.com"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                required
+                className="h-12"
+              />
+              <Input
+                label={t('auth.password')}
+                type="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                required
+                className="h-12"
+              />
+              <Button 
+                type="submit" 
+                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg" 
+                isLoading={isLoading}
+              >
+                {!isLoading && <ArrowRight className="h-5 w-5 mr-2" />}
+                {t('common.login')}
+              </Button>
+            </form>
+            <div className="mt-6 pt-6 border-t">
+              <p className="text-center text-sm text-muted-foreground">
+                {t('auth.noAccount')}{' '}
+                <Link to="/register" className="text-primary font-semibold hover:underline">
+                  {t('common.register')}
+                </Link>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Features */}
+        <div className="mt-8 grid grid-cols-3 gap-4 text-center">
+          <div className="p-4 rounded-lg bg-white/50 border border-primary/10">
+            <Sparkles className="h-6 w-6 text-primary mx-auto mb-2" />
+            <p className="text-xs font-medium">AI-Powered</p>
+          </div>
+          <div className="p-4 rounded-lg bg-white/50 border border-primary/10">
+            <Building2 className="h-6 w-6 text-secondary mx-auto mb-2" />
+            <p className="text-xs font-medium">Bank-Ready</p>
+          </div>
+          <div className="p-4 rounded-lg bg-white/50 border border-primary/10">
+            <ArrowRight className="h-6 w-6 text-success mx-auto mb-2" />
+            <p className="text-xs font-medium">Fast Track</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
-

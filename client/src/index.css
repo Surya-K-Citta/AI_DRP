@@ -10,20 +10,29 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Primary: #0511F2 */
+    --primary: 238 100% 48%;
+    --primary-foreground: 0 0% 100%;
+    /* Secondary: #07598C */
+    --secondary: 200 90% 29%;
+    --secondary-foreground: 0 0% 100%;
+    /* Success: #027333 */
+    --success: 145 97% 23%;
+    --success-foreground: 0 0% 100%;
+    /* Warning: #D9910B */
+    --warning: 40 91% 45%;
+    --warning-foreground: 0 0% 100%;
+    /* Error: #BF0606 */
+    --destructive: 0 95% 38%;
+    --destructive-foreground: 0 0% 100%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --ring: 238 100% 48%;
+    --radius: 0.75rem;
   }
 
   .dark {
@@ -33,19 +42,28 @@
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    /* Primary: #0511F2 */
+    --primary: 238 100% 55%;
+    --primary-foreground: 0 0% 100%;
+    /* Secondary: #07598C */
+    --secondary: 200 90% 35%;
+    --secondary-foreground: 0 0% 100%;
+    /* Success: #027333 */
+    --success: 145 97% 28%;
+    --success-foreground: 0 0% 100%;
+    /* Warning: #D9910B */
+    --warning: 40 91% 50%;
+    --warning-foreground: 0 0% 100%;
+    /* Error: #BF0606 */
+    --destructive: 0 95% 43%;
+    --destructive-foreground: 0 0% 100%;
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --ring: 238 100% 55%;
   }
 }
 
@@ -69,3 +87,15 @@
   }
 }
 
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
