@@ -6,6 +6,9 @@ interface Message {
   timestamp: Date;
   suggestions?: any;
   nextSteps?: string[];
+  ragContext?: string;
+  dprAction?: string;
+  dprQuestions?: any;
 }
 
 interface ChatState {

@@ -12,6 +12,14 @@ import { errorHandler, notFound } from './middleware/errorHandler.middleware';
 // Load environment variables
 dotenv.config();
 
+// Validate required environment variables
+if (!process.env.OPENAI_API_KEY) {
+  console.error('❌ ERROR: OPENAI_API_KEY environment variable is required!');
+  console.error('   Please set OPENAI_API_KEY in your .env file.');
+  console.error('   See .env.example for reference.');
+  process.exit(1);
+}
+
 // Initialize Express app
 const app: Application = express();
 const PORT = process.env.PORT || 5000;

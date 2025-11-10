@@ -107,6 +107,12 @@ class APIClient {
     return response.data;
   }
 
+  // Chat-based DPR generation
+  async generateDPRFromChat(responses: any, language: string = 'english') {
+    const response = await this.client.post('/dpr/generate-from-chat', { responses, language });
+    return response.data;
+  }
+
   async downloadPDF(dprId: string, language: string = 'english') {
     const response = await this.client.get(`/dpr/${dprId}/download/pdf`, {
       params: { language },
@@ -156,8 +162,20 @@ class APIClient {
   }
 
   // AI endpoints
-  async chat(message: string, conversationHistory: any[] = [], userContext?: any) {
-    const response = await this.client.post('/ai/chat', { message, conversationHistory, userContext });
+  async chat(
+    message: string,
+    conversationHistory: any[] = [],
+    userContext?: any,
+    useRAG: boolean = false,
+    vectorStoreIds?: string[]
+  ) {
+    const response = await this.client.post('/ai/chat', {
+      message,
+      conversationHistory,
+      userContext,
+      useRAG,
+      vectorStoreIds
+    });
     return response.data;
   }
 
@@ -230,6 +248,70 @@ class APIClient {
 
   async checkDPRStatus(dprId: string) {
     const response = await this.client.get(`/apmsme/status/${dprId}`);
+    return response.data;
+  }
+
+  // Document management endpoints
+  async uploadDocument(file: File, metadata: any) {
+    const formData = new FormData();
+    formData.append('file', file);
+    Object.keys(metadata).forEach(key => {
+      formData.append(key, metadata[key]);
+    });
+
+    const response = await this.client.post('/documents/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  }
+
+  async getDocuments(params?: any) {
+    const response = await this.client.get('/documents', { params });
+    return response.data;
+  }
+
+  async getDocument(documentId: string) {
+    const response = await this.client.get(`/documents/${documentId}`);
+    return response.data;
+  }
+
+  async deleteDocument(documentId: string) {
+    const response = await this.client.delete(`/documents/${documentId}`);
+    return response.data;
+  }
+
+  async getVectorStores() {
+    const response = await this.client.get('/documents/vector-stores/list');
+    return response.data;
+  }
+
+  async createVectorStore(data: any) {
+    const response = await this.client.post('/documents/vector-stores/create', data);
+    return response.data;
+  }
+
+  async deleteVectorStore(vectorStoreId: string) {
+    const response = await this.client.delete(`/documents/vector-stores/${vectorStoreId}`);
+    return response.data;
+  }
+
+  async searchDocuments(query: string, vectorStoreIds?: string[], maxResults?: number) {
+    const response = await this.client.post('/documents/search', {
+      query,
+      vectorStoreIds,
+      maxResults
+    });
+    return response.data;
+  }
+
+  async queryWithRAG(question: string, vectorStoreIds: string[], model?: string) {
+    const response = await this.client.post('/documents/rag/query', {
+      question,
+      vectorStoreIds,
+      model
+    });
     return response.data;
   }
 }

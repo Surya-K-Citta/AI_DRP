@@ -10,6 +10,7 @@ import { ProjectForm } from './pages/ProjectForm';
 import { Chat } from './pages/Chat';
 import { DPRGeneration } from './pages/DPRGeneration';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { AdminDocuments } from './pages/AdminDocuments';
 import { useAuthStore } from './store/authStore';
 import './i18n/config';
 
@@ -100,7 +101,16 @@ function App() {
             </ProtectedRoute>
           }
         />
-        
+
+        <Route
+          path="/admin/documents"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminDocuments />
+            </ProtectedRoute>
+          }
+        />
+
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>

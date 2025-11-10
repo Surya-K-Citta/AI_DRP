@@ -37,16 +37,21 @@ export const Navbar: React.FC = () => {
               <Link to="/projects" className="hover:text-primary-foreground/80">
                 {t('nav.projects')}
               </Link>
-              <Link to="/schemes" className="hover:text-primary-foreground/80">
+              {/* <Link to="/schemes" className="hover:text-primary-foreground/80">
                 {t('nav.schemes')}
-              </Link>
+              </Link> */}
               <Link to="/chat" className="hover:text-primary-foreground/80">
                 {t('nav.chat')}
               </Link>
               {user?.role === 'admin' && (
-                <Link to="/admin" className="hover:text-primary-foreground/80">
-                  {t('nav.admin')}
-                </Link>
+                <>
+                  <Link to="/admin" className="hover:text-primary-foreground/80">
+                    {t('nav.admin')}
+                  </Link>
+                  <Link to="/admin/documents" className="hover:text-primary-foreground/80">
+                    Documents
+                  </Link>
+                </>
               )}
             </div>
           )}

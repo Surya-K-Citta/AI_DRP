@@ -4,8 +4,11 @@ dotenv.config();
 
 export const connectDatabase = async (): Promise<void> => {
   try {
-    console.log("MONGODB_URI",  process.env.MONGODB_URI);
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://bandarin29:%40Naveen2611@creation-dpr.vhweeva.mongodb.net/';
+    const MONGODB_URI = process.env.MONGODB_URI;
+    
+    if (!MONGODB_URI) {
+      throw new Error('MONGODB_URI environment variable is required. Please set it in your .env file.');
+    }
     
     await mongoose.connect(MONGODB_URI);
     

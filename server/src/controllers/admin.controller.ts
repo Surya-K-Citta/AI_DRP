@@ -137,6 +137,78 @@ export class AdminController {
       // Get ML insights
       const mlInsights = await MLService.getMLInsights();
 
+      // Document and RAG analytics
+      const { Document } = await import('../models/Document.model');
+      const { VectorStore } = await import('../models/VectorStore.model');
+
+      const totalDocuments = await Document.countDocuments();
+
+      // Get all vector stores (excluding system-created ones for populate safety)
+      let vectorStores = await VectorStore.find({ createdBy: { $ne: 'system' } }).populate('createdBy', 'name email');
+
+      // Ensure main vector store is included
+      const mainVectorStoreId = process.env.MAIN_VECTOR_STORE_ID || ' ';
+      const mainVectorStoreExists = vectorStores.some(store => store.openaiVectorStoreId === mainVectorStoreId);
+      if (!mainVectorStoreExists) {
+        try {
+          // Create the main vector store record in database
+          const mainVectorStore = await VectorStore.create({
+            openaiVectorStoreId: mainVectorStoreId,
+            name: 'MSME Knowledge Base',
+            description: 'Main knowledge base for MSME DPR assistance',
+            fileCount: 0,
+            totalSize: 0,
+            status: 'ready',
+            createdBy: 'system',
+            metadata: {
+              isDefault: true,
+              purpose: 'dpr-assistance',
+              category: 'general'
+            }
+          });
+          // Add main vector store without populating createdBy
+          vectorStores.push({
+            ...mainVectorStore.toObject(),
+            createdBy: { name: 'System', email: 'system@msme-dpr.com' }
+          });
+        } catch (error: any) {
+          if (error.code === 11000) {
+            // Vector store already exists, fetch it instead
+            console.log('Vector store already exists, fetching from database...');
+            const mainVectorStoreId = process.env.MAIN_VECTOR_STORE_ID || ' ';
+            const existingVectorStore = await VectorStore.findOne({ 
+              openaiVectorStoreId: mainVectorStoreId 
+            });
+            if (existingVectorStore) {
+              vectorStores.push({
+                ...existingVectorStore.toObject(),
+                createdBy: { name: 'System', email: 'system@msme-dpr.com' }
+              });
+            }
+          } else {
+            throw error;
+          }
+        }
+      }
+
+      // Calculate knowledge base size
+      const documentsWithSize = await Document.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalSize: { $sum: '$fileSize' },
+            templateCount: {
+              $sum: {
+                $cond: ['$metadata.isTemplate', 1, 0]
+              }
+            }
+          }
+        }
+      ]);
+
+      const knowledgeBaseSize = documentsWithSize[0]?.totalSize || 0;
+      const templateCount = documentsWithSize[0]?.templateCount || 0;
+
       res.status(200).json({
         success: true,
         data: {
@@ -153,6 +225,10 @@ export class AdminController {
             avgQualityScore: dprQualityStats[0]?.avgQualityScore?.toFixed(2) || 0,
             avgBankabilityScore: dprQualityStats[0]?.avgBankabilityScore?.toFixed(2) || 0,
             totalAnalytics: dprQualityStats[0]?.totalAnalytics || 0,
+            totalDocuments,
+            vectorStoreCount: vectorStores.length,
+            knowledgeBaseSize,
+            templateCount,
           },
           projectsBySector,
           projectsByLocation,
@@ -162,6 +238,7 @@ export class AdminController {
           fundingOutcomes,
           sectorDPRPerformance,
           mlInsights,
+          vectorStores,
         },
       });
     } catch (error: any) {

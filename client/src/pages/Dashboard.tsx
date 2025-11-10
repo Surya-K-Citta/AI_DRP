@@ -104,7 +104,7 @@ export const Dashboard: React.FC = () => {
             <CardTitle>{t('dashboard.quickActions')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
               <Button
                 onClick={() => navigate('/projects/create')}
                 className="h-24 flex-col"
@@ -112,14 +112,14 @@ export const Dashboard: React.FC = () => {
                 <FolderPlus className="h-8 w-8 mb-2" />
                 {t('dashboard.createNewProject')}
               </Button>
-              <Button
+              {/* <Button
                 onClick={() => navigate('/schemes')}
                 variant="outline"
                 className="h-24 flex-col"
               >
                 <FileText className="h-8 w-8 mb-2" />
                 {t('dashboard.viewSchemes')}
-              </Button>
+              </Button> */}
               <Button
                 onClick={() => navigate('/chat')}
                 variant="outline"

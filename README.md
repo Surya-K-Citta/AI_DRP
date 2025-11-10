@@ -168,6 +168,115 @@ AP_MSME_API_KEY=your-ap-msme-api-key
 VITE_API_URL=http://localhost:5000/api
 ```
 
+### RAG Setup (Optional)
+To enable RAG functionality, ensure you have:
+1. **OpenAI API Key** with access to Assistants API and File Search
+2. **Sufficient API Credits** for vector store operations
+3. **Upload Directory**: The server will create an `uploads/` directory automatically
+
+#### Quick RAG Setup:
+1. **Login as Admin** and navigate to `/admin/documents`
+2. **Upload Documents**: Start by uploading DPR templates, government schemes, or policy documents
+3. **Create Vector Stores**: Organize documents into logical knowledge bases
+4. **Enable RAG in Chat**: Toggle "RAG On" in the chat interface to use document context
+5. **Test Queries**: Ask questions and see AI responses based on uploaded content
+
+#### Document Types for RAG:
+- **DPR Templates**: Sample DPR formats and structures
+- **Government Schemes**: Policy documents and eligibility criteria
+- **Guidelines**: Step-by-step instructions and best practices
+- **Industry Reports**: Market analysis and sector insights
+
+### Environment Variables for RAG
+```env
+# Server (.env)
+OPENAI_API_KEY=your-openai-api-key
+AP_MSME_API_URL=https://apmsme.ap.gov.in/api
+AP_MSME_API_KEY=your-ap-msme-api-key
+
+# File upload configuration
+MAX_FILE_SIZE=52428800  # 50MB in bytes
+UPLOAD_DIR=uploads
+ALLOWED_FILE_TYPES=pdf,doc,docx,txt,md,rtf
+```
+
+**Note**: If `OPENAI_API_KEY` is not set in the environment, the system will use the default API key for development. For production, always set your own OpenAI API key.
+
+## 🔑 OpenAI API Key Setup
+
+The system requires an OpenAI API key for all AI functionality including:
+- DPR generation
+- AI chat assistance
+- RAG (Retrieval-Augmented Generation)
+- Vector store operations
+- File search capabilities
+
+### Development Setup:
+1. **Use Default Key**: The system includes a fallback API key for development
+2. **Environment Variable**: Set `OPENAI_API_KEY` in your `.env` file
+3. **Production**: Always use your own OpenAI API key
+
+### Required Permissions:
+- **Assistants API**: For AI chat and DPR generation
+- **File Search**: For RAG functionality
+- **Vector Stores**: For document storage and retrieval
+
+**Get your API key**: [OpenAI Platform](https://platform.openai.com/account/api-keys)
+
+## 📚 RAG Implementation with Specific Vector Store
+
+The system uses a dedicated vector store for all document processing and RAG operations:
+
+### Main Vector Store Configuration
+- **Vector Store ID**: ` `
+- **Name**: MSME Knowledge Base
+- **Purpose**: Primary knowledge base for DPR assistance and AI responses
+- **Auto-Assignment**: All uploaded documents are automatically added to this vector store
+- **Creation Disabled**: Vector store creation is disabled to maintain consistency with the dedicated store
+
+### RAG Workflow
+1. **Document Upload**: Admins upload documents through `/admin/documents`
+2. **Automatic Processing**: Documents are processed and added to the main vector store
+3. **AI Integration**: Chat interface uses RAG by default with this vector store
+4. **Context-Aware Responses**: AI responses are based on uploaded document content
+
+### Testing RAG Implementation
+```bash
+# 1. Upload a document as admin
+curl -X POST http://localhost:5000/api/documents/upload \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -F "file=@sample-dpr.pdf" \
+  -F "description=Sample DPR template" \
+  -F "category=dpr-templates"
+
+# 2. Chat with RAG enabled (automatically uses main vector store)
+curl -X POST http://localhost:5000/api/ai/chat \
+  -H "Authorization: Bearer YOUR_USER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "How do I format my DPR?",
+    "useRAG": true
+  }'
+
+# 3. Check vector store status
+curl -X GET http://localhost:5000/api/documents/vector-stores/list \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+### Implementation Status
+✅ **RAG System**: Fully implemented and configured  
+✅ **Vector Store**: Using dedicated MSME Knowledge Base  
+✅ **Document Processing**: Automatic upload and processing  
+✅ **API Integration**: Complete OpenAI integration  
+✅ **Admin Interface**: Document management UI ready  
+✅ **Chat Integration**: RAG-enabled chat interface  
+
+### Expected Behavior
+- All uploaded documents are automatically added to ` `
+- Chat interface uses RAG by default when documents are available
+- AI responses are based on uploaded document content with source citations
+- Vector store creation is disabled to maintain consistency
+
 ## 📊 API Endpoints
 
 ### Authentication
@@ -188,8 +297,19 @@ VITE_API_URL=http://localhost:5000/api
 - `GET /api/dpr/:dprId/download/docx` - Download DOCX
 
 ### AI Assistant
-- `POST /api/ai/chat` - Chat with AI assistant
+- `POST /api/ai/chat` - Chat with AI assistant (supports RAG)
 - `POST /api/ai/transcribe` - Transcribe audio
+
+### Document Management & RAG
+- `POST /api/documents/upload` - Upload document for RAG processing
+- `GET /api/documents` - List all documents with filtering
+- `GET /api/documents/:documentId` - Get document details
+- `DELETE /api/documents/:documentId` - Delete document
+- `GET /api/documents/vector-stores/list` - List vector stores
+- `POST /api/documents/vector-stores/create` - Create vector store
+- `DELETE /api/documents/vector-stores/:vectorStoreId` - Delete vector store
+- `POST /api/documents/search` - Search documents using RAG
+- `POST /api/documents/rag/query` - Query with RAG using Responses API
 
 ### Analytics
 - `GET /api/dpr/analytics/:projectId` - Get DPR analytics
@@ -225,6 +345,34 @@ VITE_API_URL=http://localhost:5000/api
 - **Eligibility Checking**: Automatic verification
 - **Application Tracking**: Status monitoring
 - **Financial Institution Directory**: Bank and lender information
+
+## 🤖 Retrieval-Augmented Generation (RAG)
+
+### Document Management System
+- **Admin Document Upload**: Secure document upload interface for administrators
+- **Multiple File Formats**: Support for PDF, DOC, DOCX, TXT, MD, RTF files (up to 50MB)
+- **OpenAI Vector Store Integration**: Automatic integration with OpenAI's vector stores
+- **File Search & Retrieval**: Real-time document search and retrieval capabilities
+
+### RAG-Enhanced AI Chat
+- **Context-Aware Responses**: AI responses based on uploaded document content
+- **Source Citations**: Automatic citation of document sources in responses
+- **Knowledge Base Selection**: Choose specific vector stores for targeted queries
+- **Template-Based Guidance**: AI follows formats from uploaded template documents
+
+### Vector Store Management
+- **Create Vector Stores**: Organize documents into logical knowledge bases
+- **Batch Processing**: Efficient processing of multiple documents
+- **Status Monitoring**: Real-time tracking of document processing status
+- **Admin Dashboard Integration**: Comprehensive RAG analytics and metrics
+
+### API Endpoints
+- `POST /api/documents/upload` - Upload document for RAG processing
+- `GET /api/documents` - List all documents with filtering
+- `POST /api/documents/search` - Search documents using RAG
+- `POST /api/documents/rag/query` - Query with RAG using Responses API
+- `GET /api/documents/vector-stores/list` - List vector stores
+- `POST /api/ai/chat` - Enhanced chat with RAG support (useRAG parameter)
 
 ## 🌐 Internationalization
 

@@ -8,11 +8,17 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 export class AIController {
   /**
-   * Chat with AI assistant
+   * Chat with AI assistant (supports RAG)
    */
   static async chat(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { message, conversationHistory = [], userContext } = req.body;
+      const {
+        message,
+        conversationHistory = [],
+        userContext,
+        useRAG = false,
+        vectorStoreIds
+      } = req.body;
 
       if (!message) {
         res.status(400).json({
@@ -25,7 +31,9 @@ export class AIController {
       const result = await OpenAIService.chatResponse(
         message,
         conversationHistory,
-        userContext
+        userContext,
+        useRAG,
+        vectorStoreIds
       );
 
       res.status(200).json({
@@ -34,6 +42,10 @@ export class AIController {
           response: result.response,
           suggestions: result.suggestions,
           nextSteps: result.nextSteps,
+          ragContext: result.ragContext,
+          dprAction: result.dprAction,
+          dprQuestions: result.dprQuestions,
+          templateStructure: result.templateStructure,
           timestamp: new Date(),
         },
       });

@@ -3,7 +3,24 @@ import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Users, FolderOpen, Star, TrendingUp, Award, Target, DollarSign, CheckCircle, AlertCircle, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
+import {
+  Users,
+  FolderOpen,
+  Star,
+  TrendingUp,
+  Award,
+  Target,
+  DollarSign,
+  CheckCircle,
+  AlertCircle,
+  BarChart3,
+  PieChart as PieChartIcon,
+  Database,
+  FileText,
+  HardDrive,
+  MessageSquare,
+  Clock
+} from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line, Area, AreaChart, ScatterChart, Scatter } from 'recharts';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -39,6 +56,14 @@ export const AdminDashboard: React.FC = () => {
   }
 
   const summary = analytics?.summary || {};
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   return (
     <Layout>
@@ -292,6 +317,75 @@ export const AdminDashboard: React.FC = () => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+
+        {/* RAG and Document Analytics */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Vector Stores & Knowledge Base</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Active Vector Stores</p>
+                    <h3 className="text-2xl font-bold">{analytics?.vectorStores?.length || 0}</h3>
+                  </div>
+                  <Database className="h-8 w-8 text-purple-500 opacity-20" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Documents</p>
+                    <h3 className="text-2xl font-bold">{analytics?.totalDocuments || 0}</h3>
+                  </div>
+                  <FileText className="h-8 w-8 text-blue-500 opacity-20" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Knowledge Base Size</p>
+                    <h3 className="text-2xl font-bold">
+                      {analytics?.knowledgeBaseSize ? formatFileSize(analytics.knowledgeBaseSize) : '0 MB'}
+                    </h3>
+                  </div>
+                  <HardDrive className="h-8 w-8 text-green-500 opacity-20" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>RAG Performance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">RAG Queries Today</p>
+                    <h3 className="text-2xl font-bold">{analytics?.ragQueriesToday || 0}</h3>
+                  </div>
+                  <MessageSquare className="h-8 w-8 text-orange-500 opacity-20" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Avg Response Time</p>
+                    <h3 className="text-2xl font-bold">
+                      {analytics?.avgResponseTime ? `${analytics.avgResponseTime}ms` : 'N/A'}
+                    </h3>
+                  </div>
+                  <Clock className="h-8 w-8 text-red-500 opacity-20" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Document Templates</p>
+                    <h3 className="text-2xl font-bold">{analytics?.templateCount || 0}</h3>
+                  </div>
+                  <FileText className="h-8 w-8 text-indigo-500 opacity-20" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Recent Projects */}
         <Card>

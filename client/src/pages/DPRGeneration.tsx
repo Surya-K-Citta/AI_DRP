@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Download, FileText, Loader2 } from 'lucide-react';
 import { downloadBlob } from '@/lib/utils';
+import { FormattedText } from '@/utils/textFormatter';
 
 export const DPRGeneration: React.FC = () => {
   const { t } = useTranslation();
@@ -28,7 +29,7 @@ export const DPRGeneration: React.FC = () => {
   const loadProject = async () => {
     try {
       const response = await api.getProject(projectId!);
-      setProject(response.data);
+      setProject(response.data || response);
     } catch (error) {
       toast.error('Failed to load project');
     }
@@ -37,8 +38,9 @@ export const DPRGeneration: React.FC = () => {
   const loadExistingDPRs = async () => {
     try {
       const response = await api.getProjectDPRs(projectId!);
-      if (response.data && response.data.length > 0) {
-        setDpr(response.data[0]);
+      const dprs = response.data || response;
+      if (Array.isArray(dprs) && dprs.length > 0) {
+        setDpr(dprs[0]);
       }
     } catch (error) {
       console.log('No existing DPRs');
@@ -49,7 +51,8 @@ export const DPRGeneration: React.FC = () => {
     setIsGenerating(true);
     try {
       const response = await api.generateDPR(projectId!, selectedLanguage);
-      setDpr(response.data);
+      const dpr = response.data || response;
+      setDpr(dpr);
       toast.success(t('dpr.generationSuccess'));
     } catch (error) {
       toast.error('Failed to generate DPR');
@@ -61,7 +64,13 @@ export const DPRGeneration: React.FC = () => {
   const handleDownloadPDF = async () => {
     setIsDownloading(true);
     try {
-      const blob = await api.downloadPDF(dpr.dprId, viewLanguage);
+      // Handle both dprId (from generateDPR) and _id (from getProjectDPRs)
+      const dprId = dpr.dprId || dpr._id;
+      if (!dprId) {
+        toast.error('DPR ID not found');
+        return;
+      }
+      const blob = await api.downloadPDF(dprId, viewLanguage);
       downloadBlob(blob, `DPR_${project.projectName}_${viewLanguage}.pdf`);
       toast.success('PDF downloaded successfully!');
     } catch (error) {
@@ -74,7 +83,13 @@ export const DPRGeneration: React.FC = () => {
   const handleDownloadDOCX = async () => {
     setIsDownloading(true);
     try {
-      const blob = await api.downloadDOCX(dpr.dprId, viewLanguage);
+      // Handle both dprId (from generateDPR) and _id (from getProjectDPRs)
+      const dprId = dpr.dprId || dpr._id;
+      if (!dprId) {
+        toast.error('DPR ID not found');
+        return;
+      }
+      const blob = await api.downloadDOCX(dprId, viewLanguage);
       downloadBlob(blob, `DPR_${project.projectName}_${viewLanguage}.docx`);
       toast.success('DOCX downloaded successfully!');
     } catch (error) {
@@ -156,8 +171,8 @@ export const DPRGeneration: React.FC = () => {
                       DPR Generated Successfully
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Version {dpr.versionNumber} • Generated on{' '}
-                      {new Date(dpr.generatedAt).toLocaleDateString()}
+                      Version {dpr.versionNumber || 1} • Generated on{' '}
+                      {new Date(dpr.generatedAt || dpr.createdAt || new Date()).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex space-x-2">
@@ -198,9 +213,11 @@ export const DPRGeneration: React.FC = () => {
                           <CardTitle className="text-lg">{title}</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="whitespace-pre-wrap text-sm">
-                            {dpr.content[viewLanguage]?.[key] || 'Content not available'}
-                          </p>
+                          <div className="text-sm text-gray-700">
+                            <FormattedText 
+                              text={dpr.content[viewLanguage]?.[key] || 'Content not available'} 
+                            />
+                          </div>
                         </CardContent>
                       </Card>
                     )
