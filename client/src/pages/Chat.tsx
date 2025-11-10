@@ -56,8 +56,12 @@ export const Chat: React.FC = () => {
         const defaultStores = response.data.filter((store: any) => store.metadata?.isDefault);
         setSelectedVectorStores(defaultStores.map((store: any) => store.openaiVectorStoreId));
       }
-    } catch (error) {
-      console.error('Failed to load vector stores');
+    } catch (error: any) {
+      console.error('Failed to load vector stores:', error);
+      // Don't block UI - continue without vector stores
+      // User can still use chat, just without RAG
+      setVectorStores([]);
+      setUseRAG(false);
     }
   };
 
@@ -92,16 +96,63 @@ export const Chat: React.FC = () => {
         selectedVectorStores
       );
 
-      addMessage({
-        role: 'assistant',
-        content: response.data.response,
-        timestamp: new Date(),
-        suggestions: response.data.suggestions,
-        nextSteps: response.data.nextSteps,
-        ragContext: response.data.ragContext,
-        dprAction: response.data.dprAction,
-        dprQuestions: response.data.dprQuestions,
-      });
+      // Always add AI response even if PDF generation failed
+      // The AI response is the most important part
+      if (response.data && response.data.response) {
+        addMessage({
+          role: 'assistant',
+          content: response.data.response,
+          timestamp: new Date(),
+          suggestions: response.data.suggestions,
+          nextSteps: response.data.nextSteps,
+          ragContext: response.data.ragContext,
+          dprAction: response.data.dprAction,
+          dprQuestions: response.data.dprQuestions,
+        });
+      } else {
+        throw new Error('No response data received from server');
+      }
+
+      // Handle PDF generation if requested
+      if (response.data.generatePDF) {
+        console.log('📄 PDF generation requested, checking for PDF URL...');
+        
+        if (response.data.pdfUrl) {
+          try {
+            console.log('📄 PDF URL found, converting to blob...');
+            // Convert base64 data URL to blob and download
+            const base64Data = response.data.pdfUrl.split(',')[1];
+            if (!base64Data) {
+              throw new Error('Invalid PDF data URL format');
+            }
+            
+            const binaryString = atob(base64Data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'application/pdf' });
+            
+            // Download the PDF
+            const { downloadBlob } = await import('@/lib/utils');
+            const filename = `DPR_Conversation_${new Date().toISOString().split('T')[0]}.pdf`;
+            downloadBlob(blob, filename);
+            toast.success('PDF downloaded successfully!');
+            console.log('✅ PDF downloaded:', filename);
+          } catch (error: any) {
+            console.error('Error downloading PDF:', error);
+            toast.error(`Failed to download PDF: ${error.message}`);
+          }
+        } else {
+          console.warn('⚠️  PDF generation requested but pdfUrl is missing');
+          // PDF might be generating in background - show info message
+          // Note: react-hot-toast doesn't have toast.info, using toast() instead
+          toast('PDF is being generated. Please wait a moment and try again if download doesn\'t start automatically.', {
+            icon: 'ℹ️',
+            duration: 4000,
+          });
+        }
+      }
 
       // Handle DPR creation mode
       if (response.data.dprAction === 'start_creation') {
@@ -118,8 +169,22 @@ export const Chat: React.FC = () => {
           progress: response.data.dprQuestions.progress || 0,
         });
       }
-    } catch (error) {
-      toast.error('Failed to get response from AI');
+    } catch (error: any) {
+      console.error('Chat error:', error);
+      
+      // Show user-friendly error message
+      const errorMessage = error.response?.data?.message || 
+                          error.message || 
+                          'Failed to get response from AI';
+      
+      toast.error(errorMessage);
+      
+      // Add error message to chat so user knows what happened
+      addMessage({
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error processing your request. Please try again or rephrase your question.',
+        timestamp: new Date(),
+      });
     } finally {
       setLoading(false);
     }

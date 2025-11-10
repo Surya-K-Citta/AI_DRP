@@ -71,6 +71,12 @@ const startServer = async () => {
     // Seed initial schemes (optional)
     await seedSchemes();
 
+    // Pre-warm RAG assistant cache (eliminates 5-10s overhead on first request)
+    const { preWarmAssistantCache } = await import('./services/openai.service');
+    preWarmAssistantCache().catch(err => {
+      console.warn('⚠️  Assistant pre-warming failed (non-critical):', err.message);
+    });
+
     // Start listening
     app.listen(PORT, () => {
       console.log(`\n🚀 Server is running on port ${PORT}`);

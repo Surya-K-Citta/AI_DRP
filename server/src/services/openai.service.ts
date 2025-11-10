@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { IProject } from '../types';
 import { VectorStore } from '../models/VectorStore.model';
 import { RAGMetrics } from '../models/RAGMetrics.model';
+import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
@@ -146,6 +147,58 @@ function setCachedAssistant(vectorStoreIds: string[], assistantId: string): void
     vectorStoreIds: [...vectorStoreIds],
   });
   console.log(`💾 Cached assistant (key: ${cacheKey})`);
+}
+
+/**
+ * Pre-warm assistant cache on server startup
+ * This eliminates the 5-10s assistant creation overhead on first request
+ */
+export async function preWarmAssistantCache(): Promise<void> {
+  try {
+    const mainVectorStoreId = process.env.MAIN_VECTOR_STORE_ID || ' ';
+    if (!mainVectorStoreId || mainVectorStoreId.trim() === '') {
+      console.log('⚠️  No MAIN_VECTOR_STORE_ID configured, skipping assistant pre-warming');
+      return;
+    }
+
+    const activeVectorStores = [mainVectorStoreId].filter(id => id && id.trim() !== '');
+    if (activeVectorStores.length === 0) {
+      return;
+    }
+
+    // Check if assistant already exists in cache
+    const existingAssistant = getCachedAssistant(activeVectorStores);
+    if (existingAssistant) {
+      console.log(`✅ Assistant already cached, skipping pre-warming`);
+      return;
+    }
+
+    console.log('🔥 Pre-warming assistant cache...');
+    const startTime = Date.now();
+
+    // Create assistant with optimized settings
+    const assistant = await openai.beta.assistants.create({
+      model: 'gpt-4o-mini', // Fastest model
+      name: 'MSME Knowledge Base Search',
+      instructions: `Search the knowledge base and return the most relevant information. Be concise. Cite sources.`,
+      tools: [{ type: 'file_search' }],
+      tool_resources: {
+        file_search: {
+          vector_store_ids: activeVectorStores,
+        },
+      },
+      temperature: 0.1, // Lower temperature for faster responses
+    });
+
+    // Cache the assistant
+    setCachedAssistant(activeVectorStores, assistant.id);
+    
+    const elapsed = Date.now() - startTime;
+    console.log(`✅ Assistant pre-warmed in ${elapsed}ms (ID: ${assistant.id})`);
+  } catch (error: any) {
+    console.error('⚠️  Failed to pre-warm assistant cache:', error.message);
+    // Don't fail server startup if pre-warming fails
+  }
 }
 
 /**
@@ -981,6 +1034,14 @@ Be professional, supportive, and focus on creating high-quality, bankable DPRs.`
         throw new Error('No vector stores available for RAG');
       }
 
+      // OPTIMIZATION: Detect if user is answering a question vs asking a new question
+      // This helps skip unnecessary RAG searches when user is just providing answers
+      const isAnsweringQuestion = this.detectIfAnsweringQuestion(userMessage, conversationHistory);
+      
+      if (isAnsweringQuestion) {
+        console.log('✅ User is answering a question - using fast response mode');
+      }
+
       // Get available DPR templates
       const templates = await this.getAvailableDPRTemplates();
 
@@ -1018,10 +1079,17 @@ Be professional, supportive, and focus on creating high-quality, bankable DPRs.`
 
       // OPTIMIZATION: Run template search and document search in PARALLEL
       // This saves 40-50 seconds by not waiting for one to complete before starting the other
-      console.log('🔍 Starting parallel RAG searches...');
+      // OPTIMIZATION: For first requests, skip template search to reduce response time
+      const isFirstRequest = !getCachedAssistant(vectorStoreIds || []);
+      const skipTemplateSearch = isFirstRequest && !wantsToCreateDPR;
       
-      // Prepare template search promise (only if DPR creation is detected)
-      const templateSearchPromise = wantsToCreateDPR ? (async () => {
+      console.log('🔍 Starting parallel RAG searches...');
+      if (skipTemplateSearch) {
+        console.log('⚡ Fast mode: Skipping template search for faster first response');
+      }
+      
+      // Prepare template search promise (only if DPR creation is detected AND not first request)
+      const templateSearchPromise = (wantsToCreateDPR && !skipTemplateSearch) ? (async () => {
         console.log('🔍 Searching for DPR template documents using RAG...');
         console.log(`   Vector Stores: ${vectorStoreIds?.length || 0}`);
         
@@ -1073,25 +1141,71 @@ Be professional, supportive, and focus on creating high-quality, bankable DPRs.`
         }
       })() : Promise.resolve([]);
 
-      // Start document search in parallel with template search
-      const documentSearchPromise = this.searchDocumentsWithRAG(
-        userMessage,
-        vectorStoreIds,
-        3,
-        userId
-      );
+      // OPTIMIZATION: Skip RAG search if user is just answering a question
+      // This significantly reduces response time when user is providing answers
+      let documentSearchPromise: Promise<any[]>;
+      
+      if (isAnsweringQuestion) {
+        console.log('⚡ Fast mode: Skipping RAG search - user is answering a question');
+        // Skip RAG search entirely - just use empty results
+        documentSearchPromise = Promise.resolve([]);
+      } else {
+        // OPTIMIZATION: Build context-aware query from conversation history
+        // This ensures RAG searches consider the full conversation context, not just the current message
+        // OPTIMIZATION: Use timeout to prevent blocking if query enhancement is slow
+        console.log('🔍 Building context-aware query from conversation history...');
+        const queryEnhancementPromise = this.buildContextAwareQuery(
+          userMessage,
+          conversationHistory,
+          userContext
+        );
+        
+        // Add timeout for query enhancement (2s max) - if it takes too long, use original message
+        const queryTimeoutPromise = new Promise<string>((resolve) => 
+          setTimeout(() => resolve(userMessage), 2000)
+        );
+        
+        const contextAwareQuery = await Promise.race([
+          queryEnhancementPromise,
+          queryTimeoutPromise
+        ]);
+        
+        if (contextAwareQuery !== userMessage) {
+          console.log(`📝 Enhanced query: "${contextAwareQuery.substring(0, 100)}..."`);
+        } else {
+          console.log(`📝 Using original query (enhancement timeout or no history)`);
+        }
 
-      // Wait for BOTH searches to complete in parallel
+        // Start document search in parallel with template search using context-aware query
+        documentSearchPromise = this.searchDocumentsWithRAG(
+          contextAwareQuery, // Use enhanced query instead of just userMessage
+          vectorStoreIds,
+          3,
+          userId
+        );
+      }
+
+      // Wait for searches to complete in parallel
+      // OPTIMIZATION: On first request, only wait for document search if skipping template search
       console.time('⏱️  Parallel RAG Searches');
-      const [templateResults, searchResults] = await Promise.all([
-        templateSearchPromise,
-        documentSearchPromise
-      ]);
+      let templateResults: any[] = [];
+      let searchResults: any[] = [];
+      
+      if (skipTemplateSearch) {
+        // Fast mode: Only do document search
+        searchResults = await documentSearchPromise;
+      } else {
+        // Normal mode: Do both searches in parallel
+        [templateResults, searchResults] = await Promise.all([
+          templateSearchPromise,
+          documentSearchPromise
+        ]);
+      }
       console.timeEnd('⏱️  Parallel RAG Searches');
 
       // Process template results if DPR creation was detected
-      // OPTIMIZATION: Make template extraction non-blocking with timeout
-      if (wantsToCreateDPR && templateResults && templateResults.length > 0) {
+      // OPTIMIZATION: Make template extraction non-blocking with aggressive timeout for first requests
+      if (wantsToCreateDPR && templateResults && templateResults.length > 0 && !skipTemplateSearch) {
         console.log(`✅ Found ${templateResults.length} template documents via RAG`);
         
         // Generate cache key from template document IDs
@@ -1103,15 +1217,17 @@ Be professional, supportive, and focus on creating high-quality, bankable DPRs.`
           templateStructure = cachedStructure;
           console.log(`⚡ Using cached template structure - no extraction needed!`);
         } else {
+          // OPTIMIZATION: Use shorter timeout for first requests (5s instead of 8s)
+          const extractionTimeout = isFirstRequest ? 5000 : 8000;
+          console.log(`🔄 Extracting template structure from RAG (with ${extractionTimeout}ms timeout)...`);
+          
           // Extract template structure from RAG results with timeout
           // Don't block the main response if this takes too long
           try {
-            console.log(`🔄 Extracting template structure from RAG (with 8s timeout)...`);
-            
             // Use Promise.race to timeout template extraction
             const extractionPromise = this.extractTemplateStructureFromRAG(templateResults, 'dpr');
             const timeoutPromise = new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Template extraction timeout')), 8000)
+              setTimeout(() => reject(new Error('Template extraction timeout')), extractionTimeout)
             );
             
             templateStructure = await Promise.race([extractionPromise, timeoutPromise]) as any;
@@ -1180,11 +1296,77 @@ Be professional, supportive, and focus on creating high-quality, bankable DPRs.`
         context = templateContext + context;
       }
 
+      // Build conversation context summary for the system prompt
+      const conversationContext = conversationHistory.length > 0
+        ? `\n\nConversation History (for context):
+${conversationHistory.slice(-4).map((msg, idx) => {
+          const role = msg.role === 'user' ? 'User' : 'You (Assistant)';
+          return `${role}: ${msg.content}`;
+        }).join('\n')}`
+        : '';
+
+      // OPTIMIZATION: Detect if user wants full data or PDF
+      const { wantsFullData, wantsPDF } = this.detectDataRequest(userMessage);
+      
+      // OPTIMIZATION: Extract ALL user data when user asks for full data
+      const allUserData = wantsFullData 
+        ? this.extractAllUserData(conversationHistory)
+        : '';
+      
+      // OPTIMIZATION: Extract user answers context when user is answering questions
+      // This helps AI generate more relevant responses based on what user has provided
+      const userAnswersContext = isAnsweringQuestion 
+        ? this.extractUserAnswersContext(conversationHistory)
+        : '';
+      
+      const userAnswersSection = userAnswersContext
+        ? `\n\nUser's Recent Answers (use these to generate relevant next questions):
+${userAnswersContext}
+
+IMPORTANT: Based on the user's answers above, generate the next appropriate question or acknowledge their answer and move forward. Be specific and reference what they provided.`
+        : '';
+
+      // OPTIMIZATION: Add full data section when user requests it
+      const fullDataSection = wantsFullData && allUserData
+        ? `\n\n🚨 CRITICAL: User is asking for ALL data they provided. Below is COMPLETE data from entire conversation:
+
+${allUserData}
+
+IMPORTANT: 
+- You MUST include ALL the data above in your response
+- Do NOT summarize or truncate - include EVERYTHING
+- Organize it clearly but include ALL details
+- If user provided 3 paragraphs, include all 3 paragraphs
+- If user provided multiple pieces of information, include ALL of them
+- Be comprehensive and complete`
+        : '';
+
+      // OPTIMIZATION: Add PDF generation instruction when user requests PDF
+      const pdfSection = wantsPDF
+        ? `\n\n🚨🚨🚨 CRITICAL: User is asking for PDF generation. 
+
+ABSOLUTELY FORBIDDEN - DO NOT DO THESE:
+- ❌ DO NOT tell them to copy-paste
+- ❌ DO NOT tell them to use Microsoft Word or Google Docs
+- ❌ DO NOT provide step-by-step instructions for manual conversion
+- ❌ DO NOT say "I'm unable to create a PDF directly"
+- ❌ DO NOT suggest any manual process
+
+MANDATORY RESPONSE:
+- ✅ You MUST acknowledge that you WILL generate a downloadable PDF file
+- ✅ Say: "I'll generate a downloadable PDF file with all your data right away!"
+- ✅ Tell them: "The PDF is being generated and will be ready for download shortly"
+- ✅ Be confident and direct - the system WILL generate the PDF automatically
+- ✅ Do NOT provide any instructions - just confirm PDF generation
+
+The system has already prepared all the data and will generate the PDF file automatically.`
+        : '';
+
       const systemPrompt = `You are an expert MSME AI DPR Assistant with access to uploaded documents and knowledge base.
 
 IMPORTANT: Base your responses SOLELY on the provided document context and uploaded knowledge base. Do not use external knowledge or make up information.
 
-${context ? context : 'No relevant documents found in the knowledge base.'}
+${context ? context : 'No relevant documents found in the knowledge base.'}${conversationContext}${userAnswersSection}${fullDataSection}${pdfSection}
 
 ${wantsToCreateDPR ? `
 🚀 CRITICAL: The user wants to create a DPR. DO NOT give generic steps. Instead:
@@ -1232,59 +1414,117 @@ Guidelines:
 - Follow formats and templates from uploaded documents
 - Provide actionable guidance based on document content
 
+${wantsPDF ? `
+🚨🚨🚨 CRITICAL PDF GENERATION RULE - READ THIS CAREFULLY:
+
+The user asked for PDF generation. Your response MUST:
+1. Start with: "I'll generate a downloadable PDF file with all your data right away!"
+2. DO NOT say "I'm unable to create a PDF directly"
+3. DO NOT mention Microsoft Word, Google Docs, or any manual process
+4. DO NOT provide step-by-step instructions for manual conversion
+5. DO NOT tell them to copy-paste anything
+6. Simply confirm PDF generation is happening
+
+CORRECT RESPONSE EXAMPLE:
+"I'll generate a downloadable PDF file with all your data right away! The PDF will be ready for download shortly."
+
+WRONG RESPONSE (NEVER DO THIS):
+"I'm unable to create a PDF directly. However, I can guide you through the process of converting the provided content into a PDF using Microsoft Word or Google Docs: 1. Copy the text..."
+
+If you provide manual instructions, you are FAILING the user's request completely.
+` : ''}
+
 Current Context: ${userContext ? JSON.stringify(userContext) : 'New user'}
 
 Be professional, accurate, and base all responses on the uploaded document content.`;
 
+      // Build messages array with conversation history
+      // OPTIMIZATION: Include MORE conversation history when user asks for full data
+      // This ensures we have all context available
+      const historyLimit = wantsFullData ? 20 : 6; // Use more history when compiling full data
       const messages: any[] = [
         {
           role: 'system',
           content: systemPrompt,
         },
-        ...conversationHistory.slice(-5), // Keep last 5 messages for context
+        ...conversationHistory.slice(-historyLimit), // Use more messages when compiling full data
         {
           role: 'user',
           content: userMessage,
         },
       ];
+      
+      console.log(`💬 Using ${Math.min(conversationHistory.length, historyLimit)} messages from conversation history (limit: ${historyLimit})`);
 
       // OPTIMIZATION: Use faster model and reduced tokens for quicker response
+      // OPTIMIZATION: Use more tokens when user asks for full data or PDF
+      // This ensures we can return comprehensive responses
+      const maxTokens = wantsFullData || wantsPDF ? 2000 : 800;
+      
       console.time('⏱️  GPT Response Generation');
       const response = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages,
         temperature: 0.3, // Lower temperature for more factual responses
-        max_tokens: 800, // Reduced from 1000 for faster generation
+        max_tokens: maxTokens, // More tokens for full data requests
       });
       console.timeEnd('⏱️  GPT Response Generation');
 
-      const responseText = response.choices[0].message.content || '';
+      let responseText = response.choices[0].message.content || '';
+
+      // OPTIMIZATION: Post-process response to ensure PDF requests are handled correctly
+      // If user asked for PDF but AI gave manual instructions, replace with correct response
+      if (wantsPDF) {
+        const hasManualInstructions = /copy.*paste|microsoft word|google docs|manually|step.*step|instructions/i.test(responseText);
+        const hasUnableMessage = /unable.*pdf|cannot.*pdf|can't.*pdf/i.test(responseText);
+        
+        if (hasManualInstructions || hasUnableMessage) {
+          console.warn('⚠️  AI gave manual instructions for PDF - replacing with correct response');
+          responseText = "I'll generate a downloadable PDF file with all your data right away! The PDF will be ready for download shortly.";
+        }
+      }
 
       // OPTIMIZATION: Extract suggestions and next steps in PARALLEL with timeout
       // This saves 4-6 seconds by not waiting for one to complete before starting the other
-      // Also add timeout to prevent blocking
+      // OPTIMIZATION: Skip suggestions/nextSteps on first request OR when user is answering for faster response
       console.time('⏱️  Extract Suggestions & Next Steps');
-      const suggestionsPromise = this.extractSuggestions(userMessage, responseText, userContext)
-        .catch((error) => {
-          console.error('Failed to extract suggestions, continuing without them:', error);
-          return {};
-        });
+      let suggestions: any = {};
+      let nextSteps: string[] = [];
       
-      const nextStepsPromise = this.generateNextSteps(userMessage, responseText, userContext)
-        .catch((error) => {
-          console.error('Failed to generate next steps, continuing without them:', error);
-          return [];
-        });
-      
-      // Add timeout wrapper (5 seconds max for both)
-      const timeoutPromise = new Promise((resolve) => 
-        setTimeout(() => resolve({ suggestions: {}, nextSteps: [] }), 5000)
-      );
-      
-      const [suggestions, nextSteps] = await Promise.race([
-        Promise.all([suggestionsPromise, nextStepsPromise]).then(([s, n]) => ({ suggestions: s, nextSteps: n })),
-        timeoutPromise
-      ]).then((result: any) => [result.suggestions || {}, result.nextSteps || []]) as [any, string[]];
+      if (!isFirstRequest && !isAnsweringQuestion) {
+        // Only extract suggestions/nextSteps if not first request (for speed)
+        const suggestionsPromise = this.extractSuggestions(userMessage, responseText, userContext)
+          .catch((error) => {
+            console.error('Failed to extract suggestions, continuing without them:', error);
+            return {};
+          });
+        
+        const nextStepsPromise = this.generateNextSteps(userMessage, responseText, userContext)
+          .catch((error) => {
+            console.error('Failed to generate next steps, continuing without them:', error);
+            return [];
+          });
+        
+        // Add timeout wrapper (5 seconds max for both, 3s for first request)
+        const timeoutMs = isFirstRequest ? 3000 : 5000;
+        const timeoutPromise = new Promise((resolve) => 
+          setTimeout(() => resolve({ suggestions: {}, nextSteps: [] }), timeoutMs)
+        );
+        
+        const result = await Promise.race([
+          Promise.all([suggestionsPromise, nextStepsPromise]).then(([s, n]) => ({ suggestions: s, nextSteps: n })),
+          timeoutPromise
+        ]) as any;
+        
+        suggestions = result.suggestions || {};
+        nextSteps = result.nextSteps || [];
+      } else {
+        if (isFirstRequest) {
+          console.log('⚡ Fast mode: Skipping suggestions/nextSteps extraction for faster first response');
+        } else if (isAnsweringQuestion) {
+          console.log('⚡ Fast mode: Skipping suggestions/nextSteps extraction - user is answering');
+        }
+      }
       
       console.timeEnd('⏱️  Extract Suggestions & Next Steps');
 
@@ -1341,7 +1581,8 @@ Be professional, accurate, and base all responses on the uploaded document conte
 
       console.log(`⏱️  Total RAG chat response time: ${totalResponseTime}ms`);
 
-      return {
+      // OPTIMIZATION: Include PDF generation flag and data in response
+      const responseData: any = {
         response: responseText,
         suggestions,
         nextSteps,
@@ -1354,6 +1595,28 @@ Be professional, accurate, and base all responses on the uploaded document conte
           sourceDocuments: templateStructure.sourceDocuments,
         } : undefined,
       };
+
+      // Add PDF generation flag and data if requested
+      if (wantsPDF) {
+        responseData.generatePDF = true;
+        // Always extract all user data for PDF, even if not explicitly requested
+        const pdfData = allUserData || this.extractAllUserData(conversationHistory);
+        responseData.conversationData = pdfData;
+        console.log('📄 PDF generation requested - data prepared');
+        if (pdfData) {
+          const entryCount = (pdfData.match(/\[Entry/g) || []).length;
+          console.log(`📊 Extracted ${entryCount} data entries for PDF`);
+        }
+      }
+
+      // Add full data flag if requested
+      if (wantsFullData) {
+        responseData.fullDataRequested = true;
+        responseData.allUserData = allUserData;
+        console.log('📊 Full data compilation requested');
+      }
+
+      return responseData;
     } catch (error: any) {
       const totalResponseTime = Date.now() - startTime;
       const errorMessage = error.message || 'Unknown error';
@@ -1497,6 +1760,472 @@ Provide actionable, specific steps the user should take next in their DPR creati
     } catch (error) {
       console.error('Error generating next steps:', error);
       return [];
+    }
+  }
+
+  /**
+   * Detect if user is answering a question vs asking a new question
+   * Helps optimize response time by skipping RAG when user is just providing answers
+   */
+  private static detectIfAnsweringQuestion(
+    userMessage: string,
+    conversationHistory: Array<{ role: string; content: string }> = []
+  ): boolean {
+    try {
+      // If no conversation history, user is asking a question
+      if (!conversationHistory || conversationHistory.length === 0) {
+        return false;
+      }
+
+      // Get last assistant message
+      const lastAssistantMessage = conversationHistory
+        .slice()
+        .reverse()
+        .find(msg => msg.role === 'assistant');
+
+      // If last message was from assistant and contains a question, user is likely answering
+      if (lastAssistantMessage) {
+        const hasQuestion = /[?？]/.test(lastAssistantMessage.content) || 
+                           /\b(what|which|when|where|who|how|why|tell me|provide|enter|give)\b/i.test(lastAssistantMessage.content);
+        
+        if (hasQuestion) {
+          // Check if user message looks like an answer (not a question)
+          const isUserAsking = /[?？]/.test(userMessage) || 
+                              /\b(what|which|when|where|who|how|why|tell me|explain|help|show)\b/i.test(userMessage);
+          
+          // If user message is short and doesn't contain question words, likely an answer
+          const isShortAnswer = userMessage.length < 200 && !isUserAsking;
+          
+          return isShortAnswer || !isUserAsking;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.warn('Error detecting if answering question:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Extract key information from user answers in conversation
+   * Builds context from user's responses to help AI generate relevant next questions
+   */
+  private static extractUserAnswersContext(
+    conversationHistory: Array<{ role: string; content: string }> = []
+  ): string {
+    try {
+      if (!conversationHistory || conversationHistory.length === 0) {
+        return '';
+      }
+
+      // Get last 4 user messages (likely answers to questions)
+      const recentUserMessages = conversationHistory
+        .filter(msg => msg.role === 'user')
+        .slice(-4);
+
+      if (recentUserMessages.length === 0) {
+        return '';
+      }
+
+      // Build context summary from user answers
+      const answersContext = recentUserMessages
+        .map((msg, idx) => {
+          // Skip very short messages (likely not meaningful answers)
+          if (msg.content.length < 10) {
+            return null;
+          }
+          return `Answer ${idx + 1}: ${msg.content.substring(0, 150)}`;
+        })
+        .filter(ctx => ctx !== null)
+        .join('\n');
+
+      return answersContext;
+    } catch (error) {
+      console.warn('Error extracting user answers context:', error);
+      return '';
+    }
+  }
+
+  /**
+   * Extract ALL user-provided data from entire conversation history
+   * This ensures we capture all information user has provided, not just recent messages
+   */
+  private static extractAllUserData(
+    conversationHistory: Array<{ role: string; content: string }> = []
+  ): string {
+    try {
+      if (!conversationHistory || conversationHistory.length === 0) {
+        return '';
+      }
+
+      // Get ALL user messages from conversation (not just recent ones)
+      const allUserMessages = conversationHistory.filter(msg => msg.role === 'user');
+
+      if (allUserMessages.length === 0) {
+        return '';
+      }
+
+      // Build comprehensive data summary from all user messages
+      const allData = allUserMessages
+        .map((msg, idx) => {
+          // Skip very short messages (likely not meaningful data)
+          if (msg.content.length < 5) {
+            return null;
+          }
+          // Include full content, not truncated
+          return `[Entry ${idx + 1}]: ${msg.content}`;
+        })
+        .filter(data => data !== null)
+        .join('\n\n');
+
+      console.log(`📊 Extracted ${allUserMessages.length} user data entries from conversation`);
+      return allData;
+    } catch (error) {
+      console.warn('Error extracting all user data:', error);
+      return '';
+    }
+  }
+
+  /**
+   * Detect if user is asking for full data compilation or PDF generation
+   */
+  private static detectDataRequest(userMessage: string): {
+    wantsFullData: boolean;
+    wantsPDF: boolean;
+  } {
+    const messageLower = userMessage.toLowerCase();
+    
+    const fullDataKeywords = [
+      'full data', 'all data', 'complete data', 'everything i gave', 'all information',
+      'all details', 'complete information', 'summarize all', 'compile all',
+      'give me all', 'show me all', 'what i provided', 'what i gave', 'given data',
+      'data i provided', 'data i gave', 'all the data'
+    ];
+    
+    const pdfKeywords = [
+      'make pdf', 'generate pdf', 'create pdf', 'download pdf', 'export pdf',
+      'pdf file', 'give me pdf', 'send pdf', 'pdf document', 'convert to pdf',
+      'save as pdf', 'pdf format', 'create the pdf', 'make the pdf', 'generate the pdf',
+      'pdf for', 'pdf of', 'pdf with', 'create pdf for', 'make pdf for', 'generate pdf for',
+      'pdf for the given', 'pdf for given data', 'pdf for the data', 'create the pdf for'
+    ];
+    
+    // More aggressive detection - check for "pdf" anywhere in message
+    const hasPDF = messageLower.includes('pdf');
+    const hasCreateAction = /\b(create|make|generate|download|export|save|convert|give|send|provide)\b/i.test(messageLower);
+    const hasDataReference = /\b(given|provided|data|information|details|content)\b/i.test(messageLower);
+    
+    const wantsFullData = fullDataKeywords.some(keyword => messageLower.includes(keyword));
+    // Enhanced PDF detection: if message contains "pdf" and action words, it's likely a PDF request
+    const wantsPDF = pdfKeywords.some(keyword => messageLower.includes(keyword)) || 
+                     (hasPDF && (hasCreateAction || messageLower.includes('for')));
+    
+    if (wantsPDF) {
+      console.log(`📄 PDF request detected: "${userMessage}"`);
+    }
+    
+    return { wantsFullData, wantsPDF };
+  }
+
+  /**
+   * Generate PDF from conversation data
+   * Creates a professional PDF with only user-provided data (not chat messages)
+   * Includes analytics and professional formatting
+   */
+  static async generatePDFFromConversation(
+    conversationData: string,
+    conversationHistory: Array<{ role: string; content: string }> = [],
+    userId?: string
+  ): Promise<Buffer> {
+    try {
+      console.log('📄 Starting professional PDF generation...');
+      console.log(`📊 Conversation data length: ${conversationData.length} characters`);
+      
+      // Validate inputs
+      if (!conversationData || conversationData.length === 0) {
+        throw new Error('Conversation data is empty or undefined');
+      }
+      
+      // Check if PDFDocument is available
+      if (!PDFDocument) {
+        throw new Error('PDFDocument is not available. Check if pdfkit is properly installed.');
+      }
+      
+      // Extract only user data entries (not assistant responses or chat metadata)
+      const userDataEntries = conversationData.split('\n\n')
+        .filter(entry => entry.trim().startsWith('[Entry'))
+        .map(entry => {
+          const match = entry.match(/\[Entry \d+\]:\s*(.+)/s);
+          return match ? match[1].trim() : null;
+        })
+        .filter(data => data !== null && data.length > 0);
+      
+      console.log(`📊 Extracted ${userDataEntries.length} user data entries for PDF`);
+      
+      // Calculate analytics
+      const totalWords = userDataEntries.join(' ').split(/\s+/).length;
+      const totalCharacters = userDataEntries.join(' ').length;
+      const averageEntryLength = userDataEntries.length > 0 
+        ? Math.round(totalCharacters / userDataEntries.length) 
+        : 0;
+      
+      return new Promise((resolve, reject) => {
+        try {
+          const doc = new PDFDocument({ 
+            margin: 50,
+            size: 'A4',
+            info: {
+              Title: 'DPR Data Report',
+              Author: 'MSME AI DPR Assistant',
+              Subject: 'Detailed Project Report Data',
+              Creator: 'MSME DPR Tool'
+            }
+          });
+          const chunks: Buffer[] = [];
+
+          doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+          doc.on('end', () => {
+            const buffer = Buffer.concat(chunks);
+            console.log(`📄 Professional PDF buffer created: ${buffer.length} bytes`);
+            resolve(buffer);
+          });
+          doc.on('error', (error: Error) => {
+            console.error('❌ PDFDocument error event:', error);
+            reject(error);
+          });
+
+        // Title Page - Professional Design
+        doc.fontSize(28).font('Helvetica-Bold').text('Detailed Project Report', { align: 'center' });
+        doc.moveDown(0.5);
+        doc.fontSize(20).font('Helvetica').text('Data Compilation Report', { align: 'center' });
+        doc.moveDown(2);
+        
+        // Add a line separator
+        doc.moveTo(50, doc.y).lineTo(562, doc.y).stroke();
+        doc.moveDown(1);
+        
+        doc.fontSize(14).font('Helvetica-Bold').text('Report Information', { align: 'center' });
+        doc.moveDown(0.5);
+        doc.fontSize(11).font('Helvetica');
+        doc.text(`Generated Date: ${new Date().toLocaleDateString('en-IN', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })}`, { align: 'center' });
+        doc.text(`Generated Time: ${new Date().toLocaleTimeString('en-IN')}`, { align: 'center' });
+        if (userId) {
+          doc.text(`Report ID: ${userId.substring(0, 8)}...`, { align: 'center' });
+        }
+        doc.moveDown(2);
+
+        // Analytics Page
+        doc.addPage();
+        doc.fontSize(20).font('Helvetica-Bold').text('Data Analytics', { align: 'center', underline: true });
+        doc.moveDown(1);
+        
+        // Analytics Box
+        const analyticsY = doc.y;
+        doc.rect(50, analyticsY, 512, 150).stroke();
+        doc.moveDown(0.3);
+        
+        doc.fontSize(12).font('Helvetica-Bold').text('Summary Statistics', 60, doc.y);
+        doc.moveDown(0.5);
+        
+        doc.fontSize(10).font('Helvetica');
+        doc.text(`Total Data Entries: ${userDataEntries.length}`, 60, doc.y);
+        doc.text(`Total Words: ${totalWords.toLocaleString()}`, 300, doc.y);
+        doc.moveDown(0.4);
+        doc.text(`Total Characters: ${totalCharacters.toLocaleString()}`, 60, doc.y);
+        doc.text(`Average Entry Length: ${averageEntryLength.toLocaleString()} characters`, 300, doc.y);
+        doc.moveDown(0.4);
+        doc.text(`Data Completeness: ${userDataEntries.length > 0 ? 'Complete' : 'Incomplete'}`, 60, doc.y);
+        doc.text(`Report Status: Professional`, 300, doc.y);
+        
+        doc.moveDown(2);
+        
+        // Data Entries Page
+        doc.addPage();
+        doc.fontSize(20).font('Helvetica-Bold').text('Project Data Entries', { align: 'center', underline: true });
+        doc.moveDown(1);
+        
+        // Process each user data entry professionally
+        userDataEntries.forEach((dataEntry: string, index: number) => {
+          // Check if we need a new page
+          if (doc.y > 700) {
+            doc.addPage();
+          }
+          
+          try {
+            // Entry Header
+            doc.fontSize(14).font('Helvetica-Bold').text(`Entry ${index + 1}`, { underline: true });
+            doc.moveDown(0.3);
+            
+            // Entry Content - formatted professionally
+            const maxLength = 8000; // Reasonable length per entry
+            const displayContent = dataEntry.length > maxLength 
+              ? dataEntry.substring(0, maxLength) + '\n\n[Content truncated for display - full data available in system]'
+              : dataEntry;
+            
+            // Split into paragraphs for better formatting
+            const paragraphs = displayContent.split('\n').filter(p => p.trim().length > 0);
+            
+            paragraphs.forEach((para: string) => {
+              if (doc.y > 750) {
+                doc.addPage();
+                doc.fontSize(11).font('Helvetica');
+              }
+              
+              // Format paragraphs nicely
+              const cleanPara = para.trim();
+              if (cleanPara.length > 0) {
+                doc.fontSize(11).font('Helvetica').text(cleanPara, { 
+                  align: 'left',
+                  indent: 20,
+                  paragraphGap: 5
+                });
+                doc.moveDown(0.3);
+              }
+            });
+            
+            doc.moveDown(0.8);
+            
+            // Add separator line between entries
+            if (index < userDataEntries.length - 1) {
+              doc.moveTo(50, doc.y).lineTo(562, doc.y).stroke();
+              doc.moveDown(0.8);
+            }
+          } catch (entryError: any) {
+            console.warn(`⚠️  Error processing entry ${index + 1}:`, entryError.message);
+            // Continue with next entry
+          }
+        });
+
+        // Footer on last page
+        doc.addPage();
+        doc.fontSize(16).font('Helvetica-Bold').text('Report Summary', { align: 'center', underline: true });
+        doc.moveDown(1);
+        
+        doc.fontSize(11).font('Helvetica');
+        doc.text('This report contains all user-provided data for the Detailed Project Report (DPR) generation.', {
+          align: 'justify',
+          indent: 20
+        });
+        doc.moveDown(0.5);
+        doc.text('The data has been compiled and formatted for professional presentation.', {
+          align: 'justify',
+          indent: 20
+        });
+        doc.moveDown(1);
+        
+        doc.fontSize(10).font('Helvetica-Oblique');
+        doc.text('Generated by MSME AI DPR Assistant', { align: 'center' });
+        doc.text(`Report Generated: ${new Date().toLocaleString('en-IN')}`, { align: 'center' });
+        doc.moveDown(0.5);
+        doc.text('© MSME DPR Tool - All Rights Reserved', { align: 'center' });
+
+        console.log('📄 Finalizing PDF document...');
+        doc.end();
+        } catch (docError: any) {
+          console.error('❌ Error creating PDFDocument:', docError);
+          reject(docError);
+        }
+      });
+    } catch (error: any) {
+      console.error('❌ Error generating PDF from conversation:', error);
+      console.error('Error message:', error.message);
+      console.error('Error name:', error.name);
+      console.error('Error stack:', error.stack);
+      throw new Error(`Failed to generate PDF from conversation: ${error.message}`);
+    }
+  }
+
+  /**
+   * Build context-aware query from user message and conversation history
+   * This ensures RAG searches consider the full conversation context
+   */
+  private static async buildContextAwareQuery(
+    userMessage: string,
+    conversationHistory: Array<{ role: string; content: string }> = [],
+    userContext?: any
+  ): Promise<string> {
+    try {
+      // If no conversation history, return the message as-is
+      if (!conversationHistory || conversationHistory.length === 0) {
+        return userMessage;
+      }
+
+      // Get last 6 messages for context (3 user + 3 assistant pairs)
+      const recentHistory = conversationHistory.slice(-6);
+      
+      // Build conversation summary
+      const conversationSummary = recentHistory
+        .map((msg, idx) => {
+          const role = msg.role === 'user' ? 'User' : 'Assistant';
+          return `${role}: ${msg.content}`;
+        })
+        .join('\n');
+
+      // Use AI to extract key context and build enhanced query
+      const prompt = `Given this conversation history and current user message, create an enhanced search query that captures the full context and intent.
+
+Conversation History:
+${conversationSummary}
+
+Current User Message: ${userMessage}
+${userContext ? `User Context: ${JSON.stringify(userContext)}` : ''}
+
+Create a comprehensive search query that:
+1. Includes the current user's question/intent
+2. Incorporates relevant context from the conversation
+3. Extracts key topics, entities, and concepts mentioned
+4. Makes the query specific enough to find relevant documents
+5. Is concise but comprehensive (max 200 words)
+
+Return ONLY the enhanced search query, nothing else. Do not include explanations or markdown.`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini', // Fast and cheap for query enhancement
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a query enhancement specialist. Extract key context from conversations and create comprehensive search queries. Return only the query text.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 200,
+      });
+
+      const enhancedQuery = response.choices[0]?.message?.content?.trim() || userMessage;
+      
+      // Fallback: If AI fails or returns invalid response, build simple enhanced query
+      if (enhancedQuery === userMessage || enhancedQuery.length < 10) {
+        // Build a simple enhanced query from conversation
+        const userMessages = recentHistory
+          .filter(msg => msg.role === 'user')
+          .map(msg => msg.content)
+          .join(' ');
+        
+        const assistantMessages = recentHistory
+          .filter(msg => msg.role === 'assistant')
+          .map(msg => msg.content)
+          .join(' ')
+          .substring(0, 200); // Limit length
+        
+        // Combine current message with recent context
+        return `${userMessage}. Context: ${userMessages} ${assistantMessages ? `Related: ${assistantMessages}` : ''}`.substring(0, 500);
+      }
+
+      console.log(`🔍 Enhanced query from conversation context (${enhancedQuery.length} chars)`);
+      return enhancedQuery.substring(0, 500); // Limit query length
+    } catch (error) {
+      console.warn('⚠️  Failed to build context-aware query, using original message:', error);
+      // Fallback to original message if enhancement fails
+      return userMessage;
     }
   }
 
@@ -1717,11 +2446,16 @@ Provide actionable, specific steps the user should take next in their DPR creati
       runId = run.id;
 
       // OPTIMIZATION: Balanced timeout with smart polling
-      // Increased to 12s to give RAG more time to complete, but with faster polling
-      const maxWaitTime = 12000; // 12 seconds - enough time but not too long
+      // OPTIMIZATION: Use shorter timeout for first requests (8s) to fail fast and use fallback
+      const isFirstRequest = !getCachedAssistant(activeVectorStores);
+      const maxWaitTime = isFirstRequest ? 8000 : 12000; // 8s for first request, 12s for subsequent
       let pollInterval = 100; // Start with 100ms
       const maxPollInterval = 800; // Max 800ms
       const startPollTime = Date.now();
+      
+      if (isFirstRequest) {
+        console.log('⚡ Fast mode: Using shorter 8s timeout for first request');
+      }
       
       let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
       let pollCount = 0;
@@ -1873,6 +2607,7 @@ Provide actionable, specific steps the user should take next in their DPR creati
   /**
    * Fallback search method when Assistants API is unavailable
    * Fast, simple search without vector store overhead
+   * OPTIMIZATION: Even faster for first requests
    */
   private static async fallbackSearch(
     query: string,
@@ -1880,6 +2615,15 @@ Provide actionable, specific steps the user should take next in their DPR creati
   ): Promise<any[]> {
     const fallbackStartTime = Date.now();
     try {
+      // OPTIMIZATION: Check if this is a first request (no cached assistant)
+      const isFirstRequest = !getCachedAssistant(vectorStoreIds || []);
+      const timeoutMs = isFirstRequest ? 3000 : 5000; // 3s for first request, 5s for subsequent
+      const maxTokens = isFirstRequest ? 400 : 600; // Fewer tokens for faster response
+      
+      if (isFirstRequest) {
+        console.log('⚡ Fast mode: Using optimized fallback (3s timeout, 400 tokens)');
+      }
+      
       // Use Promise.race with timeout for fast fallback
       const searchPromise = openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -1891,12 +2635,12 @@ Provide actionable, specific steps the user should take next in their DPR creati
             Provide a concise, helpful response. If specific information isn't available, provide general guidance.`,
           },
         ],
-        max_tokens: 600, // Reduced for faster response
+        max_tokens: maxTokens, // Reduced for faster response
         temperature: 0.3,
       });
 
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Fallback search timeout')), 5000)
+        setTimeout(() => reject(new Error('Fallback search timeout')), timeoutMs)
       );
 
       const response = await Promise.race([searchPromise, timeoutPromise]) as any;

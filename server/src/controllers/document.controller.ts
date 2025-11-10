@@ -371,12 +371,20 @@ export class DocumentController {
   }
 
   /**
-   * Get vector stores (Admin only)
+   * Get vector stores (accessible to all authenticated users for chat)
    */
   static async getVectorStores(req: AuthRequest, res: Response): Promise<void> {
     try {
-      // Get vector stores from database (excluding system-created ones for populate safety)
-      const vectorStores = await VectorStore.find({ createdBy: { $ne: 'system' } }).populate('createdBy', 'name email');
+      // Get vector stores from database
+      // Try to populate createdBy, but handle errors gracefully
+      let vectorStores;
+      try {
+        vectorStores = await VectorStore.find({ createdBy: { $ne: 'system' } }).populate('createdBy', 'name email');
+      } catch (populateError) {
+        // If populate fails, get without populate
+        console.warn('Failed to populate createdBy, fetching without populate:', populateError);
+        vectorStores = await VectorStore.find({ createdBy: { $ne: 'system' } });
+      }
 
         // Ensure main vector store is included
         const mainVectorStoreId = process.env.MAIN_VECTOR_STORE_ID || ' ';
