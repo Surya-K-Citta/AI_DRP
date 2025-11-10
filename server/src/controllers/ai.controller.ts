@@ -28,12 +28,15 @@ export class AIController {
         return;
       }
 
+      const userId = req.user?.userId || req.user?._id?.toString();
+      
       const result = await OpenAIService.chatResponse(
         message,
         conversationHistory,
         userContext,
         useRAG,
-        vectorStoreIds
+        vectorStoreIds,
+        userId
       );
 
       res.status(200).json({

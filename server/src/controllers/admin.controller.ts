@@ -167,9 +167,10 @@ export class AdminController {
             }
           });
           // Add main vector store without populating createdBy
+          const mainVectorStoreObj = mainVectorStore.toObject();
           vectorStores.push({
-            ...mainVectorStore.toObject(),
-            createdBy: { name: 'System', email: 'system@msme-dpr.com' }
+            ...mainVectorStoreObj,
+            createdBy: 'system' as any
           });
         } catch (error: any) {
           if (error.code === 11000) {
@@ -180,9 +181,10 @@ export class AdminController {
               openaiVectorStoreId: mainVectorStoreId 
             });
             if (existingVectorStore) {
+              const existingVectorStoreObj = existingVectorStore.toObject();
               vectorStores.push({
-                ...existingVectorStore.toObject(),
-                createdBy: { name: 'System', email: 'system@msme-dpr.com' }
+                ...existingVectorStoreObj,
+                createdBy: 'system' as any
               });
             }
           } else {
@@ -209,6 +211,52 @@ export class AdminController {
       const knowledgeBaseSize = documentsWithSize[0]?.totalSize || 0;
       const templateCount = documentsWithSize[0]?.templateCount || 0;
 
+      // Get RAG performance metrics
+      const { RAGMetrics } = await import('../models/RAGMetrics.model');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const ragMetrics = await RAGMetrics.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: today }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            ragQueriesToday: { $sum: 1 },
+            avgResponseTime: { $avg: '$responseTime' },
+            minResponseTime: { $min: '$responseTime' },
+            maxResponseTime: { $max: '$responseTime' },
+            successCount: {
+              $sum: { $cond: ['$success', 1, 0] }
+            },
+            failureCount: {
+              $sum: { $cond: ['$success', 0, 1] }
+            },
+            totalTokens: { $sum: '$tokensUsed' },
+            avgTokens: { $avg: '$tokensUsed' }
+          }
+        }
+      ]);
+
+      const ragStats = ragMetrics[0] || {
+        ragQueriesToday: 0,
+        avgResponseTime: 0,
+        minResponseTime: 0,
+        maxResponseTime: 0,
+        successCount: 0,
+        failureCount: 0,
+        totalTokens: 0,
+        avgTokens: 0
+      };
+
+      // Calculate success rate
+      const successRate = ragStats.ragQueriesToday > 0
+        ? (ragStats.successCount / ragStats.ragQueriesToday) * 100
+        : 0;
+
       res.status(200).json({
         success: true,
         data: {
@@ -229,6 +277,15 @@ export class AdminController {
             vectorStoreCount: vectorStores.length,
             knowledgeBaseSize,
             templateCount,
+            ragQueriesToday: ragStats.ragQueriesToday,
+            avgResponseTime: Math.round(ragStats.avgResponseTime || 0),
+            minResponseTime: ragStats.minResponseTime || 0,
+            maxResponseTime: ragStats.maxResponseTime || 0,
+            ragSuccessRate: Math.round(successRate * 100) / 100,
+            ragSuccessCount: ragStats.successCount,
+            ragFailureCount: ragStats.failureCount,
+            totalTokensUsed: ragStats.totalTokens || 0,
+            avgTokensPerQuery: Math.round(ragStats.avgTokens || 0),
           },
           projectsBySector,
           projectsByLocation,
