@@ -14,20 +14,19 @@ import {
   Shield,
   CheckCircle,
   XCircle,
-  Clock,
   Search,
   Edit,
   Trash2,
   Plus,
   Eye,
-  Download,
   Filter,
   TrendingUp,
   Award,
-  Target,
-  Database,
-  MessageSquare,
-  HardDrive,
+  X,
+  Calendar,
+  Tag,
+  AlertCircle,
+  Save,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
 import { formatDate } from '@/lib/utils';
@@ -57,18 +56,20 @@ export const AdminDashboard: React.FC = () => {
     status: 'draft',
     priority: 'medium',
     tags: '',
+    effectiveDate: '',
+    expiryDate: '',
   });
 
   useEffect(() => {
     loadData();
-  }, [activeTab]);
+  }, [activeTab, statusFilter]);
 
   const loadData = async () => {
     setIsLoading(true);
     try {
       if (activeTab === 'analytics') {
-      const response = await api.getAnalytics();
-      setAnalytics(response.data);
+        const response = await api.getAnalytics();
+        setAnalytics(response.data);
       } else if (activeTab === 'users') {
         const response = await api.getAllUsers({ limit: 50 });
         setUsers(response.data.users || []);
@@ -121,10 +122,17 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const handleSavePolicy = async () => {
+    if (!policyForm.title || !policyForm.description || !policyForm.content) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
     try {
       const policyData = {
         ...policyForm,
         tags: policyForm.tags.split(',').map(t => t.trim()).filter(Boolean),
+        effectiveDate: policyForm.effectiveDate || undefined,
+        expiryDate: policyForm.expiryDate || undefined,
         metadata: {
           priority: policyForm.priority,
           requiresApproval: false,
@@ -148,6 +156,8 @@ export const AdminDashboard: React.FC = () => {
         status: 'draft',
         priority: 'medium',
         tags: '',
+        effectiveDate: '',
+        expiryDate: '',
       });
       loadData();
     } catch (error: any) {
@@ -176,6 +186,8 @@ export const AdminDashboard: React.FC = () => {
       status: policy.status,
       priority: policy.metadata?.priority || 'medium',
       tags: policy.tags?.join(', ') || '',
+      effectiveDate: policy.effectiveDate ? new Date(policy.effectiveDate).toISOString().split('T')[0] : '',
+      expiryDate: policy.expiryDate ? new Date(policy.expiryDate).toISOString().split('T')[0] : '',
     });
     setShowPolicyModal(true);
   };
@@ -202,6 +214,13 @@ export const AdminDashboard: React.FC = () => {
     p.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const tabs = [
+    { id: 'analytics' as TabType, label: 'Analytics', icon: BarChart3 },
+    { id: 'users' as TabType, label: 'User Management', icon: Users },
+    { id: 'dprs' as TabType, label: 'DPR Management', icon: FileText },
+    { id: 'policies' as TabType, label: 'Policies', icon: Shield },
+  ];
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -212,53 +231,26 @@ export const AdminDashboard: React.FC = () => {
           </p>
         </div>
 
-        {/* Tabs */}
+        {/* Navigation Tabs */}
         <div className="border-b border-border">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                activeTab === 'analytics'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <BarChart3 className="h-4 w-4 inline mr-2" />
-              Analytics
-            </button>
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                activeTab === 'users'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Users className="h-4 w-4 inline mr-2" />
-              User Management
-            </button>
-            <button
-              onClick={() => setActiveTab('dprs')}
-              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                activeTab === 'dprs'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <FileText className="h-4 w-4 inline mr-2" />
-              DPR Management
-            </button>
-            <button
-              onClick={() => setActiveTab('policies')}
-              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                activeTab === 'policies'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Shield className="h-4 w-4 inline mr-2" />
-              Policies
-            </button>
+          <div className="flex gap-1">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-6 py-3 font-medium border-b-2 transition-all ${
+                    activeTab === tab.id
+                      ? 'border-primary text-primary bg-primary/5'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -271,115 +263,115 @@ export const AdminDashboard: React.FC = () => {
               </div>
             ) : (
               <>
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
                           <p className="text-sm font-medium text-muted-foreground">Total Users</p>
-                  <h3 className="text-3xl font-bold mt-2">{summary.totalUsers || 0}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Entrepreneurs: {summary.totalEntrepreneurs || 0}
-                  </p>
-                </div>
-                <Users className="h-12 w-12 text-blue-500 opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
+                          <h3 className="text-3xl font-bold mt-2">{summary.totalUsers || 0}</h3>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Entrepreneurs: {summary.totalEntrepreneurs || 0}
+                          </p>
+                        </div>
+                        <Users className="h-12 w-12 text-blue-500 opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
                           <p className="text-sm font-medium text-muted-foreground">Total Projects</p>
-                  <h3 className="text-3xl font-bold mt-2">{summary.totalProjects || 0}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Completed: {summary.completedProjects || 0}
-                  </p>
-                </div>
+                          <h3 className="text-3xl font-bold mt-2">{summary.totalProjects || 0}</h3>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Completed: {summary.completedProjects || 0}
+                          </p>
+                        </div>
                         <FileText className="h-12 w-12 text-green-500 opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
                           <p className="text-sm font-medium text-muted-foreground">DPRs Generated</p>
-                  <h3 className="text-3xl font-bold mt-2">{summary.totalDPRs || 0}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Avg Quality: {summary.avgQualityScore || 0}%
-                  </p>
-                </div>
-                <TrendingUp className="h-12 w-12 text-purple-500 opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
+                          <h3 className="text-3xl font-bold mt-2">{summary.totalDPRs || 0}</h3>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Avg Quality: {summary.avgQualityScore || 0}%
+                          </p>
+                        </div>
+                        <TrendingUp className="h-12 w-12 text-purple-500 opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
                           <p className="text-sm font-medium text-muted-foreground">Bankability Score</p>
-                  <h3 className="text-3xl font-bold mt-2">{summary.avgBankabilityScore || 0}%</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Rating: {summary.averageRating || 0}/5
-                  </p>
+                          <h3 className="text-3xl font-bold mt-2">{summary.avgBankabilityScore || 0}%</h3>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Rating: {summary.averageRating || 0}/5
+                          </p>
+                        </div>
+                        <Award className="h-12 w-12 text-yellow-500 opacity-20" />
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-                <Award className="h-12 w-12 text-yellow-500 opacity-20" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Projects by Sector</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={analytics?.projectsBySector || []}
-                    dataKey="count"
-                    nameKey="_id"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label
-                  >
-                    {(analytics?.projectsBySector || []).map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+                {/* Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Projects by Sector</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <PieChart>
+                          <Pie
+                            data={analytics?.projectsBySector || []}
+                            dataKey="count"
+                            nameKey="_id"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={100}
+                            label
+                          >
+                            {(analytics?.projectsBySector || []).map((entry: any, index: number) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Projects by Location</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={analytics?.projectsByLocation || []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="_id" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Projects by Location</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={analytics?.projectsByLocation || []}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="_id" />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar dataKey="count" fill="#3b82f6" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                </div>
               </>
             )}
           </div>
@@ -407,13 +399,13 @@ export const AdminDashboard: React.FC = () => {
                 <p className="text-muted-foreground">Loading users...</p>
               </div>
             ) : (
-          <Card>
+              <Card>
                 <CardContent className="pt-6">
                   <div className="space-y-4">
                     {filteredUsers.map((user) => (
                       <div
                         key={user._id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         <div>
                           <h4 className="font-semibold">{user.name}</h4>
@@ -449,10 +441,10 @@ export const AdminDashboard: React.FC = () => {
                       </div>
                     ))}
                   </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
             )}
-        </div>
+          </div>
         )}
 
         {/* DPR Management Tab */}
@@ -494,13 +486,13 @@ export const AdminDashboard: React.FC = () => {
                 <p className="text-muted-foreground">Loading DPRs...</p>
               </div>
             ) : (
-          <Card>
+              <Card>
                 <CardContent className="pt-6">
-              <div className="space-y-4">
+                  <div className="space-y-4">
                     {filteredDPRs.map((dpr) => (
                       <div
                         key={dpr._id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         <div className="flex-1">
                           <h4 className="font-semibold">{dpr.projectId?.projectName || 'Untitled Project'}</h4>
@@ -529,8 +521,8 @@ export const AdminDashboard: React.FC = () => {
                             <span className="text-xs text-muted-foreground">
                               {formatDate(dpr.createdAt)}
                             </span>
-                  </div>
-                </div>
+                          </div>
+                        </div>
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
@@ -545,7 +537,7 @@ export const AdminDashboard: React.FC = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-success border-success"
+                                className="text-success border-success hover:bg-success hover:text-white"
                                 onClick={() => handleApproveDPR(dpr._id)}
                               >
                                 <CheckCircle className="h-4 w-4 mr-2" />
@@ -554,7 +546,7 @@ export const AdminDashboard: React.FC = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-destructive border-destructive"
+                                className="text-destructive border-destructive hover:bg-destructive hover:text-white"
                                 onClick={() => handleRejectDPR(dpr._id)}
                               >
                                 <XCircle className="h-4 w-4 mr-2" />
@@ -562,8 +554,8 @@ export const AdminDashboard: React.FC = () => {
                               </Button>
                             </>
                           )}
-                  </div>
-                </div>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </CardContent>
@@ -588,19 +580,24 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button onClick={() => {
-                  setEditingPolicy(null);
-                  setPolicyForm({
-                    title: '',
-                    description: '',
-                    category: 'dpr',
-                    content: '',
-                    status: 'draft',
-                    priority: 'medium',
-                    tags: '',
-                  });
-                  setShowPolicyModal(true);
-                }}>
+                <Button 
+                  onClick={() => {
+                    setEditingPolicy(null);
+                    setPolicyForm({
+                      title: '',
+                      description: '',
+                      category: 'dpr',
+                      content: '',
+                      status: 'draft',
+                      priority: 'medium',
+                      tags: '',
+                      effectiveDate: '',
+                      expiryDate: '',
+                    });
+                    setShowPolicyModal(true);
+                  }}
+                  className="bg-primary hover:bg-primary/90"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   New Policy
                 </Button>
@@ -632,7 +629,7 @@ export const AdminDashboard: React.FC = () => {
                     {filteredPolicies.map((policy) => (
                       <div
                         key={policy._id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         <div className="flex-1">
                           <h4 className="font-semibold">{policy.title}</h4>
@@ -676,44 +673,85 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                       </div>
                     ))}
-              </div>
-            </CardContent>
-          </Card>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
         )}
 
-        {/* Policy Modal */}
+        {/* Enhanced Policy Modal */}
         {showPolicyModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CardHeader>
-                <CardTitle>{editingPolicy ? 'Edit Policy' : 'Create Policy'}</CardTitle>
-            </CardHeader>
-              <CardContent className="space-y-4">
-                  <div>
-                  <label className="text-sm font-medium">Title</label>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+              <CardHeader className="flex-shrink-0 border-b">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-2xl">
+                    {editingPolicy ? 'Edit Policy' : 'Create New Policy'}
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowPolicyModal(false);
+                      setEditingPolicy(null);
+                      setPolicyForm({
+                        title: '',
+                        description: '',
+                        category: 'dpr',
+                        content: '',
+                        status: 'draft',
+                        priority: 'medium',
+                        tags: '',
+                        effectiveDate: '',
+                        expiryDate: '',
+                      });
+                    }}
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-y-auto pt-6 space-y-6">
+                {/* Title */}
+                <div>
+                  <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Title <span className="text-destructive">*</span>
+                  </label>
                   <Input
                     value={policyForm.title}
                     onChange={(e) => setPolicyForm({ ...policyForm, title: e.target.value })}
-                    placeholder="Policy title"
+                    placeholder="Enter policy title"
+                    className="h-11"
                   />
-                  </div>
+                </div>
+
+                {/* Description */}
                 <div>
-                  <label className="text-sm font-medium">Description</label>
+                  <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    Description <span className="text-destructive">*</span>
+                  </label>
                   <Input
                     value={policyForm.description}
                     onChange={(e) => setPolicyForm({ ...policyForm, description: e.target.value })}
-                    placeholder="Brief description"
+                    placeholder="Brief description of the policy"
+                    className="h-11"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+
+                {/* Category and Priority */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium">Category</label>
+                    <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Category <span className="text-destructive">*</span>
+                    </label>
                     <select
                       value={policyForm.category}
                       onChange={(e) => setPolicyForm({ ...policyForm, category: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="w-full h-11 px-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     >
                       <option value="dpr">DPR</option>
                       <option value="user">User</option>
@@ -724,11 +762,14 @@ export const AdminDashboard: React.FC = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Priority</label>
+                    <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                      <Award className="h-4 w-4" />
+                      Priority
+                    </label>
                     <select
                       value={policyForm.priority}
                       onChange={(e) => setPolicyForm({ ...policyForm, priority: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="w-full h-11 px-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     >
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
@@ -737,33 +778,119 @@ export const AdminDashboard: React.FC = () => {
                     </select>
                   </div>
                 </div>
+
+                {/* Status */}
                 <div>
-                  <label className="text-sm font-medium">Content</label>
-                  <textarea
-                    value={policyForm.content}
-                    onChange={(e) => setPolicyForm({ ...policyForm, content: e.target.value })}
-                    placeholder="Policy content..."
-                    className="w-full px-4 py-2 border rounded-lg min-h-[200px]"
-                  />
-        </div>
+                  <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Status
+                  </label>
+                  <select
+                    value={policyForm.status}
+                    onChange={(e) => setPolicyForm({ ...policyForm, status: e.target.value })}
+                    className="w-full h-11 px-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="active">Active</option>
+                    <option value="archived">Archived</option>
+                    <option value="deprecated">Deprecated</option>
+                  </select>
+                </div>
+
+                {/* Dates */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                  <label className="text-sm font-medium">Tags (comma-separated)</label>
+                    <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Effective Date
+                    </label>
+                    <Input
+                      type="date"
+                      value={policyForm.effectiveDate}
+                      onChange={(e) => setPolicyForm({ ...policyForm, effectiveDate: e.target.value })}
+                      className="h-11"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Expiry Date
+                    </label>
+                    <Input
+                      type="date"
+                      value={policyForm.expiryDate}
+                      onChange={(e) => setPolicyForm({ ...policyForm, expiryDate: e.target.value })}
+                      className="h-11"
+                    />
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Tags
+                  </label>
                   <Input
                     value={policyForm.tags}
                     onChange={(e) => setPolicyForm({ ...policyForm, tags: e.target.value })}
-                    placeholder="tag1, tag2, tag3"
+                    placeholder="Enter tags separated by commas (e.g., important, compliance, dpr)"
+                    className="h-11"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Separate multiple tags with commas
+                  </p>
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={() => setShowPolicyModal(false)}>
+
+                {/* Content */}
+                <div>
+                  <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Policy Content <span className="text-destructive">*</span>
+                  </label>
+                  <textarea
+                    value={policyForm.content}
+                    onChange={(e) => setPolicyForm({ ...policyForm, content: e.target.value })}
+                    placeholder="Enter the full policy content here..."
+                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-h-[300px] resize-y font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {policyForm.content.length} characters
+                  </p>
+                </div>
+              </CardContent>
+              <div className="flex-shrink-0 border-t p-6 bg-muted/30">
+                <div className="flex gap-3 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowPolicyModal(false);
+                      setEditingPolicy(null);
+                      setPolicyForm({
+                        title: '',
+                        description: '',
+                        category: 'dpr',
+                        content: '',
+                        status: 'draft',
+                        priority: 'medium',
+                        tags: '',
+                        effectiveDate: '',
+                        expiryDate: '',
+                      });
+                    }}
+                  >
                     Cancel
                   </Button>
-                  <Button onClick={handleSavePolicy}>
-                    {editingPolicy ? 'Update' : 'Create'} Policy
+                  <Button
+                    onClick={handleSavePolicy}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {editingPolicy ? 'Update Policy' : 'Create Policy'}
                   </Button>
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+              </div>
+            </Card>
           </div>
         )}
       </div>
