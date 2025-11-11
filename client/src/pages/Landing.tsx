@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useLinkHandler } from '@/lib/linkUtils';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import {
@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 
 export const Landing: React.FC = () => {
+  const handleLinkClick = useLinkHandler();
+
   const features = [
     {
       icon: Sparkles,
@@ -104,12 +106,12 @@ export const Landing: React.FC = () => {
               <span className="text-xl font-bold text-foreground">MSME DPR Tool</span>
             </div>
             <div className="flex items-center gap-4">
-              <Link to="/login">
+              <a href="/login" onClick={(e) => handleLinkClick(e, '/login')}>
                 <Button variant="ghost">Sign In</Button>
-              </Link>
-              <Link to="/register">
+              </a>
+              <a href="/register" onClick={(e) => handleLinkClick(e, '/register')}>
                 <Button>Get Started</Button>
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -133,18 +135,18 @@ export const Landing: React.FC = () => {
               with extensive analytics and government scheme integration.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link to="/register">
+              <a href="/register" onClick={(e) => handleLinkClick(e, '/register')}>
                 <Button size="lg" className="text-lg px-8 py-6 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg">
                   <UserPlus className="mr-2 h-5 w-5" />
                   Get Started Free
                 </Button>
-              </Link>
-              <Link to="/login">
+              </a>
+              <a href="/login" onClick={(e) => handleLinkClick(e, '/login')}>
                 <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2">
                   <LogIn className="mr-2 h-5 w-5" />
                   Sign In
                 </Button>
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -271,18 +273,18 @@ export const Landing: React.FC = () => {
                 and secured funding with our AI-powered platform.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to="/register">
+                <a href="/register" onClick={(e) => handleLinkClick(e, '/register')}>
                   <Button size="lg" className="text-lg px-8 py-6 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg">
                     <UserPlus className="mr-2 h-5 w-5" />
                     Get Started Free
                   </Button>
-                </Link>
-                <Link to="/login">
+                </a>
+                <a href="/login" onClick={(e) => handleLinkClick(e, '/login')}>
                   <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2">
                     <LogIn className="mr-2 h-5 w-5" />
                     Sign In
                   </Button>
-                </Link>
+                </a>
               </div>
             </div>
           </Card>

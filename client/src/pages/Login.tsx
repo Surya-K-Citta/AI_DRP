@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useLinkHandler } from '@/lib/linkUtils';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
@@ -13,6 +14,7 @@ import { Building2, Sparkles, ArrowRight, Copy, LogIn, CheckCircle } from 'lucid
 export const Login: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const handleLinkClick = useLinkHandler();
   const { login } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -113,9 +115,9 @@ export const Login: React.FC = () => {
             <div className="mt-6 pt-6 border-t">
               <p className="text-center text-sm text-muted-foreground">
                 {t('auth.noAccount')}{' '}
-                <Link to="/register" className="text-primary font-semibold hover:underline">
+                <a href="/register" onClick={(e) => handleLinkClick(e, '/register')} className="text-primary font-semibold hover:underline">
                   {t('common.register')}
-                </Link>
+                </a>
               </p>
             </div>
 

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useLinkHandler } from '@/lib/linkUtils';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +13,7 @@ export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const handleLinkClick = useLinkHandler();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
@@ -44,22 +46,23 @@ export const Navbar: React.FC = () => {
     <nav className="sticky top-0 z-50 bg-white border-b border-border shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          <Link to="/" className="flex items-center space-x-3">
+          <a href="/" onClick={(e) => handleLinkClick(e, '/')} className="flex items-center space-x-3">
             <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
               <Building2 className="h-6 w-6 text-white" />
             </div>
             <span className="text-xl font-semibold text-foreground">
               MSME DPR Tool
             </span>
-          </Link>
+          </a>
 
           {/* Desktop Navigation */}
           {isAuthenticated && (
             <div className="hidden md:flex items-center space-x-1">
               {navLinks.map((link) => (
-                <Link
+                <a
                   key={link.path}
-                  to={link.path}
+                  href={link.path}
+                  onClick={(e) => handleLinkClick(e, link.path)}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     isActive(link.path)
                       ? 'bg-primary text-white'
@@ -67,7 +70,7 @@ export const Navbar: React.FC = () => {
                   }`}
                 >
                   {link.label}
-                </Link>
+                </a>
               ))}
             </div>
           )}
@@ -86,12 +89,12 @@ export const Navbar: React.FC = () => {
             {isAuthenticated ? (
               <>
                 <div className="hidden sm:flex items-center gap-3">
-                  <Link to="/profile">
+                  <a href="/profile" onClick={(e) => handleLinkClick(e, '/profile')}>
                     <Button variant="ghost" size="sm" className="flex items-center gap-2">
                       <User className="h-4 w-4" />
                       <span className="font-medium">{user?.name}</span>
                     </Button>
-                  </Link>
+                  </a>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -113,16 +116,16 @@ export const Navbar: React.FC = () => {
               </>
             ) : (
               <>
-                <Link to="/login">
+                <a href="/login" onClick={(e) => handleLinkClick(e, '/login')}>
                   <Button variant="ghost" size="sm">
                     {t('common.login')}
                   </Button>
-                </Link>
-                <Link to="/register">
+                </a>
+                <a href="/register" onClick={(e) => handleLinkClick(e, '/register')}>
                   <Button size="sm" className="bg-primary hover:bg-primary/90">
                     {t('common.register')}
                   </Button>
-                </Link>
+                </a>
               </>
             )}
           </div>
@@ -133,10 +136,13 @@ export const Navbar: React.FC = () => {
           <div className="md:hidden py-4 border-t border-border">
             <div className="flex flex-col space-y-2">
               {navLinks.map((link) => (
-                <Link
+                <a
                   key={link.path}
-                  to={link.path}
-                  onClick={() => setMobileMenuOpen(false)}
+                  href={link.path}
+                  onClick={(e) => {
+                    handleLinkClick(e, link.path);
+                    setMobileMenuOpen(false);
+                  }}
                   className={`px-4 py-3 rounded-lg font-medium transition-all ${
                     isActive(link.path)
                       ? 'bg-primary text-white'
@@ -144,17 +150,20 @@ export const Navbar: React.FC = () => {
                   }`}
                 >
                   {link.label}
-                </Link>
+                </a>
               ))}
               <div className="pt-4 border-t border-border space-y-2">
-                <Link
-                  to="/profile"
-                  onClick={() => setMobileMenuOpen(false)}
+                <a
+                  href="/profile"
+                  onClick={(e) => {
+                    handleLinkClick(e, '/profile');
+                    setMobileMenuOpen(false);
+                  }}
                   className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-accent"
                 >
                   <User className="h-4 w-4" />
                   <span>{user?.name}</span>
-                </Link>
+                </a>
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-2 px-4 py-3 rounded-lg text-destructive hover:bg-destructive/10 text-left"
