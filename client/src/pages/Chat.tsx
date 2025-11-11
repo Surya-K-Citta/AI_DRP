@@ -7,8 +7,9 @@ import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { Navbar } from '@/components/layout/Navbar';
-import { Send, Mic, MicOff, Trash2, Database, Bot, Languages, Loader2, Copy, Check, Sparkles } from 'lucide-react';
+import { Send, Mic, MicOff, Trash2, Database, Bot, Languages, Loader2, Copy, Check, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { ttsService, TTSLanguage } from '@/lib/tts';
 
 export const Chat: React.FC = () => {
   const { t } = useTranslation();
@@ -27,6 +28,7 @@ export const Chat: React.FC = () => {
   const [selectedVectorStores, setSelectedVectorStores] = useState<string[]>([]);
   const [voiceLanguage, setVoiceLanguage] = useState<'en' | 'te'>('en');
   const [copiedMessageId, setCopiedMessageId] = useState<number | null>(null);
+  const [speakingMessageId, setSpeakingMessageId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -36,6 +38,27 @@ export const Chat: React.FC = () => {
     scrollToBottom();
     loadVectorStores();
   }, [messages]);
+
+  // Load voices when component mounts
+  useEffect(() => {
+    if (ttsService.isTTSSupported()) {
+      // Chrome needs voices to be loaded
+      const loadVoices = () => {
+        if (window.speechSynthesis.getVoices().length > 0) {
+          // Voices loaded
+        }
+      };
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, []);
+
+  // Cleanup TTS on unmount
+  useEffect(() => {
+    return () => {
+      ttsService.stop();
+    };
+  }, []);
 
   useEffect(() => {
     if (inputRef.current) {
@@ -212,6 +235,55 @@ export const Chat: React.FC = () => {
     } catch (error) {
       toast.error('Failed to copy');
     }
+  };
+
+  const speakMessage = (text: string, messageId: number) => {
+    if (!ttsService.isTTSSupported()) {
+      toast.error('Text-to-speech is not supported in your browser');
+      return;
+    }
+
+    // Stop any current speech
+    if (speakingMessageId !== null) {
+      ttsService.stop();
+    }
+
+    // Clean text for speech (remove markdown)
+    const cleanText = text
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/\*\*([^\*]+)\*\*/g, '$1')
+      .replace(/\*([^\*]+)\*/g, '$1')
+      .trim();
+
+    if (!cleanText) {
+      toast.error('No text to speak');
+      return;
+    }
+
+    setSpeakingMessageId(messageId);
+    
+    ttsService.speak(cleanText, {
+      language: voiceLanguage as TTSLanguage,
+      rate: 1.0,
+      pitch: 1.0,
+      volume: 1.0,
+      onEnd: () => {
+        setSpeakingMessageId(null);
+      },
+      onError: (error) => {
+        console.error('TTS Error:', error);
+        setSpeakingMessageId(null);
+        toast.error('Failed to speak text');
+      },
+    });
+  };
+
+  const stopSpeaking = () => {
+    ttsService.stop();
+    setSpeakingMessageId(null);
   };
 
   const exampleQuestions = [
@@ -395,6 +467,25 @@ export const Chat: React.FC = () => {
                   </div>
                   
                   <div className={`flex items-center gap-2 ${message.role === 'user' ? 'flex-row-reverse' : ''} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                    {message.role === 'assistant' && (
+                      <button
+                        onClick={() => {
+                          if (speakingMessageId === index) {
+                            stopSpeaking();
+                          } else {
+                            speakMessage(message.content, index);
+                          }
+                        }}
+                        className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                        title={speakingMessageId === index ? 'Stop speaking' : `Speak in ${voiceLanguage === 'te' ? 'Telugu' : 'English'}`}
+                      >
+                        {speakingMessageId === index ? (
+                          <VolumeX className="h-3.5 w-3.5 text-destructive" />
+                        ) : (
+                          <Volume2 className="h-3.5 w-3.5 text-muted-foreground" />
+                        )}
+                      </button>
+                    )}
                     <button
                       onClick={() => copyToClipboard(message.content, index)}
                       className="p-1.5 rounded-md hover:bg-muted transition-colors"
