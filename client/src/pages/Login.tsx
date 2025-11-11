@@ -8,7 +8,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
-import { Building2, Sparkles, ArrowRight } from 'lucide-react';
+import { Building2, Sparkles, ArrowRight, Copy, LogIn, CheckCircle } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const { t } = useTranslation();
@@ -19,6 +19,24 @@ export const Login: React.FC = () => {
     email: '',
     password: '',
   });
+
+  const demoCredentials = {
+    email: 'demo@msme.com',
+    password: 'demo123',
+  };
+
+  const useDemoAccount = () => {
+    setFormData({
+      email: demoCredentials.email,
+      password: demoCredentials.password,
+    });
+    toast.success('Demo credentials filled! Click "Sign In" to continue.');
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied to clipboard!`);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,6 +117,48 @@ export const Login: React.FC = () => {
                   {t('common.register')}
                 </Link>
               </p>
+            </div>
+
+            {/* Demo Credentials Section */}
+            <div className="mt-6 pt-6 border-t">
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1 block">
+                    Demo Email
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-muted px-3 py-2 rounded-md font-mono text-sm text-foreground">
+                      {demoCredentials.email}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(demoCredentials.email, 'Email')}
+                      className="shrink-0 h-8"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1 block">
+                    Demo Password
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-muted px-3 py-2 rounded-md font-mono text-sm text-foreground">
+                      {demoCredentials.password}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(demoCredentials.password, 'Password')}
+                      className="shrink-0 h-8"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

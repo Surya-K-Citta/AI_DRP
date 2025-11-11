@@ -3,6 +3,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
@@ -15,11 +16,9 @@ import { DPRPreview } from './pages/DPRPreview';
 import { AllDPRs } from './pages/AllDPRs';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminDocuments } from './pages/AdminDocuments';
-import { useAuthStore } from './store/authStore';
 import './i18n/config';
 
 function App() {
-  const { isAuthenticated } = useAuthStore();
 
   return (
     <Router
@@ -61,12 +60,7 @@ function App() {
         }}
       />
       <Routes>
-        <Route
-          path="/"
-          element={
-            isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
-          }
-        />
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         
