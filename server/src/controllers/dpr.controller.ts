@@ -942,19 +942,37 @@ export class DPRController {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('DPR');
 
-        // Add title
-        worksheet.addRow(['Detailed Project Report']);
+        // Add title with proper language
+        const title = language === 'telugu' ? 'వివరణాత్మక ప్రాజెక్ట్ నివేదిక' : 'Detailed Project Report';
+        worksheet.addRow([title]);
         worksheet.addRow([project.projectName]);
         worksheet.addRow([]);
 
-        // Add sections
+        // Section labels based on language
+        const sectionLabels = language === 'telugu' ? {
+          executiveSummary: '1. కార్యనిర్వాహక సారాంశం',
+          businessProfile: '2. వ్యాపార ప్రొఫైల్',
+          marketAnalysis: '3. మార్కెట్ విశ్లేషణ',
+          technicalFeasibility: '4. సాంకేతిక సాధ్యత',
+          financialProjections: '5. ఆర్థిక అంచనాలు',
+          conclusion: '6. ముగింపు'
+        } : {
+          executiveSummary: '1. Executive Summary',
+          businessProfile: '2. Business Profile',
+          marketAnalysis: '3. Market Analysis',
+          technicalFeasibility: '4. Technical Feasibility',
+          financialProjections: '5. Financial Projections',
+          conclusion: '6. Conclusion'
+        };
+
+        // Add sections with proper labels
         const sections = [
-          { title: 'Executive Summary', content: contentLang.executiveSummary },
-          { title: 'Business Profile', content: contentLang.businessProfile },
-          { title: 'Market Analysis', content: contentLang.marketAnalysis },
-          { title: 'Technical Feasibility', content: contentLang.technicalFeasibility },
-          { title: 'Financial Projections', content: contentLang.financialProjections },
-          { title: 'Conclusion', content: contentLang.conclusion },
+          { title: sectionLabels.executiveSummary, content: contentLang.executiveSummary },
+          { title: sectionLabels.businessProfile, content: contentLang.businessProfile },
+          { title: sectionLabels.marketAnalysis, content: contentLang.marketAnalysis },
+          { title: sectionLabels.technicalFeasibility, content: contentLang.technicalFeasibility },
+          { title: sectionLabels.financialProjections, content: contentLang.financialProjections },
+          { title: sectionLabels.conclusion, content: contentLang.conclusion },
         ];
 
         sections.forEach(section => {
@@ -1125,19 +1143,46 @@ export class DPRController {
         return;
       }
 
-      // Translate all sections
+      // Translate all sections - ensure complete translation
       const teluguContent: any = {};
       const sections = ['executiveSummary', 'businessProfile', 'marketAnalysis', 'technicalFeasibility', 'financialProjections', 'conclusion'] as const;
       
-      for (const section of sections) {
+      console.log(`🔄 Translating ${sections.length} sections to Telugu...`);
+      
+      // Translate sections in parallel for faster processing
+      const translationPromises = sections.map(async (section) => {
         const sectionContent = englishContent[section as keyof typeof englishContent];
-        if (sectionContent) {
-          teluguContent[section] = await TranslationService.translateText(
-            sectionContent,
-            'te'
-          );
+        if (sectionContent && sectionContent.trim().length > 0) {
+          try {
+            console.log(`  Translating ${section}...`);
+            const translated = await TranslationService.translateText(
+              sectionContent,
+              'te'
+            );
+            // Verify translation is not empty
+            if (!translated || translated.trim().length === 0) {
+              console.warn(`  ⚠️  ${section} translation is empty, using original`);
+              return { section, content: sectionContent };
+            }
+            console.log(`  ✅ ${section} translated (${translated.length} chars)`);
+            return { section, content: translated };
+          } catch (error: any) {
+            console.error(`  ❌ Error translating ${section}:`, error.message);
+            // Fallback to original content if translation fails
+            return { section, content: sectionContent };
+          }
         }
-      }
+        return { section, content: '' };
+      });
+      
+      const translationResults = await Promise.all(translationPromises);
+      
+      // Organize translated content
+      translationResults.forEach(({ section, content }) => {
+        teluguContent[section] = content;
+      });
+      
+      console.log(`✅ Translation completed: ${Object.keys(teluguContent).length} sections translated`);
 
       // Update DPR with Telugu content
       dpr.content = {

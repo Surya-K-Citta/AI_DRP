@@ -25,15 +25,29 @@ export class TranslationService {
         messages: [
           {
             role: 'system',
-            content: `You are a professional translator. Translate the following text from ${sourceLangName} to ${targetLangName}. Maintain the original formatting, structure, and meaning. Return only the translated text without any explanations or additional text.`,
+            content: `You are an expert professional translator specializing in English and Telugu translations for business, financial, and technical documents.
+
+CRITICAL TRANSLATION REQUIREMENTS:
+1. **Complete Translation**: Translate EVERY word, sentence, and paragraph. Do not skip any content.
+2. **Accuracy**: Translate accurately, preserving the exact meaning, context, and tone
+3. **Natural Telugu**: Use natural, fluent Telugu that sounds native and professional. Avoid literal word-by-word translations.
+4. **Technical Terms**: 
+   - For business/financial terms: Use commonly accepted Telugu translations (e.g., "మూలధనం" for capital, "ఆదాయం" for revenue)
+   - If English terms are widely used in Telugu business context, you may keep them
+5. **Formatting**: Preserve ALL formatting, line breaks, paragraph structure, and markdown markers (###, **) exactly as in the original
+6. **Numbers and Currency**: Keep all numbers, dates, percentages, and currency symbols (₹) exactly as they are
+7. **Complete Content**: Ensure the translated text is complete - same length and coverage as the original
+8. **No Explanations**: Return ONLY the translated text. No explanations, notes, or markdown code blocks.
+
+Translate the following text from ${sourceLangName} to ${targetLangName}. Return the complete translated text.`,
           },
           {
             role: 'user',
             content: text,
           },
         ],
-        temperature: 0.3,
-        max_tokens: 2000,
+        temperature: 0.1, // Very low temperature for maximum accuracy
+        max_tokens: Math.min(4000, Math.max(1000, text.length * 3)), // More tokens for complete translation
       });
 
       const translatedText = response.choices[0]?.message?.content?.trim() || text;

@@ -3,35 +3,31 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { useChatStore } from '@/store/chatStore';
-import { Layout } from '@/components/layout/Layout';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Send, Mic, MicOff, Trash2, Lightbulb, CheckCircle, TrendingUp, DollarSign, Database, Zap, Plus, Languages } from 'lucide-react';
+import { Navbar } from '@/components/layout/Navbar';
+import { Send, Mic, MicOff, Trash2, Database, Bot, Languages, Loader2, Copy, Check, Sparkles } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 export const Chat: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuthStore();
   const {
     messages,
     addMessage,
     clearMessages,
     isLoading,
     setLoading,
-    currentSuggestions,
-    currentNextSteps,
-    clearSuggestions
   } = useChatStore();
   const [inputMessage, setInputMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [useRAG, setUseRAG] = useState(true);
   const [vectorStores, setVectorStores] = useState<any[]>([]);
   const [selectedVectorStores, setSelectedVectorStores] = useState<string[]>([]);
-  const [dprMode, setDprMode] = useState(false);
-  const [dprProgress, setDprProgress] = useState({ currentStep: 0, totalSteps: 0, progress: 0 });
-  const [dprResponses, setDprResponses] = useState<Record<string, any>>({});
   const [voiceLanguage, setVoiceLanguage] = useState<'en' | 'te'>('en');
+  const [copiedMessageId, setCopiedMessageId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -40,27 +36,30 @@ export const Chat: React.FC = () => {
     loadVectorStores();
   }, [messages]);
 
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 200)}px`;
+    }
+  }, [inputMessage]);
+
   const loadVectorStores = async () => {
     try {
       const response = await api.getVectorStores();
       setVectorStores(response.data);
-      // Auto-select the main MSME Knowledge Base vector store
       const mainVectorStoreId = import.meta.env.VITE_MAIN_VECTOR_STORE_ID;
       const mainStore = response.data.find((store: any) =>
         store.openaiVectorStoreId === mainVectorStoreId
       );
       if (mainStore) {
         setSelectedVectorStores([mainStore.openaiVectorStoreId]);
-        setUseRAG(true); // Enable RAG by default when main store is available
+        setUseRAG(true);
       } else {
-        // Fallback to default stores if main store not found
         const defaultStores = response.data.filter((store: any) => store.metadata?.isDefault);
         setSelectedVectorStores(defaultStores.map((store: any) => store.openaiVectorStoreId));
       }
     } catch (error: any) {
       console.error('Failed to load vector stores:', error);
-      // Don't block UI - continue without vector stores
-      // User can still use chat, just without RAG
       setVectorStores([]);
       setUseRAG(false);
     }
@@ -81,6 +80,9 @@ export const Chat: React.FC = () => {
 
     addMessage(userMessage);
     setInputMessage('');
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+    }
     setLoading(true);
 
     try {
@@ -97,8 +99,6 @@ export const Chat: React.FC = () => {
         selectedVectorStores
       );
 
-      // Always add AI response even if PDF generation failed
-      // The AI response is the most important part
       if (response.data && response.data.response) {
         addMessage({
           role: 'assistant',
@@ -114,73 +114,32 @@ export const Chat: React.FC = () => {
         throw new Error('No response data received from server');
       }
 
-      // Handle PDF generation if requested
-      if (response.data.generatePDF) {
-        console.log('📄 PDF generation requested, checking for PDF URL...');
-        
-        if (response.data.pdfUrl) {
-          try {
-            console.log('📄 PDF URL found, converting to blob...');
-            // Convert base64 data URL to blob and download
+      if (response.data.generatePDF && response.data.pdfUrl) {
+        try {
             const base64Data = response.data.pdfUrl.split(',')[1];
-            if (!base64Data) {
-              throw new Error('Invalid PDF data URL format');
-            }
-            
+          if (base64Data) {
             const binaryString = atob(base64Data);
             const bytes = new Uint8Array(binaryString.length);
             for (let i = 0; i < binaryString.length; i++) {
               bytes[i] = binaryString.charCodeAt(i);
             }
             const blob = new Blob([bytes], { type: 'application/pdf' });
-            
-            // Download the PDF
             const { downloadBlob } = await import('@/lib/utils');
             const filename = `DPR_Conversation_${new Date().toISOString().split('T')[0]}.pdf`;
             downloadBlob(blob, filename);
             toast.success('PDF downloaded successfully!');
-            console.log('✅ PDF downloaded:', filename);
+          }
           } catch (error: any) {
             console.error('Error downloading PDF:', error);
             toast.error(`Failed to download PDF: ${error.message}`);
           }
-        } else {
-          console.warn('⚠️  PDF generation requested but pdfUrl is missing');
-          // PDF might be generating in background - show info message
-          // Note: react-hot-toast doesn't have toast.info, using toast() instead
-          toast('PDF is being generated. Please wait a moment and try again if download doesn\'t start automatically.', {
-            icon: 'ℹ️',
-            duration: 4000,
-          });
-        }
-      }
-
-      // Handle DPR creation mode
-      if (response.data.dprAction === 'start_creation') {
-        setDprMode(true);
-        setDprProgress({ currentStep: 1, totalSteps: 1, progress: 0 });
-      }
-
-      // Update DPR progress if in DPR mode
-      if (response.data.dprQuestions?.isDPRMode) {
-        setDprMode(true);
-        setDprProgress({
-          currentStep: response.data.dprQuestions.currentStep || 1,
-          totalSteps: response.data.dprQuestions.totalSteps || 1,
-          progress: response.data.dprQuestions.progress || 0,
-        });
       }
     } catch (error: any) {
       console.error('Chat error:', error);
-      
-      // Show user-friendly error message
       const errorMessage = error.response?.data?.message || 
                           error.message || 
                           'Failed to get response from AI';
-      
       toast.error(errorMessage);
-      
-      // Add error message to chat so user knows what happened
       addMessage({
         role: 'assistant',
         content: 'I apologize, but I encountered an error processing your request. Please try again or rephrase your question.',
@@ -236,75 +195,92 @@ export const Chat: React.FC = () => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
+  const copyToClipboard = async (text: string, messageId: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedMessageId(messageId);
+      toast.success('Copied to clipboard');
+      setTimeout(() => setCopiedMessageId(null), 2000);
+    } catch (error) {
+      toast.error('Failed to copy');
+    }
+  };
+
   const exampleQuestions = [
-    t('chat.howToStart'),
-    t('chat.whichScheme'),
-    t('chat.financialHelp'),
+    'How do I create a DPR?',
+    'What MSME schemes are available?',
+    'Help me with financial projections',
   ];
 
   return (
-    <Layout>
-      <div className="max-w-4xl mx-auto">
-        <Card className="h-[calc(100vh-200px)] flex flex-col">
-          <CardHeader className="border-b">
-            <div className="flex justify-between items-center mb-4">
-              <CardTitle>{t('chat.title')}</CardTitle>
-              <div className="flex gap-2">
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
+      <Navbar />
+      {/* Header */}
+      <div className="border-b border-border bg-white flex-shrink-0">
+        <div className="max-w-4xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                <Bot className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold text-foreground">AI Assistant</h1>
+                <p className="text-xs text-muted-foreground">Get instant help with your DPR creation</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {useRAG && vectorStores.length > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                  <Database className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-medium text-primary">
+                    {selectedVectorStores.length} KB{selectedVectorStores.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
                 <Button
-                  variant={useRAG ? "default" : "outline"}
+                variant="ghost"
                   size="sm"
                   onClick={() => setUseRAG(!useRAG)}
+                className="text-xs h-8"
                 >
-                  <Zap className="h-4 w-4 mr-2" />
-                  {useRAG ? 'RAG On' : 'RAG Off'}
+                {useRAG ? 'Enhanced' : 'Standard'}
                 </Button>
                 <Button
-                  variant="outline"
+                variant="ghost"
                   size="sm"
                   onClick={clearMessages}
                   disabled={messages.length === 0}
+                className="text-xs h-8"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {t('chat.startNewConversation')}
+                <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
-
-            {/* DPR Progress */}
-            {dprMode && (
-              <div className="bg-blue-50 p-3 rounded-lg mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-blue-900">DPR Creation Progress</span>
-                  <span className="text-xs text-blue-600">
-                    Step {dprProgress.currentStep} of {dprProgress.totalSteps}
-                  </span>
-                </div>
-                <div className="w-full bg-blue-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${dprProgress.progress}%` }}
-                  />
                 </div>
               </div>
-            )}
 
-            {/* Vector Store Selection */}
+      {/* Knowledge Base Selection - Compact */}
             {useRAG && vectorStores.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Knowledge Base:</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
+        <div className="border-b border-border bg-muted/30 flex-shrink-0">
+          <div className="max-w-4xl mx-auto px-4 py-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-medium text-muted-foreground">Knowledge Base:</span>
                   {vectorStores.map((store) => (
-                    <label key={store._id} className="flex items-center gap-2 cursor-pointer">
+                <label 
+                  key={store._id} 
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs cursor-pointer transition-colors ${
+                    selectedVectorStores.includes(store.openaiVectorStoreId)
+                      ? 'bg-primary text-white'
+                      : 'bg-background border border-border hover:bg-muted'
+                  }`}
+                >
                       <input
                         type="checkbox"
                         checked={selectedVectorStores.includes(store.openaiVectorStoreId)}
@@ -317,160 +293,155 @@ export const Chat: React.FC = () => {
                             );
                           }
                         }}
-                        className="rounded"
-                      />
-                      <span className="text-sm">{store.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        ({store.fileCount} files)
-                      </span>
+                    className="sr-only"
+                  />
+                  <span>{store.name}</span>
+                  <span className="opacity-70">({store.fileCount})</span>
                     </label>
                   ))}
                 </div>
-                {selectedVectorStores.length === 0 && (
-                  <p className="text-xs text-yellow-600">
-                    ⚠️ No knowledge base selected. AI will respond without document context.
-                  </p>
-                )}
+          </div>
               </div>
             )}
-          </CardHeader>
 
-          <CardContent className="flex-1 overflow-y-auto p-6 space-y-4">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto bg-background scrollbar-hide">
+        <div className="max-w-4xl mx-auto px-4 py-8">
             {messages.length === 0 && (
-              <div className="text-center py-12 space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">
-                    Welcome to MSME AI Assistant!
-                  </h3>
-                  <p className="text-muted-foreground">
-                    I'm here to help you create your DPR. Ask me anything!
+            <div className="flex flex-col items-center justify-center h-full min-h-[60vh] space-y-8">
+              <div className="text-center space-y-3">
+                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                  <Sparkles className="h-8 w-8 text-primary" />
+                </div>
+                <h2 className="text-3xl font-semibold text-foreground">
+                  How can I help you today?
+                </h2>
+                <p className="text-muted-foreground max-w-md text-base">
+                  Ask me anything about creating your DPR, MSME schemes, or business planning.
                   </p>
                 </div>
-                <div className="flex justify-center">
-                  <Button
-                    onClick={() => {
-                      setInputMessage('How do I create the DPR?');
-                      handleSend();
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    How do I create the DPR?
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">{t('chat.exampleQuestions')}</p>
-                  <div className="space-y-2">
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
                     {exampleQuestions.map((question, index) => (
-                      <Button
+                  <button
                         key={index}
-                        variant="outline"
-                        className="w-full text-left justify-start"
                         onClick={() => handleSend(question)}
+                    className="p-4 text-left rounded-xl border border-border hover:border-primary/50 hover:bg-muted/50 transition-colors group"
                       >
+                    <p className="text-sm font-medium text-foreground group-hover:text-primary">
                         {question}
-                      </Button>
+                    </p>
+                  </button>
                     ))}
-                  </div>
                 </div>
               </div>
             )}
 
+          <div className="space-y-6">
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`flex ${
+                className={`flex gap-4 group ${
                   message.role === 'user' ? 'justify-end' : 'justify-start'
                 }`}
               >
-                <div
-                  className={`max-w-[70%] rounded-lg p-4 ${
+                {message.role === 'assistant' && (
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
+                    <Bot className="h-5 w-5 text-primary" />
+                  </div>
+                )}
+                
+                <div className={`flex flex-col gap-1.5 max-w-[85%] md:max-w-[75%] ${
+                  message.role === 'user' ? 'items-end' : 'items-start'
+                }`}>
+                  <div
+                    className={`rounded-2xl px-4 py-3 group ${
                     message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-xs opacity-70">
-                      {message.timestamp.toLocaleTimeString()}
-                    </p>
-                    {message.role === 'assistant' && (
-                      <div className="flex items-center gap-2">
-                        {useRAG && selectedVectorStores.length > 0 && (
-                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded flex items-center gap-1">
-                            <Database className="h-3 w-3" />
-                            RAG
-                          </span>
-                        )}
-                        {message.suggestions && (
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded flex items-center gap-1">
-                            <Lightbulb className="h-3 w-3" />
-                            AI
-                          </span>
-                        )}
-                        {message.ragContext === 'RAG used' && (
-                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded flex items-center gap-1">
-                            <Database className="h-3 w-3" />
-                            Docs
-                          </span>
-                        )}
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'bg-muted border border-border'
+                    }`}
+                  >
+                    {message.role === 'assistant' ? (
+                      <div className="prose prose-sm max-w-none prose-headings:font-semibold prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1">
+                        <ReactMarkdown
+                          components={{
+                            p: ({ children }) => <p className="text-sm leading-relaxed text-foreground mb-2 last:mb-0">{children}</p>,
+                            h1: ({ children }) => <h1 className="text-lg font-semibold text-foreground mt-4 mb-2">{children}</h1>,
+                            h2: ({ children }) => <h2 className="text-base font-semibold text-foreground mt-3 mb-2">{children}</h2>,
+                            h3: ({ children }) => <h3 className="text-sm font-semibold text-foreground mt-2 mb-1">{children}</h3>,
+                            ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>,
+                            ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2">{children}</ol>,
+                            li: ({ children }) => <li className="text-sm text-foreground">{children}</li>,
+                            code: ({ children, className }) => {
+                              const isInline = !className;
+                              return isInline ? (
+                                <code className="bg-muted-foreground/10 text-primary px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>
+                              ) : (
+                                <code className="block bg-muted-foreground/10 p-3 rounded-lg text-xs font-mono overflow-x-auto">{children}</code>
+                              );
+                            },
+                            pre: ({ children }) => <pre className="bg-muted-foreground/10 p-3 rounded-lg overflow-x-auto my-2">{children}</pre>,
+                            strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                            em: ({ children }) => <em className="italic">{children}</em>,
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
                       </div>
+                    ) : (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                     )}
                   </div>
                   
-                  {/* Display suggestions and next steps for assistant messages */}
+                  <div className={`flex items-center gap-2 ${message.role === 'user' ? 'flex-row-reverse' : ''} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                    <button
+                      onClick={() => copyToClipboard(message.content, index)}
+                      className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                      title="Copy message"
+                    >
+                      {copiedMessageId === index ? (
+                        <Check className="h-3.5 w-3.5 text-success" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                    </button>
+                    <span className="text-xs text-muted-foreground">
+                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                    {message.role === 'assistant' && useRAG && selectedVectorStores.length > 0 && message.ragContext === 'RAG used' && (
+                      <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-md font-medium">
+                        Enhanced
+                          </span>
+                    )}
+                  </div>
+                  
+                  {/* Suggestions and Next Steps */}
                   {message.role === 'assistant' && (message.suggestions || message.nextSteps) && (
-                    <div className="mt-4 space-y-3">
+                    <div className="mt-2 space-y-2">
                       {message.suggestions && (
-                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                        <div className="bg-primary/5 border border-primary/20 p-3 rounded-lg">
                           <div className="flex items-center gap-2 mb-2">
-                            <Lightbulb className="h-4 w-4 text-blue-600" />
-                            <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                              AI Suggestions
-                            </span>
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            <span className="text-xs font-semibold text-foreground">Suggestions</span>
                           </div>
                           {message.suggestions.financialSuggestions && (
-                            <div className="mb-2">
-                              <div className="flex items-center gap-1 mb-1">
-                                <DollarSign className="h-3 w-3 text-green-600" />
-                                <span className="text-xs font-medium text-green-700 dark:text-green-300">
-                                  Financial Recommendations
-                                </span>
-                              </div>
-                              <p className="text-xs text-gray-700 dark:text-gray-300">
-                                {JSON.stringify(message.suggestions.financialSuggestions, null, 2)}
-                              </p>
-                            </div>
-                          )}
-                          {message.suggestions.schemeSuggestions && (
-                            <div className="mb-2">
-                              <div className="flex items-center gap-1 mb-1">
-                                <TrendingUp className="h-3 w-3 text-purple-600" />
-                                <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
-                                  Government Schemes
-                                </span>
-                              </div>
-                              <p className="text-xs text-gray-700 dark:text-gray-300">
-                                {JSON.stringify(message.suggestions.schemeSuggestions, null, 2)}
-                              </p>
-                            </div>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              {typeof message.suggestions.financialSuggestions === 'string' 
+                                ? message.suggestions.financialSuggestions
+                                : JSON.stringify(message.suggestions.financialSuggestions, null, 2)}
+                            </p>
                           )}
                         </div>
                       )}
-                      
                       {message.nextSteps && message.nextSteps.length > 0 && (
-                        <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                        <div className="bg-success/5 border border-success/20 p-3 rounded-lg">
                           <div className="flex items-center gap-2 mb-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                              Next Steps
-                            </span>
+                            <Check className="h-4 w-4 text-success" />
+                            <span className="text-xs font-semibold text-foreground">Next Steps</span>
                           </div>
-                          <ul className="space-y-1">
+                          <ul className="space-y-1 pl-4">
                             {message.nextSteps.map((step, stepIndex) => (
-                              <li key={stepIndex} className="text-xs text-gray-700 dark:text-gray-300 flex items-start gap-2">
-                                <span className="text-green-600 mt-1">•</span>
+                              <li key={stepIndex} className="text-xs text-muted-foreground leading-relaxed list-disc">
                                 {step}
                               </li>
                             ))}
@@ -480,80 +451,107 @@ export const Chat: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {message.role === 'user' && (
+                  <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-xs font-semibold text-white">
+                      {user?.name?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
 
             {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-muted rounded-lg p-4">
-                  <div className="flex space-x-2">
-                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-75" />
-                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-150" />
+              <div className="flex gap-4 justify-start">
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
+                  <Bot className="h-5 w-5 text-primary" />
+                </div>
+                <div className="bg-muted border border-border rounded-2xl px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-sm text-muted-foreground">AI is thinking...</span>
                   </div>
                 </div>
               </div>
             )}
 
             <div ref={messagesEndRef} />
-          </CardContent>
+          </div>
+        </div>
+      </div>
 
-          <div className="border-t p-4">
-            <div className="flex space-x-2 mb-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-primary/20 bg-background">
-                <Languages className="h-4 w-4 text-primary" />
+      {/* Input Area - Sticky Bottom */}
+      <div className="border-t border-border bg-white flex-shrink-0">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-end gap-2">
+            <div className="flex-1 relative">
+              <textarea
+                ref={inputRef}
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Message AI Assistant..."
+                disabled={isLoading || isRecording}
+                rows={1}
+                className="w-full resize-none rounded-2xl border border-border bg-background px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50 max-h-[200px] overflow-y-auto shadow-sm"
+              />
+              {isRecording && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                  <div className="h-2 w-2 bg-destructive rounded-full animate-pulse" />
+                  <span className="text-xs text-destructive font-medium">Recording</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-border bg-background">
+                <Languages className="h-4 w-4 text-muted-foreground" />
                 <select
                   value={voiceLanguage}
                   onChange={(e) => setVoiceLanguage(e.target.value as 'en' | 'te')}
-                  className="text-sm font-medium bg-transparent border-none outline-none cursor-pointer"
+                  className="text-xs font-medium bg-transparent border-none outline-none cursor-pointer text-muted-foreground"
                   disabled={isRecording}
                 >
-                  <option value="en">English</option>
-                  <option value="te">Telugu</option>
+                  <option value="en">EN</option>
+                  <option value="te">TE</option>
                 </select>
               </div>
-            </div>
-            <div className="flex space-x-2">
-              <Input
-                placeholder={t('chat.placeholder')}
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                disabled={isLoading}
-                className="flex-1"
-              />
+              
               <Button
                 onClick={isRecording ? stopRecording : startRecording}
                 variant={isRecording ? 'destructive' : 'outline'}
                 size="sm"
                 disabled={isLoading}
+                className="h-10 w-10 p-0 rounded-full"
                 title={`Record in ${voiceLanguage === 'te' ? 'Telugu' : 'English'}`}
               >
                 {isRecording ? (
-                  <>
-                    <MicOff className="h-4 w-4 mr-2" />
-                    Stop
-                  </>
+                  <MicOff className="h-4 w-4" />
                 ) : (
-                  <>
-                    <Mic className="h-4 w-4 mr-2" />
-                    Record
-                  </>
+                  <Mic className="h-4 w-4" />
                 )}
               </Button>
+              
               <Button
                 onClick={() => handleSend()}
-                disabled={!inputMessage.trim() || isLoading}
-                className="bg-primary hover:bg-primary/90 text-white"
+                disabled={!inputMessage.trim() || isLoading || isRecording}
+                size="sm"
+                className="h-10 w-10 p-0 rounded-full"
               >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
                 <Send className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </div>
-        </Card>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            Press Enter to send • Shift+Enter for new line
+          </p>
+        </div>
       </div>
-
-    </Layout>
+      </div>
   );
 };
-

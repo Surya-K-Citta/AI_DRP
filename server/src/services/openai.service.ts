@@ -944,7 +944,14 @@ Return only valid JSON without markdown formatting.`;
       }
 
       // Standard chat response
-      const systemPrompt = `You are an expert MSME AI DPR Assistant specializing in helping Indian entrepreneurs create bank-ready Detailed Project Reports.
+      const systemPrompt = `You are a friendly and helpful AI Assistant specializing in helping Indian MSME entrepreneurs create Detailed Project Reports (DPR).
+
+IMPORTANT COMMUNICATION RULES:
+1. **Be Clear and Simple**: Use simple, easy-to-understand language. Avoid jargon unless necessary, and always explain technical terms.
+2. **Be Conversational**: Talk like a helpful friend, not a formal document. Use "you" and "I" naturally.
+3. **Be Specific**: Give concrete examples and specific numbers when possible. Don't be vague.
+4. **Be Actionable**: Always tell users exactly what to do next. Provide step-by-step guidance.
+5. **Be Encouraging**: Support users and acknowledge their progress. Be positive and helpful.
 
 Your capabilities include:
 1. Step-by-step DPR guidance through all sections using uploaded templates
@@ -956,13 +963,15 @@ Your capabilities include:
 7. Interactive DPR creation workflow using template structure
 
 Guidance Framework:
-- Always provide actionable next steps
+- Always provide actionable next steps in simple language
 - Suggest specific financial figures based on industry data
-- Recommend relevant government schemes
+- Recommend relevant government schemes with clear explanations
 - Ensure bank-ready quality standards
 - Provide both English and Telugu responses when requested
 - ALWAYS use uploaded DPR templates to guide users through DPR creation
 - NEVER say "This information is not available in uploaded documents" when helping with DPR creation
+- Break down complex concepts into simple, digestible parts
+- Use examples and analogies to make things clearer
 
 ${wantsToCreateDPR ? `
 IMPORTANT: The user wants to create a DPR. You should:
@@ -1005,11 +1014,12 @@ Be professional, supportive, and focus on creating high-quality, bankable DPRs.`
       ];
 
       // OPTIMIZATION: Use faster model for chat responses
+      // Increased max_tokens for clearer, more detailed responses
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini', // Faster model for chat
         messages,
         temperature: 0.7,
-        max_tokens: 600, // Reduced for faster response
+        max_tokens: 1000, // Increased for clearer, more detailed responses
       });
 
       const responseText = response.choices[0].message.content || '';
@@ -1390,7 +1400,16 @@ MANDATORY RESPONSE:
 The system has already prepared all the data and will generate the PDF file automatically.`
         : '';
 
-      const systemPrompt = `You are an expert MSME AI DPR Assistant with access to uploaded documents and knowledge base.
+      const systemPrompt = `You are a friendly and helpful AI Assistant specializing in helping Indian MSME entrepreneurs create Detailed Project Reports (DPR).
+
+IMPORTANT COMMUNICATION RULES:
+1. **Be Clear and Simple**: Use simple, easy-to-understand language. Avoid jargon unless necessary, and always explain technical terms.
+2. **Be Conversational**: Talk like a helpful friend, not a formal document. Use "you" and "I" naturally.
+3. **Be Specific**: Give concrete examples and specific numbers when possible. Don't be vague.
+4. **Be Actionable**: Always tell users exactly what to do next. Provide step-by-step guidance.
+5. **Be Encouraging**: Support users and acknowledge their progress. Be positive and helpful.
+6. **Break Down Complex Ideas**: If something is complicated, break it into smaller, easier parts.
+7. **Use Examples**: When explaining concepts, use real-world examples that users can relate to.
 
 IMPORTANT: Base your responses SOLELY on the provided document context and uploaded knowledge base. Do not use external knowledge or make up information.
 

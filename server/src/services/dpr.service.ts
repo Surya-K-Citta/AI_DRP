@@ -9,6 +9,7 @@ import PDFDocument from 'pdfkit';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import fs from 'fs';
 import path from 'path';
+import { Buffer } from 'buffer';
 
 export class DPRService {
   /**
@@ -123,7 +124,18 @@ export class DPRService {
 
       return new Promise((resolve, reject) => {
         try {
-          const doc = new PDFDocument({ margin: 50 });
+          // PDFKit configuration for better Unicode support
+          const doc = new PDFDocument({ 
+            margin: 50,
+            autoFirstPage: true,
+            // Ensure proper encoding for Unicode characters
+            info: {
+              Title: language === 'telugu' ? 'వివరణాత్మక ప్రాజెక్ట్ నివేదిక' : 'Detailed Project Report',
+              Author: 'MSME DPR Tool',
+              Subject: 'DPR Document',
+              Creator: 'MSME AI DPR Generation Tool'
+            }
+          });
           const chunks: Buffer[] = [];
 
           doc.on('data', (chunk) => chunks.push(chunk));
@@ -133,18 +145,106 @@ export class DPRService {
             reject(error);
           });
 
+          // Register Telugu font if available
+          // Try multiple possible paths for the font file
+          const possibleFontPaths = [
+            path.join(__dirname, '../../fonts/NotoSansTelugu-Regular.ttf'), // Development
+            path.join(process.cwd(), 'fonts/NotoSansTelugu-Regular.ttf'),   // Production
+            path.join(process.cwd(), 'server/fonts/NotoSansTelugu-Regular.ttf'), // Alternative
+          ];
+          
+          let teluguFontPath: string | null = null;
+          let teluguFontRegistered = false;
+          
+          // Find the font file
+          for (const fontPath of possibleFontPaths) {
+            if (fs.existsSync(fontPath)) {
+              teluguFontPath = fontPath;
+              break;
+            }
+          }
+          
+          // Register the font if found
+          if (teluguFontPath) {
+            try {
+              doc.registerFont('NotoSansTelugu', teluguFontPath);
+              teluguFontRegistered = true;
+              console.log('✅ Telugu font registered successfully from:', teluguFontPath);
+            } catch (fontError: any) {
+              console.warn('⚠️  Failed to register Telugu font:', fontError.message);
+              console.warn('   Telugu text may not render correctly in PDF');
+              console.warn('   Please ensure the font file is valid and accessible');
+            }
+          } else {
+            console.warn('⚠️  Telugu font not found. Tried paths:');
+            possibleFontPaths.forEach(p => console.warn(`   - ${p}`));
+            console.warn('   Please download NotoSansTelugu-Regular.ttf and place it in the fonts folder');
+            console.warn('   See server/fonts/README.md for instructions');
+            console.warn('   Telugu text will NOT render correctly in PDF without this font');
+          }
+
+          // Helper function to detect Telugu text (must be defined first)
+          const isTeluguText = (text: string): boolean => {
+            return /[\u0C00-\u0C7F]/.test(text);
+          };
+
+          // Detect if content contains Telugu characters
+          const hasTelugu = /[\u0C00-\u0C7F]/.test(contentLang.executiveSummary || '');
+          
           // Title Page
-          doc.fontSize(24).text('Detailed Project Report', { align: 'center' });
+          const title = language === 'telugu' ? 'వివరణాత్మక ప్రాజెక్ట్ నివేదిక' : 'Detailed Project Report';
+          const titleIsTelugu = isTeluguText(title);
+          
+          // For Telugu title, use registered Telugu font if available
+          if (titleIsTelugu) {
+            if (teluguFontRegistered) {
+              doc.fontSize(24).font('NotoSansTelugu').text(title, { align: 'center' });
+            } else {
+              doc.fontSize(24).text(title, { align: 'center' });
+            }
+          } else {
+            doc.fontSize(24).font('Helvetica-Bold').text(title, { align: 'center' });
+          }
           doc.moveDown();
-          doc.fontSize(18).text(project.projectName, { align: 'center' });
+          
+          // Project name
+          const projectNameIsTelugu = isTeluguText(project.projectName);
+          if (projectNameIsTelugu) {
+            if (teluguFontRegistered) {
+              doc.fontSize(18).font('NotoSansTelugu').text(project.projectName, { align: 'center' });
+            } else {
+              doc.fontSize(18).text(project.projectName, { align: 'center' });
+            }
+          } else {
+            doc.fontSize(18).font('Helvetica').text(project.projectName, { align: 'center' });
+          }
           doc.moveDown();
-          doc.fontSize(12).text(`Sector: ${project.industrySector}`, { align: 'center' });
-          doc.text(`Location: ${project.location}`, { align: 'center' });
+          
+          const sectorLabel = language === 'telugu' ? 'రంగం' : 'Sector';
+          const locationLabel = language === 'telugu' ? 'స్థానం' : 'Location';
+          
+          // Sector and Location
+          if (language === 'telugu') {
+            if (teluguFontRegistered) {
+              doc.fontSize(12).font('NotoSansTelugu').text(`${sectorLabel}: ${project.industrySector}`, { align: 'center' });
+              doc.font('NotoSansTelugu').text(`${locationLabel}: ${project.location}`, { align: 'center' });
+            } else {
+              doc.fontSize(12).text(`${sectorLabel}: ${project.industrySector}`, { align: 'center' });
+              doc.text(`${locationLabel}: ${project.location}`, { align: 'center' });
+            }
+          } else {
+            doc.fontSize(12).font('Helvetica').text(`${sectorLabel}: ${project.industrySector}`, { align: 'center' });
+            doc.font('Helvetica').text(`${locationLabel}: ${project.location}`, { align: 'center' });
+          }
           doc.moveDown(2);
 
           // Helper function to add text with formatting (bold and headings)
+          // For Telugu: Don't specify font, let PDFKit use default Unicode-supporting font
+          // For English: Use Helvetica for better formatting
           const addFormattedText = (text: string, fontSize: number = 11) => {
             if (!text) return;
+            
+            const containsTelugu = isTeluguText(text);
             
             // Process markdown text (handles both bold and headings)
             const paragraphs = processMarkdownText(text);
@@ -169,13 +269,26 @@ export class DPRService {
                 
                 para.content.forEach((segment, index) => {
                   const isLast = index === para.content.length - 1;
-                  if (segment.bold) {
-                    doc.fontSize(headingFontSize).font('Helvetica-Bold').text(segment.text, { 
-                      continued: !isLast 
-                    });
+                  const segmentText = segment.text;
+                  const segmentIsTelugu = isTeluguText(segmentText);
+                  
+                  // For Telugu: Use registered Telugu font if available
+                  // For English: Use Helvetica-Bold for headings
+                  if (segmentIsTelugu) {
+                    // Telugu text - use registered Telugu font
+                    if (teluguFontRegistered) {
+                      doc.fontSize(headingFontSize).font('NotoSansTelugu').text(segmentText, { 
+                        continued: !isLast 
+                      });
+                    } else {
+                      // Fallback: try without font (may not render correctly)
+                      doc.fontSize(headingFontSize).text(segmentText, { 
+                        continued: !isLast 
+                      });
+                    }
                   } else {
-                    // Semi-bold for headings (font-weight 600 equivalent)
-                    doc.fontSize(headingFontSize).font('Helvetica-Bold').text(segment.text, { 
+                    // English text - use Helvetica-Bold for headings
+                    doc.fontSize(headingFontSize).font('Helvetica-Bold').text(segmentText, { 
                       continued: !isLast 
                     });
                   }
@@ -185,16 +298,36 @@ export class DPRService {
                 // Regular text paragraph
                 para.content.forEach((segment, index) => {
                   const isLast = index === para.content.length - 1;
-                  if (segment.bold) {
-                    doc.fontSize(fontSize).font('Helvetica-Bold').text(segment.text, { 
-                      align: 'justify', 
-                      continued: !isLast 
-                    });
+                  const segmentText = segment.text;
+                  const segmentIsTelugu = isTeluguText(segmentText);
+                  
+                  if (segmentIsTelugu) {
+                    // Telugu text - use registered Telugu font if available
+                    if (teluguFontRegistered) {
+                      doc.fontSize(fontSize).font('NotoSansTelugu').text(segmentText, { 
+                        align: 'justify', 
+                        continued: !isLast 
+                      });
+                    } else {
+                      // Fallback: try without font (may not render correctly)
+                      doc.fontSize(fontSize).text(segmentText, { 
+                        align: 'justify', 
+                        continued: !isLast 
+                      });
+                    }
                   } else {
-                    doc.fontSize(fontSize).font('Helvetica').text(segment.text, { 
-                      align: 'justify', 
-                      continued: !isLast 
-                    });
+                    // English text - use Helvetica with bold if needed
+                    if (segment.bold) {
+                      doc.fontSize(fontSize).font('Helvetica-Bold').text(segmentText, { 
+                        align: 'justify', 
+                        continued: !isLast 
+                      });
+                    } else {
+                      doc.fontSize(fontSize).font('Helvetica').text(segmentText, { 
+                        align: 'justify', 
+                        continued: !isLast 
+                      });
+                    }
                   }
                 });
                 doc.moveDown(0.3);
@@ -202,37 +335,74 @@ export class DPRService {
             });
           };
 
+          // Section labels based on language
+          const sectionLabels = language === 'telugu' ? {
+            executiveSummary: '1. కార్యనిర్వాహక సారాంశం',
+            businessProfile: '2. వ్యాపార ప్రొఫైల్',
+            marketAnalysis: '3. మార్కెట్ విశ్లేషణ',
+            technicalFeasibility: '4. సాంకేతిక సాధ్యత',
+            financialProjections: '5. ఆర్థిక అంచనాలు',
+            conclusion: '6. ముగింపు',
+            financialSummary: 'ఆర్థిక సారాంశం',
+            projectCostBreakdown: 'ప్రాజెక్ట్ ఖర్చు విభజన:',
+            meansOfFinance: 'ఆర్థిక మార్గాలు:'
+          } : {
+            executiveSummary: '1. Executive Summary',
+            businessProfile: '2. Business Profile',
+            marketAnalysis: '3. Market Analysis',
+            technicalFeasibility: '4. Technical Feasibility',
+            financialProjections: '5. Financial Projections',
+            conclusion: '6. Conclusion',
+            financialSummary: 'Financial Summary',
+            projectCostBreakdown: 'Project Cost Breakdown:',
+            meansOfFinance: 'Means of Finance:'
+          };
+
+          // Helper to render section headers with proper font
+          const renderSectionHeader = (text: string) => {
+            const isTelugu = isTeluguText(text);
+            if (isTelugu) {
+              if (teluguFontRegistered) {
+                doc.fontSize(16).font('NotoSansTelugu').text(text, { underline: true });
+              } else {
+                doc.fontSize(16).text(text, { underline: true });
+              }
+            } else {
+              doc.fontSize(16).font('Helvetica-Bold').text(text, { underline: true });
+            }
+          };
+
           // Executive Summary
           doc.addPage();
-          doc.fontSize(16).text('1. Executive Summary', { underline: true });
+          renderSectionHeader(sectionLabels.executiveSummary);
           doc.moveDown();
           addFormattedText(contentLang.executiveSummary || '');
           doc.moveDown();
 
           // Business Profile
           doc.addPage();
-          doc.fontSize(16).text('2. Business Profile', { underline: true });
+          renderSectionHeader(sectionLabels.businessProfile);
           doc.moveDown();
           addFormattedText(contentLang.businessProfile || '');
           doc.moveDown();
 
           // Market Analysis
           doc.addPage();
-          doc.fontSize(16).text('3. Market Analysis', { underline: true });
+          renderSectionHeader(sectionLabels.marketAnalysis);
           doc.moveDown();
           addFormattedText(contentLang.marketAnalysis || '');
           doc.moveDown();
 
           // Technical Feasibility
           doc.addPage();
-          doc.fontSize(16).text('4. Technical Feasibility', { underline: true });
+          renderSectionHeader(sectionLabels.technicalFeasibility);
           doc.moveDown();
           addFormattedText(contentLang.technicalFeasibility || '');
           doc.moveDown();
 
           // Financial Projections
           doc.addPage();
-          doc.fontSize(16).text('5. Financial Projections', { underline: true });
+          renderSectionHeader(sectionLabels.financialProjections);
           doc.moveDown();
           addFormattedText(contentLang.financialProjections || '');
           doc.moveDown();
@@ -240,32 +410,54 @@ export class DPRService {
           // Financial Tables (if available)
           if (dpr.financials && dpr.financials.projectCost) {
             doc.addPage();
-            doc.fontSize(14).text('Financial Summary', { underline: true });
+            renderSectionHeader(sectionLabels.financialSummary);
             doc.moveDown();
             
             // Project Cost
-            doc.fontSize(12).text('Project Cost Breakdown:', { underline: true });
+            renderSectionHeader(sectionLabels.projectCostBreakdown);
             doc.fontSize(10);
+            const fixedCapitalLabel = language === 'telugu' ? 'మొత్తం స్థిర మూలధనం' : 'Total Fixed Capital';
+            const workingCapitalLabel = language === 'telugu' ? 'మొత్తం పని మూలధనం' : 'Total Working Capital';
+            const totalProjectCostLabel = language === 'telugu' ? 'మొత్తం ప్రాజెక్ట్ ఖర్చు' : 'Total Project Cost';
+            
+            // Render financial labels with proper font handling
+            const renderFinancialText = (text: string) => {
+              if (isTeluguText(text)) {
+                // Telugu text - use registered Telugu font if available
+                if (teluguFontRegistered) {
+                  doc.font('NotoSansTelugu').text(text);
+                } else {
+                  doc.text(text);
+                }
+              } else {
+                // English text - use Helvetica
+                doc.font('Helvetica').text(text);
+              }
+            };
+            
             if (dpr.financials.projectCost.fixedCapital) {
-              doc.text(`Total Fixed Capital: ₹${dpr.financials.projectCost.fixedCapital.total?.toLocaleString() || '0'}`);
+              renderFinancialText(`${fixedCapitalLabel}: ₹${dpr.financials.projectCost.fixedCapital.total?.toLocaleString() || '0'}`);
             }
             if (dpr.financials.projectCost.workingCapital) {
-              doc.text(`Total Working Capital: ₹${dpr.financials.projectCost.workingCapital.total?.toLocaleString() || '0'}`);
+              renderFinancialText(`${workingCapitalLabel}: ₹${dpr.financials.projectCost.workingCapital.total?.toLocaleString() || '0'}`);
             }
             if (dpr.financials.projectCost.totalProjectCost) {
-              doc.text(`Total Project Cost: ₹${dpr.financials.projectCost.totalProjectCost.toLocaleString()}`);
+              renderFinancialText(`${totalProjectCostLabel}: ₹${dpr.financials.projectCost.totalProjectCost.toLocaleString()}`);
             }
             doc.moveDown();
 
             // Means of Finance
             if (dpr.financials.meansOfFinance) {
-              doc.fontSize(12).text('Means of Finance:', { underline: true });
+              renderSectionHeader(sectionLabels.meansOfFinance);
               doc.fontSize(10);
+              const ownContributionLabel = language === 'telugu' ? 'సొంత సహకారం' : 'Own Contribution';
+              const termLoanLabel = language === 'telugu' ? 'టర్మ్ లోన్' : 'Term Loan';
+              
               if (dpr.financials.meansOfFinance.ownContribution) {
-                doc.text(`Own Contribution: ₹${dpr.financials.meansOfFinance.ownContribution.amount?.toLocaleString() || '0'} (${dpr.financials.meansOfFinance.ownContribution.percentage || 0}%)`);
+                renderFinancialText(`${ownContributionLabel}: ₹${dpr.financials.meansOfFinance.ownContribution.amount?.toLocaleString() || '0'} (${dpr.financials.meansOfFinance.ownContribution.percentage || 0}%)`);
               }
               if (dpr.financials.meansOfFinance.termLoan) {
-                doc.text(`Term Loan: ₹${dpr.financials.meansOfFinance.termLoan.amount?.toLocaleString() || '0'} (${dpr.financials.meansOfFinance.termLoan.percentage || 0}%)`);
+                renderFinancialText(`${termLoanLabel}: ₹${dpr.financials.meansOfFinance.termLoan.amount?.toLocaleString() || '0'} (${dpr.financials.meansOfFinance.termLoan.percentage || 0}%)`);
               }
               doc.moveDown();
             }
@@ -273,7 +465,7 @@ export class DPRService {
 
           // Conclusion
           doc.addPage();
-          doc.fontSize(16).text('6. Conclusion', { underline: true });
+          renderSectionHeader(sectionLabels.conclusion);
           doc.moveDown();
           addFormattedText(contentLang.conclusion || '');
 
@@ -388,12 +580,35 @@ export class DPRService {
       return paragraphs;
     };
 
+    // Section labels based on language
+    const sectionLabels = language === 'telugu' ? {
+      title: 'వివరణాత్మక ప్రాజెక్ట్ నివేదిక',
+      sector: 'రంగం',
+      location: 'స్థానం',
+      executiveSummary: '1. కార్యనిర్వాహక సారాంశం',
+      businessProfile: '2. వ్యాపార ప్రొఫైల్',
+      marketAnalysis: '3. మార్కెట్ విశ్లేషణ',
+      technicalFeasibility: '4. సాంకేతిక సాధ్యత',
+      financialProjections: '5. ఆర్థిక అంచనాలు',
+      conclusion: '6. ముగింపు'
+    } : {
+      title: 'Detailed Project Report',
+      sector: 'Sector',
+      location: 'Location',
+      executiveSummary: '1. Executive Summary',
+      businessProfile: '2. Business Profile',
+      marketAnalysis: '3. Market Analysis',
+      technicalFeasibility: '4. Technical Feasibility',
+      financialProjections: '5. Financial Projections',
+      conclusion: '6. Conclusion'
+    };
+
     const doc = new Document({
       sections: [
         {
           children: [
             new Paragraph({
-              text: 'Detailed Project Report',
+              text: sectionLabels.title,
               heading: HeadingLevel.TITLE,
             }),
             new Paragraph({
@@ -401,39 +616,39 @@ export class DPRService {
               heading: HeadingLevel.HEADING_1,
             }),
             new Paragraph({
-              text: `Sector: ${project.industrySector}`,
+              text: `${sectionLabels.sector}: ${project.industrySector}`,
             }),
             new Paragraph({
-              text: `Location: ${project.location}`,
+              text: `${sectionLabels.location}: ${project.location}`,
             }),
             new Paragraph({ text: '' }),
             new Paragraph({
-              text: '1. Executive Summary',
+              text: sectionLabels.executiveSummary,
               heading: HeadingLevel.HEADING_2,
             }),
             ...createFormattedParagraphs(contentLang.executiveSummary || ''),
             new Paragraph({
-              text: '2. Business Profile',
+              text: sectionLabels.businessProfile,
               heading: HeadingLevel.HEADING_2,
             }),
             ...createFormattedParagraphs(contentLang.businessProfile || ''),
             new Paragraph({
-              text: '3. Market Analysis',
+              text: sectionLabels.marketAnalysis,
               heading: HeadingLevel.HEADING_2,
             }),
             ...createFormattedParagraphs(contentLang.marketAnalysis || ''),
             new Paragraph({
-              text: '4. Technical Feasibility',
+              text: sectionLabels.technicalFeasibility,
               heading: HeadingLevel.HEADING_2,
             }),
             ...createFormattedParagraphs(contentLang.technicalFeasibility || ''),
             new Paragraph({
-              text: '5. Financial Projections',
+              text: sectionLabels.financialProjections,
               heading: HeadingLevel.HEADING_2,
             }),
             ...createFormattedParagraphs(contentLang.financialProjections || ''),
             new Paragraph({
-              text: '6. Conclusion',
+              text: sectionLabels.conclusion,
               heading: HeadingLevel.HEADING_2,
             }),
             ...createFormattedParagraphs(contentLang.conclusion || ''),
