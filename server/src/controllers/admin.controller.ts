@@ -5,6 +5,7 @@ import { Project } from '../models/Project.model';
 import { DPRVersion } from '../models/DPRVersion.model';
 import { Feedback } from '../models/Feedback.model';
 import { DPRAnalytics } from '../models/DPRAnalytics.model';
+import { Policy } from '../models/Policy.model';
 import { MLService } from '../services/ml.service';
 
 export class AdminController {
@@ -433,6 +434,493 @@ export class AdminController {
       res.status(500).json({
         success: false,
         message: 'Failed to fetch feedback',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Update user (admin only)
+   */
+  static async updateUser(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { name, email, role, location, phoneNumber, udyamNumber } = req.body;
+
+      // Prevent admin from changing their own role
+      if (id === req.user?.userId && role && role !== req.user?.role) {
+        res.status(400).json({
+          success: false,
+          message: 'You cannot change your own role',
+        });
+        return;
+      }
+
+      const updateData: any = {};
+      if (name) updateData.name = name;
+      if (email) updateData.email = email;
+      if (role) updateData.role = role;
+      if (location !== undefined) updateData.location = location;
+      if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+      if (udyamNumber !== undefined) updateData.udyamNumber = udyamNumber;
+
+      const user = await User.findByIdAndUpdate(id, updateData, { new: true }).select('-passwordHash');
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: { user },
+        message: 'User updated successfully',
+      });
+    } catch (error: any) {
+      console.error('Update user error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update user',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Delete user (admin only)
+   */
+  static async deleteUser(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      // Prevent admin from deleting themselves
+      if (id === req.user?.userId) {
+        res.status(400).json({
+          success: false,
+          message: 'You cannot delete your own account',
+        });
+        return;
+      }
+
+      const user = await User.findByIdAndDelete(id);
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'User deleted successfully',
+      });
+    } catch (error: any) {
+      console.error('Delete user error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete user',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get all DPRs for admin review
+   */
+  static async getAllDPRs(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { page = 1, limit = 20, status, search } = req.query;
+
+      const filter: any = {};
+      if (status) {
+        filter.status = status;
+      }
+
+      let query = DPRVersion.find(filter)
+        .populate('projectId', 'projectName industrySector location totalCost userId')
+        .sort({ createdAt: -1 });
+
+      if (search) {
+        query = query.or([
+          { 'projectId.projectName': { $regex: search, $options: 'i' } },
+          { 'projectId.industrySector': { $regex: search, $options: 'i' } },
+        ]);
+      }
+
+      const dprs = await query
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit));
+
+      const total = await DPRVersion.countDocuments(filter);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          dprs,
+          pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            pages: Math.ceil(total / Number(limit)),
+          },
+        },
+      });
+    } catch (error: any) {
+      console.error('Get all DPRs error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch DPRs',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Approve DPR (admin only)
+   */
+  static async approveDPR(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { comments } = req.body;
+
+      const dpr = await DPRVersion.findByIdAndUpdate(
+        id,
+        {
+          status: 'approved',
+          approvedAt: new Date(),
+          approvedBy: req.user?.userId,
+        },
+        { new: true }
+      ).populate('projectId', 'projectName');
+
+      if (!dpr) {
+        res.status(404).json({
+          success: false,
+          message: 'DPR not found',
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: { dpr },
+        message: 'DPR approved successfully',
+      });
+    } catch (error: any) {
+      console.error('Approve DPR error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to approve DPR',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Reject DPR (admin only)
+   */
+  static async rejectDPR(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+
+      if (!reason) {
+        res.status(400).json({
+          success: false,
+          message: 'Rejection reason is required',
+        });
+        return;
+      }
+
+      const existingDPR = await DPRVersion.findById(id);
+      if (!existingDPR) {
+        res.status(404).json({
+          success: false,
+          message: 'DPR not found',
+        });
+        return;
+      }
+
+      const dpr = await DPRVersion.findByIdAndUpdate(
+        id,
+        {
+          status: 'rejected',
+          qualityFeedback: {
+            ...existingDPR.qualityFeedback?.toObject(),
+            feedback: [...(existingDPR.qualityFeedback?.feedback || []), `Admin Rejection: ${reason}`],
+          },
+        },
+        { new: true }
+      ).populate('projectId', 'projectName');
+
+      res.status(200).json({
+        success: true,
+        data: { dpr },
+        message: 'DPR rejected successfully',
+      });
+    } catch (error: any) {
+      console.error('Reject DPR error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to reject DPR',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get all policies
+   */
+  static async getAllPolicies(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { page = 1, limit = 20, status, category, search } = req.query;
+
+      const filter: any = {};
+      if (status) {
+        filter.status = status;
+      }
+      if (category) {
+        filter.category = category;
+      }
+
+      let query = Policy.find(filter).sort({ createdAt: -1 });
+
+      if (search) {
+        query = query.or([
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { content: { $regex: search, $options: 'i' } },
+        ]);
+      }
+
+      const policies = await query
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit))
+        .populate('createdBy', 'name email')
+        .populate('updatedBy', 'name email');
+
+      const total = await Policy.countDocuments(filter);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          policies,
+          pagination: {
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            pages: Math.ceil(total / Number(limit)),
+          },
+        },
+      });
+    } catch (error: any) {
+      console.error('Get all policies error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch policies',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Create policy
+   */
+  static async createPolicy(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const {
+        title,
+        description,
+        category,
+        content,
+        version,
+        status,
+        effectiveDate,
+        expiryDate,
+        tags,
+        appliesTo,
+        metadata,
+      } = req.body;
+
+      if (!title || !description || !category || !content) {
+        res.status(400).json({
+          success: false,
+          message: 'Title, description, category, and content are required',
+        });
+        return;
+      }
+
+      const policy = await Policy.create({
+        title,
+        description,
+        category,
+        content,
+        version: version || '1.0.0',
+        status: status || 'draft',
+        effectiveDate: effectiveDate ? new Date(effectiveDate) : undefined,
+        expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+        createdBy: req.user?.userId,
+        tags: tags || [],
+        appliesTo: appliesTo || {},
+        metadata: {
+          priority: metadata?.priority || 'medium',
+          requiresApproval: metadata?.requiresApproval || false,
+          relatedPolicies: metadata?.relatedPolicies || [],
+        },
+      });
+
+      const populatedPolicy = await Policy.findById(policy._id)
+        .populate('createdBy', 'name email');
+
+      res.status(201).json({
+        success: true,
+        data: { policy: populatedPolicy },
+        message: 'Policy created successfully',
+      });
+    } catch (error: any) {
+      console.error('Create policy error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create policy',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Update policy
+   */
+  static async updatePolicy(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const updateData: any = { updatedBy: req.user?.userId };
+
+      const allowedFields = [
+        'title',
+        'description',
+        'category',
+        'content',
+        'version',
+        'status',
+        'effectiveDate',
+        'expiryDate',
+        'tags',
+        'appliesTo',
+        'metadata',
+      ];
+
+      allowedFields.forEach((field) => {
+        if (req.body[field] !== undefined) {
+          if (field === 'effectiveDate' || field === 'expiryDate') {
+            updateData[field] = req.body[field] ? new Date(req.body[field]) : undefined;
+          } else {
+            updateData[field] = req.body[field];
+          }
+        }
+      });
+
+      const policy = await Policy.findByIdAndUpdate(id, updateData, { new: true })
+        .populate('createdBy', 'name email')
+        .populate('updatedBy', 'name email');
+
+      if (!policy) {
+        res.status(404).json({
+          success: false,
+          message: 'Policy not found',
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: { policy },
+        message: 'Policy updated successfully',
+      });
+    } catch (error: any) {
+      console.error('Update policy error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update policy',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Delete policy
+   */
+  static async deletePolicy(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const policy = await Policy.findByIdAndDelete(id);
+
+      if (!policy) {
+        res.status(404).json({
+          success: false,
+          message: 'Policy not found',
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Policy deleted successfully',
+      });
+    } catch (error: any) {
+      console.error('Delete policy error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete policy',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Approve policy
+   */
+  static async approvePolicy(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const policy = await Policy.findByIdAndUpdate(
+        id,
+        {
+          'metadata.approvalStatus': 'approved',
+          'metadata.approvedBy': req.user?.userId,
+          'metadata.approvedAt': new Date(),
+          status: 'active',
+        },
+        { new: true }
+      )
+        .populate('createdBy', 'name email')
+        .populate('updatedBy', 'name email')
+        .populate('metadata.approvedBy', 'name email');
+
+      if (!policy) {
+        res.status(404).json({
+          success: false,
+          message: 'Policy not found',
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: { policy },
+        message: 'Policy approved successfully',
+      });
+    } catch (error: any) {
+      console.error('Approve policy error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to approve policy',
         error: error.message,
       });
     }

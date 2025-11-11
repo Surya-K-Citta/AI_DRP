@@ -5,6 +5,7 @@ import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { useAuthStore } from '@/store/authStore';
 import { 
   FileText, 
   Search,
@@ -18,6 +19,7 @@ import {
   Sparkles,
   Upload,
   Loader2,
+  XCircle,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
@@ -38,6 +40,8 @@ type StatusFilter = 'all' | 'draft' | 'submitted' | 'approved' | 'rejected';
 
 export const AllDPRs: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
   const [dprs, setDprs] = useState<DPR[]>([]);
   const [filteredDprs, setFilteredDprs] = useState<DPR[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,8 +65,10 @@ export const AllDPRs: React.FC = () => {
   const loadDPRs = async () => {
     try {
       setLoading(true);
-      const response = await api.getUserDPRs();
-      const dprsData = response.data || [];
+      const response = isAdmin 
+        ? await api.getAllDPRsAdmin({ limit: 100 })
+        : await api.getUserDPRs();
+      const dprsData = isAdmin ? (response.data?.dprs || []) : (response.data || []);
       setDprs(dprsData);
     } catch (error: any) {
       console.error('Failed to load DPRs:', error);
@@ -77,6 +83,28 @@ export const AllDPRs: React.FC = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApproveDPR = async (dprId: string) => {
+    try {
+      await api.approveDPR(dprId);
+      toast.success('DPR approved successfully');
+      loadDPRs();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to approve DPR');
+    }
+  };
+
+  const handleRejectDPR = async (dprId: string) => {
+    const reason = prompt('Please provide a reason for rejection:');
+    if (!reason) return;
+    try {
+      await api.rejectDPR(dprId, reason);
+      toast.success('DPR rejected successfully');
+      loadDPRs();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to reject DPR');
     }
   };
 
@@ -337,9 +365,12 @@ export const AllDPRs: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold">All DPRs</h1>
+            <h1 className="text-3xl font-bold">{isAdmin ? 'DPR Management' : 'All DPRs'}</h1>
             <p className="text-muted-foreground mt-1">
-              View and manage all your Detailed Project Reports ({filteredDprs.length} {filteredDprs.length === 1 ? 'DPR' : 'DPRs'})
+              {isAdmin 
+                ? `Review and manage all DPRs in the system (${filteredDprs.length} ${filteredDprs.length === 1 ? 'DPR' : 'DPRs'})`
+                : `View and manage all your Detailed Project Reports (${filteredDprs.length} ${filteredDprs.length === 1 ? 'DPR' : 'DPRs'})`
+              }
             </p>
           </div>
           <div className="flex gap-2">
@@ -616,6 +647,28 @@ export const AllDPRs: React.FC = () => {
                         <Download className="h-4 w-4 mr-2" />
                         PDF
                       </Button>
+                      {isAdmin && dpr.status === 'submitted' && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-2 border-success text-success hover:bg-success hover:text-white"
+                            onClick={() => handleApproveDPR(dpr._id)}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Approve
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-2 border-destructive text-destructive hover:bg-destructive hover:text-white"
+                            onClick={() => handleRejectDPR(dpr._id)}
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Reject
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CardContent>

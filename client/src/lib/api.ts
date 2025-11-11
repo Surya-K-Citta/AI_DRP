@@ -375,6 +375,59 @@ class APIClient {
     });
     return response.data;
   }
+
+  // Admin DPR management endpoints
+  async getAllDPRsAdmin(params?: any) {
+    const response = await this.client.get('/admin/dprs', { params });
+    return response.data;
+  }
+
+  async approveDPR(dprId: string, comments?: string) {
+    const response = await this.client.post(`/admin/dprs/${dprId}/approve`, { comments });
+    return response.data;
+  }
+
+  async rejectDPR(dprId: string, reason: string) {
+    const response = await this.client.post(`/admin/dprs/${dprId}/reject`, { reason });
+    return response.data;
+  }
+
+  // Admin user management endpoints
+  async updateUserAdmin(userId: string, data: any) {
+    const response = await this.client.put(`/admin/users/${userId}`, data);
+    return response.data;
+  }
+
+  async deleteUserAdmin(userId: string) {
+    const response = await this.client.delete(`/admin/users/${userId}`);
+    return response.data;
+  }
+
+  // Admin policy management endpoints
+  async getAllPolicies(params?: any) {
+    const response = await this.client.get('/admin/policies', { params });
+    return response.data;
+  }
+
+  async createPolicy(data: any) {
+    const response = await this.client.post('/admin/policies', data);
+    return response.data;
+  }
+
+  async updatePolicy(policyId: string, data: any) {
+    const response = await this.client.put(`/admin/policies/${policyId}`, data);
+    return response.data;
+  }
+
+  async deletePolicy(policyId: string) {
+    const response = await this.client.delete(`/admin/policies/${policyId}`);
+    return response.data;
+  }
+
+  async approvePolicy(policyId: string) {
+    const response = await this.client.post(`/admin/policies/${policyId}/approve`);
+    return response.data;
+  }
 }
 
 export const api = new APIClient();

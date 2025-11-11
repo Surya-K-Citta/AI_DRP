@@ -3,17 +3,20 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useProjectStore } from '@/store/projectStore';
+import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Plus, Search, Trash2, Edit, FileText, Building2, Sparkles, ArrowRight } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, FileText, Building2, Sparkles, ArrowRight, Users } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export const Projects: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
   const { projects, setProjects, deleteProject } = useProjectStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -25,8 +28,13 @@ export const Projects: React.FC = () => {
   const loadProjects = async () => {
     setIsLoading(true);
     try {
-      const response = await api.getProjects();
-      setProjects(response.data.projects);
+      if (isAdmin) {
+        const response = await api.getAllProjects({ limit: 100 });
+        setProjects(response.data.projects || []);
+      } else {
+        const response = await api.getProjects();
+        setProjects(response.data.projects);
+      }
     } catch (error) {
       toast.error('Failed to load projects');
     } finally {
@@ -58,10 +66,13 @@ export const Projects: React.FC = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
-              {t('projects.title')}
+              {isAdmin ? 'All Projects' : t('projects.title')}
             </h1>
             <p className="text-muted-foreground text-lg">
-              Manage your project portfolio and create DPRs
+              {isAdmin 
+                ? 'View and manage all projects in the system'
+                : 'Manage your project portfolio and create DPRs'
+              }
             </p>
           </div>
           <div className="flex gap-3">
@@ -161,6 +172,17 @@ export const Projects: React.FC = () => {
                   <CardDescription className="text-base">
                     {project.industrySector}
                   </CardDescription>
+                  {isAdmin && project.userId && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        {typeof project.userId === 'object' 
+                          ? project.userId.name || project.userId.email
+                          : 'Unknown User'
+                        }
+                      </span>
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
