@@ -252,6 +252,17 @@ class APIClient {
     return response.data;
   }
 
+  async textToSpeech(text: string, language?: 'en' | 'te', voice?: string) {
+    const response = await this.client.post('/ai/tts', {
+      text,
+      language: language || 'en',
+      voice: voice || 'alloy',
+    }, {
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
   // Admin endpoints
   async getAnalytics() {
     const response = await this.client.get('/admin/analytics');

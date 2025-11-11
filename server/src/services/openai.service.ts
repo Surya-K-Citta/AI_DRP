@@ -518,6 +518,11 @@ Return only valid JSON without markdown formatting.`;
           - Key objectives and goals
           - Financial highlights
           - Expected outcomes and benefits
+          ${(projectData as any).governmentSchemas ? '- Brief mention of applicable government schemes and financial assistance programs' : ''}
+          
+          ${(projectData as any).governmentSchemas ? `
+          Note: Relevant government schemes have been identified from the knowledge base. You may briefly mention them in the executive summary if they are particularly relevant to this project.
+          ` : ''}
           
           ${languageInstruction}
           Format: Professional, concise, and bankable.
@@ -610,6 +615,14 @@ Return only valid JSON without markdown formatting.`;
           - Alignment with government schemes
           - Recommendation for approval
           
+          ${(projectData as any).governmentSchemas ? `
+          IMPORTANT: The following government schemes and financial assistance programs have been identified from the knowledge base as relevant to this project:
+          
+          ${(projectData as any).governmentSchemas}
+          
+          Please incorporate these government schemes into the conclusion section, explaining how the project aligns with these schemes and how the entrepreneur can benefit from them. Be specific about eligibility, benefits, and application process where available.
+          ` : ''}
+          
           ${languageInstruction}
           Tone: Confident, professional, and persuasive for bank approval.
         `,
@@ -650,12 +663,83 @@ Return only valid JSON without markdown formatting.`;
   }
 
   /**
+   * Search for related government schemas from AI knowledge base
+   */
+  static async searchGovernmentSchemas(
+    projectData: IProject,
+    vectorStoreIds?: string[]
+  ): Promise<string> {
+    try {
+      console.log('🔍 Searching for related government schemas from AI knowledge base...');
+      
+      // Get vector store IDs - use provided ones or default to main vector store
+      let activeVectorStores: string[] = [];
+      if (vectorStoreIds && vectorStoreIds.length > 0) {
+        activeVectorStores = vectorStoreIds.filter(id => id && id.trim() !== '');
+      } else {
+        const mainVectorStoreId = process.env.MAIN_VECTOR_STORE_ID || '';
+        if (mainVectorStoreId && mainVectorStoreId.trim() !== '') {
+          activeVectorStores = [mainVectorStoreId];
+        }
+      }
+
+      if (activeVectorStores.length === 0) {
+        console.log('⚠️  No vector stores available for government schema search');
+        return '';
+      }
+
+      // Build search query based on project details
+      const searchQuery = `Government schemes, subsidies, and financial assistance programs for ${projectData.industrySector} sector MSME projects in ${projectData.location}. 
+      Project cost: ₹${projectData.totalCost}, Loan amount: ₹${projectData.loanAmount}. 
+      Find relevant central government schemes, state government schemes, subsidies, credit guarantee schemes, and financial assistance programs applicable to this project.`;
+
+      // Search the knowledge base
+      const schemaResults = await this.searchDocumentsWithRAG(
+        searchQuery,
+        activeVectorStores,
+        5 // Get top 5 relevant results
+      );
+
+      if (!schemaResults || schemaResults.length === 0) {
+        console.log('⚠️  No government schemas found in knowledge base');
+        return '';
+      }
+
+      // Extract and format schema information
+      let schemaInfo = 'Relevant Government Schemes and Financial Assistance Programs:\n\n';
+      
+      schemaResults.forEach((result, index) => {
+        const content = result.content || result.text || '';
+        const source = result.documentName || result.source || 'Knowledge Base';
+        
+        // Extract key information from the result
+        if (content.trim()) {
+          schemaInfo += `${index + 1}. ${source}\n`;
+          // Limit content length to avoid token overflow
+          const truncatedContent = content.length > 500 
+            ? content.substring(0, 500) + '...' 
+            : content;
+          schemaInfo += `${truncatedContent}\n\n`;
+        }
+      });
+
+      console.log(`✅ Found ${schemaResults.length} relevant government schema(s) from knowledge base`);
+      return schemaInfo;
+    } catch (error) {
+      console.error('Error searching for government schemas:', error);
+      // Don't fail DPR generation if schema search fails
+      return '';
+    }
+  }
+
+  /**
    * Generate complete DPR content
    * OPTIMIZED: Parallel generation for 3-4x faster response
    */
   static async generateCompleteDPR(
     projectData: IProject,
-    language: 'english' | 'telugu' | 'bilingual' = 'bilingual'
+    language: 'english' | 'telugu' | 'bilingual' = 'bilingual',
+    vectorStoreIds?: string[]
   ): Promise<any> {
     const sections = [
       'executiveSummary',
@@ -671,6 +755,16 @@ Return only valid JSON without markdown formatting.`;
       telugu: {},
     };
 
+    // Search for related government schemas from AI knowledge base
+    console.log('🔍 Searching for related government schemas...');
+    const governmentSchemas = await this.searchGovernmentSchemas(projectData, vectorStoreIds);
+    
+    // Add government schemas to project data for use in section generation
+    const enrichedProjectData: IProject & { governmentSchemas?: string } = {
+      ...projectData,
+      governmentSchemas: governmentSchemas,
+    } as IProject & { governmentSchemas?: string };
+
     // OPTIMIZATION: Generate all sections in parallel instead of sequentially
     // This reduces generation time from ~60-90s to ~15-20s
     const promises: Promise<any>[] = [];
@@ -679,7 +773,7 @@ Return only valid JSON without markdown formatting.`;
     if (language === 'english' || language === 'bilingual') {
       sections.forEach(section => {
         promises.push(
-          this.generateDPRSection(section, projectData, 'english')
+          this.generateDPRSection(section, enrichedProjectData, 'english')
             .then(result => ({ lang: 'english', section, content: result }))
             .catch(error => {
               console.error(`Error generating ${section} (English):`, error);
@@ -693,7 +787,7 @@ Return only valid JSON without markdown formatting.`;
     if (language === 'telugu' || language === 'bilingual') {
       sections.forEach(section => {
         promises.push(
-          this.generateDPRSection(section, projectData, 'telugu')
+          this.generateDPRSection(section, enrichedProjectData, 'telugu')
             .then(result => ({ lang: 'telugu', section, content: result }))
             .catch(error => {
               console.error(`Error generating ${section} (Telugu):`, error);
@@ -722,22 +816,99 @@ Return only valid JSON without markdown formatting.`;
 
   /**
    * Transcribe audio using Whisper API
+   * Supports English ('en') and Telugu (auto-detect)
+   * Note: Whisper API doesn't support 'te' language code directly.
+   * For Telugu, we omit the language parameter to let Whisper auto-detect.
    */
   static async transcribeAudio(audioFile: Buffer, language?: 'en' | 'te'): Promise<string> {
     try {
-      // Create a File object from buffer
+      // OpenAI SDK for Node.js accepts File objects or streams
+      // Create a File object from buffer (works in both browser and Node.js with proper polyfill)
       const file = new File([audioFile], 'audio.webm', { type: 'audio/webm' });
+      
+      // Whisper API language parameter:
+      // - 'en' for English (explicit)
+      // - undefined for auto-detect (works well for Telugu and other languages)
+      // Note: 'te' is not a supported language code in Whisper API
+      const languageParam = language === 'en' ? 'en' : undefined;
       
       const response = await openai.audio.transcriptions.create({
         file: file,
         model: 'whisper-1',
-        language: language || undefined, // 'en' for English, 'te' for Telugu, undefined for auto-detect
+        language: languageParam, // 'en' for English, undefined for auto-detect (Telugu)
       });
 
       return response.text;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error transcribing audio:', error);
-      throw new Error('Failed to transcribe audio');
+      // Log more details for debugging
+      if (error.message) {
+        console.error('Error message:', error.message);
+      }
+      // If File API is not available, try alternative approach
+      if (error.message?.includes('File is not defined') || error.name === 'ReferenceError') {
+        try {
+          // Use buffer directly with Readable stream
+          const { Readable } = require('stream');
+          const stream = Readable.from([audioFile]);
+          
+          const languageParam = language === 'en' ? 'en' : undefined;
+          
+          const response = await openai.audio.transcriptions.create({
+            file: stream as any,
+            model: 'whisper-1',
+            language: languageParam,
+          });
+          
+          return response.text;
+        } catch (fallbackError: any) {
+          console.error('Fallback transcription error:', fallbackError);
+          throw new Error(`Failed to transcribe audio: ${fallbackError.message || 'Unknown error'}`);
+        }
+      }
+      throw new Error(`Failed to transcribe audio: ${error.message || 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Generate speech from text using OpenAI TTS API
+   * Supports English and Telugu
+   */
+  static async textToSpeech(
+    text: string,
+    language: 'en' | 'te' = 'en',
+    voice: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer' = 'alloy'
+  ): Promise<Buffer> {
+    try {
+      // Clean text for better speech output
+      const cleanText = text
+        .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+        .replace(/`([^`]+)`/g, '$1') // Remove inline code
+        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Remove markdown links
+        .replace(/^#{1,6}\s+/gm, '') // Remove headers
+        .replace(/\*\*([^\*]+)\*\*/g, '$1') // Remove bold
+        .replace(/\*([^\*]+)\*/g, '$1') // Remove italic
+        .trim();
+
+      if (!cleanText) {
+        throw new Error('No text to convert to speech');
+      }
+
+      // Note: OpenAI TTS API currently supports English best
+      // For Telugu, we'll use English voice but the text can be in Telugu
+      // The API will attempt to pronounce it, though quality may vary
+      const response = await openai.audio.speech.create({
+        model: 'tts-1', // or 'tts-1-hd' for higher quality
+        voice: voice,
+        input: cleanText,
+      });
+
+      // Convert response to buffer
+      const buffer = Buffer.from(await response.arrayBuffer());
+      return buffer;
+    } catch (error) {
+      console.error('Error generating speech:', error);
+      throw new Error('Failed to generate speech');
     }
   }
 
@@ -1978,9 +2149,174 @@ Provide actionable, specific steps the user should take next in their DPR creati
   }
 
   /**
+   * Filter and organize conversation data by DPR sections
+   * Removes conversational/chat text and organizes project-related information
+   */
+  private static async filterAndOrganizeProjectData(
+    conversationData: string,
+    conversationHistory: Array<{ role: string; content: string }> = []
+  ): Promise<{
+    sections: {
+      executiveSummary: string[];
+      businessProfile: string[];
+      marketAnalysis: string[];
+      technicalFeasibility: string[];
+      financialProjections: string[];
+      conclusion: string[];
+    };
+    projectInfo: {
+      projectName?: string;
+      industrySector?: string;
+      location?: string;
+      totalCost?: string;
+      loanAmount?: string;
+    };
+  }> {
+    try {
+      console.log('🔍 Filtering and organizing project data for PDF...');
+      
+      // Extract user messages
+      const userMessages = conversationHistory
+        .filter(msg => msg.role === 'user')
+        .map(msg => msg.content)
+        .filter(content => content && content.length > 5);
+      
+      if (userMessages.length === 0) {
+        return {
+          sections: {
+            executiveSummary: [],
+            businessProfile: [],
+            marketAnalysis: [],
+            technicalFeasibility: [],
+            financialProjections: [],
+            conclusion: [],
+          },
+          projectInfo: {},
+        };
+      }
+      
+      // Use AI to filter and organize the data
+      const prompt = `You are a DPR (Detailed Project Report) data extraction specialist. Your task is to filter out conversational/chat text and organize only project-related information according to DPR sections.
+
+User Messages from Conversation:
+${userMessages.map((msg, idx) => `[Message ${idx + 1}]: ${msg}`).join('\n\n')}
+
+IMPORTANT RULES:
+1. EXCLUDE conversational text such as:
+   - Greetings (hello, hi, thanks, thank you, etc.)
+   - Questions asking for help or clarification
+   - Requests for PDF generation or data export
+   - Chat responses like "ok", "yes", "no", "sure", "please", etc.
+   - Meta-conversation about the system or process
+   - Any text that is not actual project information
+
+2. INCLUDE only project-related information such as:
+   - Project name, description, business details
+   - Industry sector, location, market information
+   - Technical specifications, equipment, processes
+   - Financial data (costs, revenue, projections, loan amounts)
+   - Market analysis, target customers, competition
+   - Business model, operations, feasibility
+   - Any factual project data
+
+3. ORGANIZE the filtered data into these DPR sections:
+   - executiveSummary: High-level project overview, objectives, key highlights
+   - businessProfile: Business description, type, ownership, legal structure
+   - marketAnalysis: Target market, customer analysis, competition, demand
+   - technicalFeasibility: Technical specifications, equipment, processes, technology
+   - financialProjections: Costs, revenue, financial projections, funding requirements
+   - conclusion: Summary, recommendations, next steps
+
+4. EXTRACT project information:
+   - projectName: The name of the project
+   - industrySector: Industry or sector
+   - location: Project location
+   - totalCost: Total project cost if mentioned
+   - loanAmount: Loan amount required if mentioned
+
+Return ONLY a valid JSON object with this structure:
+{
+  "sections": {
+    "executiveSummary": ["relevant text 1", "relevant text 2"],
+    "businessProfile": ["relevant text 1", "relevant text 2"],
+    "marketAnalysis": ["relevant text 1", "relevant text 2"],
+    "technicalFeasibility": ["relevant text 1", "relevant text 2"],
+    "financialProjections": ["relevant text 1", "relevant text 2"],
+    "conclusion": ["relevant text 1", "relevant text 2"]
+  },
+  "projectInfo": {
+    "projectName": "name if found",
+    "industrySector": "sector if found",
+    "location": "location if found",
+    "totalCost": "cost if found",
+    "loanAmount": "loan amount if found"
+  }
+}
+
+IMPORTANT: 
+- Return ONLY valid JSON, no markdown, no code blocks, no extra text
+- If a section has no relevant data, use an empty array []
+- Only include actual project information, exclude all conversational text
+- Each array item should be a meaningful piece of project information`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a DPR data extraction specialist. Extract and organize only project-related information, excluding all conversational text. Return only valid JSON.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 4000,
+      });
+
+      const content = response.choices[0]?.message?.content || '{}';
+      
+      // Clean the response
+      let cleanContent = content
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .trim();
+      
+      // Extract JSON if wrapped in text
+      if (!cleanContent.startsWith('{')) {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          cleanContent = jsonMatch[0];
+        }
+      }
+
+      const organizedData = JSON.parse(cleanContent);
+      
+      console.log(`✅ Filtered and organized data into ${Object.keys(organizedData.sections).length} sections`);
+      
+      return organizedData;
+    } catch (error: any) {
+      console.error('❌ Error filtering and organizing project data:', error);
+      // Fallback: return empty structure
+      return {
+        sections: {
+          executiveSummary: [],
+          businessProfile: [],
+          marketAnalysis: [],
+          technicalFeasibility: [],
+          financialProjections: [],
+          conclusion: [],
+        },
+        projectInfo: {},
+      };
+    }
+  }
+
+  /**
    * Generate PDF from conversation data
-   * Creates a professional PDF with only user-provided data (not chat messages)
-   * Includes analytics and professional formatting
+   * Creates a professional PDF with only project-related information organized by DPR sections
+   * Excludes all conversational/chat text
    */
   static async generatePDFFromConversation(
     conversationData: string,
@@ -2001,22 +2337,24 @@ Provide actionable, specific steps the user should take next in their DPR creati
         throw new Error('PDFDocument is not available. Check if pdfkit is properly installed.');
       }
       
-      // Extract only user data entries (not assistant responses or chat metadata)
-      const userDataEntries = conversationData.split('\n\n')
-        .filter(entry => entry.trim().startsWith('[Entry'))
-        .map(entry => {
-          const match = entry.match(/\[Entry \d+\]:\s*(.+)/s);
-          return match ? match[1].trim() : null;
-        })
-        .filter(data => data !== null && data.length > 0);
+      // Filter and organize project data by DPR sections (excludes conversational text)
+      const organizedData = await this.filterAndOrganizeProjectData(conversationData, conversationHistory);
       
-      console.log(`📊 Extracted ${userDataEntries.length} user data entries for PDF`);
+      // Count total data entries across all sections
+      const totalEntries = Object.values(organizedData.sections).reduce(
+        (sum, sectionData) => sum + sectionData.length,
+        0
+      );
       
-      // Calculate analytics
-      const totalWords = userDataEntries.join(' ').split(/\s+/).length;
-      const totalCharacters = userDataEntries.join(' ').length;
-      const averageEntryLength = userDataEntries.length > 0 
-        ? Math.round(totalCharacters / userDataEntries.length) 
+      console.log(`📊 Filtered ${totalEntries} project-related data entries (conversational text excluded)`);
+      
+      // Calculate analytics from organized data
+      const allSectionData = Object.values(organizedData.sections).flat();
+      const allText = allSectionData.join(' ');
+      const totalWords = allText.split(/\s+/).filter(w => w.length > 0).length;
+      const totalCharacters = allText.length;
+      const averageEntryLength = totalEntries > 0 
+        ? Math.round(totalCharacters / totalEntries) 
         : 0;
       
       return new Promise((resolve, reject) => {
@@ -2047,8 +2385,14 @@ Provide actionable, specific steps the user should take next in their DPR creati
         // Title Page - Professional Design
         doc.fontSize(28).font('Helvetica-Bold').text('Detailed Project Report', { align: 'center' });
         doc.moveDown(0.5);
-        doc.fontSize(20).font('Helvetica').text('Data Compilation Report', { align: 'center' });
+        doc.fontSize(20).font('Helvetica').text('Project Information Report', { align: 'center' });
         doc.moveDown(2);
+        
+        // Add project information if available
+        if (organizedData.projectInfo.projectName) {
+          doc.fontSize(16).font('Helvetica-Bold').text(organizedData.projectInfo.projectName, { align: 'center' });
+          doc.moveDown(0.5);
+        }
         
         // Add a line separator
         doc.moveTo(50, doc.y).lineTo(562, doc.y).stroke();
@@ -2063,6 +2407,12 @@ Provide actionable, specific steps the user should take next in their DPR creati
           day: 'numeric' 
         })}`, { align: 'center' });
         doc.text(`Generated Time: ${new Date().toLocaleTimeString('en-IN')}`, { align: 'center' });
+        if (organizedData.projectInfo.industrySector) {
+          doc.text(`Industry Sector: ${organizedData.projectInfo.industrySector}`, { align: 'center' });
+        }
+        if (organizedData.projectInfo.location) {
+          doc.text(`Location: ${organizedData.projectInfo.location}`, { align: 'center' });
+        }
         if (userId) {
           doc.text(`Report ID: ${userId.substring(0, 8)}...`, { align: 'center' });
         }
@@ -2082,72 +2432,72 @@ Provide actionable, specific steps the user should take next in their DPR creati
         doc.moveDown(0.5);
         
         doc.fontSize(10).font('Helvetica');
-        doc.text(`Total Data Entries: ${userDataEntries.length}`, 60, doc.y);
+        doc.text(`Total Data Entries: ${totalEntries}`, 60, doc.y);
         doc.text(`Total Words: ${totalWords.toLocaleString()}`, 300, doc.y);
         doc.moveDown(0.4);
         doc.text(`Total Characters: ${totalCharacters.toLocaleString()}`, 60, doc.y);
         doc.text(`Average Entry Length: ${averageEntryLength.toLocaleString()} characters`, 300, doc.y);
         doc.moveDown(0.4);
-        doc.text(`Data Completeness: ${userDataEntries.length > 0 ? 'Complete' : 'Incomplete'}`, 60, doc.y);
+        doc.text(`Data Completeness: ${totalEntries > 0 ? 'Complete' : 'Incomplete'}`, 60, doc.y);
         doc.text(`Report Status: Professional`, 300, doc.y);
         
         doc.moveDown(2);
         
-        // Data Entries Page
-        doc.addPage();
-        doc.fontSize(20).font('Helvetica-Bold').text('Project Data Entries', { align: 'center', underline: true });
-        doc.moveDown(1);
+        // DPR Sections - Organized by defined sections
+        const sectionLabels: Record<string, string> = {
+          executiveSummary: '1. Executive Summary',
+          businessProfile: '2. Business Profile',
+          marketAnalysis: '3. Market Analysis',
+          technicalFeasibility: '4. Technical Feasibility',
+          financialProjections: '5. Financial Projections',
+          conclusion: '6. Conclusion'
+        };
         
-        // Process each user data entry professionally
-        // Type assertion: userDataEntries is already filtered to remove null values
-        (userDataEntries as string[]).forEach((dataEntry: string, index: number) => {
+        // Process each DPR section
+        Object.entries(organizedData.sections).forEach(([sectionKey, sectionData]) => {
+          if (sectionData.length === 0) {
+            return; // Skip empty sections
+          }
+          
           // Check if we need a new page
           if (doc.y > 700) {
             doc.addPage();
           }
           
           try {
-            // Entry Header
-            doc.fontSize(14).font('Helvetica-Bold').text(`Entry ${index + 1}`, { underline: true });
-            doc.moveDown(0.3);
+            // Section Header
+            const sectionLabel = sectionLabels[sectionKey] || sectionKey;
+            doc.fontSize(18).font('Helvetica-Bold').text(sectionLabel, { underline: true });
+            doc.moveDown(0.5);
             
-            // Entry Content - formatted professionally
-            const maxLength = 8000; // Reasonable length per entry
-            const displayContent = dataEntry.length > maxLength 
-              ? dataEntry.substring(0, maxLength) + '\n\n[Content truncated for display - full data available in system]'
-              : dataEntry;
-            
-            // Split into paragraphs for better formatting
-            const paragraphs = displayContent.split('\n').filter(p => p.trim().length > 0);
-            
-            paragraphs.forEach((para: string) => {
+            // Section Content
+            sectionData.forEach((dataItem: string, index: number) => {
+              // Check if we need a new page
               if (doc.y > 750) {
                 doc.addPage();
                 doc.fontSize(11).font('Helvetica');
               }
               
-              // Format paragraphs nicely
-              const cleanPara = para.trim();
-              if (cleanPara.length > 0) {
-                doc.fontSize(11).font('Helvetica').text(cleanPara, { 
+              // Format content nicely
+              const cleanContent = dataItem.trim();
+              if (cleanContent.length > 0) {
+                doc.fontSize(11).font('Helvetica').text(cleanContent, { 
                   align: 'left',
                   indent: 20,
                   paragraphGap: 5
                 });
-                doc.moveDown(0.3);
+                doc.moveDown(0.4);
               }
             });
             
-            doc.moveDown(0.8);
+            doc.moveDown(1);
             
-            // Add separator line between entries
-            if (index < userDataEntries.length - 1) {
-              doc.moveTo(50, doc.y).lineTo(562, doc.y).stroke();
-              doc.moveDown(0.8);
-            }
-          } catch (entryError: any) {
-            console.warn(`⚠️  Error processing entry ${index + 1}:`, entryError.message);
-            // Continue with next entry
+            // Add separator line between sections
+            doc.moveTo(50, doc.y).lineTo(562, doc.y).stroke();
+            doc.moveDown(1);
+          } catch (sectionError: any) {
+            console.warn(`⚠️  Error processing section ${sectionKey}:`, sectionError.message);
+            // Continue with next section
           }
         });
 
@@ -2157,12 +2507,12 @@ Provide actionable, specific steps the user should take next in their DPR creati
         doc.moveDown(1);
         
         doc.fontSize(11).font('Helvetica');
-        doc.text('This report contains all user-provided data for the Detailed Project Report (DPR) generation.', {
+        doc.text('This report contains only project-related information organized according to DPR sections.', {
           align: 'justify',
           indent: 20
         });
         doc.moveDown(0.5);
-        doc.text('The data has been compiled and formatted for professional presentation.', {
+        doc.text('All conversational and chat text has been filtered out. The data has been compiled and formatted for professional presentation.', {
           align: 'justify',
           indent: 20
         });

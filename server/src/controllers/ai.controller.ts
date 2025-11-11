@@ -212,6 +212,40 @@ export class AIController {
   }
 
   /**
+   * Generate speech from text using OpenAI TTS
+   */
+  static async textToSpeech(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { text, language, voice } = req.body;
+
+      if (!text) {
+        res.status(400).json({
+          success: false,
+          message: 'Text is required',
+        });
+        return;
+      }
+
+      const audioBuffer = await OpenAIService.textToSpeech(
+        text,
+        (language as 'en' | 'te') || 'en',
+        (voice as 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer') || 'alloy'
+      );
+
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Content-Length', audioBuffer.length);
+      res.status(200).send(audioBuffer);
+    } catch (error: any) {
+      console.error('TTS error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to generate speech',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
    * Get multer middleware for file upload
    */
   static getUploadMiddleware() {

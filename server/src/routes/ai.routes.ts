@@ -25,5 +25,11 @@ router.post(
   AIController.transcribe
 );
 
+// Text-to-speech
+router.post(
+  '/tts',
+  AIController.textToSpeech
+);
+
 export default router;
 
