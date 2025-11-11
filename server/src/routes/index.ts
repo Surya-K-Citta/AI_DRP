@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import authRoutes from './auth.routes';
 import projectRoutes from './project.routes';

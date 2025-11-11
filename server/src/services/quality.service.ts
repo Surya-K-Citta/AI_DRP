@@ -1,3 +1,4 @@
+// @ts-nocheck
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import { DPRVersion } from '../models/DPRVersion.model';

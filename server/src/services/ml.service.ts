@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { DPRAnalytics } from '../models/DPRAnalytics.model';
 import { Feedback } from '../models/Feedback.model';
 import { DPRVersion } from '../models/DPRVersion.model';

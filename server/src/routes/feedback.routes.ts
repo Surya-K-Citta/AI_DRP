@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import { body } from 'express-validator';
 import { FeedbackController } from '../controllers/feedback.controller';

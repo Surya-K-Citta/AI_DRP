@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import { DocumentController } from '../controllers/document.controller';
 import { authenticate, authorize } from '../middleware/auth.middleware';

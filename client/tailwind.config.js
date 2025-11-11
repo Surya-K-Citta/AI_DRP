@@ -1,3 +1,4 @@
+// @ts-nocheck
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ['class'],

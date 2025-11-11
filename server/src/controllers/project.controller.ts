@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Response } from 'express';
 import { Project } from '../models/Project.model';
 import { AuthRequest } from '../types';

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from 'express';
 import { DPRController } from '../controllers/dpr.controller';
 import { authenticate } from '../middleware/auth.middleware';

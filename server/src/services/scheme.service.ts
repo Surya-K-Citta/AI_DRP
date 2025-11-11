@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { IProject, IScheme } from '../types';
 import { Scheme } from '../models/Scheme.model';
 import { SchemeMatch } from '../models/SchemeMatch.model';

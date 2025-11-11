@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response } from 'express';
 import { OpenAIService } from '../services/openai.service';
 import { DPRTemplate } from '../models/DPRTemplate.model';

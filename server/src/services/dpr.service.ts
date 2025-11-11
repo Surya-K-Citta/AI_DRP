@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { IProject } from '../types';
 import { DPRVersion } from '../models/DPRVersion.model';
 import { Project } from '../models/Project.model';

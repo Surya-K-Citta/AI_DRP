@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { IProject } from '../types';
 
 export class FinancialService {

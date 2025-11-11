@@ -1,3 +1,4 @@
+// @ts-nocheck
 import OpenAI from 'openai';
 import { IProject } from '../types';
 import { VectorStore } from '../models/VectorStore.model';

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
 

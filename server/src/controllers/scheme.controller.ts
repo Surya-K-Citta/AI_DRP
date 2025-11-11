@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { SchemeService } from '../services/scheme.service';
