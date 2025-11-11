@@ -7,6 +7,72 @@ import { DPRService } from '../services/dpr.service';
 import { QualityService } from '../services/quality.service';
 import { DPRVersion } from '../models/DPRVersion.model';
 import { AuthRequest } from '../types';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+// Setup multer for DPR file uploads
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(process.cwd(), 'uploads', 'dprs');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + path.extname(file.originalname));
+    },
+  }),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    try {
+      console.log(`📄 File upload attempt: ${file.originalname}, MIME: ${file.mimetype}`);
+      
+      // Allow PDF, DOC, DOCX, TXT files
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain',
+        'text/markdown',
+        'application/octet-stream', // Some browsers send this for .doc files
+      ];
+
+      const allowedExtensions = ['.pdf', '.doc', '.docx', '.txt', '.md'];
+      const fileName = file.originalname.toLowerCase();
+      const fileExtension = fileName.includes('.') 
+        ? fileName.substring(fileName.lastIndexOf('.'))
+        : '';
+
+      console.log(`📄 File extension: ${fileExtension}, MIME type: ${file.mimetype}`);
+
+      // Check both MIME type and file extension (some browsers don't report correct MIME for .doc)
+      const isValidType = allowedTypes.includes(file.mimetype) || 
+                         allowedExtensions.includes(fileExtension);
+
+      if (isValidType) {
+        console.log(`✅ File type accepted: ${file.originalname}`);
+        cb(null, true);
+      } else if (!fileExtension) {
+        // If no extension, allow it and let the backend handle validation
+        console.log(`⚠️ File has no extension, allowing for backend validation: ${file.originalname}`);
+        cb(null, true);
+      } else {
+        const errorMsg = `Invalid file type. Only PDF, DOC, DOCX, TXT, and MD files are allowed. Received: ${file.mimetype || 'unknown'} (${fileExtension})`;
+        console.error(`❌ ${errorMsg}`);
+        cb(new Error(errorMsg));
+      }
+    } catch (error: any) {
+      console.error(`❌ File validation error: ${error.message}`);
+      cb(new Error(`File validation error: ${error.message}`));
+    }
+  },
+});
 
 export class DPRController {
   /**
@@ -937,5 +1003,171 @@ export class DPRController {
         error: error.message,
       });
     }
+  }
+
+  /**
+   * Upload and analyze DPR file
+   */
+  static async uploadDPR(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const file = req.file;
+      const userId = req.user?.userId;
+
+      if (!file) {
+        res.status(400).json({
+          success: false,
+          message: 'No file uploaded. Please select a file to upload.',
+        });
+        return;
+      }
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      console.log(`📤 DPR upload request: ${file.originalname} (${file.size} bytes)`);
+
+      // Process the uploaded DPR
+      const result = await DPRService.processUploadedDPR(
+        file.path,
+        file.originalname,
+        file.mimetype,
+        userId
+      );
+
+      // Clean up uploaded file after processing
+      try {
+        await fs.promises.unlink(file.path);
+      } catch (cleanupError) {
+        console.warn('Failed to cleanup uploaded file:', cleanupError);
+      }
+
+      // Get quality analysis
+      let qualityAnalysis = null;
+      try {
+        qualityAnalysis = await QualityService.analyzeDPRQuality(result.dprId.toString());
+      } catch (qualityError) {
+        console.warn('Quality analysis failed (non-critical):', qualityError);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'DPR uploaded and analyzed successfully',
+        data: {
+          dprId: result.dprId,
+          projectId: result.projectId,
+          projectInfo: result.projectInfo,
+          suggestions: result.suggestions,
+          qualityAnalysis: qualityAnalysis || null,
+        },
+      });
+    } catch (error: any) {
+      console.error('Error uploading DPR:', error);
+      
+      // Clean up file on error
+      if (req.file?.path) {
+        try {
+          await fs.promises.unlink(req.file.path);
+        } catch (cleanupError) {
+          console.warn('Failed to cleanup file on error:', cleanupError);
+        }
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to upload and analyze DPR',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Translate DPR content to Telugu
+   */
+  static async translateToTelugu(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { dprId } = req.params;
+      const { TranslationService } = await import('../services/translation.service');
+      
+      const dpr = await DPRVersion.findById(dprId);
+      if (!dpr) {
+        res.status(404).json({
+          success: false,
+          message: 'DPR not found',
+        });
+        return;
+      }
+
+      // Check if Telugu content already exists
+      if (dpr.content?.telugu && Object.keys(dpr.content.telugu).length > 0) {
+        res.status(200).json({
+          success: true,
+          message: 'Telugu content already exists',
+          data: {
+            dprId,
+            hasTelugu: true,
+          },
+        });
+        return;
+      }
+
+      // Translate English content to Telugu
+      const englishContent = dpr.content?.english || {};
+      if (!englishContent || Object.keys(englishContent).length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'No English content available to translate',
+        });
+        return;
+      }
+
+      // Translate all sections
+      const teluguContent: any = {};
+      const sections = ['executiveSummary', 'businessProfile', 'marketAnalysis', 'technicalFeasibility', 'financialProjections', 'conclusion'] as const;
+      
+      for (const section of sections) {
+        const sectionContent = englishContent[section as keyof typeof englishContent];
+        if (sectionContent) {
+          teluguContent[section] = await TranslationService.translateText(
+            sectionContent,
+            'te'
+          );
+        }
+      }
+
+      // Update DPR with Telugu content
+      dpr.content = {
+        ...dpr.content,
+        telugu: teluguContent,
+      };
+      await dpr.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'DPR translated to Telugu successfully',
+        data: {
+          dprId,
+          teluguContent,
+        },
+      });
+    } catch (error: any) {
+      console.error('Error translating DPR to Telugu:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to translate DPR to Telugu',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get multer middleware for DPR file upload
+   */
+  static getUploadMiddleware() {
+    return upload.single('file');
   }
 }

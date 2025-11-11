@@ -1,37 +1,47 @@
-import axios from 'axios';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export class TranslationService {
   /**
-   * Translate text using Google Translate API
+   * Translate text using OpenAI (more reliable than Google Translate)
    */
   static async translateText(
     text: string,
     targetLanguage: 'en' | 'te'
   ): Promise<string> {
-    const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
-
-    if (!apiKey) {
-      console.warn('Google Translate API key not configured, returning original text');
+    if (!text || text.trim().length === 0) {
       return text;
     }
 
     try {
-      const response = await axios.post(
-        `https://translation.googleapis.com/language/translate/v2`,
-        {},
-        {
-          params: {
-            q: text,
-            target: targetLanguage,
-            key: apiKey,
-          },
-        }
-      );
+      const targetLangName = targetLanguage === 'te' ? 'Telugu' : 'English';
+      const sourceLangName = targetLanguage === 'te' ? 'English' : 'Telugu';
 
-      return response.data.data.translations[0].translatedText;
-    } catch (error) {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a professional translator. Translate the following text from ${sourceLangName} to ${targetLangName}. Maintain the original formatting, structure, and meaning. Return only the translated text without any explanations or additional text.`,
+          },
+          {
+            role: 'user',
+            content: text,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 2000,
+      });
+
+      const translatedText = response.choices[0]?.message?.content?.trim() || text;
+      return translatedText;
+    } catch (error: any) {
       console.error('Translation error:', error);
-      return text; // Return original text on error
+      // Fallback: return original text if translation fails
+      return text;
     }
   }
 

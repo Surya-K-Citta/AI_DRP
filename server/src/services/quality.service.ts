@@ -23,6 +23,21 @@ export interface QualityAnalysisResult {
     conclusion: number;
   };
   recommendations: string[];
+  detailedMetrics: {
+    completeness: number;
+    clarity: number;
+    accuracy: number;
+    bankability: number;
+    professionalism: number;
+  };
+  sectionDetails: {
+    [key: string]: {
+      score: number;
+      strengths: string[];
+      weaknesses: string[];
+      suggestions: string[];
+    };
+  };
 }
 
 export class QualityService {
@@ -78,12 +93,20 @@ export class QualityService {
       // Generate recommendations
       const recommendations = this.generateRecommendations(sectionScores, weakSections, project);
 
+      // Calculate detailed metrics
+      const detailedMetrics = this.calculateDetailedMetrics(dpr, project, sectionScores);
+
+      // Generate section details
+      const sectionDetails = this.generateSectionDetails(sectionScores, nlpAnalysis, dpr);
+
       return {
         score: overallScore,
         feedback,
         weakSections,
         sectionScores,
         recommendations,
+        detailedMetrics,
+        sectionDetails,
       };
     } catch (error) {
       console.error('Error analyzing DPR quality:', error);
@@ -297,6 +320,128 @@ Return only valid JSON without markdown formatting.`;
   }
 
   /**
+   * Calculate detailed quality metrics
+   */
+  private static calculateDetailedMetrics(dpr: any, project: any, sectionScores: any): any {
+    const englishContent = dpr.content?.english || {};
+    const sections = ['executiveSummary', 'businessProfile', 'marketAnalysis', 'technicalFeasibility', 'financialProjections', 'conclusion'];
+    
+    // Completeness: Check if all sections have content
+    const sectionsWithContent = sections.filter(s => {
+      const content = englishContent[s] || '';
+      return content.length > 100;
+    });
+    const completeness = Math.round((sectionsWithContent.length / sections.length) * 100);
+
+    // Clarity: Average section scores (weighted by importance)
+    const clarity = Math.round(
+      (sectionScores.executiveSummary * 0.15 +
+       sectionScores.businessProfile * 0.15 +
+       sectionScores.marketAnalysis * 0.20 +
+       sectionScores.technicalFeasibility * 0.15 +
+       sectionScores.financialProjections * 0.25 +
+       sectionScores.conclusion * 0.10)
+    );
+
+    // Accuracy: Check for financial data presence and consistency
+    let accuracy = 70; // Base score
+    if (dpr.financials && dpr.financials.projectCost) {
+      accuracy += 10;
+    }
+    if (dpr.financials && dpr.financials.meansOfFinance) {
+      accuracy += 10;
+    }
+    if (project.totalCost && project.loanAmount) {
+      accuracy += 10;
+    }
+    accuracy = Math.min(accuracy, 100);
+
+    // Bankability: Based on financial projections and market analysis
+    const bankability = Math.round(
+      (sectionScores.financialProjections * 0.5 + sectionScores.marketAnalysis * 0.3 + sectionScores.technicalFeasibility * 0.2)
+    );
+
+    // Professionalism: Based on overall structure and language quality
+    const professionalism = Math.round(
+      (sectionScores.executiveSummary * 0.2 +
+       sectionScores.businessProfile * 0.2 +
+       sectionScores.conclusion * 0.1 +
+       clarity * 0.5)
+    );
+
+    return {
+      completeness,
+      clarity,
+      accuracy,
+      bankability,
+      professionalism,
+    };
+  }
+
+  /**
+   * Generate detailed section analysis
+   */
+  private static generateSectionDetails(sectionScores: any, nlpAnalysis: any, dpr: any): any {
+    const details: any = {};
+    const sections = ['executiveSummary', 'businessProfile', 'marketAnalysis', 'technicalFeasibility', 'financialProjections', 'conclusion'];
+    const englishContent = dpr.content?.english || {};
+
+    sections.forEach(section => {
+      const score = sectionScores[section];
+      const content = englishContent[section] || '';
+      
+      const strengths: string[] = [];
+      const weaknesses: string[] = [];
+      const suggestions: string[] = [];
+
+      // Analyze content length
+      if (content.length >= 500) {
+        strengths.push('Comprehensive content length');
+      } else if (content.length < 200) {
+        weaknesses.push('Content is too brief');
+        suggestions.push(`Expand ${this.formatSectionName(section)} with more details`);
+      }
+
+      // Analyze structure
+      const sentences = content.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
+      if (sentences.length >= 5) {
+        strengths.push('Well-structured with multiple points');
+      } else {
+        weaknesses.push('Needs more structured content');
+        suggestions.push(`Add more detailed points to ${this.formatSectionName(section)}`);
+      }
+
+      // Score-based feedback
+      if (score >= 80) {
+        strengths.push('High quality content');
+      } else if (score < 60) {
+        weaknesses.push('Significant improvement needed');
+        suggestions.push(`Review and enhance ${this.formatSectionName(section)} content`);
+      }
+
+      // Section-specific suggestions
+      if (section === 'marketAnalysis' && score < 70) {
+        suggestions.push('Add competitor analysis and market trends');
+      }
+      if (section === 'financialProjections' && score < 70) {
+        suggestions.push('Include detailed 3-5 year financial forecasts');
+      }
+      if (section === 'technicalFeasibility' && score < 70) {
+        suggestions.push('Provide more technical specifications and equipment details');
+      }
+
+      details[this.formatSectionName(section)] = {
+        score,
+        strengths: strengths.length > 0 ? strengths : ['Good foundation'],
+        weaknesses: weaknesses.length > 0 ? weaknesses : ['Minor improvements possible'],
+        suggestions: suggestions.length > 0 ? suggestions : ['Continue maintaining quality'],
+      };
+    });
+
+    return details;
+  }
+
+  /**
    * Update DPR with quality analysis
    */
   static async updateDPRQuality(dprId: string): Promise<void> {
@@ -309,6 +454,9 @@ Return only valid JSON without markdown formatting.`;
           score: analysis.score,
           feedback: analysis.feedback,
           weakSections: analysis.weakSections,
+          recommendations: analysis.recommendations,
+          detailedMetrics: analysis.detailedMetrics,
+          sectionDetails: analysis.sectionDetails,
           lastAnalyzedAt: new Date(),
         },
       });

@@ -112,18 +112,18 @@ export const Dashboard: React.FC = () => {
   };
 
   const getStatusColor = (status?: string) => {
-    if (!status) return 'bg-muted text-muted-foreground border-border';
+    if (!status) return 'bg-muted/50 text-muted-foreground border border-border';
     switch (status) {
       case 'approved':
-        return 'bg-success/10 text-success border-success/20';
+        return 'bg-success/10 text-success border border-success/20';
       case 'submitted':
-        return 'bg-secondary/10 text-secondary border-secondary/20';
+        return 'bg-secondary/10 text-secondary border border-secondary/20';
       case 'draft':
-        return 'bg-warning/10 text-warning border-warning/20';
+        return 'bg-warning/10 text-warning border border-warning/20';
       case 'rejected':
-        return 'bg-destructive/10 text-destructive border-destructive/20';
+        return 'bg-destructive/10 text-destructive border border-destructive/20';
       default:
-        return 'bg-muted text-muted-foreground border-border';
+        return 'bg-muted/50 text-muted-foreground border border-border';
     }
   };
 

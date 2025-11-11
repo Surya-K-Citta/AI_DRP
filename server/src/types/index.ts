@@ -95,7 +95,6 @@ export interface ISchemeMatch extends Document {
 export interface IDPRVersion extends Document {
   _id: string;
   projectId: string;
-  versionNumber: number;
   contentPath?: string;
   content: {
     english: {

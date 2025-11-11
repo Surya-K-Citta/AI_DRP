@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
@@ -20,13 +19,11 @@ import {
   BarChart3,
   Loader2,
   Sparkles,
-  Eye,
 } from 'lucide-react';
 import { downloadBlob } from '@/lib/utils';
 import { FormattedText } from '@/utils/textFormatter';
 
 export const DPRPreview: React.FC = () => {
-  const { t } = useTranslation();
   const { dprId } = useParams();
   const navigate = useNavigate();
   const [dpr, setDpr] = useState<any>(null);
@@ -39,6 +36,8 @@ export const DPRPreview: React.FC = () => {
   const [qualityScore, setQualityScore] = useState<number | null>(null);
   const [qualityFeedback, setQualityFeedback] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [translating, setTranslating] = useState(false);
+  const [hasTelugu, setHasTelugu] = useState(false);
 
   useEffect(() => {
     if (dprId) {
@@ -73,6 +72,10 @@ export const DPRPreview: React.FC = () => {
         setQualityScore(dprData.qualityScore);
         setQualityFeedback(dprData.qualityFeedback);
       }
+
+      // Check if Telugu content exists
+      const teluguContent = dprData.content?.telugu;
+      setHasTelugu(teluguContent && Object.keys(teluguContent).length > 0);
     } catch (error) {
       console.error('Failed to load DPR:', error);
       toast.error('Failed to load DPR');
@@ -164,18 +167,35 @@ export const DPRPreview: React.FC = () => {
     }
   };
 
+  const handleTranslateToTelugu = async () => {
+    try {
+      setTranslating(true);
+      const response = await api.translateToTelugu(dprId!);
+      if (response.success) {
+        toast.success('DPR translated to Telugu successfully!');
+        setHasTelugu(true);
+        await loadDPR(); // Reload to get Telugu content
+        setViewLanguage('telugu'); // Switch to Telugu view
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to translate DPR to Telugu');
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved':
-        return 'bg-success/10 text-success border-success/20';
+        return 'bg-success/10 text-success border border-success/20';
       case 'submitted':
-        return 'bg-secondary/10 text-secondary border-secondary/20';
+        return 'bg-secondary/10 text-secondary border border-secondary/20';
       case 'draft':
-        return 'bg-warning/10 text-warning border-warning/20';
+        return 'bg-warning/10 text-warning border border-warning/20';
       case 'rejected':
-        return 'bg-destructive/10 text-destructive border-destructive/20';
+        return 'bg-destructive/10 text-destructive border border-destructive/20';
       default:
-        return 'bg-muted text-muted-foreground border-border';
+        return 'bg-muted/50 text-muted-foreground border border-border';
     }
   };
 
@@ -192,8 +212,8 @@ export const DPRPreview: React.FC = () => {
     }
   };
 
-  const getQualityColor = (score?: number) => {
-    if (!score) return 'text-muted-foreground';
+  const getQualityColor = (score?: number | null) => {
+    if (!score && score !== 0) return 'text-muted-foreground';
     if (score >= 80) return 'text-success';
     if (score >= 60) return 'text-warning';
     return 'text-destructive';
@@ -250,7 +270,7 @@ export const DPRPreview: React.FC = () => {
               <div>
                 <h1 className="text-3xl font-bold mb-2">{project?.projectName || 'DPR Preview'}</h1>
                 <p className="text-white/90">
-                  Version {dpr.versionNumber} • {new Date(dpr.generatedAt || dpr.createdAt).toLocaleDateString()}
+                  {new Date(dpr.generatedAt || dpr.createdAt).toLocaleDateString()}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -286,8 +306,30 @@ export const DPRPreview: React.FC = () => {
                   onChange={(e) => setViewLanguage(e.target.value as 'english' | 'telugu')}
                 >
                   <option value="english">English</option>
-                  <option value="telugu">Telugu</option>
+                  <option value="telugu" disabled={!hasTelugu}>
+                    Telugu {!hasTelugu && '(Not Available)'}
+                  </option>
                 </select>
+                {!hasTelugu && viewLanguage === 'english' && (
+                  <Button
+                    variant="outline"
+                    onClick={handleTranslateToTelugu}
+                    disabled={translating}
+                    className="border-2 border-secondary text-secondary hover:bg-secondary hover:text-white"
+                  >
+                    {translating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Translating...
+                      </>
+                    ) : (
+                      <>
+                        <Languages className="h-4 w-4 mr-2" />
+                        Translate to Telugu
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
 
               {/* Action Buttons */}
@@ -320,7 +362,7 @@ export const DPRPreview: React.FC = () => {
                   <Button
                     onClick={() => handleSubmit('admin')}
                     disabled={submitting}
-                    className="bg-success hover:bg-success/90 text-white shadow-lg"
+                    className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
                   >
                     <Send className="h-4 w-4 mr-2" />
                     {submitting ? 'Submitting...' : 'Submit to Admin'}
@@ -347,24 +389,148 @@ export const DPRPreview: React.FC = () => {
                 </div>
                 <div>
                   <CardTitle>DPR Quality Analysis</CardTitle>
-                  <CardDescription>AI-powered quality assessment</CardDescription>
+                  <CardDescription>AI-powered comprehensive quality assessment</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-white/50">
-                  <span className="text-base font-semibold">Overall Score</span>
-                  <span className={`text-3xl font-bold ${getQualityColor(qualityScore)}`}>
+                {/* Overall Score */}
+                <div className="flex items-center justify-between p-6 rounded-lg bg-white/50 border-2 border-primary/20">
+                  <div>
+                    <span className="text-base font-semibold text-muted-foreground">Overall Quality Score</span>
+                    <p className="text-xs text-muted-foreground mt-1">Based on completeness, clarity, accuracy, and bankability</p>
+                  </div>
+                  <span className={`text-4xl font-bold ${getQualityColor(qualityScore)}`}>
                     {qualityScore}/100
                   </span>
                 </div>
 
+                {/* Detailed Metrics */}
+                {qualityFeedback.detailedMetrics && (
+                  <div>
+                    <p className="text-sm font-semibold mb-4 text-muted-foreground">Quality Metrics Breakdown:</p>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                      {Object.entries(qualityFeedback.detailedMetrics).map(([key, value]: [string, any]) => (
+                        <div key={key} className="p-3 rounded-lg bg-white/50 border border-primary/10">
+                          <p className="text-xs text-muted-foreground mb-1 capitalize">{key}</p>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full ${
+                                  value >= 80 ? 'bg-success' : value >= 60 ? 'bg-warning' : 'bg-destructive'
+                                }`}
+                                style={{ width: `${value}%` }}
+                              />
+                            </div>
+                            <span className={`text-sm font-bold ${
+                              value >= 80 ? 'text-success' : value >= 60 ? 'text-warning' : 'text-destructive'
+                            }`}>
+                              {value}%
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Section Scores */}
+                {qualityFeedback.sectionScores && (
+                  <div>
+                    <p className="text-sm font-semibold mb-4 text-muted-foreground">Section-by-Section Scores:</p>
+                    <div className="space-y-3">
+                      {Object.entries(qualityFeedback.sectionScores).map(([section, score]: [string, any]) => {
+                        const sectionName = section.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+                        return (
+                          <div key={section} className="p-3 rounded-lg bg-white/50 border border-primary/10">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium">{sectionName}</span>
+                              <span className={`text-sm font-bold ${getQualityColor(score)}`}>
+                                {score}/100
+                              </span>
+                            </div>
+                            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full transition-all ${
+                                  score >= 80 ? 'bg-success' : score >= 60 ? 'bg-warning' : 'bg-destructive'
+                                }`}
+                                style={{ width: `${score}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Section Details */}
+                {qualityFeedback.sectionDetails && (
+                  <div>
+                    <p className="text-sm font-semibold mb-4 text-muted-foreground">Detailed Section Analysis:</p>
+                    <div className="space-y-4">
+                      {Object.entries(qualityFeedback.sectionDetails).map(([sectionName, details]: [string, any]) => (
+                        <div key={sectionName} className="p-4 rounded-lg bg-white/50 border border-primary/10">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold">{sectionName}</h4>
+                            <span className={`text-lg font-bold ${getQualityColor(details.score)}`}>
+                              {details.score}/100
+                            </span>
+                          </div>
+                          <div className="grid md:grid-cols-3 gap-3">
+                            {details.strengths && details.strengths.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-success mb-2">Strengths:</p>
+                                <ul className="space-y-1">
+                                  {details.strengths.map((strength: string, idx: number) => (
+                                    <li key={idx} className="text-xs text-muted-foreground flex items-start gap-1">
+                                      <CheckCircle className="h-3 w-3 text-success mt-0.5 flex-shrink-0" />
+                                      <span>{strength}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {details.weaknesses && details.weaknesses.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-warning mb-2">Weaknesses:</p>
+                                <ul className="space-y-1">
+                                  {details.weaknesses.map((weakness: string, idx: number) => (
+                                    <li key={idx} className="text-xs text-muted-foreground flex items-start gap-1">
+                                      <AlertCircle className="h-3 w-3 text-warning mt-0.5 flex-shrink-0" />
+                                      <span>{weakness}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {details.suggestions && details.suggestions.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-primary mb-2">Suggestions:</p>
+                                <ul className="space-y-1">
+                                  {details.suggestions.map((suggestion: string, idx: number) => (
+                                    <li key={idx} className="text-xs text-muted-foreground flex items-start gap-1">
+                                      <Sparkles className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
+                                      <span>{suggestion}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* General Feedback */}
                 {qualityFeedback.feedback && qualityFeedback.feedback.length > 0 && (
                   <div>
-                    <p className="text-sm font-semibold mb-3 text-muted-foreground">Feedback:</p>
+                    <p className="text-sm font-semibold mb-3 text-muted-foreground">General Feedback:</p>
                     <div className="space-y-2">
-                      {qualityFeedback.feedback.slice(0, 5).map((fb: string, idx: number) => (
+                      {qualityFeedback.feedback.map((fb: string, idx: number) => (
                         <div key={idx} className="flex items-start gap-2 p-3 rounded-lg bg-white/50 border border-primary/10">
                           <CheckCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                           <p className="text-sm">{fb}</p>
@@ -374,6 +540,22 @@ export const DPRPreview: React.FC = () => {
                   </div>
                 )}
 
+                {/* Recommendations */}
+                {qualityFeedback.recommendations && qualityFeedback.recommendations.length > 0 && (
+                  <div>
+                    <p className="text-sm font-semibold mb-3 text-muted-foreground">Recommendations for Improvement:</p>
+                    <div className="space-y-2">
+                      {qualityFeedback.recommendations.map((rec: string, idx: number) => (
+                        <div key={idx} className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                          <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                          <p className="text-sm">{rec}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Weak Sections */}
                 {qualityFeedback.weakSections && qualityFeedback.weakSections.length > 0 && (
                   <div>
                     <p className="text-sm font-semibold mb-3 text-muted-foreground">Sections Needing Improvement:</p>

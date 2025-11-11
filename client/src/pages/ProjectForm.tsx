@@ -145,15 +145,47 @@ export const ProjectForm: React.FC = () => {
                 </select>
               </div>
 
-              <Input
-                label={t('projects.industrySector')}
-                value={formData.industrySector}
-                onChange={(e) =>
-                  setFormData({ ...formData, industrySector: e.target.value })
-                }
-                placeholder="e.g., Manufacturing, Services, Trading"
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  {t('projects.industrySector')} *
+                </label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={formData.industrySector}
+                  onChange={(e) =>
+                    setFormData({ ...formData, industrySector: e.target.value })
+                  }
+                  required
+                >
+                  <option value="">Select Industry Sector</option>
+                  <option value="Manufacturing">Manufacturing</option>
+                  <option value="Services">Services</option>
+                  <option value="Trading">Trading</option>
+                  <option value="Food Processing">Food Processing</option>
+                  <option value="Textiles & Garments">Textiles & Garments</option>
+                  <option value="Handicrafts">Handicrafts</option>
+                  <option value="IT & ITES">IT & ITES</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Education">Education</option>
+                  <option value="Agriculture & Allied">Agriculture & Allied</option>
+                  <option value="Construction">Construction</option>
+                  <option value="Retail">Retail</option>
+                  <option value="Hospitality & Tourism">Hospitality & Tourism</option>
+                  <option value="Transport & Logistics">Transport & Logistics</option>
+                  <option value="Real Estate">Real Estate</option>
+                  <option value="Energy & Power">Energy & Power</option>
+                  <option value="Chemicals & Pharmaceuticals">Chemicals & Pharmaceuticals</option>
+                  <option value="Metal & Engineering">Metal & Engineering</option>
+                  <option value="Leather & Leather Products">Leather & Leather Products</option>
+                  <option value="Paper & Paper Products">Paper & Paper Products</option>
+                  <option value="Rubber & Plastic Products">Rubber & Plastic Products</option>
+                  <option value="Wood & Wood Products">Wood & Wood Products</option>
+                  <option value="Printing & Publishing">Printing & Publishing</option>
+                  <option value="Electronics & Electrical">Electronics & Electrical</option>
+                  <option value="Gems & Jewellery">Gems & Jewellery</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
 
               <Input
                 label="Sub-Sector (Optional)"

@@ -723,7 +723,7 @@ Return only valid JSON without markdown formatting.`;
   /**
    * Transcribe audio using Whisper API
    */
-  static async transcribeAudio(audioFile: Buffer): Promise<string> {
+  static async transcribeAudio(audioFile: Buffer, language?: 'en' | 'te'): Promise<string> {
     try {
       // Create a File object from buffer
       const file = new File([audioFile], 'audio.webm', { type: 'audio/webm' });
@@ -731,7 +731,7 @@ Return only valid JSON without markdown formatting.`;
       const response = await openai.audio.transcriptions.create({
         file: file,
         model: 'whisper-1',
-        language: 'en', // Can be 'te' for Telugu
+        language: language || undefined, // 'en' for English, 'te' for Telugu, undefined for auto-detect
       });
 
       return response.text;

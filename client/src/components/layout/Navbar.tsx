@@ -40,14 +40,14 @@ export const Navbar: React.FC = () => {
   ] : [];
 
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b-2 border-primary/20 shadow-sm">
+    <nav className="sticky top-0 z-50 bg-white border-b border-border shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          <Link to="/" className="flex items-center space-x-3 group">
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center group-hover:scale-105 transition-transform">
+          <Link to="/" className="flex items-center space-x-3">
+            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
               <Building2 className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <span className="text-xl font-semibold text-foreground">
               MSME DPR Tool
             </span>
           </Link>
@@ -59,10 +59,10 @@ export const Navbar: React.FC = () => {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     isActive(link.path)
-                      ? 'bg-primary text-white shadow-md'
-                      : 'text-foreground hover:bg-primary/10 hover:text-primary'
+                      ? 'bg-primary text-white'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   }`}
                 >
                   {link.label}

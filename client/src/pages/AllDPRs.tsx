@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import { Layout } from '@/components/layout/Layout';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { 
@@ -17,6 +16,8 @@ import {
   AlertCircle,
   X,
   Sparkles,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
@@ -24,7 +25,6 @@ import { toast } from 'react-hot-toast';
 interface DPR {
   _id: string;
   projectId: any;
-  versionNumber: number;
   status?: 'draft' | 'submitted' | 'approved' | 'rejected';
   qualityScore?: number;
   generatedAt?: Date;
@@ -38,7 +38,6 @@ type StatusFilter = 'all' | 'draft' | 'submitted' | 'approved' | 'rejected';
 
 export const AllDPRs: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
   const [dprs, setDprs] = useState<DPR[]>([]);
   const [filteredDprs, setFilteredDprs] = useState<DPR[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +45,10 @@ export const AllDPRs: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadResult, setUploadResult] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadDPRs();
@@ -61,9 +64,17 @@ export const AllDPRs: React.FC = () => {
       const response = await api.getUserDPRs();
       const dprsData = response.data || [];
       setDprs(dprsData);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load DPRs:', error);
-      toast.error('Failed to load DPRs');
+      
+      // Check if it's a connection error
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('ERR_CONNECTION_REFUSED')) {
+        toast.error('Cannot connect to server. Please make sure the backend server is running on port 5000.', {
+          duration: 5000,
+        });
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to load DPRs');
+      }
     } finally {
       setLoading(false);
     }
@@ -125,28 +136,19 @@ export const AllDPRs: React.FC = () => {
     setFilteredDprs(filtered);
   };
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('desc');
-    }
-  };
-
   const getStatusColor = (status?: string) => {
-    if (!status) return 'bg-muted text-muted-foreground border-border';
+    if (!status) return 'bg-muted/50 text-muted-foreground';
     switch (status) {
       case 'approved':
-        return 'bg-success/10 text-success border-success/20';
+        return 'bg-success/10 text-success border border-success/20';
       case 'submitted':
-        return 'bg-secondary/10 text-secondary border-secondary/20';
+        return 'bg-secondary/10 text-secondary border border-secondary/20';
       case 'draft':
-        return 'bg-warning/10 text-warning border-warning/20';
+        return 'bg-warning/10 text-warning border border-warning/20';
       case 'rejected':
-        return 'bg-destructive/10 text-destructive border-destructive/20';
+        return 'bg-destructive/10 text-destructive border border-destructive/20';
       default:
-        return 'bg-muted text-muted-foreground border-border';
+        return 'bg-muted/50 text-muted-foreground border border-border';
     }
   };
 
@@ -197,6 +199,122 @@ export const AllDPRs: React.FC = () => {
     }
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      console.warn('No file selected');
+      return;
+    }
+    
+    console.log('File selected:', file.name, file.type, file.size);
+
+    // Validate file type - check both MIME type and file extension
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'text/markdown',
+    ];
+
+    const allowedExtensions = ['.pdf', '.doc', '.docx', '.txt', '.md'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+
+    const isValidType = allowedTypes.includes(file.type) || 
+                       allowedExtensions.includes(fileExtension) ||
+                       file.type === ''; // Some browsers don't report MIME type for .doc files
+
+    if (!isValidType) {
+      toast.error('Invalid file type. Please upload PDF, DOC, DOCX, TXT, or MD files.');
+      return;
+    }
+
+    // Validate file size (50MB limit)
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('File size exceeds 50MB limit.');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadProgress(0);
+      setUploadResult(null);
+
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 500);
+
+      const response = await api.uploadDPR(file);
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      if (response.success) {
+        setUploadResult(response.data);
+        toast.success('DPR uploaded and analyzed successfully!');
+        
+        // Reload DPRs list
+        await loadDPRs();
+        
+        // Navigate to the uploaded DPR after a short delay
+        setTimeout(() => {
+          navigate(`/dpr/view/${response.data.dprId}`);
+        }, 2000);
+      } else {
+        throw new Error(response.message || 'Upload failed');
+      }
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      
+      // Check if it's a connection error
+      if (error.code === 'ERR_NETWORK' || 
+          error.message?.includes('ERR_CONNECTION_REFUSED') ||
+          error.code === 'ECONNREFUSED') {
+        toast.error('Cannot connect to server. Please make sure the backend server is running on port 5000.', {
+          duration: 6000,
+        });
+      } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        toast.error('Upload timeout. The file may be too large or the server is taking too long to process.', {
+          duration: 5000,
+        });
+      } else if (error.response?.status === 400) {
+        // Bad Request - likely file validation issue
+        const errorMessage = error.response?.data?.message || 
+                            error.response?.data?.error || 
+                            'Invalid file. Please check the file format and try again.';
+        toast.error(errorMessage, {
+          duration: 5000,
+        });
+      } else if (error.response?.status === 401) {
+        toast.error('Please log in again to upload DPRs.', {
+          duration: 5000,
+        });
+      } else {
+        const errorMessage = error.response?.data?.message || 
+                            error.response?.data?.error || 
+                            error.message || 
+                            'Failed to upload DPR. Please check the file format and try again.';
+        toast.error(errorMessage, {
+          duration: 5000,
+        });
+      }
+      setUploadProgress(0);
+    } finally {
+      setUploading(false);
+      // Reset file input
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -204,6 +322,9 @@ export const AllDPRs: React.FC = () => {
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
             <p className="text-muted-foreground">Loading DPRs...</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              If this takes too long, make sure the backend server is running
+            </p>
           </div>
         </div>
       </Layout>
@@ -221,11 +342,122 @@ export const AllDPRs: React.FC = () => {
               View and manage all your Detailed Project Reports ({filteredDprs.length} {filteredDprs.length === 1 ? 'DPR' : 'DPRs'})
             </p>
           </div>
-          <Button onClick={() => navigate('/dpr/builder')} className="bg-primary hover:bg-primary/90 text-white">
-            <Sparkles className="h-4 w-4 mr-2" />
-            Create New DPR
-          </Button>
+          <div className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt,.md"
+              onChange={handleFileUpload}
+              className="hidden"
+              disabled={uploading}
+            />
+            <Button
+              variant="outline"
+              className="border-2 border-primary text-primary hover:bg-primary hover:text-white"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload DPR
+                </>
+              )}
+            </Button>
+            <Button onClick={() => navigate('/dpr/builder')} className="bg-primary hover:bg-primary/90 text-white">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Create New DPR
+            </Button>
+          </div>
         </div>
+
+        {/* Upload Progress */}
+        {uploading && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Uploading and analyzing DPR...</span>
+                  <span className="text-sm text-muted-foreground">{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  AI is extracting content, analyzing structure, and calculating quality score...
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Upload Result */}
+        {uploadResult && !uploading && (
+          <Card className="border-2 border-success/20 bg-success/5">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-success" />
+                  <h3 className="font-semibold text-lg">DPR Uploaded Successfully!</h3>
+                </div>
+                
+                {uploadResult.qualityAnalysis && (
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-lg bg-white border-2 border-primary/20">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium">Quality Score</span>
+                        <span className={`text-2xl font-bold ${getQualityColor(uploadResult.qualityAnalysis.score)}`}>
+                          {uploadResult.qualityAnalysis.score}/100
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {getQualityLabel(uploadResult.qualityAnalysis.score)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {uploadResult.suggestions && uploadResult.suggestions.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold">AI Suggestions for Improvement:</h4>
+                    <ul className="space-y-2">
+                      {uploadResult.suggestions.map((suggestion: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2 text-sm">
+                          <span className="text-primary mt-1">•</span>
+                          <span>{suggestion}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={() => navigate(`/dpr/view/${uploadResult.dprId}`)}
+                    className="bg-primary hover:bg-primary/90 text-white"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View DPR
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setUploadResult(null)}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Filters and Search */}
         <Card>
@@ -349,12 +581,7 @@ export const AllDPRs: React.FC = () => {
                             {dpr.projectId?.industrySector || 'Unknown'}
                           </span>
                           <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <span className="font-medium">Version:</span>
-                            {dpr.versionNumber}
-                          </span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1">  
                             <span className="font-medium">Created:</span>
                             {formatDate(dpr.generatedAt || dpr.createdAt || new Date())}
                           </span>

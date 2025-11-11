@@ -180,6 +180,7 @@ export class AIController {
   static async transcribe(req: AuthRequest, res: Response): Promise<void> {
     try {
       const file = req.file;
+      const { language } = req.body; // 'en' for English, 'te' for Telugu
 
       if (!file) {
         res.status(400).json({
@@ -189,7 +190,10 @@ export class AIController {
         return;
       }
 
-      const transcription = await OpenAIService.transcribeAudio(file.buffer);
+      const transcription = await OpenAIService.transcribeAudio(
+        file.buffer,
+        language as 'en' | 'te' | undefined
+      );
 
       res.status(200).json({
         success: true,

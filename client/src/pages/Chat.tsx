@@ -7,7 +7,7 @@ import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Send, Mic, MicOff, Trash2, Lightbulb, CheckCircle, TrendingUp, DollarSign, Database, Zap, Plus } from 'lucide-react';
+import { Send, Mic, MicOff, Trash2, Lightbulb, CheckCircle, TrendingUp, DollarSign, Database, Zap, Plus, Languages } from 'lucide-react';
 
 export const Chat: React.FC = () => {
   const { t } = useTranslation();
@@ -30,6 +30,7 @@ export const Chat: React.FC = () => {
   const [dprMode, setDprMode] = useState(false);
   const [dprProgress, setDprProgress] = useState({ currentStep: 0, totalSteps: 0, progress: 0 });
   const [dprResponses, setDprResponses] = useState<Record<string, any>>({});
+  const [voiceLanguage, setVoiceLanguage] = useState<'en' | 'te'>('en');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -207,10 +208,10 @@ export const Chat: React.FC = () => {
         
         try {
           setLoading(true);
-          const response = await api.transcribeAudio(audioFile);
+          const response = await api.transcribeAudio(audioFile, voiceLanguage);
           const transcription = response.data.transcription;
           setInputMessage(transcription);
-          toast.success('Audio transcribed successfully!');
+          toast.success(`Audio transcribed successfully in ${voiceLanguage === 'te' ? 'Telugu' : 'English'}!`);
         } catch (error) {
           toast.error('Failed to transcribe audio');
         } finally {
@@ -498,6 +499,20 @@ export const Chat: React.FC = () => {
           </CardContent>
 
           <div className="border-t p-4">
+            <div className="flex space-x-2 mb-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-primary/20 bg-background">
+                <Languages className="h-4 w-4 text-primary" />
+                <select
+                  value={voiceLanguage}
+                  onChange={(e) => setVoiceLanguage(e.target.value as 'en' | 'te')}
+                  className="text-sm font-medium bg-transparent border-none outline-none cursor-pointer"
+                  disabled={isRecording}
+                >
+                  <option value="en">English</option>
+                  <option value="te">Telugu</option>
+                </select>
+              </div>
+            </div>
             <div className="flex space-x-2">
               <Input
                 placeholder={t('chat.placeholder')}
@@ -512,16 +527,24 @@ export const Chat: React.FC = () => {
                 variant={isRecording ? 'destructive' : 'outline'}
                 size="sm"
                 disabled={isLoading}
+                title={`Record in ${voiceLanguage === 'te' ? 'Telugu' : 'English'}`}
               >
                 {isRecording ? (
-                  <MicOff className="h-4 w-4" />
+                  <>
+                    <MicOff className="h-4 w-4 mr-2" />
+                    Stop
+                  </>
                 ) : (
-                  <Mic className="h-4 w-4" />
+                  <>
+                    <Mic className="h-4 w-4 mr-2" />
+                    Record
+                  </>
                 )}
               </Button>
               <Button
                 onClick={() => handleSend()}
                 disabled={!inputMessage.trim() || isLoading}
+                className="bg-primary hover:bg-primary/90 text-white"
               >
                 <Send className="h-4 w-4" />
               </Button>

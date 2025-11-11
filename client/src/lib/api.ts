@@ -21,6 +21,12 @@ class APIClient {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+        
+        // Remove Content-Type header for FormData - let axios set it automatically with boundary
+        if (config.data instanceof FormData) {
+          delete config.headers['Content-Type'];
+        }
+        
         return config;
       },
       (error) => Promise.reject(error)
@@ -30,15 +36,20 @@ class APIClient {
     this.client.interceptors.response.use(
       (response) => response,
       (error: AxiosError) => {
-        const message = (error.response?.data as any)?.message || 'An error occurred';
-        
+        // Don't show toast for connection errors here - let the calling code handle it
+        // This prevents duplicate error messages
         if (error.response?.status === 401) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           window.location.href = '/login';
         }
         
-        toast.error(message);
+        // Only show toast for non-connection errors that aren't already handled
+        if (error.response && error.response.status !== 401) {
+          const message = (error.response?.data as any)?.message || 'An error occurred';
+          toast.error(message);
+        }
+        
         return Promise.reject(error);
       }
     );
@@ -152,8 +163,27 @@ class APIClient {
     return response.data;
   }
 
+  async translateToTelugu(dprId: string) {
+    const response = await this.client.post(`/dpr/${dprId}/translate/telugu`);
+    return response.data;
+  }
+
   async getUserDPRs() {
     const response = await this.client.get('/dpr/user/list');
+    return response.data;
+  }
+
+  async uploadDPR(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    console.log('Uploading file:', file.name, file.type, file.size, 'bytes');
+    console.log('FormData entries:', Array.from(formData.entries()).map(([key, value]) => [key, value instanceof File ? `${value.name} (${value.size} bytes)` : value]));
+    
+    // Axios will automatically set Content-Type with boundary for FormData
+    const response = await this.client.post('/dpr/upload', formData, {
+      timeout: 300000, // 5 minutes timeout for large file uploads and AI processing
+    });
     return response.data;
   }
 
@@ -207,9 +237,12 @@ class APIClient {
     return response.data;
   }
 
-  async transcribeAudio(audioFile: File) {
+  async transcribeAudio(audioFile: File, language?: 'en' | 'te') {
     const formData = new FormData();
     formData.append('audio', audioFile);
+    if (language) {
+      formData.append('language', language);
+    }
     
     const response = await this.client.post('/ai/transcribe', formData, {
       headers: {

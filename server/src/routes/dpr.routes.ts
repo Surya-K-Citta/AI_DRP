@@ -25,6 +25,27 @@ router.post('/generate-enhanced-from-chat', DPRController.generateEnhancedDPRFro
 // DPR session downloads
 router.get('/sessions/:sessionId/download/pdf', DPRController.downloadSessionPDF);
 
+// Upload DPR (must be before /:dprId routes to avoid route conflicts)
+// Handle multer errors properly
+router.post('/upload', (req, res, next) => {
+  const middleware = DPRController.getUploadMiddleware();
+  middleware(req, res, (err: any) => {
+    if (err) {
+      // Multer error (file validation, size limit, etc.)
+      console.error('Multer upload error:', err);
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'File upload error',
+        error: err.code || 'UPLOAD_ERROR',
+      });
+    }
+    next();
+  });
+}, DPRController.uploadDPR);
+
+// User DPRs
+router.get('/user/list', DPRController.getUserDPRs);
+
 // Project-based DPR generation
 router.post('/generate/:projectId', DPRController.generateDPR);
 router.get('/project/:projectId', DPRController.getProjectDPRs);
@@ -39,8 +60,6 @@ router.get('/:dprId/download/xls', DPRController.downloadXLS);
 router.get('/:dprId/quality', DPRController.analyzeQuality);
 router.put('/:dprId/content', DPRController.updateDPRContent);
 router.post('/:dprId/submit', DPRController.submitDPR);
-
-// User DPRs
-router.get('/user/list', DPRController.getUserDPRs);
+router.post('/:dprId/translate/telugu', DPRController.translateToTelugu);
 
 export { router as dprRoutes };

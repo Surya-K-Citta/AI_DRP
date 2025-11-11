@@ -9,11 +9,6 @@ const dprVersionSchema = new Schema<IDPRVersion>(
       ref: 'Project',
       index: true,
     },
-    versionNumber: {
-      type: Number,
-      required: true,
-      default: 1,
-    },
     contentPath: String,
     content: {
       english: {
@@ -75,7 +70,7 @@ const dprVersionSchema = new Schema<IDPRVersion>(
   }
 );
 
-dprVersionSchema.index({ projectId: 1, versionNumber: -1 });
+dprVersionSchema.index({ projectId: 1, createdAt: -1 });
 
 export const DPRVersion = mongoose.model<IDPRVersion>(
   'DPRVersion',

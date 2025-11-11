@@ -35,17 +35,9 @@ export class DPRService {
       console.log('Generating financial projections...');
       const financials = FinancialService.generateCompleteFinancials(project);
 
-      // OPTIMIZATION: Get next version number with lean query
-      const lastVersion = await DPRVersion.findOne({ projectId })
-        .select('versionNumber')
-        .sort({ versionNumber: -1 })
-        .lean();
-      const versionNumber = lastVersion ? lastVersion.versionNumber + 1 : 1;
-
-      // Create DPR version
+      // Create DPR
       const dprVersion = await DPRVersion.create({
         projectId,
-        versionNumber,
         content,
         financials,
         language,
@@ -70,7 +62,6 @@ export class DPRService {
 
       return {
         dprId: dprVersion._id,
-        versionNumber: dprVersion.versionNumber,
         content: dprVersion.content,
         financials: dprVersion.financials,
         generatedAt: dprVersion.generatedAt,
@@ -99,10 +90,10 @@ export class DPRService {
   }
 
   /**
-   * Get all DPR versions for a project
+   * Get all DPRs for a project
    */
   static async getProjectDPRs(projectId: string): Promise<any[]> {
-    return DPRVersion.find({ projectId }).sort({ versionNumber: -1 });
+    return DPRVersion.find({ projectId }).sort({ createdAt: -1 });
   }
 
   /**
@@ -560,6 +551,293 @@ export class DPRService {
 
       doc.end();
     });
+  }
+
+  /**
+   * Extract text from uploaded DPR file using OpenAI
+   */
+  static async extractTextFromFile(filePath: string, mimeType: string): Promise<string> {
+    try {
+      // For text files, read directly
+      if (mimeType === 'text/plain' || mimeType === 'text/markdown') {
+        return await fs.promises.readFile(filePath, 'utf-8');
+      }
+
+      // For PDF and DOCX, use OpenAI's file API to extract text
+      const { default: OpenAI } = await import('openai');
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+
+      // Upload file to OpenAI
+      const fileStream = fs.createReadStream(filePath);
+      const uploadedFile = await openai.files.create({
+        file: fileStream,
+        purpose: 'assistants',
+      });
+
+      // Use OpenAI to extract text content
+      // Create a simple assistant to extract text
+      const assistant = await openai.beta.assistants.create({
+        model: 'gpt-4o-mini',
+        instructions: 'Extract all text content from the uploaded document. Return only the extracted text without any formatting or analysis.',
+        tools: [{ type: 'file_search' }],
+        tool_resources: {
+          file_search: {
+            vector_store_ids: [],
+          },
+        },
+      });
+
+      const thread = await openai.beta.threads.create({
+        messages: [
+          {
+            role: 'user',
+            content: 'Extract all text content from this document. Return the complete text as-is.',
+            attachments: [
+              {
+                file_id: uploadedFile.id,
+                tools: [{ type: 'file_search' }],
+              },
+            ],
+          },
+        ],
+      });
+
+      const run = await openai.beta.threads.runs.create(thread.id, {
+        assistant_id: assistant.id,
+      });
+
+      // Wait for completion (with timeout)
+      let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+      let attempts = 0;
+      const maxAttempts = 30; // 30 seconds max
+
+      while (runStatus.status !== 'completed' && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+        attempts++;
+      }
+
+      if (runStatus.status !== 'completed') {
+        // Cleanup before throwing error
+        await openai.beta.assistants.del(assistant.id).catch(() => {});
+        await openai.beta.threads.del(thread.id).catch(() => {});
+        await openai.files.del(uploadedFile.id).catch(() => {});
+        throw new Error('Text extraction timeout. The file may be too large or complex.');
+      }
+
+      // Get the extracted text
+      const messages = await openai.beta.threads.messages.list(thread.id, {
+        limit: 1,
+        order: 'desc',
+      });
+
+      const extractedText = messages.data[0]?.content[0]?.type === 'text'
+        ? messages.data[0].content[0].text.value
+        : '';
+
+      // Cleanup
+      await openai.beta.assistants.del(assistant.id).catch(() => {});
+      await openai.beta.threads.del(thread.id).catch(() => {});
+      await openai.files.del(uploadedFile.id).catch(() => {});
+
+      if (!extractedText || extractedText.trim().length === 0) {
+        throw new Error('No text could be extracted from the document. The file may be corrupted or contain only images.');
+      }
+
+      return extractedText;
+    } catch (error: any) {
+      console.error('Error extracting text from file:', error);
+      throw new Error(`Failed to extract text from file: ${error.message}`);
+    }
+  }
+
+  /**
+   * Analyze uploaded DPR content and structure it
+   */
+  static async analyzeUploadedDPR(fileText: string, fileName: string): Promise<{
+    content: any;
+    projectInfo: any;
+    suggestions: string[];
+  }> {
+    try {
+      const { default: OpenAI } = await import('openai');
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+
+      const prompt = `Analyze this uploaded DPR (Detailed Project Report) document and extract structured information.
+
+Document Name: ${fileName}
+Document Content:
+${fileText.substring(0, 15000)}${fileText.length > 15000 ? '\n\n[Content truncated...]' : ''}
+
+Extract and structure the DPR content into the following sections:
+1. executiveSummary
+2. businessProfile
+3. marketAnalysis
+4. technicalFeasibility
+5. financialProjections
+6. conclusion
+
+Also extract project information:
+- projectName
+- industrySector
+- location
+- projectType
+- totalCost (if mentioned)
+- loanAmount (if mentioned)
+
+Additionally, provide suggestions for improvement based on the content quality.
+
+Return a JSON object with this structure:
+{
+  "content": {
+    "english": {
+      "executiveSummary": "...",
+      "businessProfile": "...",
+      "marketAnalysis": "...",
+      "technicalFeasibility": "...",
+      "financialProjections": "...",
+      "conclusion": "..."
+    }
+  },
+  "projectInfo": {
+    "projectName": "...",
+    "industrySector": "...",
+    "location": "...",
+    "projectType": "...",
+    "totalCost": 0,
+    "loanAmount": 0
+  },
+  "suggestions": ["suggestion 1", "suggestion 2", ...]
+}
+
+Return only valid JSON without markdown formatting.`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 4000,
+      });
+
+      const content = response.choices[0]?.message?.content || '{}';
+      const cleanedContent = content
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+
+      let analysis;
+      try {
+        analysis = JSON.parse(cleanedContent);
+      } catch (parseError) {
+        console.error('Failed to parse AI analysis response:', parseError);
+        // Return a basic structure if parsing fails
+        analysis = {
+          content: {
+            english: {
+              executiveSummary: fileText.substring(0, 500) || 'No summary available',
+              businessProfile: fileText.substring(500, 1000) || 'No business profile available',
+              marketAnalysis: fileText.substring(1000, 1500) || 'No market analysis available',
+              technicalFeasibility: fileText.substring(1500, 2000) || 'No technical feasibility available',
+              financialProjections: fileText.substring(2000, 2500) || 'No financial projections available',
+              conclusion: fileText.substring(2500, 3000) || 'No conclusion available',
+            },
+          },
+          projectInfo: {
+            projectName: fileName.replace(/\.[^/.]+$/, ''),
+            industrySector: 'Other',
+            location: 'Not specified',
+            projectType: 'Other',
+            totalCost: 0,
+            loanAmount: 0,
+          },
+          suggestions: ['Please review and update the extracted content for accuracy.'],
+        };
+      }
+
+      return {
+        content: analysis.content || { english: {} },
+        projectInfo: analysis.projectInfo || {},
+        suggestions: analysis.suggestions || [],
+      };
+    } catch (error: any) {
+      console.error('Error analyzing uploaded DPR:', error);
+      throw new Error(`Failed to analyze uploaded DPR: ${error.message}`);
+    }
+  }
+
+  /**
+   * Process uploaded DPR file
+   */
+  static async processUploadedDPR(
+    filePath: string,
+    fileName: string,
+    mimeType: string,
+    userId: string
+  ): Promise<any> {
+    try {
+      console.log(`📄 Processing uploaded DPR: ${fileName}`);
+
+      // Extract text from file
+      console.log('📖 Extracting text from file...');
+      const fileText = await this.extractTextFromFile(filePath, mimeType);
+
+      if (!fileText || fileText.trim().length === 0) {
+        throw new Error('No text could be extracted from the uploaded file');
+      }
+
+      // Analyze and structure the content
+      console.log('🤖 Analyzing DPR content with AI...');
+      const analysis = await this.analyzeUploadedDPR(fileText, fileName);
+
+      // Create or find project
+      let project = await Project.findOne({
+        userId,
+        projectName: analysis.projectInfo.projectName || 'Uploaded DPR Project',
+      });
+
+      if (!project) {
+        project = await Project.create({
+          userId,
+          projectName: analysis.projectInfo.projectName || 'Uploaded DPR Project',
+          industrySector: analysis.projectInfo.industrySector || 'Other',
+          projectType: analysis.projectInfo.projectType || 'Other',
+          location: analysis.projectInfo.location || 'Not specified',
+          totalCost: analysis.projectInfo.totalCost || 0,
+          loanAmount: analysis.projectInfo.loanAmount || 0,
+          status: 'completed',
+        });
+      }
+
+      // Create DPR
+      const dprVersion = await DPRVersion.create({
+        projectId: project._id.toString(),
+        content: analysis.content,
+        status: 'draft',
+        generatedAt: new Date(),
+      });
+
+      // Calculate quality score (async, don't wait)
+      QualityService.updateDPRQuality(dprVersion._id.toString()).catch(err => {
+        console.error('Error calculating quality score:', err);
+      });
+
+      console.log(`✅ Uploaded DPR processed successfully: ${dprVersion._id}`);
+
+      return {
+        dprId: dprVersion._id,
+        content: dprVersion.content,
+        projectInfo: analysis.projectInfo,
+        suggestions: analysis.suggestions,
+        projectId: project._id,
+      };
+    } catch (error: any) {
+      console.error('Error processing uploaded DPR:', error);
+      throw error;
+    }
   }
 }
 
