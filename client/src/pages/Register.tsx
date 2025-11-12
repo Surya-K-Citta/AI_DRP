@@ -48,10 +48,10 @@ export const Register: React.FC = () => {
             <Building2 className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
-            Get Started
+            {t('auth.getStarted')}
           </h1>
           <p className="text-muted-foreground">
-            Create your account and start building professional DPRs
+            {t('auth.createAccountStart')}
           </p>
         </div>
 
@@ -59,7 +59,7 @@ export const Register: React.FC = () => {
           <CardHeader>
             <CardTitle className="text-2xl text-center">{t('auth.registerTitle')}</CardTitle>
             <CardDescription className="text-center">
-              Fill in your details to create an account
+              {t('auth.fillDetails')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -155,18 +155,18 @@ export const Register: React.FC = () => {
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="p-4 rounded-lg bg-white/50 border border-primary/10 text-center">
             <Sparkles className="h-6 w-6 text-primary mx-auto mb-2" />
-            <p className="text-sm font-semibold mb-1">AI Assistance</p>
-            <p className="text-xs text-muted-foreground">Smart suggestions and guidance</p>
+            <p className="text-sm font-semibold mb-1">{t('auth.aiAssistance')}</p>
+            <p className="text-xs text-muted-foreground">{t('auth.smartSuggestions')}</p>
           </div>
           <div className="p-4 rounded-lg bg-white/50 border border-primary/10 text-center">
             <Building2 className="h-6 w-6 text-secondary mx-auto mb-2" />
-            <p className="text-sm font-semibold mb-1">Bank Ready</p>
-            <p className="text-xs text-muted-foreground">Professional DPRs for approval</p>
+            <p className="text-sm font-semibold mb-1">{t('auth.bankReady')}</p>
+            <p className="text-xs text-muted-foreground">{t('auth.professionalDPRs')}</p>
           </div>
           <div className="p-4 rounded-lg bg-white/50 border border-primary/10 text-center">
             <ArrowRight className="h-6 w-6 text-success mx-auto mb-2" />
-            <p className="text-sm font-semibold mb-1">Quick Setup</p>
-            <p className="text-xs text-muted-foreground">Get started in minutes</p>
+            <p className="text-sm font-semibold mb-1">{t('auth.quickSetup')}</p>
+            <p className="text-xs text-muted-foreground">{t('auth.getStartedMinutes')}</p>
           </div>
         </div>
       </div>

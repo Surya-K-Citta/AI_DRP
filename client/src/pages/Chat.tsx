@@ -150,22 +150,22 @@ export const Chat: React.FC = () => {
             const { downloadBlob } = await import('@/lib/utils');
             const filename = `DPR_Conversation_${new Date().toISOString().split('T')[0]}.pdf`;
             downloadBlob(blob, filename);
-            toast.success('PDF downloaded successfully!');
+            toast.success(t('chat.pdfDownloadedSuccess'));
           }
           } catch (error: any) {
             console.error('Error downloading PDF:', error);
-            toast.error(`Failed to download PDF: ${error.message}`);
+            toast.error(t('chat.failedToDownloadPDF', { error: error.message }));
           }
       }
     } catch (error: any) {
       console.error('Chat error:', error);
       const errorMessage = error.response?.data?.message || 
                           error.message || 
-                          'Failed to get response from AI';
+                          t('chat.failedToGetResponse');
       toast.error(errorMessage);
       addMessage({
         role: 'assistant',
-        content: 'I apologize, but I encountered an error processing your request. Please try again or rephrase your question.',
+        content: t('chat.errorProcessingRequest'),
         timestamp: new Date(),
       });
     } finally {
@@ -193,9 +193,9 @@ export const Chat: React.FC = () => {
           const response = await api.transcribeAudio(audioFile, voiceLanguage);
           const transcription = response.data.transcription;
           setInputMessage(transcription);
-          toast.success(`Audio transcribed successfully in ${voiceLanguage === 'te' ? 'Telugu' : 'English'}!`);
+          toast.success(t('chat.audioTranscribedSuccess', { language: voiceLanguage === 'te' ? t('dpr.telugu') : t('dpr.english') }));
         } catch (error) {
-          toast.error('Failed to transcribe audio');
+          toast.error(t('chat.failedToTranscribe'));
         } finally {
           setLoading(false);
         }
@@ -207,7 +207,7 @@ export const Chat: React.FC = () => {
       setIsRecording(true);
       toast.success(t('chat.listening'));
     } catch (error) {
-      toast.error('Failed to access microphone');
+      toast.error(t('chat.failedToAccessMicrophone'));
     }
   };
 
@@ -229,16 +229,16 @@ export const Chat: React.FC = () => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedMessageId(messageId);
-      toast.success('Copied to clipboard');
+      toast.success(t('chat.copiedToClipboard'));
       setTimeout(() => setCopiedMessageId(null), 2000);
     } catch (error) {
-      toast.error('Failed to copy');
+      toast.error(t('chat.failedToCopy'));
     }
   };
 
   const speakMessage = (text: string, messageId: number) => {
     if (!ttsService.isTTSSupported()) {
-      toast.error('Text-to-speech is not supported in your browser');
+      toast.error(t('chat.textToSpeechNotSupported'));
       return;
     }
 
@@ -258,7 +258,7 @@ export const Chat: React.FC = () => {
       .trim();
 
     if (!cleanText) {
-      toast.error('No text to speak');
+      toast.error(t('chat.noTextToSpeak'));
       return;
     }
 
@@ -275,7 +275,7 @@ export const Chat: React.FC = () => {
       onError: (error) => {
         console.error('TTS Error:', error);
         setSpeakingMessageId(null);
-        toast.error('Failed to speak text');
+        toast.error(t('chat.failedToSpeak'));
       },
     });
   };
@@ -286,9 +286,9 @@ export const Chat: React.FC = () => {
   };
 
   const exampleQuestions = [
-    'How do I create a DPR?',
-    'What MSME schemes are available?',
-    'Help me with financial projections',
+    t('chat.howDoICreateDPR'),
+    t('chat.whatMSMESchemes'),
+    t('chat.helpWithFinancial'),
   ];
 
   return (
@@ -303,8 +303,8 @@ export const Chat: React.FC = () => {
                 <Bot className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-foreground">AI Assistant</h1>
-                <p className="text-xs text-muted-foreground">Get instant help with your DPR creation</p>
+                <h1 className="text-lg font-semibold text-foreground">{t('chat.title')}</h1>
+                <p className="text-xs text-muted-foreground">{t('chat.getInstantHelp')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -322,7 +322,7 @@ export const Chat: React.FC = () => {
                   onClick={() => setUseRAG(!useRAG)}
                 className="text-xs h-8"
                 >
-                {useRAG ? 'Enhanced' : 'Standard'}
+                {useRAG ? t('chat.enhanced') : t('chat.standard')}
                 </Button>
                 <Button
                 variant="ghost"
@@ -343,7 +343,7 @@ export const Chat: React.FC = () => {
         <div className="border-b border-border bg-muted/30 flex-shrink-0">
           <div className="max-w-4xl mx-auto px-4 py-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-medium text-muted-foreground">Knowledge Base:</span>
+              <span className="text-xs font-medium text-muted-foreground">{t('chat.knowledgeBase')}</span>
                   {vectorStores.map((store) => (
                 <label 
                   key={store._id} 
@@ -386,10 +386,10 @@ export const Chat: React.FC = () => {
                   <Sparkles className="h-8 w-8 text-primary" />
                 </div>
                 <h2 className="text-3xl font-semibold text-foreground">
-                  How can I help you today?
+                  {t('chat.howCanIHelp')}
                 </h2>
                 <p className="text-muted-foreground max-w-md text-base">
-                  Ask me anything about creating your DPR, MSME schemes, or business planning.
+                  {t('chat.askMeAnything')}
                   </p>
                 </div>
               
@@ -476,7 +476,7 @@ export const Chat: React.FC = () => {
                           }
                         }}
                         className="p-1.5 rounded-md hover:bg-muted transition-colors"
-                        title={speakingMessageId === index ? 'Stop speaking' : `Speak in ${voiceLanguage === 'te' ? 'Telugu' : 'English'}`}
+                        title={speakingMessageId === index ? t('chat.stopSpeaking') : (voiceLanguage === 'te' ? t('chat.speakInTelugu') : t('chat.speakInEnglish'))}
                       >
                         {speakingMessageId === index ? (
                           <VolumeX className="h-3.5 w-3.5 text-destructive" />
@@ -488,7 +488,7 @@ export const Chat: React.FC = () => {
                     <button
                       onClick={() => copyToClipboard(message.content, index)}
                       className="p-1.5 rounded-md hover:bg-muted transition-colors"
-                      title="Copy message"
+                      title={t('chat.copyMessage')}
                     >
                       {copiedMessageId === index ? (
                         <Check className="h-3.5 w-3.5 text-success" />
@@ -501,7 +501,7 @@ export const Chat: React.FC = () => {
                           </span>
                     {message.role === 'assistant' && useRAG && selectedVectorStores.length > 0 && message.ragContext === 'RAG used' && (
                       <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-md font-medium">
-                        Enhanced
+                        {t('chat.enhanced')}
                           </span>
                     )}
                   </div>
@@ -513,7 +513,7 @@ export const Chat: React.FC = () => {
                         <div className="bg-primary/5 border border-primary/20 p-3 rounded-lg">
                           <div className="flex items-center gap-2 mb-2">
                             <Sparkles className="h-4 w-4 text-primary" />
-                            <span className="text-xs font-semibold text-foreground">Suggestions</span>
+                            <span className="text-xs font-semibold text-foreground">{t('chat.suggestions')}</span>
                           </div>
                           {message.suggestions.financialSuggestions && (
                             <p className="text-xs text-muted-foreground leading-relaxed">
@@ -528,7 +528,7 @@ export const Chat: React.FC = () => {
                         <div className="bg-success/5 border border-success/20 p-3 rounded-lg">
                           <div className="flex items-center gap-2 mb-2">
                             <Check className="h-4 w-4 text-success" />
-                            <span className="text-xs font-semibold text-foreground">Next Steps</span>
+                            <span className="text-xs font-semibold text-foreground">{t('chat.nextSteps')}</span>
                           </div>
                           <ul className="space-y-1 pl-4">
                             {message.nextSteps.map((step, stepIndex) => (
@@ -561,7 +561,7 @@ export const Chat: React.FC = () => {
                 <div className="bg-muted border border-border rounded-2xl px-4 py-3">
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span className="text-sm text-muted-foreground">AI is thinking...</span>
+                    <span className="text-sm text-muted-foreground">{t('chat.aiIsThinking')}</span>
                   </div>
                 </div>
               </div>
@@ -582,7 +582,7 @@ export const Chat: React.FC = () => {
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder="Message AI Assistant..."
+                placeholder={t('chat.messagePlaceholder')}
                 disabled={isLoading || isRecording}
                 rows={1}
                 className="w-full resize-none rounded-2xl border border-border bg-background px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50 max-h-[200px] overflow-y-auto shadow-sm"
@@ -590,7 +590,7 @@ export const Chat: React.FC = () => {
               {isRecording && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                   <div className="h-2 w-2 bg-destructive rounded-full animate-pulse" />
-                  <span className="text-xs text-destructive font-medium">Recording</span>
+                  <span className="text-xs text-destructive font-medium">{t('chat.recording')}</span>
                 </div>
               )}
             </div>
@@ -615,7 +615,7 @@ export const Chat: React.FC = () => {
                 size="sm"
                 disabled={isLoading}
                 className="h-10 w-10 p-0 rounded-full"
-                title={`Record in ${voiceLanguage === 'te' ? 'Telugu' : 'English'}`}
+                title={voiceLanguage === 'te' ? t('chat.recordInTelugu') : t('chat.recordInEnglish')}
               >
                 {isRecording ? (
                   <MicOff className="h-4 w-4" />
@@ -639,7 +639,7 @@ export const Chat: React.FC = () => {
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2 text-center">
-            Press Enter to send • Shift+Enter for new line
+            {t('chat.pressEnterToSend')}
           </p>
         </div>
       </div>

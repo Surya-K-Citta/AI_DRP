@@ -36,21 +36,21 @@ export const Projects: React.FC = () => {
         setProjects(response.data.projects);
       }
     } catch (error) {
-      toast.error('Failed to load projects');
+      toast.error(t('projects.failedToLoad'));
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+    if (!confirm(t('projects.areYouSureDelete'))) return;
 
     try {
       await api.deleteProject(id);
       deleteProject(id);
       toast.success(t('projects.deleteSuccess'));
     } catch (error) {
-      toast.error('Failed to delete project');
+      toast.error(t('projects.failedToDelete'));
     }
   };
 
@@ -66,12 +66,12 @@ export const Projects: React.FC = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
-              {isAdmin ? 'All Projects' : t('projects.title')}
+              {isAdmin ? t('projects.allProjects') : t('projects.title')}
             </h1>
             <p className="text-muted-foreground text-lg">
               {isAdmin 
-                ? 'View and manage all projects in the system'
-                : 'Manage your project portfolio and create DPRs'
+                ? t('projects.viewManageAll')
+                : t('projects.managePortfolio')
               }
             </p>
           </div>
@@ -82,7 +82,7 @@ export const Projects: React.FC = () => {
               className="border-2"
             >
               <Sparkles className="h-4 w-4 mr-2" />
-              New DPR
+              {t('projects.newDPR')}
             </Button>
             <Button 
               onClick={() => navigate('/projects/create')}
@@ -125,12 +125,12 @@ export const Projects: React.FC = () => {
                 <Building2 className="h-10 w-10 text-primary" />
               </div>
               <h3 className="text-xl font-semibold mb-2">
-                {searchTerm ? 'No projects found' : 'No projects yet'}
+                {searchTerm ? t('projects.noProjectsFound') : t('projects.noProjectsYet')}
               </h3>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                 {searchTerm 
-                  ? 'Try adjusting your search terms' 
-                  : 'Create your first project to get started with DPR generation'}
+                  ? t('projects.tryAdjusting') 
+                  : t('projects.createFirstProject')}
               </p>
               {!searchTerm && (
                 <Button 
@@ -139,7 +139,7 @@ export const Projects: React.FC = () => {
                   className="bg-gradient-to-r from-primary to-primary/90"
                 >
                   <Plus className="h-5 w-5 mr-2" />
-                  Create Your First Project
+                  {t('projects.createYourFirstProject')}
                 </Button>
               )}
             </CardContent>
@@ -178,7 +178,7 @@ export const Projects: React.FC = () => {
                       <span className="text-sm text-muted-foreground">
                         {typeof project.userId === 'object' 
                           ? project.userId.name || project.userId.email
-                          : 'Unknown User'
+                          : t('projects.unknownUser')
                         }
                       </span>
                     </div>
@@ -187,16 +187,16 @@ export const Projects: React.FC = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                      <p className="text-xs text-muted-foreground mb-1">Total Cost</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t('projects.totalCost')}</p>
                       <p className="font-bold text-primary">{formatCurrency(project.totalCost)}</p>
                     </div>
                     <div className="p-3 rounded-lg bg-secondary/5 border border-secondary/10">
-                      <p className="text-xs text-muted-foreground mb-1">Location</p>
+                      <p className="text-xs text-muted-foreground mb-1">{t('projects.location')}</p>
                       <p className="font-semibold text-secondary text-sm">{project.location}</p>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Created {formatDate(project.createdAt)}
+                    {t('projects.created')} {formatDate(project.createdAt)}
                   </p>
                   <div className="flex gap-2 pt-2 border-t">
                     <Button
@@ -206,7 +206,7 @@ export const Projects: React.FC = () => {
                       onClick={() => navigate(`/projects/${project._id}`)}
                     >
                       <Edit className="h-4 w-4 mr-1" />
-                      Edit
+                      {t('common.edit')}
                     </Button>
                     <Button
                       variant="outline"

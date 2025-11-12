@@ -30,12 +30,12 @@ export const Navbar: React.FC = () => {
 
   const navLinks = isAuthenticated ? [
     { path: '/dashboard', label: t('nav.dashboard'), icon: '📊' },
-    { path: '/dprs', label: 'All DPRs', icon: '📄' },
+    { path: '/dprs', label: t('nav.allDPRs'), icon: '📄' },
     { path: '/projects', label: t('nav.projects'), icon: '📁' },
     { path: '/chat', label: t('nav.chat'), icon: '💬' },
     ...(user?.role === 'admin' ? [
       { path: '/admin', label: t('nav.admin'), icon: '⚙️' },
-      { path: '/admin/documents', label: 'Documents', icon: '📄' },
+      { path: '/admin/documents', label: t('nav.documents'), icon: '📄' },
     ] : []),
   ] : [];
 
@@ -48,7 +48,7 @@ export const Navbar: React.FC = () => {
               <Building2 className="h-6 w-6 text-white" />
             </div>
             <span className="text-xl font-semibold text-foreground">
-              MSME DPR Tool
+              {t('nav.appName')}
             </span>
           </Link>
 
