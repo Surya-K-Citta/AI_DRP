@@ -21,6 +21,7 @@ import {
   BarChart3,
   Loader2,
   Sparkles,
+  Award,
 } from 'lucide-react';
 import { downloadBlob } from '@/lib/utils';
 import { FormattedText } from '@/utils/textFormatter';
@@ -307,6 +308,7 @@ export const DPRPreview: React.FC = () => {
     { key: 'marketAnalysis', titleKey: 'dpr.sections.marketAnalysis', icon: BarChart3 },
     { key: 'technicalFeasibility', titleKey: 'dpr.sections.technicalFeasibility', icon: CheckCircle },
     { key: 'financialProjections', titleKey: 'dpr.sections.financialProjections', icon: BarChart3 },
+    { key: 'eligibleSchemes', titleKey: 'dpr.sections.eligibleSchemes', icon: Award },
     { key: 'conclusion', titleKey: 'dpr.sections.conclusion', icon: CheckCircle },
   ];
 

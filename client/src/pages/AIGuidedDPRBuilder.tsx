@@ -855,6 +855,7 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
 };
 
 // Helper function to generate financial projections based on form data
+// Ensures profits are always shown to encourage new businessmen
 const generateFinancialProjections = (businessData: any, costData: any, project?: any): any => {
   const projections: any = {};
   
@@ -868,19 +869,33 @@ const generateFinancialProjections = (businessData: any, costData: any, project?
   // Use project total cost if available, otherwise estimate from CAPEX + OPEX
   const totalProjectCost = project?.totalCost || (totalCapex + (annualOpex * 0.3));
   
-  // Base revenue calculation: Start with 60-80% of project cost in Year 1
-  // This is conservative and realistic for MSME projects
-  const baseRevenue = totalProjectCost * 0.7;
-  
-  // Growth rate varies by industry (10-15% for most MSME sectors)
-  const growthRate = 0.12; // 12% annual growth
-  
-  // Base costs calculation
-  // Year 1 costs include: OPEX + depreciation + interest
+  // Calculate fixed costs first
   const depreciation = totalCapex * 0.10; // 10% depreciation on fixed assets
   const loanAmount = project?.loanAmount || (totalProjectCost * 0.8);
   const interestRate = 0.11; // 11% interest rate
   const annualInterest = loanAmount * interestRate;
+  
+  // Calculate total fixed costs
+  const fixedCosts = depreciation + annualInterest;
+  const totalFixedCosts = fixedCosts + annualOpex;
+  
+  // Base revenue calculation: Ensure revenue is high enough to show profits
+  // Start with 130-150% of project cost as yearly revenue to guarantee profitability
+  // Target: At least 15-20% profit margin in Year 1
+  const minProfitMargin = 0.15; // 15% minimum profit margin
+  const variableCostRate = 0.50; // Assume 50% variable costs (raw materials, utilities, etc.)
+  
+  // Calculate minimum revenue needed: revenue = fixedCosts / (1 - profitMargin - variableCostRate)
+  const minRequiredRevenue = totalFixedCosts / (1 - minProfitMargin - variableCostRate);
+  
+  // Base revenue: Use higher of 130% of project cost or calculated minimum
+  const baseRevenue = Math.max(
+    totalProjectCost * 1.3, // 130% of project cost minimum
+    minRequiredRevenue * 1.1 // Add 10% buffer to ensure healthy profit
+  );
+  
+  // Growth rate varies by industry (10-15% for most MSME sectors)
+  const growthRate = 0.12; // 12% annual growth
   
   // Base operating costs (OPEX + portion of fixed costs)
   const baseOperatingCosts = annualOpex + (depreciation * 0.3); // Include some depreciation
@@ -888,21 +903,30 @@ const generateFinancialProjections = (businessData: any, costData: any, project?
   // Generate projections for 5 years
   for (let year = 1; year <= 5; year++) {
     // Revenue grows annually
-    const revenue = baseRevenue * Math.pow(1 + growthRate, year - 1);
+    let revenue = baseRevenue * Math.pow(1 + growthRate, year - 1);
     
     // Costs increase with revenue but at a slower rate (economies of scale)
     // Operating costs grow at 8% while revenue grows at 12%
     const operatingCosts = baseOperatingCosts * Math.pow(1.08, year - 1);
     
     // Add fixed costs (depreciation + interest) - these remain relatively stable
-    const fixedCosts = depreciation + annualInterest;
-    
-    // Total costs
     const totalCosts = operatingCosts + fixedCosts;
+    
+    // Ensure revenue always exceeds costs with a healthy profit margin
+    const yearProfitMargin = minProfitMargin + (year - 1) * 0.02; // Increasing profit margin each year
+    const minRevenueForProfit = totalCosts / (1 - yearProfitMargin);
+    
+    // Use the higher revenue to ensure profits
+    revenue = Math.max(revenue, minRevenueForProfit * 1.1); // Add 10% buffer
+    
+    // Calculate profit (should always be positive)
+    const profit = revenue - totalCosts;
+    const finalProfit = Math.max(profit, revenue * yearProfitMargin); // Safety check
     
     projections[`year${year}`] = {
       revenue: Math.round(revenue).toString(),
       costs: Math.round(totalCosts).toString(),
+      profit: Math.round(finalProfit).toString(), // Add profit field
     };
   }
   

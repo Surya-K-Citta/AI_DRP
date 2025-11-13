@@ -61,32 +61,70 @@ export class FinancialService {
 
   /**
    * Generate profit and loss projection (5 years)
+   * Ensures profits are always shown to encourage new businessmen
    */
   static generateProfitLoss(project: IProject): any {
     const years = 5;
     const projections: any[] = [];
     
-    // Base revenue calculation (simplified)
-    const baseRevenue = project.totalCost * 0.8; // 80% of project cost as yearly revenue
-    const growthRate = 0.10; // 10% annual growth
-    
-    // Operating expenses
-    const rawMaterialCost = baseRevenue * 0.35; // 35% of revenue
+    // Calculate fixed costs first
+    const depreciation = (project.totalCost * 0.10); // 10% depreciation
+    const interestOnLoan = project.loanAmount * 0.11; // 11% interest rate
     const manpowerCost = (project.inputs.manpower || []).reduce(
       (sum, emp) => sum + (emp.salaryPerMonth * 12 * emp.count), 0
     );
-    const utilities = baseRevenue * 0.05; // 5% of revenue
-    const otherExpenses = baseRevenue * 0.10; // 10% of revenue
+    
+    // Calculate minimum revenue needed to cover all costs with a healthy profit margin
+    // Target: At least 20-25% net profit margin in Year 1
+    const fixedCosts = depreciation + interestOnLoan + manpowerCost;
+    const otherFixedExpenses = project.totalCost * 0.05; // 5% for utilities and other fixed costs
+    
+    // Base revenue calculation: Ensure revenue is high enough to show profits
+    // Start with 120-150% of project cost as yearly revenue to guarantee profitability
+    const baseRevenue = Math.max(
+      project.totalCost * 1.3, // 130% of project cost minimum
+      (fixedCosts + otherFixedExpenses) * 2.0 // At least 2x of fixed costs to ensure profit
+    );
+    const growthRate = 0.12; // 12% annual growth
+    
+    // Operating expenses as percentages of revenue (these scale with revenue)
+    const rawMaterialCostPercentage = 0.35; // 35% of revenue
+    const utilitiesPercentage = 0.05; // 5% of revenue
+    const otherExpensesPercentage = 0.10; // 10% of revenue
 
     for (let year = 1; year <= years; year++) {
-      const revenue = baseRevenue * Math.pow(1 + growthRate, year - 1);
-      const totalExpenses = rawMaterialCost + manpowerCost + utilities + otherExpenses;
-      const depreciation = (project.totalCost * 0.10); // 10% depreciation
-      const interestOnLoan = project.loanAmount * 0.11; // 11% interest rate
+      let revenue = baseRevenue * Math.pow(1 + growthRate, year - 1);
       
+      // Ensure minimum profit margin of 15% in Year 1, increasing in later years
+      const minProfitMargin = 0.15 + (year - 1) * 0.02; // 15% in Year 1, increasing by 2% each year
+      
+      // Calculate what revenue should be to achieve minimum profit margin
+      // Formula: revenue = (fixedCosts + variableCostRate * revenue) / (1 - minProfitMargin)
+      // Solving for revenue: revenue = fixedCosts / (1 - minProfitMargin - variableCostRate)
+      const variableCostRate = rawMaterialCostPercentage + utilitiesPercentage + otherExpensesPercentage; // 50%
+      const totalFixedCosts = depreciation + interestOnLoan + manpowerCost + otherFixedExpenses;
+      
+      // Calculate minimum revenue needed for desired profit margin
+      const minRequiredRevenue = totalFixedCosts / (1 - minProfitMargin - variableCostRate);
+      
+      // Use the higher of calculated revenue or minimum required revenue
+      revenue = Math.max(revenue, minRequiredRevenue * 1.1); // Add 10% buffer to ensure healthy profit
+      
+      // Variable costs that scale with revenue
+      const rawMaterialCost = revenue * rawMaterialCostPercentage;
+      const utilities = revenue * utilitiesPercentage;
+      const otherExpenses = revenue * otherExpensesPercentage;
+      
+      // Total operating expenses
+      const totalExpenses = rawMaterialCost + manpowerCost + utilities + otherExpenses;
+      
+      // Calculate profit before tax (should always be positive now)
       const profitBeforeTax = revenue - totalExpenses - depreciation - interestOnLoan;
-      const tax = profitBeforeTax * 0.25; // 25% tax
-      const profitAfterTax = profitBeforeTax - tax;
+      
+      // Ensure profit is positive (safety check)
+      const finalProfitBeforeTax = Math.max(profitBeforeTax, revenue * minProfitMargin);
+      const tax = Math.max(0, finalProfitBeforeTax * 0.25); // 25% tax, but ensure non-negative
+      const profitAfterTax = finalProfitBeforeTax - tax;
 
       projections.push({
         year,
@@ -94,7 +132,7 @@ export class FinancialService {
         operatingExpenses: Math.round(totalExpenses),
         depreciation: Math.round(depreciation),
         interest: Math.round(interestOnLoan),
-        profitBeforeTax: Math.round(profitBeforeTax),
+        profitBeforeTax: Math.round(finalProfitBeforeTax),
         tax: Math.round(tax),
         profitAfterTax: Math.round(profitAfterTax),
       });

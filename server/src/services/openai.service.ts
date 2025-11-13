@@ -595,13 +595,59 @@ Return only valid JSON without markdown formatting.`;
           - Project cost breakdown
           - Means of finance
           - Revenue assumptions
-          - Profitability expectations
+          - Profitability expectations (IMPORTANT: Always emphasize positive profits and growth potential)
           - Break-even analysis
           - Debt servicing capacity (DSCR)
           - Return on investment
           
+          CRITICAL INSTRUCTIONS:
+          - Always present the financial projections in a positive, encouraging manner
+          - Emphasize profits, growth potential, and positive returns
+          - Highlight the profitability and viability of the project
+          - Focus on success metrics and positive financial indicators
+          - Avoid negative language or highlighting potential losses
+          - Frame the projections to inspire confidence in new businessmen
+          - Show how the project will generate healthy profits from Year 1 onwards
+          
           ${languageInstruction}
           Note: Include tables will be generated separately.
+        `,
+        eligibleSchemes: `
+          Create a comprehensive Eligible Government Schemes section for the DPR:
+          Project: ${projectData.projectName}
+          Sector: ${projectData.industrySector}
+          Project Type: ${projectData.projectType}
+          Total Investment: ₹${projectData.totalCost}
+          Loan Amount: ₹${projectData.loanAmount}
+          Location: ${projectData.location}
+          
+          ${(projectData as any).governmentSchemas ? `
+          IMPORTANT: The following government schemes and financial assistance programs have been identified from the government schemes category documents as relevant to this project:
+          
+          ${(projectData as any).governmentSchemas}
+          
+          Please create a detailed Eligible Schemes section that includes:
+          - List of all applicable government schemes identified
+          - For each scheme, provide:
+            * Scheme name and code (if available)
+            * Brief description
+            * Eligibility criteria specific to this project
+            * Benefits and subsidy details (percentage, maximum amount)
+            * How this project qualifies for the scheme
+            * Application process and required documents
+            * Contact information or portal link (if available)
+          - Prioritize schemes based on relevance and benefits
+          - Explain how multiple schemes can be combined if applicable
+          - Include both central and state government schemes
+          
+          Format: Use clear headings for each scheme, bullet points for key information, and ensure all details are accurate and specific to this project.
+          ` : `
+          Note: No specific government schemes were found in the government schemes category documents for this project. 
+          However, you may mention general schemes like PMEGP, MUDRA, CGTMSE that are commonly applicable to MSME projects.
+          `}
+          
+          ${languageInstruction}
+          Tone: Professional, informative, and encouraging. Make it clear how these schemes will benefit the entrepreneur.
         `,
         conclusion: `
           Write a compelling Conclusion for the DPR:
@@ -614,16 +660,8 @@ Return only valid JSON without markdown formatting.`;
           - Key success factors
           - Expected socio-economic impact
           - Employment generation potential
-          - Alignment with government schemes
+          - Brief reference to eligible government schemes (detailed information is in the Eligible Schemes section)
           - Recommendation for approval
-          
-          ${(projectData as any).governmentSchemas ? `
-          IMPORTANT: The following government schemes and financial assistance programs have been identified from the knowledge base as relevant to this project:
-          
-          ${(projectData as any).governmentSchemas}
-          
-          Please incorporate these government schemes into the conclusion section, explaining how the project aligns with these schemes and how the entrepreneur can benefit from them. Be specific about eligibility, benefits, and application process where available.
-          ` : ''}
           
           ${languageInstruction}
           Tone: Confident, professional, and persuasive for bank approval.
@@ -666,23 +704,72 @@ Return only valid JSON without markdown formatting.`;
 
   /**
    * Search for related government schemas from AI knowledge base
+   * Specifically searches documents with category "government-schemes" or templateType "scheme"
    */
   static async searchGovernmentSchemas(
     projectData: IProject,
     vectorStoreIds?: string[]
   ): Promise<string> {
     try {
-      console.log('🔍 Searching for related government schemas from AI knowledge base...');
+      console.log('🔍 Searching for related government schemes from government schemes category documents...');
       
-      // Get vector store IDs - use provided ones or default to main vector store
-      let activeVectorStores: string[] = [];
-      if (vectorStoreIds && vectorStoreIds.length > 0) {
-        activeVectorStores = vectorStoreIds.filter(id => id && id.trim() !== '');
-      } else {
-        const mainVectorStoreId = process.env.MAIN_VECTOR_STORE_ID || '';
-        if (mainVectorStoreId && mainVectorStoreId.trim() !== '') {
-          activeVectorStores = [mainVectorStoreId];
+      // First, find all documents with category "government-schemes" or templateType "scheme"
+      const { Document } = await import('../models/Document.model');
+      
+      const governmentSchemeDocuments = await Document.find({
+        status: 'ready',
+        $or: [
+          { 'metadata.category': 'government-schemes' },
+          { 'metadata.templateType': 'scheme' }
+        ],
+        vectorStoreId: { $exists: true, $ne: null, $ne: '' }
+      }).select('vectorStoreId originalName metadata').lean();
+
+      if (!governmentSchemeDocuments || governmentSchemeDocuments.length === 0) {
+        console.log('⚠️  No government schemes category documents found in database');
+        // Fallback to provided vector stores or main vector store
+        let activeVectorStores: string[] = [];
+        if (vectorStoreIds && vectorStoreIds.length > 0) {
+          activeVectorStores = vectorStoreIds.filter(id => id && id.trim() !== '');
+        } else {
+          const mainVectorStoreId = process.env.MAIN_VECTOR_STORE_ID || '';
+          if (mainVectorStoreId && mainVectorStoreId.trim() !== '') {
+            activeVectorStores = [mainVectorStoreId];
+          }
         }
+
+        if (activeVectorStores.length === 0) {
+          console.log('⚠️  No vector stores available for government schema search');
+          return '';
+        }
+      } else {
+        console.log(`📚 Found ${governmentSchemeDocuments.length} government schemes category document(s)`);
+      }
+
+      // Get unique vector store IDs from government schemes documents
+      const schemeVectorStoreIds = new Set<string>();
+      governmentSchemeDocuments.forEach((doc: any) => {
+        if (doc.vectorStoreId && doc.vectorStoreId.trim() !== '') {
+          schemeVectorStoreIds.add(doc.vectorStoreId);
+        }
+      });
+
+      // Use scheme-specific vector stores if available, otherwise fallback to provided/main vector stores
+      let activeVectorStores: string[] = [];
+      if (schemeVectorStoreIds.size > 0) {
+        activeVectorStores = Array.from(schemeVectorStoreIds);
+        console.log(`🎯 Using ${activeVectorStores.length} government schemes vector store(s) for search`);
+      } else {
+        // Fallback to provided vector stores or main vector store
+        if (vectorStoreIds && vectorStoreIds.length > 0) {
+          activeVectorStores = vectorStoreIds.filter(id => id && id.trim() !== '');
+        } else {
+          const mainVectorStoreId = process.env.MAIN_VECTOR_STORE_ID || '';
+          if (mainVectorStoreId && mainVectorStoreId.trim() !== '') {
+            activeVectorStores = [mainVectorStoreId];
+          }
+        }
+        console.log(`⚠️  No scheme-specific vector stores found, using fallback vector stores`);
       }
 
       if (activeVectorStores.length === 0) {
@@ -693,13 +780,14 @@ Return only valid JSON without markdown formatting.`;
       // Build search query based on project details
       const searchQuery = `Government schemes, subsidies, and financial assistance programs for ${projectData.industrySector} sector MSME projects in ${projectData.location}. 
       Project cost: ₹${projectData.totalCost}, Loan amount: ₹${projectData.loanAmount}. 
-      Find relevant central government schemes, state government schemes, subsidies, credit guarantee schemes, and financial assistance programs applicable to this project.`;
+      Find relevant central government schemes, state government schemes, subsidies, credit guarantee schemes, and financial assistance programs applicable to this project.
+      Include scheme name, eligibility criteria, benefits, subsidy percentage, maximum amount, application process, and required documents.`;
 
-      // Search the knowledge base
+      // Search the knowledge base using government schemes documents
       const schemaResults = await this.searchDocumentsWithRAG(
         searchQuery,
         activeVectorStores,
-        5 // Get top 5 relevant results
+        10 // Get top 10 relevant results to find more schemes
       );
 
       if (!schemaResults || schemaResults.length === 0) {
@@ -717,15 +805,15 @@ Return only valid JSON without markdown formatting.`;
         // Extract key information from the result
         if (content.trim()) {
           schemaInfo += `${index + 1}. ${source}\n`;
-          // Limit content length to avoid token overflow
-          const truncatedContent = content.length > 500 
-            ? content.substring(0, 500) + '...' 
+          // Increase content length limit to get more scheme details
+          const truncatedContent = content.length > 1000 
+            ? content.substring(0, 1000) + '...' 
             : content;
           schemaInfo += `${truncatedContent}\n\n`;
         }
       });
 
-      console.log(`✅ Found ${schemaResults.length} relevant government schema(s) from knowledge base`);
+      console.log(`✅ Found ${schemaResults.length} relevant government scheme(s) from government schemes category documents`);
       return schemaInfo;
     } catch (error) {
       console.error('Error searching for government schemas:', error);
@@ -749,6 +837,7 @@ Return only valid JSON without markdown formatting.`;
       'marketAnalysis',
       'technicalFeasibility',
       'financialProjections',
+      'eligibleSchemes',
       'conclusion',
     ];
 
