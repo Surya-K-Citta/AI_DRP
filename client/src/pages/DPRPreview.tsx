@@ -595,9 +595,11 @@ export const DPRPreview: React.FC = () => {
           {sections.map((section) => {
             const content = dpr.content[viewLanguage]?.[section.key] || '';
             const isEditing = editingSection === section.key;
-            const isWeak = qualityFeedback?.weakSections?.some((s: string) => 
-              s.toLowerCase().includes(section.title.toLowerCase())
-            );
+            const sectionTitle = section.title || t(section.titleKey || '');
+            const isWeak = qualityFeedback?.weakSections?.some((s: string) => {
+              if (!s || typeof s !== 'string' || !sectionTitle) return false;
+              return s.toLowerCase().includes(sectionTitle.toLowerCase());
+            }) || false;
             const SectionIcon = section.icon;
 
             return (
