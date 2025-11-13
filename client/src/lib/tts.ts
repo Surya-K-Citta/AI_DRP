@@ -16,7 +16,6 @@ interface TTSOptions {
 
 class TTSService {
   private synth: SpeechSynthesis | null = null;
-  private currentUtterance: SpeechSynthesisUtterance | null = null;
   private isSupported: boolean = false;
 
   constructor() {
@@ -63,7 +62,6 @@ class TTSService {
     const cleanText = this.cleanTextForSpeech(text);
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    this.currentUtterance = utterance;
 
     // Set language
     const langCode = options.language === 'te' ? 'te-IN' : 'en-US';
@@ -88,12 +86,10 @@ class TTSService {
 
     // Event handlers
     utterance.onend = () => {
-      this.currentUtterance = null;
       options.onEnd?.();
     };
 
     utterance.onerror = (event) => {
-      this.currentUtterance = null;
       options.onError?.(new Error(`TTS Error: ${event.error}`));
     };
 
@@ -107,7 +103,6 @@ class TTSService {
   stop(): void {
     if (this.synth) {
       this.synth.cancel();
-      this.currentUtterance = null;
     }
   }
 
