@@ -55,12 +55,31 @@ export const Dashboard: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [dprsResponse] = await Promise.all([
+      const [dprsResponse, projectsResponse] = await Promise.all([
         api.getUserDPRs(),
         api.getProjects({ limit: 100 }),
       ]);
 
-      const dprsData = dprsResponse.data || [];
+      // Handle different response structures (API vs mock data)
+      let dprsData: DPR[] = [];
+      if (Array.isArray(dprsResponse)) {
+        dprsData = dprsResponse;
+      } else if (dprsResponse.data) {
+        if (Array.isArray(dprsResponse.data)) {
+          dprsData = dprsResponse.data;
+        } else if (dprsResponse.data.dprs && Array.isArray(dprsResponse.data.dprs)) {
+          dprsData = dprsResponse.data.dprs;
+        }
+      } else if (dprsResponse.dprs && Array.isArray(dprsResponse.dprs)) {
+        dprsData = dprsResponse.dprs;
+      }
+      
+      // Ensure dprsData is always an array
+      if (!Array.isArray(dprsData)) {
+        console.warn('DPRs data is not an array, using empty array:', dprsData);
+        dprsData = [];
+      }
+      
       setDprs(dprsData);
 
       // Calculate stats
@@ -86,9 +105,76 @@ export const Dashboard: React.FC = () => {
       if (dprsData.length > 0) {
         generateInsights(dprsData);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load data:', error);
-      toast.error('Failed to load dashboard data');
+      
+      // Check if it's a network error - if so, try to use mock data directly
+      const isNetworkError = !error.response && (
+        error.code === 'ERR_NETWORK' ||
+        error.message?.includes('Network Error') ||
+        error.message?.includes('ERR_CONNECTION_REFUSED') ||
+        error.message?.includes('Failed to fetch')
+      );
+      
+      if (isNetworkError) {
+        console.log('🌐 Network error detected, trying to load mock data...');
+        try {
+          // Import and use mock data directly
+          const { MockDataService } = await import('@/lib/mockData');
+          const [mockDprsResponse] = await Promise.all([
+            MockDataService.getUserDPRs(),
+          ]);
+          
+          // Extract DPRs from mock response
+          let mockDprsData: DPR[] = [];
+          if (Array.isArray(mockDprsResponse)) {
+            mockDprsData = mockDprsResponse;
+          } else if (mockDprsResponse.dprs && Array.isArray(mockDprsResponse.dprs)) {
+            mockDprsData = mockDprsResponse.dprs;
+          } else if (mockDprsResponse.data) {
+            if (Array.isArray(mockDprsResponse.data)) {
+              mockDprsData = mockDprsResponse.data;
+            } else if (mockDprsResponse.data.dprs && Array.isArray(mockDprsResponse.data.dprs)) {
+              mockDprsData = mockDprsResponse.data.dprs;
+            }
+          }
+          
+          if (Array.isArray(mockDprsData) && mockDprsData.length > 0) {
+            setDprs(mockDprsData);
+            
+            // Calculate stats from mock data
+            const draft = mockDprsData.filter((d: DPR) => d.status === 'draft').length;
+            const submitted = mockDprsData.filter((d: DPR) => d.status === 'submitted').length;
+            const approved = mockDprsData.filter((d: DPR) => d.status === 'approved').length;
+            const qualityScores = mockDprsData
+              .filter((d: DPR) => d.qualityScore !== undefined)
+              .map((d: DPR) => d.qualityScore || 0);
+            const avgQualityScore = qualityScores.length > 0
+              ? Math.round(qualityScores.reduce((a: number, b: number) => a + b, 0) / qualityScores.length)
+              : 0;
+            
+            setStats({
+              total: mockDprsData.length,
+              draft,
+              submitted,
+              approved,
+              avgQualityScore,
+            });
+            
+            if (mockDprsData.length > 0) {
+              generateInsights(mockDprsData);
+            }
+            
+            toast.success('Using offline mode - Mock data loaded', { duration: 2000 });
+            return; // Successfully loaded mock data, exit early
+          }
+        } catch (mockError) {
+          console.error('Failed to load mock data:', mockError);
+        }
+      }
+      
+      // If we reach here, show error but don't prevent UI from rendering
+      toast.error('Failed to load dashboard data. Showing empty state.');
     } finally {
       setLoading(false);
     }

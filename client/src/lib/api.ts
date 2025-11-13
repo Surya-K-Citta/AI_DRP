@@ -1,11 +1,15 @@
 // @ts-nocheck
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
+import { MockDataService } from './mockData';
+import { OfflineDetector } from './offlineDetector';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true' || false;
 
 class APIClient {
   private client: AxiosInstance;
+  private useMockData: boolean = USE_MOCK_DATA;
 
   constructor() {
     this.client = axios.create({
@@ -36,7 +40,16 @@ class APIClient {
     // Response interceptor
     this.client.interceptors.response.use(
       (response) => response,
-      (error: AxiosError) => {
+      async (error: AxiosError) => {
+        // Check if it's a network error and we should use mock data
+        const isNetworkError = OfflineDetector.isNetworkError(error) || !OfflineDetector.getStatus();
+        
+        if (isNetworkError && this.useMockData) {
+          console.log('🌐 Network error detected, using mock data');
+          // Don't reject, let the method handle mock data
+          return Promise.reject({ ...error, useMockData: true });
+        }
+
         // Don't show toast for connection errors here - let the calling code handle it
         // This prevents duplicate error messages
         if (error.response?.status === 401) {
@@ -56,20 +69,107 @@ class APIClient {
     );
   }
 
+  private async handleRequest<T>(
+    request: () => Promise<T>,
+    mockRequest: () => Promise<T>
+  ): Promise<T> {
+    // CRITICAL: Check offline status FIRST using synchronous navigator check
+    // This ensures we don't even attempt API calls when offline
+    const navigatorOffline = !navigator.onLine;
+    const detectorOffline = !OfflineDetector.getStatus();
+    const isOffline = navigatorOffline || detectorOffline;
+    const shouldUseMock = this.useMockData || isOffline;
+    
+    if (shouldUseMock) {
+      console.log(`📦 Using mock data immediately (navigator.offline: ${navigatorOffline}, detector.offline: ${detectorOffline}, forced: ${this.useMockData})`);
+      try {
+        const result = await mockRequest();
+        console.log('✅ Mock data returned successfully');
+        return result;
+      } catch (mockError) {
+        console.error('❌ Mock data request failed:', mockError);
+        throw mockError;
+      }
+    }
+    
+    // Only attempt real API request if we're confident we're online
+    console.log('🌐 Attempting real API request (online status confirmed)...');
+    try {
+      const result = await request();
+      console.log('✅ Real API request successful');
+      return result;
+    } catch (error: any) {
+      console.log('❌ API request failed, checking if network error...', {
+        code: error.code,
+        message: error.message,
+        hasResponse: !!error.response,
+      });
+      
+      // Check if it's a network error - be very aggressive here
+      const isNetworkError = 
+        !navigator.onLine || // Navigator says offline
+        OfflineDetector.isNetworkError(error) || 
+        !error.response || 
+        error.code === 'ERR_NETWORK' ||
+        error.code === 'ERR_INTERNET_DISCONNECTED' ||
+        error.code === 'ERR_CONNECTION_REFUSED' ||
+        error.message?.includes('Network Error') ||
+        error.message?.includes('ERR_NETWORK') ||
+        error.message?.includes('ERR_CONNECTION_REFUSED') ||
+        error.message?.includes('Failed to fetch') ||
+        error.message?.includes('fetch failed') ||
+        error.message?.includes('timeout') ||
+        error.message?.includes('Network request failed');
+      
+      if (isNetworkError) {
+        console.log('📦 Network error confirmed, falling back to mock data');
+        // Update offline detector
+        if (!navigator.onLine) {
+          OfflineDetector.getStatus(); // This will update the internal state
+        }
+        try {
+          const mockResult = await mockRequest();
+          console.log('✅ Mock data fallback successful');
+          return mockResult;
+        } catch (mockError) {
+          console.error('❌ Mock data fallback also failed:', mockError);
+          throw error; // Throw original error if mock also fails
+        }
+      }
+      console.log('❌ Not a network error, throwing original error');
+      throw error;
+    }
+  }
+
   // Auth endpoints
   async register(data: any) {
-    const response = await this.client.post('/auth/register', data);
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/auth/register', data);
+        return response.data;
+      },
+      () => MockDataService.register(data)
+    );
   }
 
   async login(email: string, password: string) {
-    const response = await this.client.post('/auth/login', { email, password });
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/auth/login', { email, password });
+        return response.data;
+      },
+      () => MockDataService.login(email, password)
+    );
   }
 
   async getProfile() {
-    const response = await this.client.get('/auth/profile');
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get('/auth/profile');
+        return response.data;
+      },
+      () => MockDataService.getProfile()
+    );
   }
 
   async updateProfile(data: any) {
@@ -79,23 +179,43 @@ class APIClient {
 
   // Project endpoints
   async createProject(data: any) {
-    const response = await this.client.post('/projects', data);
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/projects', data);
+        return response.data;
+      },
+      () => MockDataService.createProject(data)
+    );
   }
 
   async getProjects(params?: any) {
-    const response = await this.client.get('/projects', { params });
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get('/projects', { params });
+        return response.data;
+      },
+      () => MockDataService.getProjects(params)
+    );
   }
 
   async getProject(id: string) {
-    const response = await this.client.get(`/projects/${id}`);
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get(`/projects/${id}`);
+        return response.data;
+      },
+      () => MockDataService.getProject(id)
+    );
   }
 
   async updateProject(id: string, data: any) {
-    const response = await this.client.put(`/projects/${id}`, data);
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.put(`/projects/${id}`, data);
+        return response.data;
+      },
+      () => MockDataService.updateProject(id, data)
+    );
   }
 
   async deleteProject(id: string) {
@@ -110,13 +230,23 @@ class APIClient {
   }
 
   async getDPR(dprId: string) {
-    const response = await this.client.get(`/dpr/${dprId}`);
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get(`/dpr/${dprId}`);
+        return response.data;
+      },
+      () => MockDataService.getDPR(dprId)
+    );
   }
 
   async getProjectDPRs(projectId: string) {
-    const response = await this.client.get(`/dpr/project/${projectId}`);
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get(`/dpr/project/${projectId}`);
+        return response.data;
+      },
+      () => MockDataService.getProjectDPRs(projectId)
+    );
   }
 
   // Chat-based DPR generation
@@ -150,8 +280,13 @@ class APIClient {
   }
 
   async analyzeDPRQuality(dprId: string) {
-    const response = await this.client.get(`/dpr/${dprId}/quality`);
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get(`/dpr/${dprId}/quality`);
+        return response.data;
+      },
+      () => MockDataService.analyzeDPRQuality(dprId)
+    );
   }
 
   async updateDPRContent(dprId: string, content: any, language: string) {
@@ -170,8 +305,13 @@ class APIClient {
   }
 
   async getUserDPRs() {
-    const response = await this.client.get('/dpr/user/list');
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get('/dpr/user/list');
+        return response.data;
+      },
+      () => MockDataService.getUserDPRs()
+    );
   }
 
   async uploadDPR(file: File) {
@@ -190,18 +330,36 @@ class APIClient {
 
   // Scheme endpoints
   async getSchemes() {
-    const response = await this.client.get('/schemes');
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get('/schemes');
+        return response.data;
+      },
+      () => MockDataService.getSchemes()
+    );
   }
 
   async getScheme(schemeCode: string) {
-    const response = await this.client.get(`/schemes/${schemeCode}`);
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get(`/schemes/${schemeCode}`);
+        return response.data;
+      },
+      async () => {
+        const schemes = await MockDataService.getSchemes();
+        return schemes.data.schemes.find((s: any) => s.schemeCode === schemeCode) || schemes.data.schemes[0];
+      }
+    );
   }
 
   async recommendSchemes(projectId: string) {
-    const response = await this.client.post(`/schemes/recommend/${projectId}`);
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post(`/schemes/recommend/${projectId}`);
+        return response.data;
+      },
+      () => MockDataService.recommendSchemes(projectId)
+    );
   }
 
   async selectScheme(projectId: string, schemeCode: string) {
@@ -216,8 +374,13 @@ class APIClient {
   }
 
   async getProjectFeedback(projectId: string) {
-    const response = await this.client.get(`/feedback/${projectId}`);
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get(`/feedback/${projectId}`);
+        return response.data;
+      },
+      () => MockDataService.getProjectFeedback(projectId)
+    );
   }
 
   // AI endpoints
@@ -228,14 +391,24 @@ class APIClient {
     useRAG: boolean = false,
     vectorStoreIds?: string[]
   ) {
-    const response = await this.client.post('/ai/chat', {
-      message,
-      conversationHistory,
-      userContext,
-      useRAG,
-      vectorStoreIds
-    });
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/ai/chat', {
+          message,
+          conversationHistory,
+          userContext,
+          useRAG,
+          vectorStoreIds
+        });
+        return response.data;
+      },
+      async () => {
+        // Mock data service returns the data structure directly
+        const mockResponse = await MockDataService.chat(message, conversationHistory);
+        // Ensure it matches the API response format: { data: { response: ..., suggestions: ... } }
+        return mockResponse;
+      }
+    );
   }
 
   async transcribeAudio(audioFile: File, language?: 'en' | 'te') {
@@ -266,18 +439,33 @@ class APIClient {
 
   // Admin endpoints
   async getAnalytics() {
-    const response = await this.client.get('/admin/analytics');
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get('/admin/analytics');
+        return response.data;
+      },
+      () => MockDataService.getAnalytics()
+    );
   }
 
   async getAllUsers(params?: any) {
-    const response = await this.client.get('/admin/users', { params });
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get('/admin/users', { params });
+        return response.data;
+      },
+      () => MockDataService.getAllUsers(params)
+    );
   }
 
   async getAllProjects(params?: any) {
-    const response = await this.client.get('/admin/projects', { params });
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get('/admin/projects', { params });
+        return response.data;
+      },
+      () => MockDataService.getAllProjects(params)
+    );
   }
 
   async getAllFeedback(params?: any) {
@@ -287,8 +475,13 @@ class APIClient {
 
   // DPR Analytics endpoints
   async getDPRAnalytics(projectId: string) {
-    const response = await this.client.get(`/dpr/analytics/${projectId}`);
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get(`/dpr/analytics/${projectId}`);
+        return response.data;
+      },
+      () => MockDataService.getDPRAnalytics(projectId)
+    );
   }
 
   async downloadDPRAnalyticsReport(projectId: string) {
@@ -341,8 +534,13 @@ class APIClient {
   }
 
   async getDocuments(params?: any) {
-    const response = await this.client.get('/documents', { params });
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get('/documents', { params });
+        return response.data;
+      },
+      () => MockDataService.getDocuments(params)
+    );
   }
 
   async getDocument(documentId: string) {
@@ -390,8 +588,13 @@ class APIClient {
 
   // Admin DPR management endpoints
   async getAllDPRsAdmin(params?: any) {
-    const response = await this.client.get('/admin/dprs', { params });
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get('/admin/dprs', { params });
+        return response.data;
+      },
+      () => MockDataService.getAllDPRsAdmin(params)
+    );
   }
 
   async approveDPR(dprId: string, comments?: string) {

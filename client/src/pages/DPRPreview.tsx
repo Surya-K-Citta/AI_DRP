@@ -65,22 +65,47 @@ export const DPRPreview: React.FC = () => {
         api.analyzeDPRQuality(dprId!).catch(() => null),
       ]);
 
-      const dprData = dprResponse.data || dprResponse;
+      // Handle different response structures (API vs mock data)
+      let dprData = dprResponse;
+      if (dprResponse.data && typeof dprResponse.data === 'object') {
+        dprData = dprResponse.data;
+      } else if (dprResponse.data && Array.isArray(dprResponse.data)) {
+        // If it's an array, take the first one (shouldn't happen for getDPR, but handle it)
+        dprData = dprResponse.data[0] || dprResponse;
+      }
+      
       setDpr(dprData);
       
+      // Load project data
       if (dprData.projectId) {
         if (typeof dprData.projectId === 'string') {
-          const projectResponse = await api.getProject(dprData.projectId);
-          setProject(projectResponse.data || projectResponse);
+          try {
+            const projectResponse = await api.getProject(dprData.projectId);
+            const projectData = projectResponse.data || projectResponse;
+            setProject(projectData);
+          } catch (projectError) {
+            console.warn('Failed to load project, using projectId from DPR:', projectError);
+            // Use the projectId object if available in dprData
+            if (dprData.projectId && typeof dprData.projectId === 'object') {
+              setProject(dprData.projectId);
+            }
+          }
         } else {
           setProject(dprData.projectId);
         }
       }
 
-      if (qualityResponse?.data) {
-        setQualityScore(qualityResponse.data.score);
-        setQualityFeedback(qualityResponse.data);
-      } else if (dprData.qualityScore) {
+      // Handle quality feedback
+      if (qualityResponse) {
+        if (qualityResponse.data) {
+          setQualityScore(qualityResponse.data.score);
+          setQualityFeedback(qualityResponse.data);
+        } else if (qualityResponse.score) {
+          // Direct quality response structure
+          setQualityScore(qualityResponse.score);
+          setQualityFeedback(qualityResponse);
+        }
+      } else if (dprData.qualityScore !== undefined && dprData.qualityScore !== null) {
         setQualityScore(dprData.qualityScore);
         setQualityFeedback(dprData.qualityFeedback);
       }
@@ -88,8 +113,53 @@ export const DPRPreview: React.FC = () => {
       // Check if Telugu content exists
       const teluguContent = dprData.content?.telugu;
       setHasTelugu(teluguContent && Object.keys(teluguContent).length > 0);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load DPR:', error);
+      
+      // Check if it's a network error and try mock data fallback
+      const isNetworkError = !error.response && (
+        error.code === 'ERR_NETWORK' ||
+        error.message?.includes('Network Error') ||
+        error.message?.includes('ERR_CONNECTION_REFUSED') ||
+        error.message?.includes('Failed to fetch')
+      );
+      
+      if (isNetworkError) {
+        console.log('🌐 Network error detected, trying to load mock DPR data...');
+        try {
+          const { MockDataService } = await import('@/lib/mockData');
+          const mockDpr = await MockDataService.getDPR(dprId!);
+          const mockQuality = await MockDataService.analyzeDPRQuality(dprId!);
+          
+          setDpr(mockDpr);
+          
+          // Load project from mock DPR
+          if (mockDpr.projectId) {
+            if (typeof mockDpr.projectId === 'string') {
+              const mockProject = await MockDataService.getProject(mockDpr.projectId);
+              setProject(mockProject);
+            } else {
+              setProject(mockDpr.projectId);
+            }
+          }
+          
+          // Set quality feedback
+          if (mockQuality.data) {
+            setQualityScore(mockQuality.data.score);
+            setQualityFeedback(mockQuality.data);
+          }
+          
+          // Check Telugu content
+          const teluguContent = mockDpr.content?.telugu;
+          setHasTelugu(teluguContent && Object.keys(teluguContent).length > 0);
+          
+          toast.success('Using offline mode - Mock data loaded', { duration: 2000 });
+          return; // Successfully loaded mock data
+        } catch (mockError) {
+          console.error('Failed to load mock DPR data:', mockError);
+        }
+      }
+      
       toast.error('Failed to load DPR');
     } finally {
       setLoading(false);

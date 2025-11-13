@@ -160,6 +160,45 @@ export const Chat: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Chat error:', error);
+      
+      // Check if it's a network error and try mock data fallback
+      const isNetworkError = !error.response && (error.code === 'ERR_NETWORK' || 
+                          error.message?.includes('Network Error') ||
+                          error.message?.includes('ERR_CONNECTION_REFUSED') ||
+                          error.message?.includes('Failed to fetch'));
+      
+      if (isNetworkError) {
+        console.log('🌐 Network error detected, trying mock data fallback...');
+        try {
+          // Import and use mock data directly
+          const { MockDataService } = await import('@/lib/mockData');
+          const conversationHistory = messages.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          }));
+          
+          const mockResponse = await MockDataService.chat(message, conversationHistory);
+          
+          if (mockResponse.data && mockResponse.data.response) {
+            addMessage({
+              role: 'assistant',
+              content: mockResponse.data.response,
+              timestamp: new Date(),
+              suggestions: mockResponse.data.suggestions,
+              nextSteps: mockResponse.data.nextSteps,
+              ragContext: mockResponse.data.ragContext,
+              dprAction: mockResponse.data.dprAction,
+              dprQuestions: mockResponse.data.dprQuestions,
+            });
+            toast.success('Using offline mode - Mock data', { duration: 2000 });
+            return; // Successfully used mock data, exit early
+          }
+        } catch (mockError) {
+          console.error('Mock data fallback also failed:', mockError);
+        }
+      }
+      
+      // If we reach here, either it's not a network error or mock data failed
       const errorMessage = error.response?.data?.message || 
                           error.message || 
                           t('chat.failedToGetResponse');

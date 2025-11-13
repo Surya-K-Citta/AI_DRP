@@ -71,7 +71,37 @@ export const AllDPRs: React.FC = () => {
       const response = isAdmin 
         ? await api.getAllDPRsAdmin({ limit: 100 })
         : await api.getUserDPRs();
-      const dprsData = isAdmin ? (response.data?.dprs || []) : (response.data || []);
+      
+      // Handle different response structures (API vs mock data)
+      let dprsData: DPR[] = [];
+      if (isAdmin) {
+        // Admin response: { data: { dprs: [...], total: ... } } or { dprs: [...], total: ... }
+        if (response.data?.dprs) {
+          dprsData = Array.isArray(response.data.dprs) ? response.data.dprs : [];
+        } else if (Array.isArray(response.data)) {
+          dprsData = response.data;
+        } else if (Array.isArray(response.dprs)) {
+          dprsData = response.dprs;
+        }
+      } else {
+        // User response: { data: { dprs: [...], total: ... } } or { dprs: [...], total: ... } or [...]
+        if (response.data?.dprs) {
+          dprsData = Array.isArray(response.data.dprs) ? response.data.dprs : [];
+        } else if (Array.isArray(response.data)) {
+          dprsData = response.data;
+        } else if (Array.isArray(response.dprs)) {
+          dprsData = response.dprs;
+        } else if (Array.isArray(response)) {
+          dprsData = response;
+        }
+      }
+      
+      // Ensure dprsData is always an array
+      if (!Array.isArray(dprsData)) {
+        console.warn('DPRs data is not an array:', dprsData);
+        dprsData = [];
+      }
+      
       setDprs(dprsData);
     } catch (error: any) {
       console.error('Failed to load DPRs:', error);
@@ -84,6 +114,8 @@ export const AllDPRs: React.FC = () => {
       } else {
         toast.error(error.response?.data?.message || 'Failed to load DPRs');
       }
+      // Set empty array on error to prevent iteration errors
+      setDprs([]);
     } finally {
       setLoading(false);
     }
@@ -112,6 +144,12 @@ export const AllDPRs: React.FC = () => {
   };
 
   const filterAndSortDPRs = () => {
+    // Ensure dprs is always an array
+    if (!Array.isArray(dprs)) {
+      setFilteredDprs([]);
+      return;
+    }
+    
     let filtered = [...dprs];
 
     // Apply search filter
