@@ -399,7 +399,8 @@ class APIClient {
     conversationHistory: any[] = [],
     userContext?: any,
     useRAG: boolean = false,
-    vectorStoreIds?: string[]
+    vectorStoreIds?: string[],
+    language?: 'en' | 'te'
   ) {
     return this.handleRequest(
       async () => {
@@ -408,7 +409,8 @@ class APIClient {
           conversationHistory,
           userContext,
           useRAG,
-          vectorStoreIds
+          vectorStoreIds,
+          language
         });
         return response.data;
       },

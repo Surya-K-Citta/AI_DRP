@@ -18,7 +18,8 @@ export class AIController {
         conversationHistory = [],
         userContext,
         useRAG = false,
-        vectorStoreIds
+        vectorStoreIds,
+        language
       } = req.body;
 
       if (!message) {
@@ -40,7 +41,8 @@ export class AIController {
           userContext,
           useRAG,
           vectorStoreIds,
-          userId
+          userId,
+          language as 'en' | 'te' | undefined
         );
       } catch (error: any) {
         console.error('❌ Error getting AI response:', error);

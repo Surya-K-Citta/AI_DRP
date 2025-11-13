@@ -130,7 +130,8 @@ export const Chat: React.FC = () => {
         conversationHistory,
         undefined,
         useRAG,
-        selectedVectorStores
+        selectedVectorStores,
+        voiceLanguage
       );
 
       if (response.data && response.data.response) {

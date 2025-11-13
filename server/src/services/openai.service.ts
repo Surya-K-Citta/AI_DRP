@@ -1147,7 +1147,8 @@ Return only valid JSON without markdown formatting.`;
     userContext?: any,
     useRAG: boolean = false,
     vectorStoreIds?: string[],
-    userId?: string
+    userId?: string,
+    language?: 'en' | 'te'
   ): Promise<{ response: string; suggestions?: any; nextSteps?: string[]; dprAction?: string; dprQuestions?: any }> {
     try {
       // Get available DPR templates
@@ -1201,8 +1202,12 @@ Return only valid JSON without markdown formatting.`;
 
       // Use RAG if enabled and vector stores are available
       if (useRAG && vectorStoreIds && vectorStoreIds.length > 0) {
-        return this.chatResponseWithRAG(userMessage, conversationHistory, userContext, vectorStoreIds, dprQuestions, userId);
+        return this.chatResponseWithRAG(userMessage, conversationHistory, userContext, vectorStoreIds, dprQuestions, userId, language);
       }
+
+      // Detect if user message is in Telugu (contains Telugu script characters)
+      const containsTeluguScript = /[\u0C00-\u0C7F]/.test(userMessage);
+      const shouldRespondInTelugu = language === 'te' || containsTeluguScript;
 
       // Standard chat response
       const systemPrompt = `You are a friendly and helpful AI Assistant specializing in helping Indian MSME entrepreneurs create Detailed Project Reports (DPR).
@@ -1233,6 +1238,17 @@ Guidance Framework:
 - NEVER say "This information is not available in uploaded documents" when helping with DPR creation
 - Break down complex concepts into simple, digestible parts
 - Use examples and analogies to make things clearer
+
+${shouldRespondInTelugu ? `
+CRITICAL LANGUAGE REQUIREMENT:
+- The user is communicating in Telugu (తెలుగు) or has selected Telugu as their preferred language
+- You MUST respond ENTIRELY in Telugu language using Telugu script
+- Use natural, fluent Telugu that sounds native and professional
+- For business/financial terms, use commonly accepted Telugu translations
+- Preserve all numbers, dates, percentages, and currency symbols exactly as they are
+- Respond in a conversational, friendly manner in Telugu
+- Do NOT mix English and Telugu - respond completely in Telugu
+` : ''}
 
 ${wantsToCreateDPR ? `
 IMPORTANT: The user wants to create a DPR. You should:
@@ -1283,7 +1299,19 @@ Be professional, supportive, and focus on creating high-quality, bankable DPRs.`
         max_tokens: 1000, // Increased for clearer, more detailed responses
       });
 
-      const responseText = response.choices[0].message.content || '';
+      let responseText = response.choices[0].message.content || '';
+
+      // If user requested Telugu but response is in English, translate it
+      if (shouldRespondInTelugu && !/[\u0C00-\u0C7F]/.test(responseText)) {
+        console.log('🔄 Translating response to Telugu...');
+        try {
+          const { TranslationService } = await import('./translation.service');
+          responseText = await TranslationService.translateText(responseText, 'te');
+          console.log('✅ Response translated to Telugu');
+        } catch (error) {
+          console.error('⚠️ Failed to translate response to Telugu, using original:', error);
+        }
+      }
 
       // Extract suggestions and next steps using AI
       let suggestions = {};
@@ -1325,13 +1353,18 @@ Be professional, supportive, and focus on creating high-quality, bankable DPRs.`
     userContext?: any,
     vectorStoreIds?: string[],
     dprQuestions?: any,
-    userId?: string
+    userId?: string,
+    language?: 'en' | 'te'
   ): Promise<{ response: string; suggestions?: any; nextSteps?: string[]; dprAction?: string; dprQuestions?: any; templateStructure?: any }> {
     const startTime = Date.now();
     try {
       if (!vectorStoreIds || vectorStoreIds.length === 0) {
         throw new Error('No vector stores available for RAG');
       }
+
+      // Detect if user message is in Telugu (contains Telugu script characters)
+      const containsTeluguScript = /[\u0C00-\u0C7F]/.test(userMessage);
+      const shouldRespondInTelugu = language === 'te' || containsTeluguScript;
 
       // OPTIMIZATION: Detect if user is answering a question vs asking a new question
       // This helps skip unnecessary RAG searches when user is just providing answers
@@ -1722,6 +1755,18 @@ Guidelines:
 - Follow formats and templates from uploaded documents
 - Provide actionable guidance based on document content
 
+${shouldRespondInTelugu ? `
+CRITICAL LANGUAGE REQUIREMENT:
+- The user is communicating in Telugu (తెలుగు) or has selected Telugu as their preferred language
+- You MUST respond ENTIRELY in Telugu language using Telugu script
+- Use natural, fluent Telugu that sounds native and professional
+- For business/financial terms, use commonly accepted Telugu translations
+- Preserve all numbers, dates, percentages, and currency symbols exactly as they are
+- Respond in a conversational, friendly manner in Telugu
+- Do NOT mix English and Telugu - respond completely in Telugu
+- Translate all document context and information into Telugu when responding
+` : ''}
+
 ${wantsPDF ? `
 🚨🚨🚨 CRITICAL PDF GENERATION RULE - READ THIS CAREFULLY:
 
@@ -1780,6 +1825,18 @@ Be professional, accurate, and base all responses on the uploaded document conte
 
       let responseText = response.choices[0].message.content || '';
 
+      // If user requested Telugu but response is in English, translate it
+      if (shouldRespondInTelugu && !/[\u0C00-\u0C7F]/.test(responseText)) {
+        console.log('🔄 Translating RAG response to Telugu...');
+        try {
+          const { TranslationService } = await import('./translation.service');
+          responseText = await TranslationService.translateText(responseText, 'te');
+          console.log('✅ RAG response translated to Telugu');
+        } catch (error) {
+          console.error('⚠️ Failed to translate RAG response to Telugu, using original:', error);
+        }
+      }
+
       // OPTIMIZATION: Post-process response to ensure PDF requests are handled correctly
       // If user asked for PDF but AI gave manual instructions, replace with correct response
       if (wantsPDF) {
@@ -1788,7 +1845,10 @@ Be professional, accurate, and base all responses on the uploaded document conte
         
         if (hasManualInstructions || hasUnableMessage) {
           console.warn('⚠️  AI gave manual instructions for PDF - replacing with correct response');
-          responseText = "I'll generate a downloadable PDF file with all your data right away! The PDF will be ready for download shortly.";
+          const pdfMessage = shouldRespondInTelugu 
+            ? "మీ డేటాతో డౌన్‌లోడ్ చేయగల PDF ఫైల్‌ను వెంటనే జెనరేట్ చేస్తాను! PDF త్వరలో డౌన్‌లోడ్ కోసం సిద్ధంగా ఉంటుంది."
+            : "I'll generate a downloadable PDF file with all your data right away! The PDF will be ready for download shortly.";
+          responseText = pdfMessage;
         }
       }
 
