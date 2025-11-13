@@ -9,7 +9,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
-import { Building2, Sparkles, ArrowRight, Copy, LogIn, CheckCircle } from 'lucide-react';
+import { Sparkles, ArrowRight, Copy, LogIn, CheckCircle, Shield } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const { t } = useTranslation();
@@ -61,8 +61,12 @@ export const Login: React.FC = () => {
       <div className="w-full max-w-md">
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-secondary mb-4 shadow-lg">
-            <Building2 className="h-8 w-8 text-white" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img 
+              src="/apmsme_logo.png" 
+              alt="APMSME Logo" 
+              className="h-20 w-auto object-contain"
+            />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
             {t('auth.welcomeBack')}
@@ -172,7 +176,7 @@ export const Login: React.FC = () => {
             <p className="text-xs font-medium">AI-Powered</p>
           </div>
           <div className="p-4 rounded-lg bg-white/50 border border-primary/10">
-            <Building2 className="h-6 w-6 text-secondary mx-auto mb-2" />
+            <Shield className="h-6 w-6 text-secondary mx-auto mb-2" />
             <p className="text-xs font-medium">Bank-Ready</p>
           </div>
           <div className="p-4 rounded-lg bg-white/50 border border-primary/10">

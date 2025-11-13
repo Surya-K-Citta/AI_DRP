@@ -100,9 +100,11 @@ export const Landing: React.FC = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <Building2 className="h-5 w-5 text-white" />
-              </div>
+              <img 
+                src="/apmsme_logo.png" 
+                alt="APMSME Logo" 
+                className="h-12 w-auto object-contain"
+              />
               <span className="text-xl font-bold text-foreground">MSME DPR Tool</span>
             </div>
             <div className="flex items-center gap-4">
@@ -121,8 +123,12 @@ export const Landing: React.FC = () => {
       <section className="relative bg-gradient-to-br from-primary/5 via-white to-secondary/5 py-20 md:py-32">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-secondary mb-6 shadow-lg">
-              <Building2 className="h-8 w-8 text-white" />
+            <div className="inline-flex items-center justify-center mb-6">
+              <img 
+                src="/apmsme_logo.png" 
+                alt="APMSME Logo" 
+                className="h-24 w-auto object-contain"
+              />
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
               Create Professional, Bank-Ready
@@ -296,9 +302,11 @@ export const Landing: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <Building2 className="h-5 w-5 text-white" />
-              </div>
+              <img 
+                src="/apmsme_logo.png" 
+                alt="APMSME Logo" 
+                className="h-12 w-auto object-contain"
+              />
               <span className="text-lg font-semibold text-foreground">MSME DPR Tool</span>
             </div>
             <p className="text-sm text-muted-foreground text-center md:text-right">

@@ -5,7 +5,7 @@ import { useLinkHandler } from '@/lib/linkUtils';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
-import { Building2, Languages, LogOut, User, Menu, X } from 'lucide-react';
+import { Languages, LogOut, User, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 export const Navbar: React.FC = () => {
@@ -47,9 +47,11 @@ export const Navbar: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <a href="/" onClick={(e) => handleLinkClick(e, '/')} className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-              <Building2 className="h-6 w-6 text-white" />
-            </div>
+            <img 
+              src="/apmsme_logo.png" 
+              alt="APMSME Logo" 
+              className="h-12 w-auto object-contain"
+            />
             <span className="text-xl font-semibold text-foreground">
               {t('nav.appName')}
             </span>

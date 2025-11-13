@@ -9,7 +9,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
-import { Building2, Sparkles, ArrowRight, CheckCircle } from 'lucide-react';
+import { Sparkles, ArrowRight, CheckCircle } from 'lucide-react';
 
 export const Register: React.FC = () => {
   const { t } = useTranslation();
@@ -47,8 +47,12 @@ export const Register: React.FC = () => {
       <div className="w-full max-w-lg">
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-secondary mb-4 shadow-lg">
-            <Building2 className="h-8 w-8 text-white" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img 
+              src="/apmsme_logo.png" 
+              alt="APMSME Logo" 
+              className="h-20 w-auto object-contain"
+            />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
             {t('auth.getStarted')}
