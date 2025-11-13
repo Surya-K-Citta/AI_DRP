@@ -90,7 +90,7 @@ class TTSService {
           options.onEnd?.();
         };
         
-        audio.onerror = (error) => {
+        audio.onerror = () => {
           URL.revokeObjectURL(audioUrl);
           this.currentAudio = null;
           options.onError?.(new Error('TTS Error: Failed to play audio'));
