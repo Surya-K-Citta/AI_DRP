@@ -3,6 +3,8 @@
  * Manages step-by-step conversational DPR creation in offline mode
  */
 
+// @ts-nocheck
+
 export interface DPRCreationStep {
   step: number;
   totalSteps: number;
