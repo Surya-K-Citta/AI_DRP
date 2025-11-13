@@ -1,0 +1,530 @@
+{
+  "projectName": "Organic Spice Processing Unit",
+  "projectType": "Individual",
+  "industrySector": "Food Processing",
+  "subSector": "Spice Processing",
+  "totalInvestment": 2500000,
+  "location": {
+    "city": "Hyderabad",
+    "state": "Telangana",
+    "area": "Industrial Area, Medchal",
+    "address": "Plot No. 45, Industrial Area, Medchal, Hyderabad - 501401"
+  },
+  "businessDescription": {
+    "overview": "Establishment of an organic spice processing unit focusing on processing and packaging organic turmeric, red chili, and coriander with export quality standards.",
+    "products": [
+      {
+        "name": "Organic Turmeric Powder (Haldi)",
+        "description": "Premium quality organic turmeric powder, FSSAI certified",
+        "packaging": "500g, 1kg, 5kg packs"
+      },
+      {
+        "name": "Red Chili Powder (Lal Mirch)",
+        "description": "High-quality organic red chili powder",
+        "packaging": "500g, 1kg, 5kg packs"
+      },
+      {
+        "name": "Coriander Powder (Dhaniya)",
+        "description": "Fresh organic coriander powder",
+        "packaging": "500g, 1kg, 5kg packs"
+      }
+    ],
+    "productionCapacity": {
+      "monthly": 10000,
+      "unit": "kg",
+      "annual": 120000,
+      "breakdown": {
+        "turmeric": 5000,
+        "redChili": 3000,
+        "coriander": 2000
+      }
+    },
+    "uniqueSellingPoints": [
+      "Organic certification (NPOP/India Organic)",
+      "FSSAI licensed facility",
+      "Export quality standards",
+      "Sustainable and eco-friendly practices",
+      "Quality control laboratory"
+    ]
+  },
+  "targetMarket": {
+    "primaryCustomers": [
+      "Retail chains and supermarkets",
+      "Export markets (Middle East, Europe)",
+      "Online platforms",
+      "Wholesale distributors",
+      "Direct consumers"
+    ],
+    "geographicMarkets": {
+      "domestic": {
+        "percentage": 40,
+        "regions": ["Telangana", "Andhra Pradesh", "Karnataka", "Maharashtra"],
+        "channels": ["Retail chains", "Supermarkets", "Online platforms"]
+      },
+      "export": {
+        "percentage": 30,
+        "regions": ["UAE", "Saudi Arabia", "Germany", "UK"],
+        "channels": ["Trading companies", "Direct export"]
+      },
+      "online": {
+        "percentage": 30,
+        "platforms": ["Amazon", "Flipkart", "Own website"]
+      }
+    },
+    "distributionChannels": [
+      "Direct sales to retail chains",
+      "Export through trading companies",
+      "Online platforms (Amazon, Flipkart)",
+      "Local wholesale markets",
+      "B2B sales to food manufacturers"
+    ],
+    "marketSize": {
+      "totalMarket": "₹1.2 lakh crores",
+      "growthRate": "8% annually",
+      "organicSegment": "15% CAGR",
+      "targetMarketShare": "0.01%"
+    }
+  },
+  "financialStructure": {
+    "totalProjectCost": 2500000,
+    "breakdown": {
+      "landAndBuilding": {
+        "landArea": 2000,
+        "landAreaUnit": "sq.ft",
+        "buildingArea": 1500,
+        "buildingAreaUnit": "sq.ft",
+        "landCost": 800000,
+        "buildingCost": 1200000,
+        "total": 2000000
+      },
+      "machineryAndEquipment": {
+        "items": [
+          {
+            "name": "Spice Grinding Machine",
+            "quantity": 2,
+            "cost": 450000,
+            "total": 900000
+          },
+          {
+            "name": "Packaging Machine",
+            "quantity": 1,
+            "cost": 250000,
+            "total": 250000
+          },
+          {
+            "name": "Quality Testing Equipment",
+            "quantity": 1,
+            "cost": 180000,
+            "total": 180000
+          }
+        ],
+        "total": 1330000
+      },
+      "workingCapital": {
+        "rawMaterials": 300000,
+        "operatingExpenses": 200000,
+        "total": 500000
+      },
+      "preOperativeExpenses": {
+        "registration": 50000,
+        "licenses": 30000,
+        "legalFees": 20000,
+        "total": 100000
+      },
+      "contingency": {
+        "percentage": 5,
+        "amount": 125000
+      }
+    },
+    "sourcesOfFinance": {
+      "ownContribution": {
+        "percentage": 30,
+        "amount": 750000
+      },
+      "bankLoan": {
+        "percentage": 70,
+        "amount": 1750000
+      },
+      "governmentSubsidy": {
+        "scheme": "PMEGP",
+        "percentage": 25,
+        "amount": 625000,
+        "note": "If eligible"
+      }
+    }
+  },
+  "technicalFeasibility": {
+    "infrastructure": {
+      "land": {
+        "area": 2000,
+        "unit": "sq.ft",
+        "purpose": "Processing unit and storage",
+        "location": "Industrial Area, Medchal"
+      },
+      "building": {
+        "area": 1500,
+        "unit": "sq.ft",
+        "breakdown": {
+          "processingArea": 800,
+          "storageArea": 400,
+          "officeArea": 150,
+          "qualityLab": 150
+        }
+      },
+      "utilities": {
+        "power": {
+          "requirement": 50,
+          "unit": "KW",
+          "source": "State electricity board",
+          "backup": "15 KVA generator"
+        },
+        "water": {
+          "requirement": 5000,
+          "unit": "liters/day",
+          "source": "Municipal water supply + borewell"
+        },
+        "other": "Good road connectivity, drainage facility"
+      }
+    },
+    "machineryAndEquipment": [
+      {
+        "name": "Spice Grinding Machine",
+        "specifications": "Capacity: 500 kg/hour, Stainless steel",
+        "quantity": 2,
+        "cost": 450000,
+        "supplier": "Local machinery suppliers",
+        "installation": "Professional installation required"
+      },
+      {
+        "name": "Packaging Machine",
+        "specifications": "Semi-automatic, 200 packs/hour",
+        "quantity": 1,
+        "cost": 250000,
+        "supplier": "Packaging equipment manufacturers",
+        "installation": "Factory setup required"
+      },
+      {
+        "name": "Quality Testing Equipment",
+        "specifications": "Moisture analyzer, colorimeter, testing kits",
+        "quantity": 1,
+        "cost": 180000,
+        "supplier": "Laboratory equipment suppliers",
+        "installation": "Lab setup"
+      }
+    ],
+    "technology": {
+      "process": "Modern grinding and packaging technology",
+      "qualityStandards": ["FSSAI", "NPOP (Organic)", "India Organic"],
+      "environmentalCompliance": "Pollution control board clearance",
+      "certifications": ["FSSAI License", "Organic Certification"]
+    },
+    "rawMaterials": [
+      {
+        "item": "Organic Turmeric",
+        "quantity": 5000,
+        "unit": "kg/month",
+        "costPerUnit": 120,
+        "totalCost": 600000,
+        "supplier": "Certified organic farms in Telangana/Andhra Pradesh",
+        "availability": "Readily available"
+      },
+      {
+        "item": "Red Chili",
+        "quantity": 3000,
+        "unit": "kg/month",
+        "costPerUnit": 150,
+        "totalCost": 450000,
+        "supplier": "Local organic farms",
+        "availability": "Seasonal, need storage"
+      },
+      {
+        "item": "Coriander Seeds",
+        "quantity": 2000,
+        "unit": "kg/month",
+        "costPerUnit": 80,
+        "totalCost": 160000,
+        "supplier": "Local suppliers",
+        "availability": "Readily available"
+      }
+    ],
+    "manpower": [
+      {
+        "designation": "Production Manager",
+        "count": 1,
+        "qualifications": "Graduate with experience in food processing",
+        "salaryPerMonth": 35000,
+        "responsibilities": "Overall production management, quality control"
+      },
+      {
+        "designation": "Quality Control Officer",
+        "count": 1,
+        "qualifications": "Science graduate with food technology background",
+        "salaryPerMonth": 25000,
+        "responsibilities": "Quality testing, FSSAI compliance"
+      },
+      {
+        "designation": "Machine Operators",
+        "count": 4,
+        "qualifications": "ITI/Diploma, trained operators",
+        "salaryPerMonth": 18000,
+        "responsibilities": "Machine operation, maintenance"
+      },
+      {
+        "designation": "Packaging Staff",
+        "count": 3,
+        "qualifications": "10th pass, trained",
+        "salaryPerMonth": 15000,
+        "responsibilities": "Packaging, labeling, dispatch"
+      }
+    ],
+    "productionProcess": [
+      "Raw material procurement from certified organic farms",
+      "Quality check and sorting",
+      "Cleaning and washing",
+      "Drying (if required)",
+      "Grinding using spice grinding machines",
+      "Sieving and grading",
+      "Quality testing in laboratory",
+      "Packaging in food-grade packaging",
+      "Labeling with FSSAI and organic certification marks",
+      "Storage and dispatch"
+    ]
+  },
+  "marketAnalysis": {
+    "industryOverview": {
+      "marketSize": "₹1.2 lakh crores",
+      "growthRate": "8% annually",
+      "organicSegment": "15% CAGR",
+      "trends": [
+        "Increasing health consciousness",
+        "Rising demand for organic products",
+        "Export opportunities growing",
+        "Online sales increasing"
+      ]
+    },
+    "targetMarket": {
+      "primary": "Domestic retail chains and supermarkets",
+      "secondary": "Export markets (Middle East, Europe)",
+      "tertiary": "Online platforms and direct consumers"
+    },
+    "competition": {
+      "majorCompetitors": [
+        "Established spice brands (MDH, Everest)",
+        "Regional organic spice processors",
+        "Local spice traders"
+      ],
+      "competitiveAdvantages": [
+        "Organic certification",
+        "Quality control measures",
+        "Competitive pricing",
+        "Strong distribution network",
+        "Export quality standards"
+      ],
+      "pricingStrategy": "Competitive pricing with focus on quality"
+    },
+    "pricing": {
+      "turmericPowder": {
+        "perKg": 400,
+        "packaging": "500g pack: ₹220, 1kg pack: ₹400"
+      },
+      "redChiliPowder": {
+        "perKg": 450,
+        "packaging": "500g pack: ₹240, 1kg pack: ₹450"
+      },
+      "corianderPowder": {
+        "perKg": 350,
+        "packaging": "500g pack: ₹190, 1kg pack: ₹350"
+      }
+    }
+  },
+  "financialProjections": {
+    "year1": {
+      "revenue": {
+        "turmeric": {
+          "quantity": 60000,
+          "unit": "kg",
+          "price": 400,
+          "total": 24000000
+        },
+        "redChili": {
+          "quantity": 36000,
+          "unit": "kg",
+          "price": 450,
+          "total": 16200000
+        },
+        "coriander": {
+          "quantity": 24000,
+          "unit": "kg",
+          "price": 350,
+          "total": 8400000
+        },
+        "total": 48600000
+      },
+      "costs": {
+        "rawMaterials": 15120000,
+        "labor": 1200000,
+        "overheads": 4860000,
+        "interest": 140000,
+        "depreciation": 133000,
+        "total": 35000000
+      },
+      "profit": {
+        "gross": 33480000,
+        "operating": 13600000,
+        "net": 13460000,
+        "margin": 27.7
+      }
+    },
+    "year2": {
+      "revenue": 53460000,
+      "costs": 38500000,
+      "netProfit": 14960000,
+      "growth": "10%"
+    },
+    "year3": {
+      "revenue": 58806000,
+      "costs": 42350000,
+      "netProfit": 16456000,
+      "growth": "10%"
+    },
+    "keyMetrics": {
+      "roi": 52,
+      "paybackPeriod": 1.9,
+      "unit": "years",
+      "breakEvenPoint": {
+        "units": 25000,
+        "unit": "kg/year",
+        "months": 15
+      },
+      "profitMargin": 27.7
+    }
+  },
+  "riskAnalysis": {
+    "marketRisks": [
+      {
+        "risk": "Demand fluctuations",
+        "description": "Changing customer preferences",
+        "mitigation": "Market research, diversification, flexible pricing"
+      },
+      {
+        "risk": "Competition",
+        "description": "New entrants, price wars",
+        "mitigation": "Focus on quality, organic certification, niche market"
+      },
+      {
+        "risk": "Price volatility",
+        "description": "Raw material price changes",
+        "mitigation": "Long-term contracts with suppliers, buffer stock"
+      }
+    ],
+    "technicalRisks": [
+      {
+        "risk": "Machinery breakdown",
+        "description": "Equipment failure",
+        "mitigation": "Regular maintenance, backup equipment, AMC contracts"
+      },
+      {
+        "risk": "Quality issues",
+        "description": "Product quality problems",
+        "mitigation": "Quality control lab, trained staff, FSSAI compliance"
+      },
+      {
+        "risk": "Raw material shortage",
+        "description": "Supply chain disruptions",
+        "mitigation": "Multiple suppliers, buffer stock, contracts"
+      }
+    ],
+    "financialRisks": [
+      {
+        "risk": "Cash flow problems",
+        "description": "Delayed payments",
+        "mitigation": "Emergency fund (6 months), credit management"
+      },
+      {
+        "risk": "Cost overruns",
+        "description": "Project costs exceeding budget",
+        "mitigation": "Contingency fund, careful planning"
+      },
+      {
+        "risk": "Loan repayment delays",
+        "description": "Revenue shortfalls",
+        "mitigation": "Conservative projections, working capital reserve"
+      }
+    ],
+    "operationalRisks": [
+      {
+        "risk": "Skilled labor shortage",
+        "description": "Difficulty finding workers",
+        "mitigation": "Training programs, competitive salaries"
+      },
+      {
+        "risk": "Regulatory changes",
+        "description": "New laws affecting business",
+        "mitigation": "Compliance monitoring, legal consultation"
+      }
+    ]
+  },
+  "licensesAndRegistrations": [
+    {
+      "name": "Udyam Registration",
+      "status": "Required",
+      "description": "MSME registration",
+      "cost": "Free"
+    },
+    {
+      "name": "GST Registration",
+      "status": "Required",
+      "description": "Goods and Services Tax",
+      "cost": "Free"
+    },
+    {
+      "name": "FSSAI License",
+      "status": "Required",
+      "description": "Food Safety and Standards Authority license",
+      "cost": "₹2000-5000"
+    },
+    {
+      "name": "Trade License",
+      "status": "Required",
+      "description": "From municipal corporation",
+      "cost": "₹5000-10000"
+    },
+    {
+      "name": "Pollution Control Board Clearance",
+      "status": "Required",
+      "description": "Environmental clearance",
+      "cost": "₹10000-20000"
+    }
+  ],
+  "governmentSchemes": {
+    "recommended": [
+      {
+        "scheme": "PMEGP",
+        "eligibility": true,
+        "subsidy": 25,
+        "amount": 625000,
+        "reason": "New project, manufacturing sector, eligible for subsidy"
+      },
+      {
+        "scheme": "MUDRA",
+        "eligibility": true,
+        "loanAmount": 1750000,
+        "reason": "Can get loan component through MUDRA"
+      },
+      {
+        "scheme": "CGTMSE",
+        "eligibility": true,
+        "guarantee": 85,
+        "reason": "Collateral-free loan guarantee available"
+      }
+    ]
+  },
+  "implementationTimeline": {
+    "month1": ["Site selection", "Land purchase/lease", "Udyam registration"],
+    "month2": ["Building construction", "GST registration", "FSSAI application"],
+    "month3": ["Machinery procurement", "Installation", "Staff recruitment"],
+    "month4": ["Trial production", "Quality testing", "License approvals"],
+    "month5": ["Commercial production start", "Market launch"]
+  }
+}
+

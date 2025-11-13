@@ -1,0 +1,239 @@
+{
+  "title": "DPR Creation Workflow - Demonstration Example",
+  "description": "This document demonstrates how the AI assistant guides users through creating a Detailed Project Report (DPR) in offline mode using the Q&A database.",
+  "exampleProject": {
+    "name": "Creating a Spice Processing Unit DPR",
+    "projectName": "Organic Spice Processing Unit",
+    "industrySector": "Food Processing",
+    "projectType": "Individual",
+    "totalInvestment": "₹25 lakhs",
+    "location": "Hyderabad, Telangana",
+    "business": "Organic spice processing (turmeric, red chili, coriander)",
+    "productionCapacity": "10,000 kg/month",
+    "targetMarket": "Domestic retail (40%), Export (30%), Online (30%)"
+  },
+  "workflowSteps": [
+    {
+      "stepNumber": 1,
+      "stepTitle": "Project Information",
+      "title": "User Initiates DPR Creation",
+      "description": "Define your project name and type (Individual or Cluster), select your industry sector, determine your total project cost, and choose your project location.",
+      "subSteps": [
+        "Define your project name and type (Individual or Cluster)",
+        "Select your industry sector",
+        "Determine your total project cost",
+        "Choose your project location"
+      ],
+      "userInput": "I want to create a DPR",
+      "aiResponse": "Great! I'll guide you through creating your Detailed Project Report (DPR) step by step. This process will help you create a comprehensive, bank-ready DPR.\n\n**Step 1 of 6: Project Information**\n\nLet's start by collecting your project information. I'll ask you about:\n\n1. **Project Name** - A clear, descriptive name for your project\n2. **Project Type** - Individual or Cluster project\n3. **Industry Sector** - Which sector your project belongs to\n4. **Total Project Cost** - Your total investment amount\n5. **Project Location** - Where your project will be located\n\n**Let's begin:**\n\n**Question 1:**\n**What is your project name?**\n\nPlease provide a clear, descriptive name for your project. For example:\n- \"Organic Spice Processing Unit\"\n- \"Handloom Textile Manufacturing\"\n- \"Solar Panel Manufacturing Unit\"\n\n💡 Tip: Choose a name that clearly describes your business activity."
+    },
+    {
+      "stepNumber": 1,
+      "subStepNumber": 2,
+      "title": "Project Name Provided",
+      "userInput": "Organic Spice Processing Unit",
+      "aiResponse": "**Question 2:**\n**Is this an Individual project or Cluster project?**\n\n**Individual Project:**\n- Single entrepreneur or enterprise\n- Owned and operated by one person/entity\n- Most common type\n- Simpler structure\n\n**Cluster Project:**\n- Multiple enterprises working together\n- Shared infrastructure or facilities\n- Common raw material sourcing\n- Collective marketing\n\n**Example:**\n- **Individual**: \"Organic Spice Processing Unit\" (single owner)\n- **Cluster**: \"Hyderabad Spice Processors Cluster\" (multiple units)\n\nMost entrepreneurs start with **Individual** projects.\n\n💡 Tip: If you're starting alone, choose Individual. If multiple entrepreneurs are collaborating, choose Cluster."
+    },
+    {
+      "stepNumber": 1,
+      "subStepNumber": 3,
+      "title": "Project Type Provided",
+      "userInput": "Individual",
+      "aiResponse": "**Question 3:**\n**What industry sector does your project belong to?**\n\nPlease select your industry sector from the following options:\n\n**Common Sectors:**\n- **Food Processing** (Spice processing, Rice milling, Dairy products, Bakery)\n- **Textiles** (Handloom, Garment manufacturing, Textile processing)\n- **Manufacturing** (Light engineering, Electronics, Chemical products, Plastic products)\n- **Service** (IT services, Consulting, Trading, Logistics)\n- **Renewable Energy** (Solar panels, Wind energy, Bioenergy)\n- **Agriculture** (Organic farming, Agri-processing, Horticulture)\n- **Other** (Please specify)\n\n**Example:**\nFor \"Organic Spice Processing Unit\", the industry sector is **\"Food Processing\"** with sub-sector **\"Spice Processing\"**.\n\n💡 Tip: Choose the sector that best matches your primary business activity."
+    },
+    {
+      "stepNumber": 1,
+      "subStepNumber": 4,
+      "title": "Industry Sector Provided",
+      "userInput": "Food Processing",
+      "aiResponse": "**Question 4:**\n**What is your total project investment amount?**\n\nPlease provide your total project cost in Indian Rupees (₹). This includes:\n\n**Components of Total Investment:**\n- **Land & Building**: Purchase or construction cost\n- **Machinery & Equipment**: All production machinery\n- **Working Capital**: Initial raw materials, operating expenses\n- **Pre-operative Expenses**: Registration, licenses, legal fees\n- **Contingency**: 5-10% buffer for unexpected costs\n\n**Typical Investment Ranges:**\n- **Small Scale**: ₹5-25 lakhs\n- **Medium Scale**: ₹25 lakhs - ₹1 crore\n- **Large Scale**: ₹1 crore+\n\n**Example:**\n\"Organic Spice Processing Unit\" has a total investment of **₹25,00,000** (₹25 lakhs).\n\n**Complete Breakdown:**\n- Land & Building: ₹20,00,000\n- Machinery & Equipment: ₹13,30,000\n- Working Capital: ₹5,00,000\n- Pre-operative Expenses: ₹1,00,000\n- Contingency: ₹1,25,000\n\n💡 Tip: Be realistic. Include all costs - land, building, machinery, working capital, and contingency."
+    },
+    {
+      "stepNumber": 1,
+      "subStepNumber": 5,
+      "title": "Investment Amount Provided",
+      "userInput": "₹25 lakhs",
+      "aiResponse": "**Question 5:**\n**Where is your project location?**\n\nPlease provide:\n- **City/Town**: e.g., \"Hyderabad\"\n- **State**: e.g., \"Telangana\"\n- **Specific Area** (optional): e.g., \"Industrial Area, Medchal\"\n\n**Example:**\n\"Hyderabad, Telangana\" or \"Vijayawada, Andhra Pradesh\"\n\n**Location Considerations:**\n- **Near Raw Materials**: Reduces transportation costs\n- **Good Connectivity**: Access to markets\n- **Power & Water**: Adequate supply available\n- **Labor Availability**: Skilled workers nearby\n- **Infrastructure**: Roads, transport facilities\n\n**For Food Processing:**\n- Near agricultural areas\n- Good transport connectivity\n- Clean environment\n\n💡 Tip: Choose a location that's convenient for raw materials, labor, and market access.\n\n**✅ Step 1 Complete!** You've provided all project information. Moving to Step 2: Business Details."
+    },
+    {
+      "stepNumber": 2,
+      "stepTitle": "Business Details",
+      "title": "Location Provided - Moving to Business Details",
+      "description": "Write a comprehensive business description, identify your target market, and describe your products or services.",
+      "subSteps": [
+        "Write a comprehensive business description",
+        "Identify your target market",
+        "Describe your products or services"
+      ],
+      "userInput": "Hyderabad, Telangana",
+      "aiResponse": "**Step 2 of 6: Business Details**\n\nGreat! Now let's gather information about your business:\n\n1. **Business Description** - Comprehensive description of your business\n2. **Products/Services** - What you'll produce or offer\n3. **Target Market** - Who will buy your products/services\n\n**Question 1:**\n**Describe your business in detail**\n\nPlease provide a comprehensive description of your business. Include:\n\n**What to Include:**\n1. **Products/Services**: What will you produce or offer?\n2. **Business Model**: How will you operate?\n3. **Unique Selling Points**: What makes you different?\n4. **Target Customers**: Who will buy from you?\n5. **Production Capacity**: How much will you produce?\n\n**Example for Spice Processing:**\n\"I will establish an organic spice processing unit in Hyderabad. The unit will process organic turmeric, red chili, and coriander into powder form. Products will include organic turmeric powder (Haldi), red chili powder (Lal Mirch), and coriander powder (Dhaniya). The unit will have a processing capacity of 10,000 kg per month. Target markets include retail chains, supermarkets, and export markets in Middle East and Europe. The business will focus on quality, organic certification, and sustainable practices.\"\n\n💡 Tip: Be specific and detailed. This helps banks understand your business better."
+    },
+    {
+      "stepNumber": 2,
+      "subStepNumber": 2,
+      "title": "Business Description Provided",
+      "userInput": "I will establish an organic spice processing unit in Hyderabad. The unit will process organic turmeric, red chili, and coriander into powder form. Products will include organic turmeric powder (Haldi), red chili powder (Lal Mirch), and coriander powder (Dhaniya). The unit will have a processing capacity of 10,000 kg per month. Target markets include retail chains, supermarkets, and export markets in Middle East and Europe. The business will focus on quality, organic certification, and sustainable practices.",
+      "aiResponse": "**Question 2:**\n**Who is your target market?**\n\nPlease describe your target customers and market:\n\n**What to Include:**\n1. **Primary Customers**: Who will buy your products/services?\n2. **Geographic Market**: Local, regional, national, or export?\n3. **Customer Segments**: Retail, wholesale, B2B, B2C?\n4. **Market Size**: Estimated number of potential customers\n5. **Distribution Channels**: How will you reach customers?\n\n**Example for Spice Processing:**\n\"My target market includes:\n- **Domestic Retail**: Supermarkets, retail chains (40%)\n- **Export Markets**: Middle East (UAE, Saudi Arabia) and Europe (Germany, UK) (30%)\n- **Direct Consumers**: Online platforms and local markets (30%)\n\nI will distribute through:\n- Direct sales to retail chains\n- Export through trading companies\n- Online platforms (Amazon, Flipkart)\n- Local wholesale markets\"\n\n💡 Tip: Be specific about your customers. This helps in market analysis and financial projections.\n\n**✅ Step 2 Complete!** Moving to Step 3: Financial Planning."
+    },
+    {
+      "stepNumber": 3,
+      "stepTitle": "Financial Planning",
+      "title": "Target Market Provided - Moving to Financial Planning",
+      "description": "Calculate total investment required, determine your own contribution (typically 25-30%), calculate loan amount needed (typically 70-75%), and prepare financial projections for 5 years.",
+      "subSteps": [
+        "Calculate total investment required",
+        "Determine your own contribution (typically 25-30%)",
+        "Calculate loan amount needed (typically 70-75%)",
+        "Prepare financial projections for 5 years"
+      ],
+      "userInput": "My target market includes domestic retail chains (40%), export markets in Middle East and Europe (30%), and online platforms (30%). I will distribute through direct sales to retail chains, export through trading companies, and online platforms like Amazon and Flipkart.",
+      "aiResponse": "**Step 3 of 6: Financial Planning**\n\nNow let's plan your finances:\n\n1. **Total Investment Breakdown** - Detailed cost breakdown\n2. **Own Contribution** - Typically 25-30% of project cost\n3. **Loan Amount** - Typically 70-75% from banks\n4. **Financial Projections** - 5-year revenue and profit projections\n\n**Question 1:**\n**Let's calculate your financial structure**\n\nBased on your total investment of ₹25 lakhs:\n\n**Financial Structure:**\n- **Own Contribution** (30%): ₹7,50,000\n- **Bank Loan** (70%): ₹17,50,000\n- **Government Subsidy** (if eligible, 25%): ₹6,25,000\n\n**Would you like me to:**\n1. Create detailed 5-year financial projections?\n2. Calculate ROI and payback period?\n3. Prepare break-even analysis?\n4. Show revenue projections by product?\n\n**Example Financial Projections (Year 1):**\n- **Total Revenue**: ₹4,86,00,000\n- **Total Costs**: ₹3,50,00,000\n- **Net Profit**: ₹1,36,00,000\n- **Profit Margin**: 27.7%\n- **ROI**: 52%\n- **Payback Period**: 1.9 years\n\n💡 Tip: Financial projections help banks assess your project's viability.\n\n**✅ Step 3 Complete!** Moving to Step 4: Technical Feasibility."
+    },
+    {
+      "stepNumber": 4,
+      "stepTitle": "Technical Feasibility",
+      "title": "Financial Planning Complete - Moving to Technical Feasibility",
+      "description": "List required machinery and equipment, identify infrastructure needs (land, building), plan raw material sourcing, and determine manpower requirements.",
+      "subSteps": [
+        "List required machinery and equipment",
+        "Identify infrastructure needs (land, building)",
+        "Plan raw material sourcing",
+        "Determine manpower requirements"
+      ],
+      "userInput": "Yes, please create detailed financial projections",
+      "aiResponse": "**Step 4 of 6: Technical Feasibility**\n\nLet's plan the technical aspects:\n\n1. **Machinery & Equipment** - List all required machinery\n2. **Infrastructure** - Land and building requirements\n3. **Raw Materials** - Sourcing and requirements\n4. **Manpower** - Staff and skill requirements\n\n**Question 1:**\n**What machinery and equipment do you need?**\n\nPlease list the machinery and equipment required for your project.\n\n**Example for Spice Processing:**\n\n**Machinery & Equipment:**\n1. **Spice Grinding Machine**\n   - Quantity: 2 units\n   - Cost: ₹4,50,000 per unit\n   - Total: ₹9,00,000\n\n2. **Packaging Machine**\n   - Quantity: 1 unit\n   - Cost: ₹2,50,000\n\n3. **Quality Testing Equipment**\n   - Cost: ₹1,80,000\n\n**Total Machinery Cost: ₹13,30,000**\n\n**Infrastructure Requirements:**\n- **Land**: 2000 sq.ft\n- **Building**: 1500 sq.ft processing area\n- **Power**: 50 KW\n- **Water**: 5000 liters/day\n\n**Raw Materials:**\n- Organic Turmeric: 5,000 kg/month\n- Red Chili: 3,000 kg/month\n- Coriander Seeds: 2,000 kg/month\n\n**Manpower:**\n- Production Manager: 1\n- Quality Control Officer: 1\n- Machine Operators: 4\n- Packaging Staff: 3\n- **Total**: 9 employees\n\n💡 Tip: Detailed technical planning ensures smooth operations.\n\n**✅ Step 4 Complete!** Moving to Step 5: Market Analysis."
+    },
+    {
+      "stepNumber": 5,
+      "stepTitle": "Market Analysis",
+      "title": "Technical Feasibility Complete - Moving to Market Analysis",
+      "description": "Research your target market, analyze competition, define pricing strategy, and plan distribution channels.",
+      "subSteps": [
+        "Research your target market",
+        "Analyze competition",
+        "Define pricing strategy",
+        "Plan distribution channels"
+      ],
+      "userInput": "I need spice grinding machines, packaging equipment, and quality testing equipment",
+      "aiResponse": "**Step 5 of 6: Market Analysis**\n\nLet's analyze your market:\n\n1. **Target Market Research** - Market size and growth\n2. **Competition Analysis** - Competitors and positioning\n3. **Pricing Strategy** - Competitive pricing approach\n4. **Distribution Channels** - How to reach customers\n\n**Question 1:**\n**Let's analyze your market**\n\n**Market Analysis for Spice Processing:**\n\n**Market Size & Growth:**\n- **Total Market**: ₹1.2 lakh crores\n- **Growth Rate**: 8% annually\n- **Organic Segment Growth**: 15% CAGR\n- **Target Market Share**: 0.01%\n\n**Competition Analysis:**\n- **Major Competitors**: Established spice brands\n- **Your Competitive Advantages**:\n  - Organic certification\n  - Quality control measures\n  - Competitive pricing\n  - Strong distribution network\n  - Export quality standards\n\n**Pricing Strategy:**\n- Turmeric Powder: ₹400/kg\n- Red Chili Powder: ₹450/kg\n- Coriander Powder: ₹350/kg\n\n**Distribution Channels:**\n- Direct sales to retail chains\n- Export through trading companies\n- Online platforms (Amazon, Flipkart)\n- Local wholesale markets\n- B2B sales to food manufacturers\n\n**Market Distribution:**\n- Domestic Retail: 40%\n- Export Markets: 30%\n- Online Platforms: 30%\n\n💡 Tip: Strong market analysis demonstrates business viability to banks.\n\n**✅ Step 5 Complete!** Moving to Step 6: Generate DPR."
+    },
+    {
+      "stepNumber": 6,
+      "stepTitle": "Generate DPR",
+      "title": "Market Analysis Complete - Ready to Generate DPR",
+      "description": "Use our AI-guided builder for step-by-step assistance, or fill out the manual form, then review and submit for quality analysis.",
+      "subSteps": [
+        "Use our AI-guided builder for step-by-step assistance",
+        "Or fill out the manual form",
+        "Review and submit for quality analysis"
+      ],
+      "userInput": "The market looks good, let's proceed",
+      "aiResponse": "**Step 6 of 6: Generate DPR**\n\n**🎉 Congratulations!** You've completed all the necessary information for your DPR!\n\n**Summary of Your Project:**\n- ✅ **Project Name**: Organic Spice Processing Unit\n- ✅ **Project Type**: Individual\n- ✅ **Industry Sector**: Food Processing\n- ✅ **Total Investment**: ₹25 lakhs\n- ✅ **Location**: Hyderabad, Telangana\n- ✅ **Business Description**: Complete\n- ✅ **Target Market**: Defined\n- ✅ **Financial Planning**: Projections ready\n- ✅ **Technical Feasibility**: Machinery and infrastructure planned\n- ✅ **Market Analysis**: Complete\n\n**Now you can:**\n\n1. **Use AI-Guided Builder**\n   - I'll help you create each section step-by-step\n   - Automatic formatting and structure\n   - Quality checks at each step\n\n2. **Fill Manual Form**\n   - Complete the DPR form directly\n   - Upload documents\n   - Save and edit anytime\n\n3. **Review & Submit**\n   - Review all sections\n   - Quality analysis\n   - Export as PDF\n   - Submit for bank/scheme applications\n\n**Your DPR will include:**\n- Executive Summary\n- Business Profile\n- Market Analysis\n- Technical Feasibility\n- Financial Projections (5 years)\n- Risk Analysis\n- Conclusion\n\n**Would you like me to:**\n- Generate the complete DPR now?\n- Help you with a specific section?\n- Review your information?\n\n💡 All this information will be used to create a comprehensive, bank-ready DPR that can be used for loan applications and scheme submissions."
+    }
+  ],
+  "summary": {
+    "totalSteps": 6,
+    "steps": [
+      {
+        "step": 1,
+        "title": "Project Information",
+        "subSteps": [
+          "Define project name and type",
+          "Select industry sector",
+          "Determine total project cost",
+          "Choose project location"
+        ],
+        "completed": true
+      },
+      {
+        "step": 2,
+        "title": "Business Details",
+        "subSteps": [
+          "Write comprehensive business description",
+          "Identify target market",
+          "Describe products or services"
+        ],
+        "completed": true
+      },
+      {
+        "step": 3,
+        "title": "Financial Planning",
+        "subSteps": [
+          "Calculate total investment",
+          "Determine own contribution (25-30%)",
+          "Calculate loan amount (70-75%)",
+          "Prepare 5-year financial projections"
+        ],
+        "completed": true
+      },
+      {
+        "step": 4,
+        "title": "Technical Feasibility",
+        "subSteps": [
+          "List machinery and equipment",
+          "Identify infrastructure needs",
+          "Plan raw material sourcing",
+          "Determine manpower requirements"
+        ],
+        "completed": true
+      },
+      {
+        "step": 5,
+        "title": "Market Analysis",
+        "subSteps": [
+          "Research target market",
+          "Analyze competition",
+          "Define pricing strategy",
+          "Plan distribution channels"
+        ],
+        "completed": true
+      },
+      {
+        "step": 6,
+        "title": "Generate DPR",
+        "subSteps": [
+          "Use AI-guided builder",
+          "Or fill manual form",
+          "Review and submit"
+        ],
+        "completed": true
+      }
+    ],
+    "informationCollected": [
+      "Project identification details",
+      "Industry classification",
+      "Investment amount and location",
+      "Business model and products",
+      "Target market strategy",
+      "Financial structure and projections",
+      "Technical requirements",
+      "Market analysis"
+    ],
+    "nextStepsAvailable": [
+      "Generate complete DPR",
+      "Review and edit sections",
+      "Export as PDF",
+      "Submit for bank/scheme applications"
+    ]
+  },
+  "keyFeatures": [
+    "Structured Approach: 6-step process ensures all essential information is collected",
+    "Contextual Help: Each step includes examples and tips",
+    "Progress Tracking: Clear step-by-step guidance",
+    "Flexible: Users can provide detailed or brief answers",
+    "Offline Capable: All questions and guidance stored locally",
+    "Bank-Ready: Information collected meets DPR requirements for banks and schemes"
+  ],
+  "usageInOfflineMode": {
+    "description": "When a user asks \"I want to create a DPR\" while offline:",
+    "steps": [
+      "System searches the Q&A database",
+      "Finds the matching question with workflow metadata",
+      "Returns the structured response with next question",
+      "User responds with their information",
+      "System guides through all 6 steps",
+      "Collects all necessary information for DPR creation"
+    ],
+    "conclusion": "This workflow ensures users can create comprehensive DPRs even without internet connectivity!"
+  }
+}

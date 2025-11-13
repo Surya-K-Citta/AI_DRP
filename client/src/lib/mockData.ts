@@ -630,8 +630,36 @@ export class MockDataService {
     });
   }
 
-  // Chat - Enhanced with context-aware responses
+  // Chat - Enhanced with context-aware responses for offline mode
   static async chat(message: string, conversationHistory: any[] = []) {
+    // Try to get answer from Q&A database first
+    try {
+      const { getOfflineAnswer } = await import('./offlineQAService');
+      const qaAnswer = getOfflineAnswer(message);
+      
+      if (qaAnswer) {
+        // Found a match in Q&A database
+        const response: any = {
+          success: true,
+          data: {
+            response: qaAnswer.answer + '\n\n💡 *You are in offline mode. This answer is from our pre-loaded knowledge base.*',
+            suggestions: qaAnswer.suggestions || [],
+            nextSteps: [],
+            ragContext: 'Offline Q&A Database',
+            dprAction: null,
+            dprQuestions: [],
+          },
+        };
+        
+        return {
+          data: response.data,
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to load Q&A service, falling back to pattern matching:', error);
+    }
+    
+    // Fallback to pattern matching if Q&A database doesn't have a match
     const lowerMessage = message.toLowerCase();
     
     // Context-aware response generation
@@ -647,8 +675,176 @@ export class MockDataService {
       },
     };
 
+    // Add offline mode indicator
+    const offlineModeNote = '\n\n💡 *You are in offline mode. I can still help with a wide range of questions using pre-loaded knowledge!*';
+
+    // Industry-specific queries
+    if (lowerMessage.includes('food processing') || lowerMessage.includes('spice') || lowerMessage.includes('agriculture')) {
+      response.data.response = `Food Processing is a great sector! Here's what you need to know:
+
+**Key Considerations:**
+- **FSSAI License**: Required for all food processing units
+- **Organic Certification**: If processing organic products (NPOP/India Organic)
+- **Location**: Near raw material sources, good transport connectivity
+- **Infrastructure**: Clean processing area, cold storage if needed
+
+**Common Food Processing Projects:**
+1. Spice Processing (Turmeric, Chili, Coriander)
+2. Rice Milling and Processing
+3. Fruit & Vegetable Processing
+4. Dairy Products
+5. Bakery & Confectionery
+
+**Typical Investment Range:**
+- Small Scale: ₹10-25 lakhs
+- Medium Scale: ₹25 lakhs - ₹1 crore
+- Large Scale: ₹1 crore+
+
+**I can help you:**
+- Create a food processing project DPR
+- Calculate machinery costs
+- Identify suitable schemes
+- Plan infrastructure requirements
+
+Would you like to start creating your food processing project?` + offlineModeNote;
+      
+      response.data.suggestions = [
+        'Create food processing project',
+        'Calculate machinery costs',
+        'Check FSSAI requirements',
+        'View food processing templates',
+      ];
+    }
+    // Textile/Handloom queries
+    else if (lowerMessage.includes('textile') || lowerMessage.includes('handloom') || lowerMessage.includes('weaving')) {
+      response.data.response = `Textile and Handloom sector offers great opportunities! Here's guidance:
+
+**Types of Textile Projects:**
+1. Handloom Weaving (Traditional sarees, fabrics)
+2. Powerloom Manufacturing
+3. Garment Manufacturing
+4. Textile Processing & Dyeing
+5. Apparel Export Units
+
+**Key Requirements:**
+- **Handloom**: Skilled weavers, traditional designs, handloom registration
+- **Powerloom**: Machinery, power supply, skilled operators
+- **Garment**: Cutting, stitching machines, quality control
+
+**Investment Range:**
+- Handloom: ₹5-20 lakhs
+- Powerloom: ₹20-50 lakhs
+- Garment Unit: ₹30 lakhs - ₹2 crores
+
+**Government Support:**
+- Handloom Mark registration
+- Subsidies for handloom units
+- Export promotion schemes
+
+**I can help with:**
+- Creating textile project DPR
+- Machinery selection guidance
+- Market analysis for textiles
+- Scheme recommendations
+
+Ready to create your textile project?` + offlineModeNote;
+      
+      response.data.suggestions = [
+        'Create textile project',
+        'Handloom registration info',
+        'Machinery cost estimates',
+        'Textile market analysis',
+      ];
+    }
+    // Manufacturing queries
+    else if (lowerMessage.includes('manufacturing') || lowerMessage.includes('production') || lowerMessage.includes('factory')) {
+      response.data.response = `Manufacturing projects require careful planning! Here's what to consider:
+
+**Manufacturing Project Types:**
+1. Light Engineering
+2. Electronics Assembly
+3. Chemical Products
+4. Plastic Products
+5. Metal Fabrication
+
+**Essential Components:**
+- **Land & Building**: Industrial plot, factory shed
+- **Machinery**: Production equipment, quality testing
+- **Power**: Adequate electricity supply, backup power
+- **Raw Materials**: Reliable suppliers, storage
+- **Manpower**: Skilled workers, supervisors
+
+**Investment Considerations:**
+- Small Scale: ₹25 lakhs - ₹1 crore
+- Medium Scale: ₹1-5 crores
+- Large Scale: ₹5 crores+
+
+**Regulatory Requirements:**
+- Factory License
+- Pollution Control Board clearance
+- Fire Safety certificate
+- Labor compliance
+
+**I can assist with:**
+- Manufacturing project DPR creation
+- Technical feasibility analysis
+- Machinery cost estimation
+- Compliance requirements
+
+Let's start building your manufacturing project!` + offlineModeNote;
+      
+      response.data.suggestions = [
+        'Create manufacturing project',
+        'Check compliance requirements',
+        'Estimate machinery costs',
+        'Technical feasibility help',
+      ];
+    }
+    // Service sector queries
+    else if (lowerMessage.includes('service') || lowerMessage.includes('consulting') || lowerMessage.includes('business service')) {
+      response.data.response = `Service sector projects have different requirements! Here's guidance:
+
+**Service Business Types:**
+1. IT/Software Services
+2. Consulting Services
+3. Trading & Distribution
+4. Logistics & Transportation
+5. Professional Services
+
+**Key Advantages:**
+- Lower initial investment
+- Faster setup time
+- Less infrastructure needed
+- Scalable operations
+
+**Investment Range:**
+- Small Service: ₹5-15 lakhs
+- Medium Service: ₹15-50 lakhs
+- Large Service: ₹50 lakhs+
+
+**Requirements:**
+- Office space (can be rented)
+- Equipment (computers, furniture)
+- Professional licenses if applicable
+- Skilled professionals
+
+**I can help with:**
+- Service business DPR creation
+- Business plan development
+- Financial projections
+- Market analysis
+
+Ready to start your service business project?` + offlineModeNote;
+      
+      response.data.suggestions = [
+        'Create service project',
+        'Business plan help',
+        'Service sector schemes',
+        'Market analysis',
+      ];
+    }
     // Project creation queries
-    if (lowerMessage.includes('create') || lowerMessage.includes('start') || lowerMessage.includes('new project')) {
+    else if (lowerMessage.includes('create') || lowerMessage.includes('start') || lowerMessage.includes('new project')) {
       response.data.response = `I'd be happy to help you create a new project! Let's start by gathering some key information:
 
 **To create a comprehensive DPR, I'll need:**
@@ -664,7 +860,7 @@ Would you like to:
 - 💬 Answer questions through chat
 - 📄 Upload an existing document
 
-Which option would you prefer?`;
+Which option would you prefer?` + offlineModeNote;
       
       response.data.suggestions = [
         'Create a new project',
@@ -676,6 +872,147 @@ Which option would you prefer?`;
         'Navigate to Projects page',
         'Start AI-guided DPR builder',
         'Upload existing project document',
+      ];
+    }
+    // Registration and documentation queries
+    else if (lowerMessage.includes('registration') || lowerMessage.includes('license') || lowerMessage.includes('udyam') || lowerMessage.includes('gst')) {
+      response.data.response = `Registration and licensing are crucial! Here's what you need:
+
+**Essential Registrations:**
+1. **Udyam Registration** (MSME)
+   - Online registration at udyamregistration.gov.in
+   - Free of cost
+   - Required for scheme benefits
+
+2. **GST Registration**
+   - Required if turnover > ₹20 lakhs (services) or ₹40 lakhs (goods)
+   - Apply at gst.gov.in
+
+3. **FSSAI License** (Food businesses)
+   - Basic: Up to ₹12 lakhs turnover
+   - State: ₹12 lakhs - ₹20 crores
+   - Central: Above ₹20 crores
+
+4. **Factory License** (Manufacturing)
+   - Required for factories with 10+ workers
+   - Apply to State Labor Department
+
+5. **Trade License**
+   - From local municipal corporation
+   - Required for commercial activities
+
+**Documents Typically Needed:**
+- Identity proof (Aadhaar/PAN)
+- Address proof
+- Business address proof
+- Bank account details
+- Photographs
+
+**I can help you:**
+- Understand registration requirements
+- Create checklist for your sector
+- Guide through application process
+
+Which registration do you need help with?` + offlineModeNote;
+      
+      response.data.suggestions = [
+        'Udyam registration guide',
+        'GST registration help',
+        'License requirements',
+        'Document checklist',
+      ];
+    }
+    // Risk analysis queries
+    else if (lowerMessage.includes('risk') || lowerMessage.includes('challenge') || lowerMessage.includes('problem')) {
+      response.data.response = `Risk analysis is essential for a strong DPR! Here's what to consider:
+
+**Common Project Risks:**
+1. **Market Risks**
+   - Demand fluctuations
+   - Competition
+   - Price volatility
+   - Changing customer preferences
+
+2. **Technical Risks**
+   - Technology obsolescence
+   - Machinery breakdown
+   - Quality issues
+   - Raw material availability
+
+3. **Financial Risks**
+   - Cash flow problems
+   - Interest rate changes
+   - Loan repayment delays
+   - Cost overruns
+
+4. **Operational Risks**
+   - Skilled labor shortage
+   - Supply chain disruptions
+   - Regulatory changes
+   - Natural disasters
+
+**Risk Mitigation Strategies:**
+- Diversify product/service range
+- Maintain emergency fund
+- Insurance coverage
+- Backup suppliers
+- Regular maintenance
+- Market research
+
+**I can help you:**
+- Identify project-specific risks
+- Develop mitigation strategies
+- Create risk analysis section
+- Plan contingency measures
+
+Would you like me to create a risk analysis for your project?` + offlineModeNote;
+      
+      response.data.suggestions = [
+        'Create risk analysis',
+        'Risk mitigation strategies',
+        'Insurance guidance',
+        'Contingency planning',
+      ];
+    }
+    // Break-even analysis queries
+    else if (lowerMessage.includes('break even') || lowerMessage.includes('break-even') || lowerMessage.includes('profitability') || lowerMessage.includes('roi')) {
+      response.data.response = `Break-even and profitability analysis are crucial! Here's how to calculate:
+
+**Break-Even Analysis:**
+Break-even point = Fixed Costs / (Selling Price - Variable Cost per unit)
+
+**Key Financial Metrics:**
+1. **Break-Even Point**: When revenue = total costs
+2. **ROI (Return on Investment)**: (Net Profit / Investment) × 100
+3. **Payback Period**: Investment / Annual Net Profit
+4. **Profit Margin**: (Net Profit / Revenue) × 100
+
+**Typical Benchmarks:**
+- **ROI**: 25-40% is considered good for MSMEs
+- **Payback Period**: 2-4 years is reasonable
+- **Profit Margin**: 15-25% is healthy
+
+**Example Calculation:**
+- Investment: ₹25 lakhs
+- Annual Revenue: ₹48 lakhs
+- Annual Costs: ₹35 lakhs
+- Net Profit: ₹13 lakhs
+- ROI: (13/25) × 100 = 52%
+- Payback: 25/13 = 1.9 years
+
+**I can help you:**
+- Calculate break-even point
+- Estimate ROI for your project
+- Create financial projections
+- Analyze profitability
+
+Would you like me to calculate these metrics for your project?` + offlineModeNote;
+      
+      response.data.suggestions = [
+        'Calculate break-even',
+        'Estimate ROI',
+        'Financial projections',
+        'Profitability analysis',
       ];
     }
     // Financial queries
@@ -698,7 +1035,7 @@ Which option would you prefer?`;
 - Estimate subsidy eligibility
 - Create financial projections
 
-Would you like me to calculate the financial structure for your project?`;
+Would you like me to calculate the financial structure for your project?` + offlineModeNote;
       
       response.data.suggestions = [
         'Calculate loan amount',
@@ -729,7 +1066,7 @@ Would you like me to calculate the financial structure for your project?`;
 - 📝 **Manual Form**: Fill out all details yourself
 - 📄 **Upload Document**: Upload existing project information
 
-Which method would you prefer?`;
+Which method would you prefer?` + offlineModeNote;
       
       response.data.dprAction = {
         type: 'generate',
@@ -766,7 +1103,7 @@ Which method would you prefer?`;
 - Total investment amount
 - Your category (General/SC/ST/Women)
 
-Would you like me to check your eligibility for these schemes?`;
+Would you like me to check your eligibility for these schemes?` + offlineModeNote;
       
       response.data.suggestions = [
         'Check PMEGP eligibility',
@@ -820,7 +1157,14 @@ Would you like me to generate a market analysis section for your DPR?`;
 - Production capacity required
 - Location preferences
 
-Would you like me to create a technical feasibility section?`;
+Would you like me to create a technical feasibility section?` + offlineModeNote;
+      
+      response.data.suggestions = [
+        'Machinery cost estimates',
+        'Infrastructure planning',
+        'Technology recommendations',
+        'Raw material guidance',
+      ];
     }
     // Quality/improvement queries
     else if (lowerMessage.includes('quality') || lowerMessage.includes('improve') || lowerMessage.includes('better')) {
@@ -845,7 +1189,14 @@ Would you like me to create a technical feasibility section?`;
 - Generate missing sections
 - Review and enhance content
 
-Would you like me to analyze your DPR and provide specific recommendations?`;
+Would you like me to analyze your DPR and provide specific recommendations?` + offlineModeNote;
+      
+      response.data.suggestions = [
+        'DPR quality analysis',
+        'Improvement suggestions',
+        'Generate missing sections',
+        'Content review',
+      ];
     }
     // General help queries
     else if (lowerMessage.includes('help') || lowerMessage.includes('how') || lowerMessage.includes('what')) {

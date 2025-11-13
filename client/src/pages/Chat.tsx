@@ -7,9 +7,10 @@ import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { Navbar } from '@/components/layout/Navbar';
-import { Send, Mic, MicOff, Trash2, Database, Bot, Languages, Loader2, Copy, Check, Sparkles, Volume2, VolumeX } from 'lucide-react';
+import { Send, Mic, MicOff, Trash2, Database, Bot, Languages, Loader2, Copy, Check, Sparkles, Volume2, VolumeX, WifiOff, Info } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ttsService, TTSLanguage } from '@/lib/tts';
+import { OfflineDetector } from '@/lib/offlineDetector';
 
 export const Chat: React.FC = () => {
   const { t } = useTranslation();
@@ -29,6 +30,7 @@ export const Chat: React.FC = () => {
   const [voiceLanguage, setVoiceLanguage] = useState<'en' | 'te'>('en');
   const [copiedMessageId, setCopiedMessageId] = useState<number | null>(null);
   const [speakingMessageId, setSpeakingMessageId] = useState<number | null>(null);
+  const [isOffline, setIsOffline] = useState(!OfflineDetector.getStatus());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -37,6 +39,14 @@ export const Chat: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
     loadVectorStores();
+    
+    // Monitor offline status
+    const unsubscribe = OfflineDetector.addListener((online) => {
+      setIsOffline(!online);
+    });
+    setIsOffline(!OfflineDetector.getStatus());
+    
+    return unsubscribe;
   }, [messages]);
 
   // Load voices when component mounts
@@ -343,6 +353,34 @@ export const Chat: React.FC = () => {
     t('chat.helpWithFinancial'),
   ];
 
+  // Offline mode example questions - loaded from Q&A database
+  const [offlineExampleQuestions, setOfflineExampleQuestions] = React.useState<string[]>([
+    'How do I create a DPR?',
+    'What is PMEGP scheme?',
+    'How do I calculate financial projections?',
+    'What licenses do I need?',
+    'What is break-even analysis?',
+    'Which government scheme is best for my project?',
+    'How do I write a market analysis?',
+    'What is technical feasibility?',
+  ]);
+
+  // Load example questions from Q&A database when offline
+  React.useEffect(() => {
+    if (isOffline) {
+      const loadExampleQuestions = async () => {
+        try {
+          const { getExampleQuestions } = await import('@/lib/offlineQAService');
+          const examples = getExampleQuestions(8);
+          setOfflineExampleQuestions(examples);
+        } catch (error) {
+          console.warn('Failed to load example questions from Q&A database:', error);
+        }
+      };
+      loadExampleQuestions();
+    }
+  }, [isOffline]);
+
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
       <Navbar />
@@ -360,7 +398,15 @@ export const Chat: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {useRAG && vectorStores.length > 0 && (
+              {isOffline && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-warning/10 border border-warning/20">
+                  <WifiOff className="h-4 w-4 text-warning" />
+                  <span className="text-xs font-medium text-warning">
+                    Offline Mode
+                  </span>
+                </div>
+              )}
+              {useRAG && vectorStores.length > 0 && !isOffline && (
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
                   <Database className="h-4 w-4 text-primary" />
                   <span className="text-xs font-medium text-primary">
@@ -444,6 +490,39 @@ export const Chat: React.FC = () => {
                   {t('chat.askMeAnything')}
                   </p>
                 </div>
+
+              {/* Offline Mode Indicator */}
+              {isOffline && (
+                <div className="w-full max-w-2xl bg-warning/10 border border-warning/20 rounded-xl p-4 mb-4">
+                  <div className="flex items-start gap-3">
+                    <WifiOff className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-foreground mb-1">Offline Mode Active</h3>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        You're currently offline. I can still help you with a wide range of questions using our comprehensive offline Q&A database containing pre-loaded knowledge about DPR creation, MSME schemes, financial planning, and business guidance.
+                      </p>
+                      <div className="bg-background/50 rounded-lg p-3 mt-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Info className="h-4 w-4 text-primary" />
+                          <span className="text-xs font-semibold text-foreground">I can answer questions about:</span>
+                        </div>
+                        <ul className="text-xs text-muted-foreground space-y-1 ml-6 list-disc">
+                          <li>DPR creation and structure</li>
+                          <li>Government schemes (PMEGP, MUDRA, CGTMSE, Stand-Up India)</li>
+                          <li>Financial calculations (ROI, break-even, projections)</li>
+                          <li>Market analysis and technical feasibility</li>
+                          <li>Registration and licensing requirements</li>
+                          <li>Risk analysis and business planning</li>
+                          <li>Loan calculations and eligibility</li>
+                        </ul>
+                        <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
+                          💡 All answers are retrieved from our local Q&A database, ensuring fast responses even without internet.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
                     {exampleQuestions.map((question, index) => (
@@ -458,6 +537,28 @@ export const Chat: React.FC = () => {
                   </button>
                     ))}
                 </div>
+
+              {/* Offline Mode Example Questions */}
+              {isOffline && (
+                <div className="w-full max-w-2xl mt-4">
+                  <h3 className="text-sm font-semibold text-foreground mb-3 text-center">
+                    More Questions I Can Answer Offline:
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {offlineExampleQuestions.map((question, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSend(question)}
+                        className="p-3 text-left rounded-lg border border-border/50 hover:border-primary/30 hover:bg-muted/30 transition-colors group bg-background/50"
+                      >
+                        <p className="text-xs font-medium text-foreground group-hover:text-primary">
+                          {question}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               </div>
             )}
 
