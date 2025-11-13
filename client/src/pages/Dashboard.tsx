@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import { Layout } from '@/components/layout/Layout';
@@ -33,6 +34,7 @@ interface DPR {
 }
 
 export const Dashboard: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [dprs, setDprs] = useState<DPR[]>([]);
@@ -150,10 +152,10 @@ export const Dashboard: React.FC = () => {
   };
 
   const getQualityLabel = (score?: number) => {
-    if (!score) return 'Not Analyzed';
-    if (score >= 80) return 'Excellent';
-    if (score >= 60) return 'Good';
-    return 'Needs Improvement';
+    if (!score) return t('dashboard.notAnalyzed');
+    if (score >= 80) return t('dashboard.excellent');
+    if (score >= 60) return t('dashboard.good');
+    return t('dashboard.needsImprovement');
   };
 
   if (loading) {
@@ -162,7 +164,7 @@ export const Dashboard: React.FC = () => {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading dashboard...</p>
+            <p className="text-muted-foreground">{t('dashboard.loadingDashboard')}</p>
           </div>
         </div>
       </Layout>
@@ -176,10 +178,10 @@ export const Dashboard: React.FC = () => {
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-secondary p-8 text-white">
           <div className="relative z-10">
             <h1 className="text-4xl font-bold mb-2">
-              Welcome back, {user?.name}! 👋
+              {t('dashboard.welcomeBack', { name: user?.name })}
             </h1>
             <p className="text-white/90 text-lg mb-6">
-              Manage your Detailed Project Reports and track your business growth
+              {t('dashboard.manageDPRsAndTrack')}
             </p>
             <Button
               onClick={() => navigate('/dpr/builder')}
@@ -187,7 +189,7 @@ export const Dashboard: React.FC = () => {
               className="bg-white text-primary hover:bg-white/90 shadow-lg"
             >
               <Sparkles className="h-5 w-5 mr-2" />
-              Create New DPR
+              {t('dashboard.createNewDPR')}
               <ArrowRight className="h-5 w-5 ml-2" />
             </Button>
           </div>
@@ -202,7 +204,7 @@ export const Dashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Total DPRs
+                    {t('dashboard.totalDPRs')}
                   </p>
                   <h3 className="text-3xl font-bold text-primary">{stats.total}</h3>
                 </div>
@@ -218,7 +220,7 @@ export const Dashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Draft
+                    {t('dashboard.draft')}
                   </p>
                   <h3 className="text-3xl font-bold text-warning">{stats.draft}</h3>
                 </div>
@@ -234,7 +236,7 @@ export const Dashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Submitted
+                    {t('dashboard.submitted')}
                   </p>
                   <h3 className="text-3xl font-bold text-secondary">{stats.submitted}</h3>
                 </div>
@@ -250,7 +252,7 @@ export const Dashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Avg Quality
+                    {t('dashboard.avgQuality')}
                   </p>
                   <h3 className={`text-3xl font-bold ${getQualityColor(stats.avgQualityScore)}`}>
                     {stats.avgQualityScore || 'N/A'}
@@ -273,8 +275,8 @@ export const Dashboard: React.FC = () => {
                   <Sparkles className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle>AI-Powered Insights</CardTitle>
-                  <CardDescription>Personalized recommendations for your business</CardDescription>
+                  <CardTitle>{t('dashboard.aiPoweredInsights')}</CardTitle>
+                  <CardDescription>{t('dashboard.personalizedRecommendations')}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -282,15 +284,15 @@ export const Dashboard: React.FC = () => {
               <div className="grid md:grid-cols-2 gap-4">
                 {insights.topSector && (
                   <div className="p-4 rounded-lg bg-white/50 border border-primary/10">
-                    <p className="text-sm text-muted-foreground mb-1">Top Business Sector</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t('dashboard.topBusinessSector')}</p>
                     <p className="text-xl font-bold text-primary">{insights.topSector.name}</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {insights.topSector.count} {insights.topSector.count === 1 ? 'project' : 'projects'}
+                      {insights.topSector.count} {insights.topSector.count === 1 ? t('dashboard.project') : t('dashboard.projects')}
                     </p>
                   </div>
                 )}
                 <div className="p-4 rounded-lg bg-white/50 border border-primary/10">
-                  <p className="text-sm text-muted-foreground mb-1">Average DPR Quality</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t('dashboard.averageDPRQuality')}</p>
                   <p className={`text-xl font-bold ${getQualityColor(insights.avgQuality)}`}>
                     {insights.avgQuality || 'N/A'}
                   </p>
@@ -308,16 +310,16 @@ export const Dashboard: React.FC = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle>Your DPRs</CardTitle>
-                <CardDescription>Manage and track your Detailed Project Reports</CardDescription>
+                <CardTitle>{t('dashboard.yourDPRs')}</CardTitle>
+                <CardDescription>{t('dashboard.manageDPRs')}</CardDescription>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => navigate('/dprs')}>
-                  View All DPRs
+                  {t('dashboard.viewAllDPRs')}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
                 <Button variant="outline" onClick={() => navigate('/projects')}>
-                  View Projects
+                  {t('dashboard.viewProjects')}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
@@ -329,13 +331,13 @@ export const Dashboard: React.FC = () => {
                 <div className="h-20 w-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
                   <FileText className="h-10 w-10 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">No DPRs yet</h3>
+                <h3 className="text-xl font-semibold mb-2">{t('dashboard.noDPRsYet')}</h3>
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  Create your first Detailed Project Report to get started with AI-powered business planning
+                  {t('dashboard.createFirstDPR')}
                 </p>
                 <Button onClick={() => navigate('/dpr/builder')} size="lg">
                   <Sparkles className="h-5 w-5 mr-2" />
-                  Create Your First DPR
+                  {t('dashboard.createYourFirstDPR')}
                 </Button>
               </div>
             ) : (
@@ -353,17 +355,17 @@ export const Dashboard: React.FC = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1">
                           <h4 className="font-semibold text-lg">
-                            {dpr.projectId?.projectName || 'Untitled Project'}
+                            {dpr.projectId?.projectName || t('dashboard.untitledProject')}
                           </h4>
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(dpr.status)}`}>
                             {getStatusIcon(dpr.status)}
-                            {dpr.status ? (dpr.status.charAt(0).toUpperCase() + dpr.status.slice(1)) : 'Unknown'}
+                            {dpr.status ? (dpr.status.charAt(0).toUpperCase() + dpr.status.slice(1)) : t('dashboard.unknown')}
                           </span>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{dpr.projectId?.industrySector || 'Unknown Sector'}</span>
+                          <span>{dpr.projectId?.industrySector || t('dashboard.unknownSector')}</span>
                           <span>•</span>
-                          <span>Version {dpr.versionNumber}</span>
+                          <span>{t('dashboard.version')} {dpr.versionNumber}</span>
                           <span>•</span>
                           <span>{formatDate(dpr.generatedAt || dpr.createdAt || new Date())}</span>
                         </div>
@@ -390,7 +392,7 @@ export const Dashboard: React.FC = () => {
                         className="opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Eye className="h-4 w-4 mr-2" />
-                        View
+                        {t('dashboard.view')}
                       </Button>
                     </div>
                   </div>
@@ -403,8 +405,8 @@ export const Dashboard: React.FC = () => {
         {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Access frequently used features</CardDescription>
+            <CardTitle>{t('dashboard.quickActions')}</CardTitle>
+            <CardDescription>{t('dashboard.accessFrequentlyUsed')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -415,8 +417,8 @@ export const Dashboard: React.FC = () => {
                 <div className="h-12 w-12 rounded-lg bg-white/20 flex items-center justify-center">
                   <FolderPlus className="h-6 w-6" />
                 </div>
-                <span className="font-semibold">Create New DPR</span>
-                <span className="text-sm opacity-90">AI-Guided Builder</span>
+                <span className="font-semibold">{t('dashboard.createNewDPR')}</span>
+                <span className="text-sm opacity-90">{t('dashboard.aiGuidedBuilder')}</span>
               </Button>
               <Button
                 onClick={() => navigate('/chat')}
@@ -426,8 +428,8 @@ export const Dashboard: React.FC = () => {
                 <div className="h-12 w-12 rounded-lg bg-secondary/10 flex items-center justify-center">
                   <MessageSquare className="h-6 w-6 text-secondary" />
                 </div>
-                <span className="font-semibold">AI Assistant</span>
-                <span className="text-sm text-muted-foreground">Get instant help</span>
+                <span className="font-semibold">{t('nav.chat')}</span>
+                <span className="text-sm text-muted-foreground">{t('dashboard.getInstantHelp')}</span>
               </Button>
               <Button
                 onClick={() => navigate('/projects')}
@@ -437,8 +439,8 @@ export const Dashboard: React.FC = () => {
                 <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Building className="h-6 w-6 text-primary" />
                 </div>
-                <span className="font-semibold">My Projects</span>
-                <span className="text-sm text-muted-foreground">View all projects</span>
+                <span className="font-semibold">{t('dashboard.myProjects')}</span>
+                <span className="text-sm text-muted-foreground">{t('dashboard.viewAllProjects')}</span>
               </Button>
             </div>
           </CardContent>

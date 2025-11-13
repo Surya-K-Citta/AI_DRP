@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
@@ -25,6 +26,7 @@ import { downloadBlob } from '@/lib/utils';
 import { FormattedText } from '@/utils/textFormatter';
 
 export const DPRPreview: React.FC = () => {
+  const { t } = useTranslation();
   const { dprId } = useParams();
   const navigate = useNavigate();
   const [dpr, setDpr] = useState<any>(null);
@@ -306,9 +308,9 @@ export const DPRPreview: React.FC = () => {
                   value={viewLanguage}
                   onChange={(e) => setViewLanguage(e.target.value as 'english' | 'telugu')}
                 >
-                  <option value="english">English</option>
+                  <option value="english">{t('dpr.english')}</option>
                   <option value="telugu" disabled={!hasTelugu}>
-                    Telugu {!hasTelugu && '(Not Available)'}
+                    {t('dpr.telugu')} {!hasTelugu && `(${t('dpr.notAvailable')})`}
                   </option>
                 </select>
                 {!hasTelugu && viewLanguage === 'english' && (
@@ -321,12 +323,12 @@ export const DPRPreview: React.FC = () => {
                     {translating ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Translating...
+                        {t('dpr.translating')}
                       </>
                     ) : (
                       <>
                         <Languages className="h-4 w-4 mr-2" />
-                        Translate to Telugu
+                        {t('dpr.translateToTelugu')}
                       </>
                     )}
                   </Button>

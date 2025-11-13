@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -40,6 +41,7 @@ type SortOrder = 'asc' | 'desc';
 type StatusFilter = 'all' | 'draft' | 'submitted' | 'approved' | 'rejected';
 
 export const AllDPRs: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
@@ -366,11 +368,11 @@ export const AllDPRs: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold">{isAdmin ? 'DPR Management' : 'All DPRs'}</h1>
+            <h1 className="text-3xl font-bold">{isAdmin ? t('dprs.dprManagement') : t('dprs.allDPRs')}</h1>
             <p className="text-muted-foreground mt-1">
               {isAdmin 
-                ? `Review and manage all DPRs in the system (${filteredDprs.length} ${filteredDprs.length === 1 ? 'DPR' : 'DPRs'})`
-                : `View and manage all your Detailed Project Reports (${filteredDprs.length} ${filteredDprs.length === 1 ? 'DPR' : 'DPRs'})`
+                ? `${t('dprs.reviewManage')} (${filteredDprs.length} ${filteredDprs.length === 1 ? t('dprs.dpr') : t('dprs.dprs')})`
+                : `${t('dprs.viewManage')} (${filteredDprs.length} ${filteredDprs.length === 1 ? t('dprs.dpr') : t('dprs.dprs')})`
               }
             </p>
           </div>

@@ -32,7 +32,7 @@ export const DPRGeneration: React.FC = () => {
       const response = await api.getProject(projectId!);
       setProject(response.data || response);
     } catch (error) {
-      toast.error('Failed to load project');
+      toast.error(t('dpr.failedToLoad'));
     }
   };
 

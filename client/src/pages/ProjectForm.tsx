@@ -54,7 +54,7 @@ export const ProjectForm: React.FC = () => {
         inputs: project.inputs || { businessDescription: '', targetMarket: '' },
       });
     } catch (error) {
-      toast.error('Failed to load project');
+      toast.error(t('projects.failedToLoadProject'));
     }
   };
 
@@ -82,7 +82,7 @@ export const ProjectForm: React.FC = () => {
       
       navigate('/projects');
     } catch (error) {
-      toast.error(id ? 'Failed to update project' : 'Failed to create project');
+      toast.error(id ? t('projects.failedToUpdateProject') : t('projects.failedToCreateProject'));
     } finally {
       setIsLoading(false);
     }
@@ -100,10 +100,10 @@ export const ProjectForm: React.FC = () => {
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-secondary p-8 text-white mb-6">
           <div className="relative z-10">
             <h1 className="text-3xl font-bold mb-2">
-              {id ? 'Edit Project' : t('projects.create')}
+              {id ? t('projects.editProject') : t('projects.create')}
             </h1>
             <p className="text-white/90">
-              {id ? 'Update your project details' : 'Create a new project to start generating DPRs'}
+              {id ? t('projects.updateProjectDetails') : t('projects.createNewProjectStart')}
             </p>
           </div>
           <div className="absolute top-0 right-0 -mt-4 -mr-4 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
@@ -112,7 +112,7 @@ export const ProjectForm: React.FC = () => {
         <Card className="border-2 shadow-xl">
           <CardHeader>
             <CardTitle className="text-2xl">
-              Project Information
+              {t('projects.projectInformation')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -158,7 +158,7 @@ export const ProjectForm: React.FC = () => {
                   }
                   required
                 >
-                  <option value="">Select Industry Sector</option>
+                  <option value="">{t('projects.selectIndustrySector')}</option>
                   <option value="Manufacturing">Manufacturing</option>
                   <option value="Services">Services</option>
                   <option value="Trading">Trading</option>
@@ -189,7 +189,7 @@ export const ProjectForm: React.FC = () => {
               </div>
 
               <Input
-                label="Sub-Sector (Optional)"
+                label={t('projects.subSector')}
                 value={formData.subSector}
                 onChange={(e) =>
                   setFormData({ ...formData, subSector: e.target.value })
@@ -256,7 +256,7 @@ export const ProjectForm: React.FC = () => {
                       },
                     })
                   }
-                  placeholder="Describe your business idea..."
+                  placeholder={t('projects.describeBusiness')}
                 />
               </div>
 
@@ -276,7 +276,7 @@ export const ProjectForm: React.FC = () => {
                       },
                     })
                   }
-                  placeholder="Describe your target market..."
+                  placeholder={t('projects.describeTargetMarket')}
                 />
               </div>
 

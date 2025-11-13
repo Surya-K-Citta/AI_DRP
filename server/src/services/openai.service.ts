@@ -816,58 +816,134 @@ Return only valid JSON without markdown formatting.`;
   }
 
   /**
-   * Transcribe audio using Whisper API
-   * Supports English ('en') and Telugu (auto-detect)
-   * Note: Whisper API doesn't support 'te' language code directly.
-   * For Telugu, we omit the language parameter to let Whisper auto-detect.
+   * Transcribe audio using OpenAI Whisper API
+   * Uses OpenAI API key for transcription
+   * Supports English ('en') and Telugu ('te')
+   * 
+   * For Telugu: Explicitly sets language to 'te' to ensure accurate Telugu transcription
+   * and prevent misidentification as Bengali or other languages
+   * 
+   * @param audioFile - Audio file buffer
+   * @param language - 'en' for English, 'te' for Telugu
+   * @returns Transcribed text
    */
   static async transcribeAudio(audioFile: Buffer, language?: 'en' | 'te'): Promise<string> {
     try {
+      // Determine language parameter for Whisper API
+      // - 'en' for English (explicit language specification)
+      // - 'te' for Telugu (explicit language specification to prevent misidentification)
+      const languageParam = language === 'te' ? 'te' : (language === 'en' ? 'en' : undefined);
+      
+      if (language === 'te') {
+        console.log('🔊 Transcribing Telugu audio using Whisper API with language="te"');
+      } else {
+        console.log(`🔊 Transcribing ${language || 'audio'} using Whisper API`);
+      }
+
       // OpenAI SDK for Node.js accepts File objects or streams
       // Create a File object from buffer (works in both browser and Node.js with proper polyfill)
-      const file = new File([audioFile], 'audio.webm', { type: 'audio/webm' });
+      let file: any;
       
-      // Whisper API language parameter:
-      // - 'en' for English (explicit)
-      // - undefined for auto-detect (works well for Telugu and other languages)
-      // Note: 'te' is not a supported language code in Whisper API
-      const languageParam = language === 'en' ? 'en' : undefined;
+      try {
+        // Try using File API first (if available)
+        file = new File([audioFile], 'audio.webm', { type: 'audio/webm' });
+      } catch (fileError) {
+        // If File API is not available (Node.js environment), use Readable stream
+        const { Readable } = require('stream');
+        file = Readable.from([audioFile]);
+      }
       
-      const response = await openai.audio.transcriptions.create({
+      // Call OpenAI Whisper API using the configured API key
+      // For Telugu, explicitly set language='te' to ensure correct transcription
+      const transcriptionParams: any = {
         file: file,
-        model: 'whisper-1',
-        language: languageParam, // 'en' for English, undefined for auto-detect (Telugu)
-      });
+        model: 'whisper-1', // Using Whisper-1 model
+      };
+      
+      // Only set language parameter if specified (for both English and Telugu)
+      if (languageParam) {
+        transcriptionParams.language = languageParam;
+      }
+      
+      // For Telugu, add prompt to help Whisper identify it correctly
+      if (language === 'te') {
+        transcriptionParams.prompt = 'This is Telugu language audio. Transcribe in Telugu script.';
+      }
+      
+      const response = await openai.audio.transcriptions.create(transcriptionParams);
 
-      return response.text;
+      const transcribedText = response.text;
+      
+      if (language === 'te') {
+        console.log(`✅ Telugu transcription completed: ${transcribedText.substring(0, 50)}...`);
+      }
+      
+      return transcribedText;
     } catch (error: any) {
-      console.error('Error transcribing audio:', error);
+      console.error('❌ Error transcribing audio with Whisper API:', error);
+      
       // Log more details for debugging
       if (error.message) {
         console.error('Error message:', error.message);
       }
-      // If File API is not available, try alternative approach
+      
+      // If 'te' language code is not supported, try with prompt only (auto-detect with guidance)
+      if (language === 'te' && (error.message?.includes("Language 'te' is not supported") || error.code === 'unsupported_language')) {
+        console.log('⚠️  Language code "te" not supported, trying with prompt-based Telugu detection...');
+        try {
+          let file: any;
+          try {
+            file = new File([audioFile], 'audio.webm', { type: 'audio/webm' });
+          } catch {
+            const { Readable } = require('stream');
+            file = Readable.from([audioFile]);
+          }
+          
+          // Use prompt to guide Whisper to identify Telugu
+          const response = await openai.audio.transcriptions.create({
+            file: file,
+            model: 'whisper-1',
+            prompt: 'This audio is in Telugu language. Please transcribe it in Telugu script. The language is Telugu (తెలుగు), not Bengali or any other language.',
+          });
+          
+          console.log(`✅ Telugu transcription completed (prompt-based): ${response.text.substring(0, 50)}...`);
+          return response.text;
+        } catch (promptError: any) {
+          console.error('❌ Prompt-based transcription also failed:', promptError);
+          throw new Error(`Failed to transcribe Telugu audio: ${promptError.message || 'Unknown error'}`);
+        }
+      }
+      
+      // If File API error, try alternative approach with stream
       if (error.message?.includes('File is not defined') || error.name === 'ReferenceError') {
         try {
-          // Use buffer directly with Readable stream
+          console.log('🔄 Trying alternative transcription method with Readable stream...');
           const { Readable } = require('stream');
           const stream = Readable.from([audioFile]);
           
-          const languageParam = language === 'en' ? 'en' : undefined;
-          
-          const response = await openai.audio.transcriptions.create({
+          const transcriptionParams: any = {
             file: stream as any,
             model: 'whisper-1',
-            language: languageParam,
-          });
+          };
+          
+          if (languageParam) {
+            transcriptionParams.language = languageParam;
+          }
+          
+          if (language === 'te') {
+            transcriptionParams.prompt = 'This is Telugu language audio. Transcribe in Telugu script.';
+          }
+          
+          const response = await openai.audio.transcriptions.create(transcriptionParams);
           
           return response.text;
         } catch (fallbackError: any) {
-          console.error('Fallback transcription error:', fallbackError);
-          throw new Error(`Failed to transcribe audio: ${fallbackError.message || 'Unknown error'}`);
+          console.error('❌ Fallback transcription error:', fallbackError);
+          throw new Error(`Failed to transcribe audio using Whisper API: ${fallbackError.message || 'Unknown error'}`);
         }
       }
-      throw new Error(`Failed to transcribe audio: ${error.message || 'Unknown error'}`);
+      
+      throw new Error(`Failed to transcribe audio using Whisper API: ${error.message || 'Unknown error'}`);
     }
   }
 

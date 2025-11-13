@@ -65,10 +65,10 @@ export const Login: React.FC = () => {
             <Building2 className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
-            Welcome Back
+            {t('auth.welcomeBack')}
           </h1>
           <p className="text-muted-foreground">
-            Sign in to continue to MSME DPR Tool
+            {t('auth.signInContinue')}
           </p>
         </div>
 
@@ -76,7 +76,7 @@ export const Login: React.FC = () => {
           <CardHeader>
             <CardTitle className="text-2xl text-center">{t('auth.loginTitle')}</CardTitle>
             <CardDescription className="text-center">
-              Enter your credentials to access your account
+              {t('auth.enterCredentials')}
             </CardDescription>
           </CardHeader>
           <CardContent>
