@@ -43,7 +43,7 @@ export const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-white to-secondary/5 p-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 py-12">
       <div className="w-full max-w-lg">
         {/* Logo and Header */}
         <div className="text-center mb-8">
@@ -62,7 +62,7 @@ export const Register: React.FC = () => {
           </p>
         </div>
 
-        <Card className="border-2 shadow-xl">
+        <Card className="border shadow-sm">
           <CardHeader>
             <CardTitle className="text-2xl text-center">{t('auth.registerTitle')}</CardTitle>
             <CardDescription className="text-center">
@@ -140,7 +140,8 @@ export const Register: React.FC = () => {
               </div>
               <Button 
                 type="submit" 
-                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg mt-6" 
+                variant="secondary"
+                className="w-full h-12 text-base font-semibold shadow-lg mt-6" 
                 isLoading={isLoading}
               >
                 {!isLoading && <CheckCircle className="h-5 w-5 mr-2" />}

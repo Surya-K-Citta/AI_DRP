@@ -43,7 +43,7 @@ export const Navbar: React.FC = () => {
   ] : [];
 
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b border-border shadow-sm">
+    <nav className="sticky top-0 z-50 bg-background border-b border-border shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <a href="/" onClick={(e) => handleLinkClick(e, '/')} className="flex items-center space-x-3">
@@ -124,7 +124,7 @@ export const Navbar: React.FC = () => {
                   </Button>
                 </a>
                 <a href="/register" onClick={(e) => handleLinkClick(e, '/register')}>
-                  <Button size="sm" className="bg-primary hover:bg-primary/90">
+                  <Button variant="secondary" size="sm">
                     {t('common.register')}
                   </Button>
                 </a>

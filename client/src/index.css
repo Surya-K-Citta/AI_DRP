@@ -5,34 +5,34 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
+    --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
+    --card-foreground: 0 0% 3.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
-    /* Primary: Professional Deep Blue - #1E40AF (Indigo 800) - Trust, Professionalism */
-    --primary: 217 91% 40%;
-    --primary-foreground: 0 0% 100%;
-    /* Secondary: Corporate Teal - #0F766E (Teal 700) - Modern, Business */
-    --secondary: 173 80% 26%;
-    --secondary-foreground: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    /* Primary: Teal Green - #366e6b - Matching export-flow theme */
+    --primary: 175 35% 33%;
+    --primary-foreground: 0 0% 98%;
+    /* Secondary: Orange - #fd7933 - Matching export-flow theme */
+    --secondary: 18 98% 60%;
+    --secondary-foreground: 0 0% 98%;
     /* Success: Professional Green - #059669 (Emerald 600) - Growth, Success */
     --success: 160 84% 30%;
     --success-foreground: 0 0% 100%;
     /* Warning: Professional Amber - #D97706 (Amber 600) - Caution, Attention */
     --warning: 32 95% 44%;
     --warning-foreground: 0 0% 100%;
-    /* Error: Professional Red - #DC2626 (Red 600) - Error, Critical */
-    --destructive: 0 84% 50%;
+    /* Error: Red - #e40014 - Matching export-flow theme */
+    --destructive: 354 100% 45%;
     --destructive-foreground: 0 0% 100%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 217 91% 40%;
-    --radius: 0.5rem;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 18 98% 60%;
+    --accent-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 175 35% 33%;
+    --radius: 0.625rem;
   }
 
   .dark {

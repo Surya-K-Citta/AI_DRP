@@ -97,7 +97,7 @@ export const ProjectForm: React.FC = () => {
         </Button>
 
         {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-secondary p-8 text-white mb-6">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 p-8 text-white mb-6">
           <div className="relative z-10">
             <h1 className="text-3xl font-bold mb-2">
               {id ? t('projects.editProject') : t('projects.create')}
@@ -291,7 +291,8 @@ export const ProjectForm: React.FC = () => {
                 </Button>
                 <Button 
                   type="submit" 
-                  className="flex-1 bg-primary hover:bg-primary/90 text-white shadow-lg" 
+                  variant="secondary"
+                  className="flex-1 shadow-lg" 
                   isLoading={isLoading}
                 >
                   {id ? t('common.update') : t('common.create')}

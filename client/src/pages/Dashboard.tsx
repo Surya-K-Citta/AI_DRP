@@ -175,38 +175,26 @@ export const Dashboard: React.FC = () => {
     <Layout>
       <div className="space-y-8 pb-8">
         {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-secondary p-8 text-white">
-          <div className="relative z-10">
-            <h1 className="text-4xl font-bold mb-2">
-              {t('dashboard.welcomeBack', { name: user?.name })}
-            </h1>
-            <p className="text-white/90 text-lg mb-6">
-              {t('dashboard.manageDPRsAndTrack')}
-            </p>
-            <Button
-              onClick={() => navigate('/dpr/builder')}
-              size="lg"
-              className="bg-white text-primary hover:bg-white/90 shadow-lg"
-            >
-              <Sparkles className="h-5 w-5 mr-2" />
-              {t('dashboard.createNewDPR')}
-              <ArrowRight className="h-5 w-5 ml-2" />
-            </Button>
-          </div>
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">
+            {t('dashboard.welcomeBack', { name: user?.name })}
+          </h1>
+          <p className="text-muted-foreground">
+            {t('dashboard.manageDPRsAndTrack')}
+          </p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="border-l-4 border-l-primary hover:shadow-lg transition-shadow">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="hover:shadow-md transition-shadow">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
                     {t('dashboard.totalDPRs')}
                   </p>
-                  <h3 className="text-3xl font-bold text-primary">{stats.total}</h3>
+                  <h3 className="text-3xl font-bold text-foreground">{stats.total}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{stats.total} {t('dashboard.dprs')}</p>
                 </div>
                 <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
                   <FileText className="h-6 w-6 text-primary" />
@@ -215,14 +203,15 @@ export const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-warning hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-md transition-shadow">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
                     {t('dashboard.draft')}
                   </p>
-                  <h3 className="text-3xl font-bold text-warning">{stats.draft}</h3>
+                  <h3 className="text-3xl font-bold text-foreground">{stats.draft}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{stats.draft} {t('dashboard.drafts')}</p>
                 </div>
                 <div className="h-12 w-12 rounded-lg bg-warning/10 flex items-center justify-center">
                   <Clock className="h-6 w-6 text-warning" />
@@ -231,14 +220,15 @@ export const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-secondary hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-md transition-shadow">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
                     {t('dashboard.submitted')}
                   </p>
-                  <h3 className="text-3xl font-bold text-secondary">{stats.submitted}</h3>
+                  <h3 className="text-3xl font-bold text-foreground">{stats.submitted}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{stats.submitted} {t('dashboard.submitted')}</p>
                 </div>
                 <div className="h-12 w-12 rounded-lg bg-secondary/10 flex items-center justify-center">
                   <AlertCircle className="h-6 w-6 text-secondary" />
@@ -247,7 +237,7 @@ export const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-success hover:shadow-lg transition-shadow">
+          <Card className="hover:shadow-md transition-shadow">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -257,6 +247,7 @@ export const Dashboard: React.FC = () => {
                   <h3 className={`text-3xl font-bold ${getQualityColor(stats.avgQualityScore)}`}>
                     {stats.avgQualityScore || 'N/A'}
                   </h3>
+                  <p className="text-sm text-muted-foreground mt-1">{getQualityLabel(stats.avgQualityScore)}</p>
                 </div>
                 <div className="h-12 w-12 rounded-lg bg-success/10 flex items-center justify-center">
                   <BarChart3 className="h-6 w-6 text-success" />
@@ -268,7 +259,7 @@ export const Dashboard: React.FC = () => {
 
         {/* AI Insights */}
         {insights && (
-          <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <Card className="mb-8">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -283,15 +274,15 @@ export const Dashboard: React.FC = () => {
             <CardContent>
               <div className="grid md:grid-cols-2 gap-4">
                 {insights.topSector && (
-                  <div className="p-4 rounded-lg bg-white/50 border border-primary/10">
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
                     <p className="text-sm text-muted-foreground mb-1">{t('dashboard.topBusinessSector')}</p>
-                    <p className="text-xl font-bold text-primary">{insights.topSector.name}</p>
+                    <p className="text-xl font-bold text-foreground">{insights.topSector.name}</p>
                     <p className="text-sm text-muted-foreground mt-1">
                       {insights.topSector.count} {insights.topSector.count === 1 ? t('dashboard.project') : t('dashboard.projects')}
                     </p>
                   </div>
                 )}
-                <div className="p-4 rounded-lg bg-white/50 border border-primary/10">
+                <div className="p-4 rounded-lg bg-muted/50 border border-border">
                   <p className="text-sm text-muted-foreground mb-1">{t('dashboard.averageDPRQuality')}</p>
                   <p className={`text-xl font-bold ${getQualityColor(insights.avgQuality)}`}>
                     {insights.avgQuality || 'N/A'}
@@ -335,7 +326,7 @@ export const Dashboard: React.FC = () => {
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                   {t('dashboard.createFirstDPR')}
                 </p>
-                <Button onClick={() => navigate('/dpr/builder')} size="lg">
+                <Button variant="secondary" onClick={() => navigate('/dpr/builder')} size="lg">
                   <Sparkles className="h-5 w-5 mr-2" />
                   {t('dashboard.createYourFirstDPR')}
                 </Button>
@@ -345,7 +336,7 @@ export const Dashboard: React.FC = () => {
                 {dprs.slice(0, 8).map((dpr: DPR) => (
                   <div
                     key={dpr._id}
-                    className="group flex items-center justify-between p-5 border-2 rounded-xl hover:border-primary/50 hover:shadow-md transition-all cursor-pointer bg-white"
+                    className="group flex items-center justify-between p-5 border rounded-[14px] hover:border-primary/50 hover:shadow-md transition-all cursor-pointer bg-card"
                     onClick={() => navigate(`/dpr/view/${dpr._id}`)}
                   >
                     <div className="flex-1 flex items-center gap-4">
@@ -411,8 +402,9 @@ export const Dashboard: React.FC = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Button
+                variant="secondary"
                 onClick={() => navigate('/dpr/builder')}
-                className="h-28 flex-col gap-3 bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                className="h-28 flex-col gap-3"
               >
                 <div className="h-12 w-12 rounded-lg bg-white/20 flex items-center justify-center">
                   <FolderPlus className="h-6 w-6" />

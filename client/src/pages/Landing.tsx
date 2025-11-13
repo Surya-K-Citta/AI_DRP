@@ -112,7 +112,7 @@ export const Landing: React.FC = () => {
                 <Button variant="ghost">Sign In</Button>
               </a>
               <a href="/register" onClick={(e) => handleLinkClick(e, '/register')}>
-                <Button>Get Started</Button>
+                <Button variant="secondary">Get Started</Button>
               </a>
             </div>
           </div>
@@ -142,7 +142,7 @@ export const Landing: React.FC = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <a href="/register" onClick={(e) => handleLinkClick(e, '/register')}>
-                <Button size="lg" className="text-lg px-8 py-6 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg">
+                <Button variant="secondary" size="lg" className="text-lg px-8 py-6 shadow-lg">
                   <UserPlus className="mr-2 h-5 w-5" />
                   Get Started Free
                 </Button>

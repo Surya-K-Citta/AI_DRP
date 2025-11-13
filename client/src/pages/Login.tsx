@@ -57,7 +57,7 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-white to-secondary/5 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         {/* Logo and Header */}
         <div className="text-center mb-8">
@@ -76,7 +76,7 @@ export const Login: React.FC = () => {
           </p>
         </div>
 
-        <Card className="border-2 shadow-xl">
+        <Card className="border shadow-sm">
           <CardHeader>
             <CardTitle className="text-2xl text-center">{t('auth.loginTitle')}</CardTitle>
             <CardDescription className="text-center">
@@ -109,7 +109,8 @@ export const Login: React.FC = () => {
               />
               <Button 
                 type="submit" 
-                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg" 
+                variant="primary"
+                className="w-full h-12 text-base font-semibold shadow-lg" 
                 isLoading={isLoading}
               >
                 {!isLoading && <ArrowRight className="h-5 w-5 mr-2" />}
