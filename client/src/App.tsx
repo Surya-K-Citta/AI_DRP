@@ -16,6 +16,7 @@ import { DPRPreview } from './pages/DPRPreview';
 import { AllDPRs } from './pages/AllDPRs';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminDocuments } from './pages/AdminDocuments';
+import { Profile } from './pages/Profile';
 import './i18n/config';
 
 function App() {
@@ -150,6 +151,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Chat />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           }
         />
