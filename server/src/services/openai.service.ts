@@ -1,5 +1,6 @@
 // @ts-nocheck
 import OpenAI from 'openai';
+import { WhisperTeluguService } from './whisper-telugu.service';
 import { IProject } from '../types';
 import { VectorStore } from '../models/VectorStore.model';
 import { RAGMetrics } from '../models/RAGMetrics.model';
@@ -816,37 +817,46 @@ Return only valid JSON without markdown formatting.`;
   }
 
   /**
-   * Transcribe audio using OpenAI Whisper API
-   * Uses OpenAI API key for transcription
-   * Supports English ('en') and Telugu ('te')
-   * 
-   * For Telugu: Explicitly sets language to 'te' to ensure accurate Telugu transcription
-   * and prevent misidentification as Bengali or other languages
+   * Transcribe audio using OpenAI Whisper API or Hugging Face Whisper Telugu model
+   * - For Telugu ('te'): Uses fine-tuned Hugging Face model (vasista22/whisper-telugu-base)
+   * - For English ('en') or undefined: Uses OpenAI Whisper API
    * 
    * @param audioFile - Audio file buffer
    * @param language - 'en' for English, 'te' for Telugu
+   * @param audioFormat - Audio format (webm, mp3, wav, etc.) - default: 'webm'
    * @returns Transcribed text
    */
-  static async transcribeAudio(audioFile: Buffer, language?: 'en' | 'te'): Promise<string> {
+  static async transcribeAudio(
+    audioFile: Buffer, 
+    language?: 'en' | 'te',
+    audioFormat: string = 'webm'
+  ): Promise<string> {
     try {
-      // Determine language parameter for Whisper API
-      // - 'en' for English (explicit language specification)
-      // - 'te' for Telugu (explicit language specification to prevent misidentification)
-      const languageParam = language === 'te' ? 'te' : (language === 'en' ? 'en' : undefined);
-      
+      // Use Hugging Face Whisper Telugu model for Telugu language
       if (language === 'te') {
-        console.log('🔊 Transcribing Telugu audio using Whisper API with language="te"');
-      } else {
-        console.log(`🔊 Transcribing ${language || 'audio'} using Whisper API`);
+        console.log('🔊 Transcribing Telugu audio using Hugging Face Whisper Telugu model (vasista22/whisper-telugu-base)');
+        try {
+          const transcription = await WhisperTeluguService.transcribe(audioFile, audioFormat);
+          return transcription;
+        } catch (error: any) {
+          console.error('❌ Hugging Face Whisper Telugu transcription failed:', error);
+          console.log('🔄 Falling back to OpenAI Whisper API for Telugu...');
+          // Fallback to OpenAI Whisper if Hugging Face model fails
+        }
       }
+      
+      // Use OpenAI Whisper API for English or as fallback
+      const languageParam = language === 'en' ? 'en' : undefined;
+      console.log(`🔊 Transcribing ${language || 'audio'} using OpenAI Whisper API`);
 
       // OpenAI SDK for Node.js accepts File objects or streams
       // Create a File object from buffer (works in both browser and Node.js with proper polyfill)
       let file: any;
+      const mimeType = `audio/${audioFormat}`;
       
       try {
         // Try using File API first (if available)
-        file = new File([audioFile], 'audio.webm', { type: 'audio/webm' });
+        file = new File([audioFile], `audio.${audioFormat}`, { type: mimeType });
       } catch (fileError) {
         // If File API is not available (Node.js environment), use Readable stream
         const { Readable } = require('stream');
@@ -865,9 +875,9 @@ Return only valid JSON without markdown formatting.`;
         transcriptionParams.language = languageParam;
       }
       
-      // For Telugu, add prompt to help Whisper identify it correctly
+      // For Telugu, add explicit prompt to ensure Telugu script output (not Hindi/Devanagari)
       if (language === 'te') {
-        transcriptionParams.prompt = 'This is Telugu language audio. Transcribe in Telugu script.';
+        transcriptionParams.prompt = 'This audio is in Telugu language (తెలుగు). Transcribe it in Telugu script only. Do not use Devanagari script. Use Telugu script characters like: అ ఆ ఇ ఈ ఉ ఊ ఋ ౠ ఎ ఏ ఐ ఒ ఓ ఔ క ఖ గ ఘ ఙ చ ఛ జ ఝ ఞ ట ఠ డ ఢ ణ త థ ద ధ న ప ఫ బ భ మ య ర ల వ శ ష స హ ళ ఱ.';
       }
       
       const response = await openai.audio.transcriptions.create(transcriptionParams);
@@ -892,18 +902,19 @@ Return only valid JSON without markdown formatting.`;
         console.log('⚠️  Language code "te" not supported, trying with prompt-based Telugu detection...');
         try {
           let file: any;
+          const mimeType = `audio/${audioFormat}`;
           try {
-            file = new File([audioFile], 'audio.webm', { type: 'audio/webm' });
+            file = new File([audioFile], `audio.${audioFormat}`, { type: mimeType });
           } catch {
             const { Readable } = require('stream');
             file = Readable.from([audioFile]);
           }
           
-          // Use prompt to guide Whisper to identify Telugu
+          // Use explicit prompt to ensure Telugu script (not Hindi/Devanagari)
           const response = await openai.audio.transcriptions.create({
             file: file,
             model: 'whisper-1',
-            prompt: 'This audio is in Telugu language. Please transcribe it in Telugu script. The language is Telugu (తెలుగు), not Bengali or any other language.',
+            prompt: 'This audio is in Telugu language (తెలుగు). Transcribe it in Telugu script only. Do not use Devanagari script. Use Telugu script characters like: అ ఆ ఇ ఈ ఉ ఊ ఋ ౠ ఎ ఏ ఐ ఒ ఓ ఔ క ఖ గ ఘ ఙ చ ఛ జ ఝ ఞ ట ఠ డ ఢ ణ త థ ద ధ న ప ఫ బ భ మ య ర ల వ శ ష స హ ళ ఱ. The language is Telugu, not Hindi, Bengali, or any other language.',
           });
           
           console.log(`✅ Telugu transcription completed (prompt-based): ${response.text.substring(0, 50)}...`);

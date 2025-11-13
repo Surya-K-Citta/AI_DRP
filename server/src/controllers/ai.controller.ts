@@ -177,6 +177,7 @@ export class AIController {
 
   /**
    * Transcribe audio using Whisper
+   * Supports both OpenAI Whisper (for English) and Hugging Face Whisper Telugu (for Telugu)
    */
   static async transcribe(req: AuthRequest, res: Response): Promise<void> {
     try {
@@ -191,9 +192,26 @@ export class AIController {
         return;
       }
 
+      // Detect audio format from MIME type
+      let audioFormat = 'webm'; // default
+      if (file.mimetype) {
+        if (file.mimetype.includes('webm')) {
+          audioFormat = 'webm';
+        } else if (file.mimetype.includes('mp3')) {
+          audioFormat = 'mp3';
+        } else if (file.mimetype.includes('wav')) {
+          audioFormat = 'wav';
+        } else if (file.mimetype.includes('ogg')) {
+          audioFormat = 'ogg';
+        } else if (file.mimetype.includes('m4a')) {
+          audioFormat = 'm4a';
+        }
+      }
+
       const transcription = await OpenAIService.transcribeAudio(
         file.buffer,
-        language as 'en' | 'te' | undefined
+        language as 'en' | 'te' | undefined,
+        audioFormat
       );
 
       res.status(200).json({
