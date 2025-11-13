@@ -26,7 +26,7 @@ import { downloadBlob } from '@/lib/utils';
 import { FormattedText } from '@/utils/textFormatter';
 
 export const DPRPreview: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { dprId } = useParams();
   const navigate = useNavigate();
   const [dpr, setDpr] = useState<any>(null);
@@ -41,6 +41,15 @@ export const DPRPreview: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [hasTelugu, setHasTelugu] = useState(false);
+
+  // Update i18n language when viewLanguage changes
+  useEffect(() => {
+    if (viewLanguage === 'telugu') {
+      i18n.changeLanguage('te');
+    } else {
+      i18n.changeLanguage('en');
+    }
+  }, [viewLanguage, i18n]);
 
   useEffect(() => {
     if (dprId) {
@@ -223,12 +232,12 @@ export const DPRPreview: React.FC = () => {
   };
 
   const sections = [
-    { key: 'executiveSummary', title: 'Executive Summary', icon: FileText },
-    { key: 'businessProfile', title: 'Business Profile', icon: FileText },
-    { key: 'marketAnalysis', title: 'Market Analysis', icon: BarChart3 },
-    { key: 'technicalFeasibility', title: 'Technical Feasibility', icon: CheckCircle },
-    { key: 'financialProjections', title: 'Financial Projections', icon: BarChart3 },
-    { key: 'conclusion', title: 'Conclusion', icon: CheckCircle },
+    { key: 'executiveSummary', titleKey: 'dpr.sections.executiveSummary', icon: FileText },
+    { key: 'businessProfile', titleKey: 'dpr.sections.businessProfile', icon: FileText },
+    { key: 'marketAnalysis', titleKey: 'dpr.sections.marketAnalysis', icon: BarChart3 },
+    { key: 'technicalFeasibility', titleKey: 'dpr.sections.technicalFeasibility', icon: CheckCircle },
+    { key: 'financialProjections', titleKey: 'dpr.sections.financialProjections', icon: BarChart3 },
+    { key: 'conclusion', titleKey: 'dpr.sections.conclusion', icon: CheckCircle },
   ];
 
   if (loading) {
@@ -237,7 +246,7 @@ export const DPRPreview: React.FC = () => {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading DPR...</p>
+            <p className="text-muted-foreground">{t('dpr.preview.loadingDPR')}</p>
           </div>
         </div>
       </Layout>
@@ -249,9 +258,9 @@ export const DPRPreview: React.FC = () => {
       <Layout>
         <div className="text-center py-12">
           <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
-          <p className="text-muted-foreground text-lg">DPR not found</p>
+          <p className="text-muted-foreground text-lg">{t('dpr.preview.dprNotFound')}</p>
           <Button onClick={() => navigate('/dashboard')} className="mt-4">
-            Back to Dashboard
+            {t('dpr.preview.backToDashboard')}
           </Button>
         </div>
       </Layout>
@@ -263,7 +272,7 @@ export const DPRPreview: React.FC = () => {
       <div className="max-w-6xl mx-auto space-y-6 pb-8">
         <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
+          {t('dpr.preview.backToDashboard')}
         </Button>
 
         {/* Header Section */}
@@ -271,7 +280,7 @@ export const DPRPreview: React.FC = () => {
           <div className="relative z-10">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h1 className="text-3xl font-bold mb-2">{project?.projectName || 'DPR Preview'}</h1>
+                <h1 className="text-3xl font-bold mb-2">{project?.projectName || t('dpr.preview.dprPreview')}</h1>
                 <p className="text-white/90">
                   {new Date(dpr.generatedAt || dpr.createdAt).toLocaleDateString()}
                 </p>
@@ -279,12 +288,12 @@ export const DPRPreview: React.FC = () => {
               <div className="flex items-center gap-3">
                 <span className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border ${getStatusColor(dpr.status || 'draft')} bg-white/10 backdrop-blur-sm`}>
                   {getStatusIcon(dpr.status || 'draft')}
-                  {dpr.status ? dpr.status.charAt(0).toUpperCase() + dpr.status.slice(1) : 'Draft'}
+                  {dpr.status ? t(`dpr.preview.${dpr.status}`) : t('dpr.preview.draft')}
                 </span>
                 {qualityScore !== null && (
                   <div className={`px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20`}>
                     <p className={`text-sm font-semibold ${getQualityColor(qualityScore)}`}>
-                      Quality: {qualityScore}/100
+                      {t('dpr.preview.quality')}: {qualityScore}/100
                     </p>
                   </div>
                 )}
@@ -306,7 +315,12 @@ export const DPRPreview: React.FC = () => {
                 <select
                   className="h-11 rounded-lg border-2 border-primary/20 bg-background px-4 py-2 text-sm font-medium focus:border-primary focus:outline-none"
                   value={viewLanguage}
-                  onChange={(e) => setViewLanguage(e.target.value as 'english' | 'telugu')}
+                  onChange={(e) => {
+                    const newLang = e.target.value as 'english' | 'telugu';
+                    setViewLanguage(newLang);
+                    // Change i18n language immediately
+                    i18n.changeLanguage(newLang === 'telugu' ? 'te' : 'en');
+                  }}
                 >
                   <option value="english">{t('dpr.english')}</option>
                   <option value="telugu" disabled={!hasTelugu}>
@@ -368,7 +382,7 @@ export const DPRPreview: React.FC = () => {
                     className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
                   >
                     <Send className="h-4 w-4 mr-2" />
-                    {submitting ? 'Submitting...' : 'Submit to Admin'}
+                    {submitting ? t('dpr.preview.submitting') : t('dpr.preview.submitToAdmin')}
                   </Button>
                 )}
               </div>
@@ -391,8 +405,8 @@ export const DPRPreview: React.FC = () => {
                   <BarChart3 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle>DPR Quality Analysis</CardTitle>
-                  <CardDescription>AI-powered comprehensive quality assessment</CardDescription>
+                  <CardTitle>{t('dpr.preview.dprQualityAnalysis')}</CardTitle>
+                  <CardDescription>{t('dpr.preview.aiPoweredComprehensiveQualityAssessment')}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -401,8 +415,8 @@ export const DPRPreview: React.FC = () => {
                 {/* Overall Score */}
                 <div className="flex items-center justify-between p-6 rounded-lg bg-white/50 border-2 border-primary/20">
                   <div>
-                    <span className="text-base font-semibold text-muted-foreground">Overall Quality Score</span>
-                    <p className="text-xs text-muted-foreground mt-1">Based on completeness, clarity, accuracy, and bankability</p>
+                    <span className="text-base font-semibold text-muted-foreground">{t('dpr.preview.overallQualityScore')}</span>
+                    <p className="text-xs text-muted-foreground mt-1">{t('dpr.preview.basedOnCompleteness')}</p>
                   </div>
                   <span className={`text-4xl font-bold ${getQualityColor(qualityScore)}`}>
                     {qualityScore}/100
@@ -412,7 +426,7 @@ export const DPRPreview: React.FC = () => {
                 {/* Detailed Metrics */}
                 {qualityFeedback.detailedMetrics && (
                   <div>
-                    <p className="text-sm font-semibold mb-4 text-muted-foreground">Quality Metrics Breakdown:</p>
+                    <p className="text-sm font-semibold mb-4 text-muted-foreground">{t('dpr.preview.qualityMetricsBreakdown')}</p>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                       {Object.entries(qualityFeedback.detailedMetrics).map(([key, value]: [string, any]) => (
                         <div key={key} className="p-3 rounded-lg bg-white/50 border border-primary/10">
@@ -441,7 +455,7 @@ export const DPRPreview: React.FC = () => {
                 {/* Section Scores */}
                 {qualityFeedback.sectionScores && (
                   <div>
-                    <p className="text-sm font-semibold mb-4 text-muted-foreground">Section-by-Section Scores:</p>
+                    <p className="text-sm font-semibold mb-4 text-muted-foreground">{t('dpr.preview.sectionBySectionScores')}</p>
                     <div className="space-y-3">
                       {Object.entries(qualityFeedback.sectionScores).map(([section, score]: [string, any]) => {
                         const sectionName = section.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
@@ -471,7 +485,7 @@ export const DPRPreview: React.FC = () => {
                 {/* Section Details */}
                 {qualityFeedback.sectionDetails && (
                   <div>
-                    <p className="text-sm font-semibold mb-4 text-muted-foreground">Detailed Section Analysis:</p>
+                    <p className="text-sm font-semibold mb-4 text-muted-foreground">{t('dpr.preview.detailedSectionAnalysis')}</p>
                     <div className="space-y-4">
                       {Object.entries(qualityFeedback.sectionDetails).map(([sectionName, details]: [string, any]) => (
                         <div key={sectionName} className="p-4 rounded-lg bg-white/50 border border-primary/10">
@@ -484,7 +498,7 @@ export const DPRPreview: React.FC = () => {
                           <div className="grid md:grid-cols-3 gap-3">
                             {details.strengths && details.strengths.length > 0 && (
                               <div>
-                                <p className="text-xs font-semibold text-success mb-2">Strengths:</p>
+                                <p className="text-xs font-semibold text-success mb-2">{t('dpr.preview.strengths')}:</p>
                                 <ul className="space-y-1">
                                   {details.strengths.map((strength: string, idx: number) => (
                                     <li key={idx} className="text-xs text-muted-foreground flex items-start gap-1">
@@ -497,7 +511,7 @@ export const DPRPreview: React.FC = () => {
                             )}
                             {details.weaknesses && details.weaknesses.length > 0 && (
                               <div>
-                                <p className="text-xs font-semibold text-warning mb-2">Weaknesses:</p>
+                                <p className="text-xs font-semibold text-warning mb-2">{t('dpr.preview.weaknesses')}:</p>
                                 <ul className="space-y-1">
                                   {details.weaknesses.map((weakness: string, idx: number) => (
                                     <li key={idx} className="text-xs text-muted-foreground flex items-start gap-1">
@@ -510,7 +524,7 @@ export const DPRPreview: React.FC = () => {
                             )}
                             {details.suggestions && details.suggestions.length > 0 && (
                               <div>
-                                <p className="text-xs font-semibold text-primary mb-2">Suggestions:</p>
+                                <p className="text-xs font-semibold text-primary mb-2">{t('dpr.preview.suggestions')}:</p>
                                 <ul className="space-y-1">
                                   {details.suggestions.map((suggestion: string, idx: number) => (
                                     <li key={idx} className="text-xs text-muted-foreground flex items-start gap-1">
@@ -531,7 +545,7 @@ export const DPRPreview: React.FC = () => {
                 {/* General Feedback */}
                 {qualityFeedback.feedback && qualityFeedback.feedback.length > 0 && (
                   <div>
-                    <p className="text-sm font-semibold mb-3 text-muted-foreground">General Feedback:</p>
+                    <p className="text-sm font-semibold mb-3 text-muted-foreground">{t('dpr.preview.generalFeedback')}:</p>
                     <div className="space-y-2">
                       {qualityFeedback.feedback.map((fb: string, idx: number) => (
                         <div key={idx} className="flex items-start gap-2 p-3 rounded-lg bg-white/50 border border-primary/10">
@@ -546,7 +560,7 @@ export const DPRPreview: React.FC = () => {
                 {/* Recommendations */}
                 {qualityFeedback.recommendations && qualityFeedback.recommendations.length > 0 && (
                   <div>
-                    <p className="text-sm font-semibold mb-3 text-muted-foreground">Recommendations for Improvement:</p>
+                    <p className="text-sm font-semibold mb-3 text-muted-foreground">{t('dpr.preview.recommendationsForImprovement')}:</p>
                     <div className="space-y-2">
                       {qualityFeedback.recommendations.map((rec: string, idx: number) => (
                         <div key={idx} className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
@@ -561,7 +575,7 @@ export const DPRPreview: React.FC = () => {
                 {/* Weak Sections */}
                 {qualityFeedback.weakSections && qualityFeedback.weakSections.length > 0 && (
                   <div>
-                    <p className="text-sm font-semibold mb-3 text-muted-foreground">Sections Needing Improvement:</p>
+                    <p className="text-sm font-semibold mb-3 text-muted-foreground">{t('dpr.preview.sectionsNeedingImprovement')}:</p>
                     <div className="flex flex-wrap gap-2">
                       {qualityFeedback.weakSections.map((section: string, idx: number) => (
                         <span key={idx} className="px-3 py-1.5 bg-warning/10 text-warning border border-warning/20 rounded-lg text-sm font-medium">
@@ -602,10 +616,10 @@ export const DPRPreview: React.FC = () => {
                         <SectionIcon className={`h-5 w-5 ${isWeak ? 'text-warning' : 'text-primary'}`} />
                       </div>
                       <div>
-                        <CardTitle className="text-xl">{section.title}</CardTitle>
+                        <CardTitle className="text-xl">{t(section.titleKey)}</CardTitle>
                         {isWeak && (
                           <CardDescription className="text-warning">
-                            This section needs improvement
+                            {t('dpr.preview.thisSectionNeedsImprovement')}
                           </CardDescription>
                         )}
                       </div>
@@ -618,7 +632,7 @@ export const DPRPreview: React.FC = () => {
                         className="border-2 hover:bg-primary/5 hover:border-primary"
                       >
                         <Edit2 className="h-4 w-4 mr-2" />
-                        Edit
+                        {t('dpr.preview.edit')}
                       </Button>
                     )}
                   </div>
@@ -630,7 +644,7 @@ export const DPRPreview: React.FC = () => {
                         className="w-full p-4 border-2 rounded-xl min-h-[300px] focus:border-primary focus:outline-none resize-none"
                         value={editedContent}
                         onChange={(e) => setEditedContent(e.target.value)}
-                        placeholder={`Enter ${section.title} content...`}
+                        placeholder={t('dpr.preview.enterContent', { section: t(section.titleKey) })}
                       />
                       <div className="flex justify-end gap-3">
                         <Button 
@@ -640,7 +654,7 @@ export const DPRPreview: React.FC = () => {
                           className="border-2"
                         >
                           <X className="h-4 w-4 mr-2" />
-                          Cancel
+                          {t('dpr.preview.cancel')}
                         </Button>
                         <Button 
                           onClick={handleSave} 
@@ -648,7 +662,7 @@ export const DPRPreview: React.FC = () => {
                           className="bg-primary hover:bg-primary/90 text-white"
                         >
                           <Save className="h-4 w-4 mr-2" />
-                          {saving ? 'Saving...' : 'Save Changes'}
+                          {saving ? t('dpr.preview.saving') : t('dpr.preview.saveChanges')}
                         </Button>
                       </div>
                     </div>
@@ -659,7 +673,7 @@ export const DPRPreview: React.FC = () => {
                       ) : (
                         <div className="text-center py-12 text-muted-foreground">
                           <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>No content available for this section</p>
+                          <p>{t('dpr.preview.noContentAvailable')}</p>
                         </div>
                       )}
                     </div>
