@@ -165,7 +165,6 @@ export const Dashboard: React.FC = () => {
               generateInsights(mockDprsData);
             }
             
-            toast.success('Using offline mode - Mock data loaded', { duration: 2000 });
             return; // Successfully loaded mock data, exit early
           }
         } catch (mockError) {

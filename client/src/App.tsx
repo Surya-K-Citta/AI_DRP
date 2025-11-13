@@ -17,7 +17,6 @@ import { AllDPRs } from './pages/AllDPRs';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminDocuments } from './pages/AdminDocuments';
 import { Profile } from './pages/Profile';
-import { OfflineIndicator } from './components/OfflineIndicator';
 import './i18n/config';
 
 function App() {
@@ -185,7 +184,6 @@ function App() {
 
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-      <OfflineIndicator />
     </Router>
   );
 }

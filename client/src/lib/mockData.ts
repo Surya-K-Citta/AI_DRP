@@ -1256,7 +1256,7 @@ You can now view your complete DPR document in the Projects section!`,
           data: {
             response: `🎯 **Let's Create Your DPR!**
 
-I'll guide you through creating a comprehensive Detailed Project Report (DPR) step by step. This process will help you create a bank-ready DPR even in offline mode.
+I'll guide you through creating a comprehensive Detailed Project Report (DPR) step by step. This process will help you create a bank-ready DPR.
 
 **What We'll Cover:**
 1. ✅ Project Name
@@ -1297,7 +1297,7 @@ ${firstQuestion}`,
         const response: any = {
           success: true,
           data: {
-            response: qaAnswer.answer + '\n\n💡 *You are in offline mode. This answer is from our pre-loaded knowledge base.*',
+            response: qaAnswer.answer,
             suggestions: qaAnswer.suggestions || [],
             nextSteps: [],
             ragContext: 'Offline Q&A Database',
@@ -1330,8 +1330,6 @@ ${firstQuestion}`,
       },
     };
 
-    // Add offline mode indicator
-    const offlineModeNote = '\n\n💡 *You are in offline mode. I can still help with a wide range of questions using pre-loaded knowledge!*';
 
     // Industry-specific queries
     if (lowerMessage.includes('food processing') || lowerMessage.includes('spice') || lowerMessage.includes('agriculture')) {
@@ -1361,7 +1359,7 @@ ${firstQuestion}`,
 - Identify suitable schemes
 - Plan infrastructure requirements
 
-Would you like to start creating your food processing project?` + offlineModeNote;
+Would you like to start creating your food processing project?`;
       
       response.data.suggestions = [
         'Create food processing project',
@@ -1402,7 +1400,7 @@ Would you like to start creating your food processing project?` + offlineModeNot
 - Market analysis for textiles
 - Scheme recommendations
 
-Ready to create your textile project?` + offlineModeNote;
+Ready to create your textile project?`;
       
       response.data.suggestions = [
         'Create textile project',
@@ -1446,7 +1444,7 @@ Ready to create your textile project?` + offlineModeNote;
 - Machinery cost estimation
 - Compliance requirements
 
-Let's start building your manufacturing project!` + offlineModeNote;
+Let's start building your manufacturing project!`;
       
       response.data.suggestions = [
         'Create manufacturing project',
@@ -1489,7 +1487,7 @@ Let's start building your manufacturing project!` + offlineModeNote;
 - Financial projections
 - Market analysis
 
-Ready to start your service business project?` + offlineModeNote;
+Ready to start your service business project?`;
       
       response.data.suggestions = [
         'Create service project',
@@ -1515,7 +1513,7 @@ Would you like to:
 - 💬 Answer questions through chat
 - 📄 Upload an existing document
 
-Which option would you prefer?` + offlineModeNote;
+Which option would you prefer?`;
       
       response.data.suggestions = [
         'Create a new project',
@@ -1568,7 +1566,7 @@ Which option would you prefer?` + offlineModeNote;
 - Create checklist for your sector
 - Guide through application process
 
-Which registration do you need help with?` + offlineModeNote;
+Which registration do you need help with?`;
       
       response.data.suggestions = [
         'Udyam registration guide',
@@ -1620,7 +1618,7 @@ Which registration do you need help with?` + offlineModeNote;
 - Create risk analysis section
 - Plan contingency measures
 
-Would you like me to create a risk analysis for your project?` + offlineModeNote;
+Would you like me to create a risk analysis for your project?`;
       
       response.data.suggestions = [
         'Create risk analysis',
@@ -1661,7 +1659,7 @@ Break-even point = Fixed Costs / (Selling Price - Variable Cost per unit)
 - Create financial projections
 - Analyze profitability
 
-Would you like me to calculate these metrics for your project?` + offlineModeNote;
+Would you like me to calculate these metrics for your project?`;
       
       response.data.suggestions = [
         'Calculate break-even',
@@ -1690,7 +1688,7 @@ Would you like me to calculate these metrics for your project?` + offlineModeNot
 - Estimate subsidy eligibility
 - Create financial projections
 
-Would you like me to calculate the financial structure for your project?` + offlineModeNote;
+Would you like me to calculate the financial structure for your project?`;
       
       response.data.suggestions = [
         'Calculate loan amount',
@@ -1721,7 +1719,7 @@ Would you like me to calculate the financial structure for your project?` + offl
 - 📝 **Manual Form**: Fill out all details yourself
 - 📄 **Upload Document**: Upload existing project information
 
-Which method would you prefer?` + offlineModeNote;
+Which method would you prefer?`;
       
       response.data.dprAction = {
         type: 'generate',
@@ -1758,7 +1756,7 @@ Which method would you prefer?` + offlineModeNote;
 - Total investment amount
 - Your category (General/SC/ST/Women)
 
-Would you like me to check your eligibility for these schemes?` + offlineModeNote;
+Would you like me to check your eligibility for these schemes?`;
       
       response.data.suggestions = [
         'Check PMEGP eligibility',
@@ -1812,7 +1810,7 @@ Would you like me to generate a market analysis section for your DPR?`;
 - Production capacity required
 - Location preferences
 
-Would you like me to create a technical feasibility section?` + offlineModeNote;
+Would you like me to create a technical feasibility section?`;
       
       response.data.suggestions = [
         'Machinery cost estimates',
@@ -1844,7 +1842,7 @@ Would you like me to create a technical feasibility section?` + offlineModeNote;
 - Generate missing sections
 - Review and enhance content
 
-Would you like me to analyze your DPR and provide specific recommendations?` + offlineModeNote;
+Would you like me to analyze your DPR and provide specific recommendations?`;
       
       response.data.suggestions = [
         'DPR quality analysis',

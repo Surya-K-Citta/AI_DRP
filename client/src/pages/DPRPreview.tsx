@@ -154,7 +154,6 @@ export const DPRPreview: React.FC = () => {
           const teluguContent = mockDpr.content?.telugu;
           setHasTelugu(teluguContent && Object.keys(teluguContent).length > 0);
           
-          toast.success('Using offline mode - Mock data loaded', { duration: 2000 });
           return; // Successfully loaded mock data
         } catch (mockError) {
           console.error('Failed to load mock DPR data:', mockError);
