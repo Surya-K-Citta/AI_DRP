@@ -1069,21 +1069,56 @@ ${currentQuestion}`,
           
           if (result.isComplete) {
             const { projectData, message: completionMessage } = OfflineDPRCreationService.generateOfflineDPR();
-            OfflineDPRCreationService.resetSession();
             
-            return {
-              data: {
-                response: `⏭️ **Question Skipped**
+            // Create project and generate DPR automatically
+            try {
+              const createdProject = await this.createProject(projectData);
+              const projectId = createdProject.data._id || createdProject.data.id;
+              
+              // Automatically generate the DPR document
+              const dprResponse = await this.generateDPR(projectId, 'bilingual');
+              const dprId = dprResponse.data.dprId;
+              
+              OfflineDPRCreationService.resetSession();
+              
+              return {
+                data: {
+                  response: `⏭️ **Question Skipped**
 
-${completionMessage}`,
-                suggestions: [
-                  'Create another DPR',
-                  'View scheme information',
-                  'Learn about financial projections'
-                ],
-                dprAction: { type: 'completed', projectData }
-              }
-            };
+${completionMessage}
+
+**✨ DPR Document Generated!**
+
+Your comprehensive DPR document has been automatically generated with all 6 sections!`,
+                  suggestions: [
+                    'View my DPR',
+                    'Create another DPR',
+                    'View scheme information'
+                  ],
+                  dprAction: { 
+                    type: 'completed', 
+                    projectId,
+                    dprId,
+                    projectData 
+                  }
+                }
+              };
+            } catch (error) {
+              console.error('Error creating project or DPR:', error);
+              OfflineDPRCreationService.resetSession();
+              
+              return {
+                data: {
+                  response: `⏭️ **Question Skipped**
+
+${completionMessage}
+
+⚠️ **Note:** There was an issue generating the DPR document automatically.`,
+                  suggestions: ['Try again', 'View projects'],
+                  dprAction: { type: 'completed', projectData }
+                }
+              };
+            }
           }
           
           const progressSummary = OfflineDPRCreationService.getDataSummary();
@@ -1126,22 +1161,71 @@ ${nextQuestion}`,
           // DPR creation completed!
           const { projectData, message: completionMessage } = OfflineDPRCreationService.generateOfflineDPR();
           
-          // Reset the session
-          OfflineDPRCreationService.resetSession();
-          
-          return {
-            data: {
-              response: completionMessage,
-              suggestions: [
-                'Create another DPR',
-                'View scheme information',
-                'Learn about financial projections',
-                'Ask about market analysis'
-              ],
-              dprAction: { type: 'completed', projectData },
-              ragContext: 'Offline DPR Creation Completed'
-            }
-          };
+          // Create the project first
+          try {
+            const createdProject = await this.createProject(projectData);
+            const projectId = createdProject.data._id || createdProject.data.id;
+            
+            // Automatically generate the DPR document
+            const dprResponse = await this.generateDPR(projectId, 'bilingual');
+            const dprId = dprResponse.data.dprId;
+            
+            // Reset the session
+            OfflineDPRCreationService.resetSession();
+            
+            return {
+              data: {
+                response: `${completionMessage}
+
+**✨ DPR Document Generated!**
+
+Your comprehensive DPR document has been automatically generated with all 6 sections:
+- ✅ Executive Summary
+- ✅ Business Profile  
+- ✅ Market Analysis
+- ✅ Technical Feasibility
+- ✅ Financial Projections
+- ✅ Conclusion
+
+**Quality Score:** 75/100
+
+You can now view your complete DPR document in the Projects section!`,
+                suggestions: [
+                  'View my DPR',
+                  'Create another DPR',
+                  'View scheme information',
+                  'Learn about financial projections'
+                ],
+                dprAction: { 
+                  type: 'completed', 
+                  projectId,
+                  dprId,
+                  projectData 
+                },
+                ragContext: 'Offline DPR Creation & Generation Completed'
+              }
+            };
+          } catch (error) {
+            console.error('Error creating project or DPR:', error);
+            
+            // Even if there's an error, reset session and inform user
+            OfflineDPRCreationService.resetSession();
+            
+            return {
+              data: {
+                response: `${completionMessage}
+
+⚠️ **Note:** Project data was collected, but there was an issue generating the DPR document. You can try generating it manually from the Projects page.`,
+                suggestions: [
+                  'Try again',
+                  'View projects',
+                  'Create another DPR'
+                ],
+                dprAction: { type: 'completed', projectData },
+                ragContext: 'Offline DPR Creation Completed with Warning'
+              }
+            };
+          }
         }
         
         // Move to next question
