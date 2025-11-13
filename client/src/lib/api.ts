@@ -230,8 +230,13 @@ class APIClient {
 
   // DPR endpoints
   async generateDPR(projectId: string, language: string = 'bilingual') {
-    const response = await this.client.post(`/dpr/generate/${projectId}`, { language });
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post(`/dpr/generate/${projectId}`, { language });
+        return response.data;
+      },
+      () => MockDataService.generateDPR(projectId, language)
+    );
   }
 
   async getDPR(dprId: string) {

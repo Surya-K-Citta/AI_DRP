@@ -529,10 +529,16 @@ export const createMockResponse = <T>(data: T, delay: number = 100): Promise<{ d
 export class MockDataService {
   // In-memory mutable project storage for offline editing
   private static offlineProjects: any[] = [...mockProjects];
+  private static offlineDPRs: any[] = [...mockDPRs];
   
   // Get all offline projects
   private static getOfflineProjects() {
     return this.offlineProjects;
+  }
+  
+  // Get all offline DPRs
+  private static getOfflineDPRs() {
+    return this.offlineDPRs;
   }
   
   // Auth
@@ -628,29 +634,343 @@ export class MockDataService {
   }
 
   // DPRs
+  static async generateDPR(projectId: string, language: string = 'bilingual') {
+    // Find the project
+    const project = this.getOfflineProjects().find(p => p._id === projectId);
+    if (!project) {
+      throw new Error('Project not found');
+    }
+    
+    // Generate DPR content based on project data
+    const dprId = 'dpr_offline_' + Date.now();
+    const formatCurrency = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
+    
+    // Calculate financial metrics
+    const totalInvestment = project.totalCost || 0;
+    const ownContribution = project.ownContribution || Math.round(totalInvestment * 0.25);
+    const loanAmount = project.loanAmount || (totalInvestment - ownContribution);
+    const estimatedRevenue = Math.round(totalInvestment * 1.8); // 180% of investment
+    const estimatedCosts = Math.round(estimatedRevenue * 0.65); // 65% costs
+    const netProfit = estimatedRevenue - estimatedCosts;
+    const roi = totalInvestment > 0 ? Math.round((netProfit / totalInvestment) * 100) : 0;
+    const paybackYears = totalInvestment > 0 ? (totalInvestment / netProfit).toFixed(1) : '0';
+    
+    const content: any = {};
+    
+    // Generate English content
+    if (language === 'english' || language === 'bilingual') {
+      content.english = {
+        executiveSummary: `This Detailed Project Report (DPR) presents a comprehensive analysis of ${project.projectName} located in ${project.location}. The project falls under the ${project.industrySector} sector and is structured as an ${project.projectType} venture.
+
+**Project Overview:**
+- Total Investment: ${formatCurrency(totalInvestment)} (${(totalInvestment/100000).toFixed(2)} lakhs)
+- Own Contribution: ${formatCurrency(ownContribution)} (${((ownContribution/totalInvestment)*100).toFixed(0)}%)
+- Loan Requirement: ${formatCurrency(loanAmount)} (${((loanAmount/totalInvestment)*100).toFixed(0)}%)
+- Expected ROI: ${roi}%
+- Payback Period: ${paybackYears} years
+
+${project.inputs?.businessDescription || 'The project aims to establish a competitive business in the sector with strong growth potential.'}
+
+**Financial Highlights:**
+- Estimated Annual Revenue: ${formatCurrency(estimatedRevenue)}
+- Operating Costs: ${formatCurrency(estimatedCosts)}
+- Net Profit (Year 1): ${formatCurrency(netProfit)}
+- Profit Margin: ${Math.round((netProfit/estimatedRevenue)*100)}%
+
+The project demonstrates strong financial viability with positive cash flows and reasonable payback period, making it an attractive opportunity for financing.`,
+
+        businessProfile: `**Business Name:** ${project.projectName}
+
+**Industry Sector:** ${project.industrySector}
+
+**Project Type:** ${project.projectType.charAt(0).toUpperCase() + project.projectType.slice(1)}
+
+**Location:** ${project.location}
+
+**Business Description:**
+${project.inputs?.businessDescription || 'This project aims to establish a viable business in the ' + project.industrySector + ' sector. The business model focuses on delivering quality products/services to the target market while maintaining competitive pricing and operational efficiency.'}
+
+**Objectives:**
+1. Establish a sustainable and profitable business in ${project.industrySector}
+2. Achieve operational break-even within 18-24 months
+3. Generate employment opportunities in the local area
+4. Maintain high quality standards and customer satisfaction
+5. Contribute to the local economy and community development
+
+**Unique Selling Propositions:**
+- Strategic location in ${project.location}
+- Focus on quality and customer service
+- Competitive pricing strategy
+- Experienced management team
+- Strong supplier and distribution networks`,
+
+        marketAnalysis: `**Market Overview:**
+The ${project.industrySector} sector presents significant opportunities for growth and profitability. The Indian market for this sector is expanding at a steady pace, driven by increasing consumer demand, rising income levels, and favorable government policies.
+
+**Target Market:**
+${project.inputs?.targetMarket || `The primary target market includes:
+- Individual consumers seeking quality products/services
+- B2B customers and institutional buyers
+- Retail and wholesale distribution channels
+- Export opportunities in international markets
+
+The target market demonstrates strong demand potential with increasing purchasing power and changing consumer preferences favoring quality and reliability.`}
+
+**Market Size and Growth:**
+- The addressable market size is estimated at several hundred crores
+- Annual growth rate: 10-15% CAGR
+- Increasing market penetration opportunities
+- Growing awareness and demand for quality products
+
+**Competitive Analysis:**
+The competitive landscape includes both organized and unorganized players. The project's competitive advantages include strategic location, quality focus, competitive pricing, and strong customer service orientation.
+
+**Marketing Strategy:**
+1. Direct marketing and sales promotions
+2. Digital marketing and online presence
+3. Distribution partnerships
+4. Customer relationship management
+5. Brand building and awareness campaigns
+
+**Market Entry Strategy:**
+The project will adopt a phased approach starting with local markets and gradually expanding to regional and national markets based on performance and capacity.`,
+
+        technicalFeasibility: `**Technical Specifications:**
+
+**Infrastructure:**
+- Land/Building Area: As per project requirements
+- Processing/Production Area: Adequate space for operations
+- Storage Facilities: Proper storage for raw materials and finished goods
+- Utilities: Power, water, and other essential utilities
+
+${project.inputs?.machinery ? `**Machinery & Equipment:**\n${project.inputs.machinery}\n\n` : `**Machinery & Equipment:**
+The project requires standard machinery and equipment suitable for ${project.industrySector} operations. All equipment will meet industry standards and regulatory requirements.
+
+`}${project.inputs?.rawMaterials ? `**Raw Materials:**\n${project.inputs.rawMaterials}\n\n` : `**Raw Materials:**
+Raw materials will be sourced from reliable suppliers with emphasis on quality, timely delivery, and competitive pricing. Local sourcing will be prioritized where feasible.
+
+`}${project.inputs?.manpower ? `**Manpower Requirements:**\n${project.inputs.manpower}\n\n` : `**Manpower Requirements:**
+The project will employ skilled and semi-skilled workers across various functions including production, quality control, administration, and sales/marketing.
+
+`}**Technology:**
+The project will utilize proven technology and processes that ensure efficiency, quality, and compliance with industry standards.
+
+**Quality Control:**
+Stringent quality control measures will be implemented at every stage to ensure product/service quality meets or exceeds customer expectations and regulatory requirements.
+
+**Capacity:**
+The project is designed for optimal capacity utilization with scope for expansion based on market demand and business growth.`,
+
+        financialProjections: `**Investment Summary:**
+- Total Project Cost: ${formatCurrency(totalInvestment)}
+- Own Contribution (${((ownContribution/totalInvestment)*100).toFixed(0)}%): ${formatCurrency(ownContribution)}
+- Bank Loan (${((loanAmount/totalInvestment)*100).toFixed(0)}%): ${formatCurrency(loanAmount)}
+
+**Cost Breakdown:**
+- Land & Building: ${formatCurrency(Math.round(totalInvestment * 0.30))}
+- Machinery & Equipment: ${formatCurrency(Math.round(totalInvestment * 0.40))}
+- Working Capital: ${formatCurrency(Math.round(totalInvestment * 0.20))}
+- Pre-operative Expenses: ${formatCurrency(Math.round(totalInvestment * 0.07))}
+- Contingency (3%): ${formatCurrency(Math.round(totalInvestment * 0.03))}
+
+**Revenue Projections (Annual):**
+- Year 1: ${formatCurrency(estimatedRevenue)}
+- Year 2: ${formatCurrency(Math.round(estimatedRevenue * 1.15))}
+- Year 3: ${formatCurrency(Math.round(estimatedRevenue * 1.32))}
+
+**Cost Projections (Annual):**
+- Raw Materials: ${formatCurrency(Math.round(estimatedCosts * 0.50))}
+- Labor: ${formatCurrency(Math.round(estimatedCosts * 0.25))}
+- Overheads: ${formatCurrency(Math.round(estimatedCosts * 0.15))}
+- Interest: ${formatCurrency(Math.round(loanAmount * 0.09))}
+- Depreciation: ${formatCurrency(Math.round(totalInvestment * 0.10))}
+
+**Profitability (Year 1):**
+- Gross Revenue: ${formatCurrency(estimatedRevenue)}
+- Total Costs: ${formatCurrency(estimatedCosts)}
+- Net Profit: ${formatCurrency(netProfit)}
+- Profit Margin: ${Math.round((netProfit/estimatedRevenue)*100)}%
+
+**Key Financial Metrics:**
+- Return on Investment (ROI): ${roi}%
+- Payback Period: ${paybackYears} years
+- Break-even Point: 12-18 months
+- Internal Rate of Return (IRR): ${roi + 5}%
+- Net Present Value (NPV): Positive
+
+**Loan Repayment:**
+- Loan Amount: ${formatCurrency(loanAmount)}
+- Interest Rate: 9% p.a. (indicative)
+- Tenure: 7 years with 1 year moratorium
+- Monthly EMI: ${formatCurrency(Math.round((loanAmount * 0.09 * Math.pow(1.09, 7)) / (Math.pow(1.09, 7) - 1) / 12))}
+
+**Working Capital:**
+The project maintains adequate working capital to cover 3 months of operational expenses, ensuring smooth operations and meeting financial obligations.
+
+**Cash Flow:**
+Positive cash flows are projected from Year 1 with gradual improvement as the business scales and operational efficiency improves.`,
+
+        conclusion: `**Project Viability:**
+Based on comprehensive analysis of market conditions, technical requirements, and financial projections, ${project.projectName} presents a viable and profitable business opportunity. The project demonstrates:
+
+**Strengths:**
+1. **Strong Market Demand:** The ${project.industrySector} sector shows consistent growth with robust market demand
+2. **Financial Viability:** Positive ROI of ${roi}% with payback period of ${paybackYears} years
+3. **Technical Feasibility:** Proven technology and processes with adequate infrastructure
+4. **Strategic Location:** Well-positioned in ${project.location} for market access
+5. **Management Capability:** Experienced team with sector knowledge
+
+**Growth Potential:**
+The project has significant scope for expansion and scaling operations based on market response. Future growth can be achieved through:
+- Market expansion to new geographies
+- Product/service line diversification
+- Technology upgrades and capacity enhancement
+- Strategic partnerships and collaborations
+
+**Risk Mitigation:**
+Identified risks including market competition, raw material price fluctuations, and regulatory changes have been assessed with appropriate mitigation strategies in place.
+
+**Recommendations:**
+1. **Immediate Action:** Secure financing and commence project implementation
+2. **Marketing Focus:** Build strong brand presence and distribution networks
+3. **Quality Emphasis:** Maintain stringent quality standards for customer satisfaction
+4. **Financial Discipline:** Monitor cash flows and maintain financial prudence
+5. **Continuous Improvement:** Regular review and optimization of operations
+
+**Social Impact:**
+The project will contribute to:
+- Employment generation for ${project.inputs?.manpower ? '10-15' : '8-12'} local individuals
+- Economic development in ${project.location}
+- Skill development and capacity building
+- Supply chain development supporting local suppliers
+
+**Government Support:**
+The project is eligible for various government schemes including PMEGP, MUDRA, and CGTMSE, providing access to subsidies and collateral-free financing.
+
+**Final Assessment:**
+${project.projectName} represents a well-planned, financially sound, and technically feasible project with strong potential for success and sustainability. With proper implementation and management, the project is expected to achieve its objectives and generate satisfactory returns for all stakeholders.
+
+**Approval Recommendation:** ✅ RECOMMENDED FOR FINANCING
+
+The project meets all criteria for bank financing and government scheme benefits, demonstrating sound business planning, market understanding, and financial viability.`
+      };
+    }
+    
+    // Generate Telugu content (simplified for offline mode)
+    if (language === 'telugu' || language === 'bilingual') {
+      content.telugu = {
+        executiveSummary: `${project.projectName} కోసం వివరణాత్మక ప్రాజెక్ట్ నివేదిక. ఈ ప్రాజెక్ట్ ${project.location}లో ${project.industrySector} రంగంలో స్థాపించబడుతుంది.
+
+**ప్రాజెక్ట్ సారాంశం:**
+- మొత్తం పెట్టుబడి: ${formatCurrency(totalInvestment)}
+- స్వంత వాటా: ${formatCurrency(ownContribution)}
+- రుణం: ${formatCurrency(loanAmount)}
+- ROI: ${roi}%
+- తిరిగి చెల్లించు కాలం: ${paybackYears} సంవత్సరాలు`,
+        
+        businessProfile: `**వ్యాపార పేరు:** ${project.projectName}
+**పరిశ్రమ రంగం:** ${project.industrySector}
+**ప్రాజెక్ట్ రకం:** ${project.projectType}
+**ప్రాంతం:** ${project.location}`,
+        
+        marketAnalysis: `${project.industrySector} రంగం బాగా అభివృద్ధి చెందుతోంది. మార్కెట్ డిమాండ్ మరియు అవకాశాలు బాగా ఉన్నాయి.`,
+        
+        technicalFeasibility: `సాంకేతిక అంశాలు మరియు అవసరాలు అన్నీ సరిగ్గా ఉన్నాయి. ప్రాజెక్ట్ సాంకేతికంగా సాధ్యమే.`,
+        
+        financialProjections: `**ఆర్థిక అంచనాలు:**
+- మొత్తం పెట్టుబడి: ${formatCurrency(totalInvestment)}
+- వార్షిక ఆదాయం: ${formatCurrency(estimatedRevenue)}
+- లాభం: ${formatCurrency(netProfit)}`,
+        
+        conclusion: `${project.projectName} ఒక లాభదాయకమైన మరియు సాధ్యమైన ప్రాజెక్ట్. ఆర్థిక మరియు సాంకేతిక అంశాలన్నీ బాగా ఉన్నాయి.`
+      };
+    }
+    
+    // Create DPR object
+    const newDPR = {
+      _id: dprId,
+      projectId: {
+        _id: project._id,
+        projectName: project.projectName,
+        industrySector: project.industrySector,
+      },
+      versionNumber: 1,
+      status: 'draft',
+      qualityScore: 75,
+      qualityFeedback: {
+        score: 75,
+        strengths: [
+          'Comprehensive business description',
+          'Clear financial projections',
+          'Well-defined market analysis',
+          'Strong technical feasibility',
+        ],
+        weakSections: [
+          'Risk analysis could be more detailed',
+          'Market research can be expanded',
+        ],
+        recommendations: [
+          'Add detailed competitor analysis',
+          'Include SWOT analysis',
+          'Expand on growth strategy',
+          'Add more financial scenarios',
+        ],
+      },
+      content,
+      generatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    // Add to offline DPRs
+    this.offlineDPRs.push(newDPR);
+    
+    // Update project status
+    const projectIndex = this.offlineProjects.findIndex(p => p._id === projectId);
+    if (projectIndex !== -1) {
+      this.offlineProjects[projectIndex].status = 'completed';
+    }
+    
+    console.log('📄 DPR generated in offline mode:', project.projectName);
+    
+    return createMockResponse({
+      dprId: newDPR._id,
+      content: newDPR.content,
+      qualityScore: newDPR.qualityScore,
+      generatedAt: newDPR.generatedAt,
+      status: newDPR.status,
+    });
+  }
+  
   static async getUserDPRs() {
     // Return in the format expected by the API client
     // Real API returns: { data: { dprs: [...], total: ... } } or { dprs: [...], total: ... }
     // We'll return: { dprs: [...], total: ... } directly
     return {
-      dprs: mockDPRs,
-      total: mockDPRs.length,
+      dprs: this.getOfflineDPRs(),
+      total: this.getOfflineDPRs().length,
     };
   }
 
   static async getDPR(dprId: string) {
-    const dpr = mockDPRs.find(d => d._id === dprId) || mockDPRs[0];
+    const dpr = this.getOfflineDPRs().find(d => d._id === dprId);
+    if (!dpr) {
+      throw new Error('DPR not found');
+    }
     // Return DPR directly (API client's handleRequest will return this)
     return dpr;
   }
 
   static async getProjectDPRs(projectId: string) {
-    const dprs = mockDPRs.filter(d => d.projectId._id === projectId);
+    const dprs = this.getOfflineDPRs().filter(d => d.projectId._id === projectId);
     return createMockResponse({ dprs, total: dprs.length });
   }
 
   static async analyzeDPRQuality(dprId: string) {
-    const dpr = mockDPRs.find(d => d._id === dprId) || mockDPRs[0];
+    const dpr = this.getOfflineDPRs().find(d => d._id === dprId);
+    if (!dpr) {
+      throw new Error('DPR not found');
+    }
     // Return in the format expected: { success: true, data: { score, strengths, weakSections, recommendations } }
     return {
       success: true,
