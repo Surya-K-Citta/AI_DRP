@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -38,18 +39,19 @@ interface StepData {
   eligibleSchemes?: any;
 }
 
-const STEPS = [
-  { id: 'business-overview', title: 'Business Overview', icon: Building2 },
-  { id: 'market-analysis', title: 'Market Analysis', icon: TrendingUp },
-  { id: 'cost-structure', title: 'Cost Structure', icon: DollarSign },
-  { id: 'financial-projections', title: 'Financial Projections', icon: FileText },
-  { id: 'eligible-schemes', title: 'Eligible Schemes', icon: Award },
-  { id: 'ai-review', title: 'AI Review', icon: Brain },
-];
-
 export const AIGuidedDPRBuilder: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { projectId } = useParams();
+  
+  const STEPS = [
+    { id: 'business-overview', title: t('dprBuilder.businessOverview.title'), icon: Building2 },
+    { id: 'market-analysis', title: t('dprBuilder.marketAnalysis.title'), icon: TrendingUp },
+    { id: 'cost-structure', title: t('dprBuilder.costStructure.title'), icon: DollarSign },
+    { id: 'financial-projections', title: t('dprBuilder.financialProjections.title'), icon: FileText },
+    { id: 'eligible-schemes', title: t('dprBuilder.eligibleSchemes.title'), icon: Award },
+    { id: 'ai-review', title: t('dprBuilder.aiReview.title'), icon: Brain },
+  ];
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -105,7 +107,7 @@ export const AIGuidedDPRBuilder: React.FC = () => {
         });
       }
     } catch (error) {
-      toast.error('Failed to load project');
+          toast.error(t('dprBuilder.errors.failedToLoadProject'));
     }
   };
 
@@ -138,60 +140,74 @@ export const AIGuidedDPRBuilder: React.FC = () => {
       
       switch (stepId) {
         case 'market-analysis':
-          prompt = `As an MSME business consultant, provide specific, actionable market analysis suggestions for a ${businessData.industrySector || 'business'} project named "${businessData.projectName || 'the project'}".
-          
+          prompt = `You are an MSME business consultant. Generate ACTUAL SAMPLE CONTENT (not guidance) for a ${businessData.industrySector || 'business'} project named "${businessData.projectName || 'the project'}".
+
+IMPORTANT: Generate REAL, READY-TO-USE sample content that can be directly filled into form fields. The user will edit this content.
+
 Current data entered:
 - Target Market: ${marketData.targetMarket || 'Not specified'}
 - Competitor Analysis: ${marketData.competitorAnalysis || 'Not specified'}
 
-Provide 3-5 specific suggestions including:
-1. Market size and growth potential for ${businessData.industrySector || 'this sector'}
-2. Key competitors to analyze and their strengths/weaknesses
-3. Target customer segments and their needs
-4. Market trends and opportunities
-5. Competitive advantages to highlight
+CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON:
+{
+  "targetMarket": "Complete sample text for target market field (200-300 words). Include: market segments, demographics, geographic coverage, customer types, market size estimates, distribution channels.",
+  "competitorAnalysis": "Complete sample text for competitor analysis field (200-300 words). Include: main competitors, their strengths/weaknesses, market share, pricing strategies, your competitive advantages."
+}
 
-Keep each suggestion concise (1-2 sentences) and actionable.`;
+Make the content realistic, specific to ${businessData.industrySector || 'the industry'}, and suitable for a bank-ready DPR. Use actual numbers, percentages, and specific examples where appropriate. Return ONLY the JSON object, nothing else.`;
           break;
           
         case 'cost-structure':
-          prompt = `As a financial consultant, provide CAPEX and OPEX guidance for a ${businessData.industrySector || 'business'} project.
-          
+          prompt = `You are a financial consultant. Generate ACTUAL SAMPLE VALUES (not guidance) for CAPEX and OPEX for a ${businessData.industrySector || 'business'} project.
+
+IMPORTANT: Generate REAL NUMBERS that can be directly filled into form fields. The user will edit these values.
+
 Current estimates:
 - CAPEX (Land & Building): ₹${costData?.capex?.landBuilding || 'Not specified'}
 - CAPEX (Machinery): ₹${costData?.capex?.machinery || 'Not specified'}
 - OPEX (Raw Materials/Month): ₹${costData?.opex?.rawMaterials || 'Not specified'}
 - OPEX (Salaries/Month): ₹${costData?.opex?.salaries || 'Not specified'}
 
-Provide specific suggestions for:
-1. Realistic cost estimates for ${businessData.industrySector || 'this sector'}
-2. Industry benchmarks for similar projects
-3. Cost optimization opportunities
-4. Items that might be missing from the cost structure
-5. Tips for bank-ready cost breakdown
+Project details:
+- Industry: ${businessData.industrySector || 'Not specified'}
+- Project Name: ${businessData.projectName || 'Not specified'}
+- Total Investment: ₹${(parseFloat(costData?.capex?.landBuilding || 0) + parseFloat(costData?.capex?.machinery || 0)).toLocaleString('en-IN') || 'Not specified'}
 
-Be specific with numbers and percentages where relevant.`;
+CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON with numeric values (not strings):
+{
+  "capex": {
+    "landBuilding": 500000,
+    "machinery": 1500000
+  },
+  "opex": {
+    "rawMaterials": 50000,
+    "salaries": 80000
+  }
+}
+
+Provide realistic values based on ${businessData.industrySector || 'the industry'} sector. If current values exist, use them as reference but suggest improvements if needed. Return ONLY the JSON object with numeric values, nothing else.`;
           break;
           
         case 'financial-projections':
-          prompt = `As a financial analyst, provide guidance for 3-5 year financial projections for a ${businessData.industrySector || 'business'} project.
-          
+          prompt = `You are a financial analyst. Provide guidance text for financial projections (this section already auto-generates numbers, so provide helpful guidance instead).
+
 Project details:
 - Industry: ${businessData.industrySector || 'Not specified'}
 - Project Name: ${businessData.projectName || 'Not specified'}
 
-Provide specific suggestions for:
+Provide guidance on:
 1. Realistic revenue growth rates for ${businessData.industrySector || 'this sector'}
 2. Key cost drivers and their typical percentages
 3. Break-even analysis timeline
 4. Cash flow considerations
-5. Industry-specific financial metrics to include
 
-Include specific percentage ranges and timeframes.`;
+Keep it concise (150-200 words) and actionable.`;
           break;
           
         default:
-          prompt = `Provide brief, actionable suggestions for ${stepId.replace('-', ' ')} section for a ${businessData.industrySector || 'business'} project. Keep response under 150 words with specific, actionable items.`;
+          prompt = `Generate ACTUAL SAMPLE CONTENT (not guidance) for ${stepId.replace('-', ' ')} section for a ${businessData.industrySector || 'business'} project. 
+
+Return ready-to-use content that can be directly filled into form fields. The user will edit this content.`;
       }
       
       const response = await api.chat(
@@ -207,17 +223,32 @@ Include specific percentage ranges and timeframes.`;
         false // Disable RAG for faster response
       );
       
-      const suggestion = response.response || response.data?.response || '';
+      const suggestionText = response.response || response.data?.response || '';
+      
+      // Try to parse JSON if it's structured data, otherwise use as-is
+      let parsedSuggestion: any = suggestionText;
+      try {
+        // Extract JSON from markdown code blocks if present
+        const jsonMatch = suggestionText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+        if (jsonMatch) {
+          parsedSuggestion = JSON.parse(jsonMatch[1]);
+        } else if (suggestionText.trim().startsWith('{')) {
+          parsedSuggestion = JSON.parse(suggestionText);
+        }
+      } catch (e) {
+        // Not JSON, use as plain text
+        parsedSuggestion = suggestionText;
+      }
       
       setAiSuggestions(prev => ({
         ...prev,
-        [stepId]: suggestion,
+        [stepId]: parsedSuggestion,
       }));
     } catch (error) {
       console.error('Error getting AI suggestions:', error);
       // Don't block user if AI fails
       if (showLoading) {
-        toast.error('Failed to load AI suggestions. You can continue without them.');
+        toast.error(t('dprBuilder.errors.failedToLoadSuggestions'));
       }
     } finally {
       if (showLoading) {
@@ -271,7 +302,7 @@ Include specific percentage ranges and timeframes.`;
       
       // Validate required fields
       if (!stepData.businessOverview?.projectName || !stepData.businessOverview?.industrySector) {
-        toast.error('Please complete Business Overview section (Project Name and Industry Sector are required)');
+        toast.error(t('dprBuilder.errors.completeBusinessOverview'));
         setCurrentStep(0); // Go back to first step
         return;
       }
@@ -322,7 +353,7 @@ Include specific percentage ranges and timeframes.`;
           toast.success('Project created successfully!');
         } catch (error: any) {
           console.error('Error creating project:', error);
-          toast.error(error.response?.data?.message || 'Failed to create project. Please try again.');
+          toast.error(error.response?.data?.message || t('dprBuilder.errors.failedToCreateProject'));
           return;
         }
       }
@@ -336,7 +367,7 @@ Include specific percentage ranges and timeframes.`;
       navigate(`/dpr/view/${response.data.dprId}`);
     } catch (error: any) {
       console.error('Error generating DPR:', error);
-      toast.error(error.response?.data?.message || 'Failed to generate DPR. Please try again.');
+      toast.error(error.response?.data?.message || t('dprBuilder.errors.failedToGenerateDPR'));
     } finally {
       setLoading(false);
     }
@@ -396,7 +427,7 @@ Include specific percentage ranges and timeframes.`;
       <div className="max-w-6xl mx-auto space-y-6 pb-8">
         <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
+          {t('dprBuilder.backToDashboard')}
         </Button>
 
         {/* Header Section */}
@@ -407,8 +438,8 @@ Include specific percentage ranges and timeframes.`;
                 <Sparkles className="h-7 w-7 text-white" />
               </div>
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-white drop-shadow-lg">AI-Guided DPR Builder</h1>
-                <p className="text-white/95 text-lg font-medium mt-1">Step {currentStep + 1} of {STEPS.length} • {STEPS[currentStep].title}</p>
+                <h1 className="text-3xl font-bold text-white drop-shadow-lg">{t('dprBuilder.title')}</h1>
+                <p className="text-white/95 text-lg font-medium mt-1">{t('dprBuilder.stepOf', { current: currentStep + 1, total: STEPS.length })} • {STEPS[currentStep].title}</p>
               </div>
             </div>
           </div>
@@ -424,14 +455,14 @@ Include specific percentage ranges and timeframes.`;
                 <div>
                   <span className="text-xl font-bold text-foreground block mb-1">{STEPS[currentStep].title}</span>
                   <span className="text-sm font-medium text-muted-foreground">
-                    Complete all fields to proceed to the next step
+                    {t('dprBuilder.completeAllFields')}
                   </span>
                 </div>
                 <div className="text-right">
                   <span className="text-2xl font-bold text-primary block">
                     {Math.round(((currentStep + 1) / STEPS.length) * 100)}%
                   </span>
-                  <span className="text-xs font-medium text-muted-foreground">Complete</span>
+                  <span className="text-xs font-medium text-muted-foreground">{t('dprBuilder.complete')}</span>
                 </div>
               </div>
               <div className="w-full bg-muted/50 rounded-full h-4 overflow-hidden border border-primary/10">
@@ -495,7 +526,7 @@ Include specific percentage ranges and timeframes.`;
                 {currentStep > 0 && (
                   <Button variant="outline" onClick={handlePrevious} className="border-2">
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    Previous
+                    {t('common.previous')}
                   </Button>
                 )}
               </div>
@@ -507,14 +538,14 @@ Include specific percentage ranges and timeframes.`;
                   className="border-2 hover:bg-secondary/5 hover:border-secondary"
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {saving ? 'Saving...' : 'Save Progress'}
+                  {saving ? t('dprBuilder.saving') : t('dprBuilder.saveProgress')}
                 </Button>
                     {currentStep < STEPS.length - 1 ? (
                       <Button 
                         onClick={handleNext}
                         className="bg-primary hover:bg-primary/90 text-white shadow-lg"
                       >
-                        Next
+                        {t('common.next')}
                         <ArrowRight className="h-4 w-4 ml-2" />
                       </Button>
                     ) : (
@@ -526,12 +557,12 @@ Include specific percentage ranges and timeframes.`;
                         {loading ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Generating...
+                            {t('dprBuilder.generating')}
                           </>
                         ) : (
                           <>
                             <Sparkles className="h-4 w-4 mr-2" />
-                            Generate DPR
+                            {t('dprBuilder.generateDPR')}
                             <CheckCircle className="h-4 w-4 ml-2" />
                           </>
                         )}
@@ -548,34 +579,36 @@ Include specific percentage ranges and timeframes.`;
 
 // Step Components
 const BusinessOverviewStep: React.FC<{ data: any; onChange: (data: any) => void; project?: any }> = ({ data, onChange }) => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-6">
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
-        <h3 className="text-xl font-bold text-foreground mb-2">Business Overview</h3>
+        <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.businessOverview.title')}</h3>
         <p className="text-sm text-muted-foreground">
-          Provide basic information about your business and project. This information will be used throughout your DPR.
+          {t('dprBuilder.businessOverview.description')}
         </p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-semibold mb-2 text-foreground">Project Name *</label>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.businessOverview.projectName')} *</label>
           <Input
             value={data?.projectName || ''}
             onChange={(e) => onChange({...data, projectName: e.target.value})}
-            placeholder="Enter project name"
+            placeholder={t('projects.projectName')}
             className="h-12 border-2 focus:border-primary"
           />
+          <p className="text-xs text-muted-foreground mt-1">{t('dprBuilder.businessOverview.projectNameHint')}</p>
         </div>
         <div>
-          <label className="block text-sm font-semibold mb-2 text-foreground">Industry Sector *</label>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.businessOverview.industrySector')} *</label>
           <select
             value={data?.industrySector || ''}
             onChange={(e) => onChange({...data, industrySector: e.target.value})}
             className="w-full h-12 px-4 border-2 rounded-lg focus:border-primary focus:outline-none bg-background text-foreground"
             required
           >
-            <option value="">Select Industry Sector</option>
+            <option value="">{t('projects.selectIndustrySector')}</option>
             <option value="Manufacturing">Manufacturing</option>
             <option value="Services">Services</option>
             <option value="Trading">Trading</option>
@@ -603,11 +636,42 @@ const BusinessOverviewStep: React.FC<{ data: any; onChange: (data: any) => void;
             <option value="Gems & Jewellery">Gems & Jewellery</option>
             <option value="Other">Other</option>
           </select>
+          <p className="text-xs text-muted-foreground mt-1">{t('dprBuilder.businessOverview.industrySectorHint')}</p>
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-semibold mb-2 text-foreground">Business Description *</label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-semibold text-foreground">{t('dprBuilder.businessOverview.businessDescription')} *</label>
+          <div className="group relative">
+            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            <div className="absolute right-0 top-6 w-72 p-3 bg-foreground text-background text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+              <p className="font-semibold mb-1">What to include:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Products/services you will offer</li>
+                <li>Business model and operations</li>
+                <li>Unique selling points</li>
+                <li>Production capacity</li>
+                <li>Business objectives</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <Card className="mb-3 bg-blue-50/50 border-blue-200">
+          <CardContent className="pt-3 pb-3">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-foreground">
+                <p className="font-semibold mb-1">{t('dprBuilder.businessOverview.businessDescriptionHint')}</p>
+                <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                  {t('dprBuilder.businessOverview.businessDescriptionItems').split(', ').map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         <textarea
           className="w-full p-4 border-2 rounded-lg focus:border-primary focus:outline-none resize-none"
           rows={6}
@@ -621,14 +685,25 @@ const BusinessOverviewStep: React.FC<{ data: any; onChange: (data: any) => void;
 };
 
 const MarketAnalysisStep: React.FC<any> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  const isStructured = suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions);
+  
+  const handleApplySuggestion = (fieldName: string) => {
+    if (isStructured && suggestions[fieldName]) {
+      onChange({...data, [fieldName]: suggestions[fieldName]});
+      const fieldLabel = fieldName === 'targetMarket' ? t('dprBuilder.marketAnalysis.targetMarket') : t('dprBuilder.marketAnalysis.competitorAnalysis');
+      toast.success(t('dprBuilder.errors.appliedSuggestion', { field: fieldLabel }));
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">Market Analysis</h3>
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.marketAnalysis.title')}</h3>
             <p className="text-sm text-muted-foreground">
-              Analyze your target market, competition, and opportunities. Use AI suggestions to get industry insights.
+              {t('dprBuilder.marketAnalysis.description')}
             </p>
           </div>
           {!suggestions && (
@@ -642,12 +717,12 @@ const MarketAnalysisStep: React.FC<any> = ({ data, onChange, suggestions, loadin
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Loading...
+                  {t('common.loading')}
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Get AI Suggestions
+                  {t('dprBuilder.marketAnalysis.generateSampleContent')}
                 </>
               )}
             </Button>
@@ -658,14 +733,18 @@ const MarketAnalysisStep: React.FC<any> = ({ data, onChange, suggestions, loadin
       {suggestions && (
         <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
           <CardContent className="pt-5 pb-5">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start justify-between gap-4 mb-4">
               <div className="flex items-start gap-4 flex-1">
                 <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
                   <Sparkles className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-base font-bold text-primary mb-2">AI-Powered Suggestion</p>
-                  <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium">{suggestions}</p>
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.marketAnalysis.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isStructured 
+                      ? t('dprBuilder.marketAnalysis.clickApplyToUse')
+                      : t('dprBuilder.marketAnalysis.clickApplyToUse')}
+                  </p>
                 </div>
               </div>
               <Button
@@ -673,22 +752,91 @@ const MarketAnalysisStep: React.FC<any> = ({ data, onChange, suggestions, loadin
                 size="sm"
                 onClick={onGetSuggestions}
                 disabled={loading}
-                title="Get updated suggestions based on your current data"
+                title={t('dprBuilder.marketAnalysis.generateSampleContent')}
                 className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
               >
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  'Refresh'
+                  t('dprBuilder.marketAnalysis.refresh')
                 )}
               </Button>
             </div>
+            
+            {isStructured ? (
+              <div className="space-y-4">
+                {suggestions.targetMarket && (
+                  <div className="bg-white/50 rounded-lg p-4 border border-primary/20">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-foreground mb-2">{t('dprBuilder.marketAnalysis.targetMarket')} {t('common.sample')}:</p>
+                        <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">{suggestions.targetMarket}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleApplySuggestion('targetMarket')}
+                        className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        {t('dprBuilder.marketAnalysis.apply')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {suggestions.competitorAnalysis && (
+                  <div className="bg-white/50 rounded-lg p-4 border border-primary/20">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-foreground mb-2">{t('dprBuilder.marketAnalysis.competitorAnalysis')} {t('common.sample')}:</p>
+                        <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">{suggestions.competitorAnalysis}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleApplySuggestion('competitorAnalysis')}
+                        className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        {t('dprBuilder.marketAnalysis.apply')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium">{String(suggestions)}</p>
+            )}
           </CardContent>
         </Card>
       )}
 
       <div>
-        <label className="block text-sm font-semibold mb-2 text-foreground">Target Market *</label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-semibold text-foreground">{t('dprBuilder.marketAnalysis.targetMarket')} *</label>
+          <div className="group relative">
+            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            <div className="absolute right-0 top-6 w-72 p-3 bg-foreground text-background text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+              <p className="font-semibold mb-1">{t('dprBuilder.marketAnalysis.targetMarketHint')}</p>
+              <ul className="list-disc list-inside space-y-1">
+                {t('dprBuilder.marketAnalysis.targetMarketItems').split(', ').map((item, idx) => (
+                  <li key={idx}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+        <Card className="mb-3 bg-blue-50/50 border-blue-200">
+          <CardContent className="pt-3 pb-3">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-foreground">
+                <p className="font-semibold mb-1">{t('dprBuilder.marketAnalysis.targetMarketHint')}</p>
+                <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                  {t('dprBuilder.marketAnalysis.targetMarketItems').split(', ').map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         <textarea
           className="w-full p-4 border-2 rounded-lg focus:border-primary focus:outline-none resize-none"
           rows={5}
@@ -699,7 +847,37 @@ const MarketAnalysisStep: React.FC<any> = ({ data, onChange, suggestions, loadin
       </div>
 
       <div>
-        <label className="block text-sm font-semibold mb-2 text-foreground">Competitor Analysis *</label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-semibold text-foreground">Competitor Analysis *</label>
+          <div className="group relative">
+            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            <div className="absolute right-0 top-6 w-72 p-3 bg-foreground text-background text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+              <p className="font-semibold mb-1">What to include:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Main competitors and their market share</li>
+                <li>Competitor strengths and weaknesses</li>
+                <li>Pricing strategies</li>
+                <li>Your competitive advantages</li>
+                <li>Market positioning</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <Card className="mb-3 bg-blue-50/50 border-blue-200">
+          <CardContent className="pt-3 pb-3">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-foreground">
+                <p className="font-semibold mb-1">{t('dprBuilder.marketAnalysis.competitorAnalysisHint')}</p>
+                <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                  {t('dprBuilder.marketAnalysis.competitorAnalysisItems').split(', ').map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         <textarea
           className="w-full p-4 border-2 rounded-lg focus:border-primary focus:outline-none resize-none"
           rows={5}
@@ -713,6 +891,38 @@ const MarketAnalysisStep: React.FC<any> = ({ data, onChange, suggestions, loadin
 };
 
 const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; project?: any; suggestions?: string; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const isStructured = suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions) && suggestions.capex;
+  
+  const handleApplyAll = () => {
+    if (isStructured && suggestions.capex && suggestions.opex) {
+      onChange({
+        ...data,
+        capex: {
+          landBuilding: String(suggestions.capex.landBuilding || data?.capex?.landBuilding || ''),
+          machinery: String(suggestions.capex.machinery || data?.capex?.machinery || ''),
+        },
+        opex: {
+          rawMaterials: String(suggestions.opex.rawMaterials || data?.opex?.rawMaterials || ''),
+          salaries: String(suggestions.opex.salaries || data?.opex?.salaries || ''),
+        },
+      });
+      toast.success('Applied AI suggestions to all cost fields');
+    }
+  };
+
+  const handleApplyField = (category: 'capex' | 'opex', field: string) => {
+    if (isStructured && suggestions[category]?.[field]) {
+      onChange({
+        ...data,
+        [category]: {
+          ...data?.[category],
+          [field]: String(suggestions[category][field]),
+        },
+      });
+      toast.success(`Applied AI suggestion to ${category.toUpperCase()} - ${field.replace(/([A-Z])/g, ' $1').trim()}`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
@@ -720,7 +930,7 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
           <div className="flex-1">
             <h3 className="text-xl font-bold text-foreground mb-2">Cost Structure</h3>
             <p className="text-sm text-muted-foreground">
-              Define your CAPEX (Capital Expenditure) and OPEX (Operating Expenditure) requirements
+              Define your CAPEX (Capital Expenditure) and OPEX (Operating Expenditure) requirements. Use AI to generate sample values.
             </p>
           </div>
           {!suggestions && (
@@ -739,7 +949,7 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Get AI Suggestions
+                  Generate Sample Values
                 </>
               )}
             </Button>
@@ -750,31 +960,119 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
       {suggestions && (
         <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
           <CardContent className="pt-5 pb-5">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start justify-between gap-4 mb-4">
               <div className="flex items-start gap-4 flex-1">
                 <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
                   <Sparkles className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-base font-bold text-primary mb-2">AI-Powered Suggestion</p>
-                  <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium">{suggestions}</p>
+                  <p className="text-base font-bold text-primary mb-2">AI-Generated Sample Values</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isStructured 
+                      ? 'Click "Apply" next to each field or "Apply All" to use the AI-generated values. You can edit them after applying.'
+                      : 'Review the suggestions below.'}
+                  </p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onGetSuggestions}
-                disabled={loading}
-                title="Get updated suggestions based on your current data"
-                className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
-              >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  'Refresh'
+              <div className="flex gap-2">
+                {isStructured && (
+                  <Button
+                    size="sm"
+                    onClick={handleApplyAll}
+                    className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    Apply All
+                  </Button>
                 )}
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  title="Generate new sample values"
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Refresh'
+                  )}
+                </Button>
+              </div>
             </div>
+            
+            {isStructured ? (
+              <div className="space-y-4">
+                {suggestions.capex && (
+                  <div className="bg-white/50 rounded-lg p-4 border border-primary/20">
+                    <p className="text-sm font-semibold text-foreground mb-3">CAPEX Suggestions:</p>
+                    <div className="space-y-2">
+                      {suggestions.capex.landBuilding && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-foreground">Land & Building: ₹{parseFloat(String(suggestions.capex.landBuilding)).toLocaleString('en-IN')}</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleApplyField('capex', 'landBuilding')}
+                            className="text-xs border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                      )}
+                      {suggestions.capex.machinery && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-foreground">Machinery: ₹{parseFloat(String(suggestions.capex.machinery)).toLocaleString('en-IN')}</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleApplyField('capex', 'machinery')}
+                            className="text-xs border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {suggestions.opex && (
+                  <div className="bg-white/50 rounded-lg p-4 border border-primary/20">
+                    <p className="text-sm font-semibold text-foreground mb-3">OPEX Suggestions (Monthly):</p>
+                    <div className="space-y-2">
+                      {suggestions.opex.rawMaterials && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-foreground">Raw Materials: ₹{parseFloat(String(suggestions.opex.rawMaterials)).toLocaleString('en-IN')}/month</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleApplyField('opex', 'rawMaterials')}
+                            className="text-xs border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                      )}
+                      {suggestions.opex.salaries && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-foreground">Salaries: ₹{parseFloat(String(suggestions.opex.salaries)).toLocaleString('en-IN')}/month</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleApplyField('opex', 'salaries')}
+                            className="text-xs border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium">{String(suggestions)}</p>
+            )}
           </CardContent>
         </Card>
       )}
@@ -786,6 +1084,23 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
             <p className="text-xs text-muted-foreground mt-1">One-time investments</p>
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
+            <Card className="mb-4 bg-blue-50/50 border-blue-200">
+              <CardContent className="pt-3 pb-3">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-foreground">
+                    <p className="font-semibold mb-1">CAPEX includes:</p>
+                    <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                      <li>Land purchase or lease costs</li>
+                      <li>Building construction or renovation</li>
+                      <li>Machinery and equipment purchase</li>
+                      <li>Installation and setup costs</li>
+                      <li>Pre-operative expenses (licenses, registration)</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             <div>
               <label className="block text-sm font-semibold mb-2 text-foreground">Land & Building (₹)</label>
               <Input
@@ -798,6 +1113,7 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
                 placeholder="Enter amount"
                 className="h-12 border-2 focus:border-primary"
               />
+              <p className="text-xs text-muted-foreground mt-1">Include land cost, building construction, and related infrastructure</p>
             </div>
             <div>
               <label className="block text-sm font-semibold mb-2 text-foreground">Machinery & Equipment (₹)</label>
@@ -811,6 +1127,7 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
                 placeholder="Enter amount"
                 className="h-12 border-2 focus:border-primary"
               />
+              <p className="text-xs text-muted-foreground mt-1">Include all production machinery, tools, and equipment costs</p>
             </div>
           </CardContent>
         </Card>
@@ -821,6 +1138,23 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
             <p className="text-xs text-muted-foreground mt-1">Recurring monthly expenses</p>
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
+            <Card className="mb-4 bg-blue-50/50 border-blue-200">
+              <CardContent className="pt-3 pb-3">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs text-foreground">
+                    <p className="font-semibold mb-1">OPEX includes:</p>
+                    <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                      <li>Raw materials and inventory</li>
+                      <li>Employee salaries and wages</li>
+                      <li>Utilities (electricity, water, gas)</li>
+                      <li>Rent and maintenance</li>
+                      <li>Marketing and administrative expenses</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             <div>
               <label className="block text-sm font-semibold mb-2 text-foreground">Raw Materials (₹/Month)</label>
               <Input
@@ -833,6 +1167,7 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
                 placeholder="Enter monthly amount"
                 className="h-12 border-2 focus:border-secondary"
               />
+              <p className="text-xs text-muted-foreground mt-1">Monthly cost of raw materials needed for production</p>
             </div>
             <div>
               <label className="block text-sm font-semibold mb-2 text-foreground">Salaries (₹/Month)</label>
@@ -846,6 +1181,7 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
                 placeholder="Enter monthly amount"
                 className="h-12 border-2 focus:border-secondary"
               />
+              <p className="text-xs text-muted-foreground mt-1">Total monthly salary for all employees</p>
             </div>
           </CardContent>
         </Card>
