@@ -960,7 +960,7 @@ Return only valid JSON without markdown formatting.`;
 
   /**
    * Generate speech from text using OpenAI TTS API
-   * Supports English and Telugu
+   * Supports both English and Telugu
    */
   static async textToSpeech(
     text: string,
@@ -982,9 +982,10 @@ Return only valid JSON without markdown formatting.`;
         throw new Error('No text to convert to speech');
       }
 
-      // Note: OpenAI TTS API currently supports English best
-      // For Telugu, we'll use English voice but the text can be in Telugu
-      // The API will attempt to pronounce it, though quality may vary
+      console.log(`🔊 Using OpenAI TTS for ${language === 'te' ? 'Telugu' : 'English'}`);
+      
+      // OpenAI TTS supports multiple languages including Telugu
+      // The API will automatically detect and handle the language from the text
       const response = await openai.audio.speech.create({
         model: 'tts-1', // or 'tts-1-hd' for higher quality
         voice: voice,
@@ -993,10 +994,11 @@ Return only valid JSON without markdown formatting.`;
 
       // Convert response to buffer
       const buffer = Buffer.from(await response.arrayBuffer());
+      console.log(`✅ Speech generated successfully (${Math.round(buffer.length / 1024)}KB)`);
       return buffer;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating speech:', error);
-      throw new Error('Failed to generate speech');
+      throw new Error(`Failed to generate speech: ${error.message || 'Unknown error'}`);
     }
   }
 

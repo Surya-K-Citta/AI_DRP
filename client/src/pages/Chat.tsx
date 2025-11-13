@@ -265,6 +265,7 @@ export const Chat: React.FC = () => {
 
     setSpeakingMessageId(messageId);
     
+    // speak is now async, handle it properly
     ttsService.speak(cleanText, {
       language: voiceLanguage as TTSLanguage,
       rate: 1.0,
@@ -274,10 +275,21 @@ export const Chat: React.FC = () => {
         setSpeakingMessageId(null);
       },
       onError: (error) => {
-        console.error('TTS Error:', error);
+        // Only show error toast for actual TTS failures, not interruptions
+        const errorMessage = error.message || '';
+        if (!errorMessage.includes('interrupted') && !errorMessage.includes('canceled')) {
+          console.error('TTS Error:', error);
+          toast.error(t('chat.failedToSpeak'));
+        } else {
+          // Interrupted/canceled is normal, just log for debugging
+          console.log('TTS stopped:', errorMessage);
+        }
         setSpeakingMessageId(null);
-        toast.error(t('chat.failedToSpeak'));
       },
+    }).catch((error) => {
+      console.error('TTS Error:', error);
+      setSpeakingMessageId(null);
+      toast.error(t('chat.failedToSpeak'));
     });
   };
 
