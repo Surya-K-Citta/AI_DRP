@@ -9,7 +9,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
-import { Sparkles, ArrowRight, CheckCircle } from 'lucide-react';
+import { Sparkles, ArrowRight, CheckCircle, Building2 } from 'lucide-react';
 
 export const Register: React.FC = () => {
   const { t } = useTranslation();
