@@ -528,7 +528,7 @@ export const createMockResponse = <T>(data: T, delay: number = 100): Promise<{ d
 // Mock API Service
 export class MockDataService {
   // Auth
-  static async login(email: string, password: string) {
+  static async login(_email: string, _password: string) {
     return createMockResponse({
       success: true,
       data: mockUsers.currentUser,
@@ -549,7 +549,7 @@ export class MockDataService {
   }
 
   // Projects
-  static async getProjects(params?: any) {
+  static async getProjects(_params?: any) {
     return createMockResponse({
       projects: mockProjects,
       total: mockProjects.length,
@@ -623,7 +623,7 @@ export class MockDataService {
     });
   }
 
-  static async recommendSchemes(projectId: string) {
+  static async recommendSchemes(_projectId: string) {
     return createMockResponse({
       recommendedSchemes: [mockSchemes[0], mockSchemes[1]],
       matchScore: 85,
@@ -930,7 +930,7 @@ What would you like to do?`;
   }
 
   // Documents
-  static async getDocuments(params?: any) {
+  static async getDocuments(_params?: any) {
     return createMockResponse({
       documents: mockDocuments,
       total: mockDocuments.length,
@@ -959,21 +959,21 @@ What would you like to do?`;
   }
 
   // Admin
-  static async getAllUsers(params?: any) {
+  static async getAllUsers(_params?: any) {
     return createMockResponse({
       users: [mockUsers.currentUser, mockUsers.adminUser],
       total: 2,
     });
   }
 
-  static async getAllProjects(params?: any) {
+  static async getAllProjects(_params?: any) {
     return createMockResponse({
       projects: mockProjects,
       total: mockProjects.length,
     });
   }
 
-  static async getAllDPRsAdmin(params?: any) {
+  static async getAllDPRsAdmin(_params?: any) {
     const response = await createMockResponse({
       dprs: mockDPRs,
       total: mockDPRs.length,
