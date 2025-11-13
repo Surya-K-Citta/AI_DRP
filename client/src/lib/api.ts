@@ -219,8 +219,13 @@ class APIClient {
   }
 
   async deleteProject(id: string) {
-    const response = await this.client.delete(`/projects/${id}`);
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.delete(`/projects/${id}`);
+        return response.data;
+      },
+      () => MockDataService.deleteProject(id)
+    );
   }
 
   // DPR endpoints

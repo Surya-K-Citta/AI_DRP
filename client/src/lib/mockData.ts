@@ -527,6 +527,14 @@ export const createMockResponse = <T>(data: T, delay: number = 100): Promise<{ d
 
 // Mock API Service
 export class MockDataService {
+  // In-memory mutable project storage for offline editing
+  private static offlineProjects: any[] = [...mockProjects];
+  
+  // Get all offline projects
+  private static getOfflineProjects() {
+    return this.offlineProjects;
+  }
+  
   // Auth
   static async login(_email: string, _password: string) {
     return createMockResponse({
@@ -551,15 +559,18 @@ export class MockDataService {
   // Projects
   static async getProjects(_params?: any) {
     return createMockResponse({
-      projects: mockProjects,
-      total: mockProjects.length,
+      projects: this.getOfflineProjects(),
+      total: this.getOfflineProjects().length,
     });
   }
 
   static async getProject(id: string) {
-    const project = mockProjects.find(p => p._id === id) || mockProjects[0];
-    // Return project directly (API client's handleRequest will return this)
-    return project;
+    const project = this.getOfflineProjects().find(p => p._id === id);
+    if (!project) {
+      throw new Error('Project not found');
+    }
+    // Return wrapped in response format for consistency
+    return createMockResponse(project);
   }
 
   static async createProject(data: any) {
@@ -567,16 +578,53 @@ export class MockDataService {
       _id: 'project_' + Date.now(),
       userId: 'user_001',
       ...data,
-      status: 'draft',
+      status: data.status || 'draft',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+    
+    // Add to offline projects array
+    this.offlineProjects.push(newProject);
+    
+    console.log('📝 Project created in offline mode:', newProject.projectName);
     return createMockResponse(newProject);
   }
 
   static async updateProject(id: string, data: any) {
-    const project = mockProjects.find(p => p._id === id) || mockProjects[0];
-    return createMockResponse({ ...project, ...data, updatedAt: new Date().toISOString() });
+    const projectIndex = this.offlineProjects.findIndex(p => p._id === id);
+    
+    if (projectIndex === -1) {
+      throw new Error('Project not found');
+    }
+    
+    // Update the project
+    const updatedProject = {
+      ...this.offlineProjects[projectIndex],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    this.offlineProjects[projectIndex] = updatedProject;
+    
+    console.log('✏️ Project updated in offline mode:', updatedProject.projectName);
+    return createMockResponse(updatedProject);
+  }
+  
+  static async deleteProject(id: string) {
+    const projectIndex = this.offlineProjects.findIndex(p => p._id === id);
+    
+    if (projectIndex === -1) {
+      throw new Error('Project not found');
+    }
+    
+    const deletedProject = this.offlineProjects[projectIndex];
+    this.offlineProjects.splice(projectIndex, 1);
+    
+    console.log('🗑️ Project deleted in offline mode:', deletedProject.projectName);
+    return createMockResponse({ 
+      success: true, 
+      message: 'Project deleted successfully' 
+    });
   }
 
   // DPRs
@@ -632,7 +680,210 @@ export class MockDataService {
 
   // Chat - Enhanced with context-aware responses for offline mode
   static async chat(message: string, conversationHistory: any[] = []) {
-    // Try to get answer from Q&A database first
+    // FIRST: Check if we're in an active DPR creation session
+    try {
+      const { OfflineDPRCreationService } = await import('./offlineDPRCreation');
+      
+      // Check if there's an active DPR creation session
+      if (OfflineDPRCreationService.hasActiveSession()) {
+        // Check for special commands
+        const lowerMessage = message.toLowerCase().trim();
+        
+        // Cancel command
+        if (lowerMessage.includes('cancel') && lowerMessage.includes('dpr')) {
+          OfflineDPRCreationService.resetSession();
+          return {
+            data: {
+              response: `❌ **DPR Creation Cancelled**
+
+Your DPR creation session has been cancelled. All progress has been cleared.
+
+Would you like to:
+- Start a new DPR creation
+- Ask questions about DPR requirements
+- Learn about government schemes
+- Get help with financial planning`,
+              suggestions: [
+                'Create a new DPR',
+                'What is a DPR?',
+                'Show me schemes',
+                'Financial planning help'
+              ],
+              dprAction: { type: 'cancelled' }
+            }
+          };
+        }
+        
+        // Review answers command
+        if (lowerMessage.includes('review') && (lowerMessage.includes('answer') || lowerMessage.includes('progress'))) {
+          const summary = OfflineDPRCreationService.getDataSummary();
+          const currentQuestion = OfflineDPRCreationService.getFormattedQuestion();
+          
+          return {
+            data: {
+              response: `📋 **Your Progress So Far:**
+
+${summary}
+
+---
+
+Let's continue! Here's your current question:
+
+${currentQuestion}`,
+              suggestions: ['Continue', 'Cancel DPR creation'],
+              dprAction: { 
+                type: 'in_progress', 
+                step: OfflineDPRCreationService.getCurrentStep()?.step,
+                progress: OfflineDPRCreationService.getProgress()
+              }
+            }
+          };
+        }
+        
+        // Skip question command
+        if (lowerMessage === 'skip' || lowerMessage === 'skip this question' || lowerMessage.includes('skip question')) {
+          // Submit an empty/default answer to skip
+          const currentStep = OfflineDPRCreationService.getCurrentStep();
+          const defaultAnswer = currentStep?.type === 'number' ? '0' : 'Not specified';
+          const result = OfflineDPRCreationService.submitAnswer(defaultAnswer);
+          
+          if (result.isComplete) {
+            const { projectData, message: completionMessage } = OfflineDPRCreationService.generateOfflineDPR();
+            OfflineDPRCreationService.resetSession();
+            
+            return {
+              data: {
+                response: `⏭️ **Question Skipped**
+
+${completionMessage}`,
+                suggestions: [
+                  'Create another DPR',
+                  'View scheme information',
+                  'Learn about financial projections'
+                ],
+                dprAction: { type: 'completed', projectData }
+              }
+            };
+          }
+          
+          const progressSummary = OfflineDPRCreationService.getDataSummary();
+          const nextQuestion = OfflineDPRCreationService.getFormattedQuestion();
+          
+          return {
+            data: {
+              response: `⏭️ **Question Skipped**
+
+${progressSummary}
+
+---
+
+${nextQuestion}`,
+              suggestions: ['Skip this question', 'Review my answers', 'Cancel DPR creation'],
+              dprAction: { 
+                type: 'in_progress', 
+                step: OfflineDPRCreationService.getCurrentStep()?.step,
+                progress: OfflineDPRCreationService.getProgress()
+              }
+            }
+          };
+        }
+        
+        // User is answering a DPR question
+        const result = OfflineDPRCreationService.submitAnswer(message);
+        
+        if (!result.success) {
+          // Validation failed
+          return {
+            data: {
+              response: `❌ ${result.message}\n\n${OfflineDPRCreationService.getFormattedQuestion()}`,
+              suggestions: ['Skip this question', 'Cancel DPR creation', 'Help with this question'],
+              dprAction: { type: 'in_progress', step: OfflineDPRCreationService.getCurrentStep()?.step },
+            }
+          };
+        }
+        
+        if (result.isComplete) {
+          // DPR creation completed!
+          const { projectData, message: completionMessage } = OfflineDPRCreationService.generateOfflineDPR();
+          
+          // Reset the session
+          OfflineDPRCreationService.resetSession();
+          
+          return {
+            data: {
+              response: completionMessage,
+              suggestions: [
+                'Create another DPR',
+                'View scheme information',
+                'Learn about financial projections',
+                'Ask about market analysis'
+              ],
+              dprAction: { type: 'completed', projectData },
+              ragContext: 'Offline DPR Creation Completed'
+            }
+          };
+        }
+        
+        // Move to next question
+        const progressSummary = OfflineDPRCreationService.getDataSummary();
+        const nextQuestion = OfflineDPRCreationService.getFormattedQuestion();
+        
+        return {
+          data: {
+            response: `✅ Great! Your answer has been saved.\n\n${progressSummary}\n\n---\n\n${nextQuestion}`,
+            suggestions: ['Skip this question', 'Review my answers', 'Cancel DPR creation'],
+            dprAction: { 
+              type: 'in_progress', 
+              step: OfflineDPRCreationService.getCurrentStep()?.step,
+              progress: OfflineDPRCreationService.getProgress()
+            },
+            ragContext: 'Offline DPR Creation In Progress'
+          }
+        };
+      }
+      
+      // Check if user wants to create a DPR
+      if (OfflineDPRCreationService.isDPRCreationIntent(message)) {
+        // Start a new DPR creation session
+        OfflineDPRCreationService.initSession();
+        const firstQuestion = OfflineDPRCreationService.getFormattedQuestion();
+        
+        return {
+          data: {
+            response: `🎯 **Let's Create Your DPR!**
+
+I'll guide you through creating a comprehensive Detailed Project Report (DPR) step by step. This process will help you create a bank-ready DPR even in offline mode.
+
+**What We'll Cover:**
+1. ✅ Project Name
+2. ✅ Industry Sector
+3. ✅ Project Type
+4. ✅ Total Investment
+5. ✅ Location
+6. ✅ Business Description
+7. ✅ Target Market
+8. ✅ Raw Materials
+9. ✅ Machinery & Equipment
+10. ✅ Manpower Requirements
+
+**This will take about 10-15 minutes.** Your progress will be saved locally so you can continue later.
+
+Ready? Let's begin! 🚀
+
+---
+
+${firstQuestion}`,
+            suggestions: ['Cancel', 'Show examples', 'Help'],
+            dprAction: { type: 'started', step: 1, totalSteps: 10 },
+            ragContext: 'Offline DPR Creation Started'
+          }
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to load DPR creation service:', error);
+    }
+    
+    // Try to get answer from Q&A database
     try {
       const { getOfflineAnswer } = await import('./offlineQAService');
       const qaAnswer = getOfflineAnswer(message);
@@ -1319,8 +1570,8 @@ What would you like to do?`;
 
   static async getAllProjects(_params?: any) {
     return createMockResponse({
-      projects: mockProjects,
-      total: mockProjects.length,
+      projects: this.getOfflineProjects(),
+      total: this.getOfflineProjects().length,
     });
   }
 

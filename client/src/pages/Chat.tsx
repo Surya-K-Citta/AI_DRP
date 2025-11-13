@@ -659,6 +659,30 @@ export const Chat: React.FC = () => {
                     )}
                   </div>
                   
+                  {/* DPR Creation Progress */}
+                  {message.role === 'assistant' && message.dprAction && message.dprAction.type === 'in_progress' && (
+                    <div className="mt-2 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/30 p-4 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          <span className="text-xs font-semibold text-foreground">DPR Creation in Progress</span>
+                        </div>
+                        <span className="text-xs font-bold text-primary">
+                          {message.dprAction.progress || 0}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2 mb-2">
+                        <div
+                          className="bg-gradient-to-r from-primary to-primary/70 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${message.dprAction.progress || 0}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Step {message.dprAction.step} of 10 - Keep going! 🚀
+                      </p>
+                    </div>
+                  )}
+
                   {/* Suggestions and Next Steps */}
                   {message.role === 'assistant' && (message.suggestions || message.nextSteps) && (
                     <div className="mt-2 space-y-2">
@@ -668,11 +692,27 @@ export const Chat: React.FC = () => {
                             <Sparkles className="h-4 w-4 text-primary" />
                             <span className="text-xs font-semibold text-foreground">{t('chat.suggestions')}</span>
                           </div>
-                          {message.suggestions.financialSuggestions && (
+                          {typeof message.suggestions === 'object' && message.suggestions.financialSuggestions ? (
                             <p className="text-xs text-muted-foreground leading-relaxed">
                               {typeof message.suggestions.financialSuggestions === 'string' 
                                 ? message.suggestions.financialSuggestions
                                 : JSON.stringify(message.suggestions.financialSuggestions, null, 2)}
+                            </p>
+                          ) : Array.isArray(message.suggestions) ? (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {message.suggestions.map((suggestion, suggIdx) => (
+                                <button
+                                  key={suggIdx}
+                                  onClick={() => handleSend(suggestion)}
+                                  className="text-xs px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition-colors font-medium"
+                                >
+                                  {suggestion}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              {String(message.suggestions)}
                             </p>
                           )}
                         </div>
