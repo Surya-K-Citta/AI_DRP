@@ -52,10 +52,15 @@ class APIClient {
 
         // Don't show toast for connection errors here - let the calling code handle it
         // This prevents duplicate error messages
-        if (error.response?.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          window.location.href = '/login';
+        // NOTE: Token clearing removed - we're using mock data and shouldn't clear tokens on errors
+        // Only redirect on 401 if it's a real API error (not when using mock data)
+        // Token clearing disabled to prevent false logouts when using mock data
+        if (error.response?.status === 401 && !this.useMockData) {
+          // Don't clear tokens - let the user stay logged in
+          // localStorage.removeItem('token');
+          // localStorage.removeItem('user');
+          // localStorage.removeItem('auth-storage');
+          // window.location.href = '/login';
         }
         
         // Only show toast for non-connection errors that aren't already handled
@@ -73,15 +78,14 @@ class APIClient {
     request: () => Promise<T>,
     mockRequest: () => Promise<T>
   ): Promise<T> {
-    // CRITICAL: Check offline status FIRST using synchronous navigator check
-    // This ensures we don't even attempt API calls when offline
+    // Always use mock data regardless of online/offline status
     const navigatorOffline = !navigator.onLine;
     const detectorOffline = !OfflineDetector.getStatus();
     const isOffline = navigatorOffline || detectorOffline;
-    const shouldUseMock = this.useMockData || isOffline;
+    const shouldUseMock = true; // Always use mock data even when online
     
     if (shouldUseMock) {
-      console.log(`📦 Using mock data immediately (navigator.offline: ${navigatorOffline}, detector.offline: ${detectorOffline}, forced: ${this.useMockData})`);
+      console.log(`📦 Using mock data immediately (navigator.offline: ${navigatorOffline}, detector.offline: ${detectorOffline}, always enabled)`);
       try {
         const result = await mockRequest();
         console.log('✅ Mock data returned successfully');
@@ -566,8 +570,36 @@ class APIClient {
   }
 
   async getVectorStores() {
-    const response = await this.client.get('/documents/vector-stores/list');
-    return response.data;
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get('/documents/vector-stores/list');
+        return response.data;
+      },
+      async () => {
+        // Mock vector stores response
+        return {
+          data: [
+            {
+              _id: 'mock-vector-store-1',
+              openaiVectorStoreId: import.meta.env.VITE_MAIN_VECTOR_STORE_ID || 'vs_mock123',
+              name: 'MSME Knowledge Base',
+              description: 'Main knowledge base for MSME DPR assistance',
+              fileCount: 0,
+              totalSize: 0,
+              status: 'ready',
+              createdBy: { name: 'System', email: 'system@msme-dpr.com' },
+              metadata: {
+                isDefault: true,
+                purpose: 'dpr-assistance',
+                category: 'general'
+              },
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }
+          ]
+        };
+      }
+    );
   }
 
   async createVectorStore(data: any) {

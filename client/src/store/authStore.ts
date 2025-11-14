@@ -22,7 +22,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
       isAuthenticated: false,
@@ -37,10 +37,18 @@ export const useAuthStore = create<AuthState>()(
       updateUser: (userData) => 
         set((state) => ({
           user: state.user ? { ...state.user, ...userData } : null,
+          isAuthenticated: !!(state.user && state.token),
         })),
     }),
     {
       name: 'auth-storage',
+      onRehydrateStorage: () => (state, error) => {
+        // After rehydration, sync isAuthenticated with token and user
+        // Note: We can't modify state here, but ProtectedRoute will check token/user directly
+        if (state && !error) {
+          // The state is already hydrated, ProtectedRoute will verify token/user
+        }
+      },
     }
   )
 );
