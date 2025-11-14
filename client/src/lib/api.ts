@@ -82,7 +82,7 @@ class APIClient {
     const navigatorOffline = !navigator.onLine;
     const detectorOffline = !OfflineDetector.getStatus();
     const isOffline = navigatorOffline || detectorOffline;
-    const shouldUseMock = true; // Always use mock data even when online
+    const shouldUseMock = isOffline; // Always use mock data even when online
     
     if (shouldUseMock) {
       console.log(`📦 Using mock data immediately (navigator.offline: ${navigatorOffline}, detector.offline: ${detectorOffline}, always enabled)`);
