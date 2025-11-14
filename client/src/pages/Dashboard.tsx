@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/authStore';
+import { useProjectStore } from '@/store/projectStore';
+import { useDPRStore } from '@/store/dprStore';
 import { api } from '@/lib/api';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
@@ -37,7 +39,9 @@ export const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [dprs, setDprs] = useState<DPR[]>([]);
+  const { projects, setProjects, isStale: isProjectsStale } = useProjectStore();
+  const { dprs: cachedDPRs, setDPRs, isStale: isDPRsStale } = useDPRStore();
+  const [dprs, setDprs] = useState<DPR[]>(cachedDPRs);
   const [stats, setStats] = useState({
     total: 0,
     draft: 0,
@@ -55,56 +59,68 @@ export const Dashboard: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [dprsResponse, projectsResponse] = await Promise.all([
-        api.getUserDPRs(),
-        api.getProjects({ limit: 100 }),
-      ]);
+      
+      // Use cached data if available and not stale
+      const useCachedDPRs = cachedDPRs.length > 0 && !isDPRsStale();
+      const useCachedProjects = projects.length > 0 && !isProjectsStale();
+      
+      if (useCachedDPRs && useCachedProjects) {
+        console.log('📦 Using cached DPRs and projects data');
+        processDPRsData(cachedDPRs);
+        setLoading(false);
+        return;
+      }
 
-      // Handle different response structures (API vs mock data)
-      let dprsData: DPR[] = [];
-      if (Array.isArray(dprsResponse)) {
-        dprsData = dprsResponse;
-      } else if (dprsResponse.data) {
-        if (Array.isArray(dprsResponse.data)) {
-          dprsData = dprsResponse.data;
-        } else if (dprsResponse.data.dprs && Array.isArray(dprsResponse.data.dprs)) {
-          dprsData = dprsResponse.data.dprs;
+      const promises: Promise<any>[] = [];
+      
+      if (!useCachedDPRs) {
+        promises.push(api.getUserDPRs());
+      } else {
+        promises.push(Promise.resolve(null));
+      }
+      
+      if (!useCachedProjects) {
+        promises.push(api.getProjects({ limit: 100 }));
+      } else {
+        promises.push(Promise.resolve(null));
+      }
+
+      const [dprsResponse, projectsResponse] = await Promise.all(promises);
+
+      // Process DPRs response if we fetched new data
+      let dprsData: DPR[] = useCachedDPRs ? cachedDPRs : [];
+      
+      if (dprsResponse) {
+        // Handle different response structures (API vs mock data)
+        if (Array.isArray(dprsResponse)) {
+          dprsData = dprsResponse;
+        } else if (dprsResponse.data) {
+          if (Array.isArray(dprsResponse.data)) {
+            dprsData = dprsResponse.data;
+          } else if (dprsResponse.data.dprs && Array.isArray(dprsResponse.data.dprs)) {
+            dprsData = dprsResponse.data.dprs;
+          }
+        } else if (dprsResponse.dprs && Array.isArray(dprsResponse.dprs)) {
+          dprsData = dprsResponse.dprs;
         }
-      } else if (dprsResponse.dprs && Array.isArray(dprsResponse.dprs)) {
-        dprsData = dprsResponse.dprs;
+        
+        // Ensure dprsData is always an array
+        if (!Array.isArray(dprsData)) {
+          console.warn('DPRs data is not an array, using empty array:', dprsData);
+          dprsData = [];
+        }
+        
+        // Update store with new data
+        setDPRs(dprsData);
       }
       
-      // Ensure dprsData is always an array
-      if (!Array.isArray(dprsData)) {
-        console.warn('DPRs data is not an array, using empty array:', dprsData);
-        dprsData = [];
+      // Process projects response if we fetched new data
+      if (projectsResponse && projectsResponse.data) {
+        const projectsData = projectsResponse.data.projects || [];
+        setProjects(projectsData);
       }
       
-      setDprs(dprsData);
-
-      // Calculate stats
-      const draft = dprsData.filter((d: DPR) => d.status === 'draft').length;
-      const submitted = dprsData.filter((d: DPR) => d.status === 'submitted').length;
-      const approved = dprsData.filter((d: DPR) => d.status === 'approved').length;
-      const qualityScores = dprsData
-        .filter((d: DPR) => d.qualityScore !== undefined)
-        .map((d: DPR) => d.qualityScore || 0);
-      const avgQualityScore = qualityScores.length > 0
-        ? Math.round(qualityScores.reduce((a: number, b: number) => a + b, 0) / qualityScores.length)
-        : 0;
-
-      setStats({
-        total: dprsData.length,
-        draft,
-        submitted,
-        approved,
-        avgQualityScore,
-      });
-
-      // Generate AI insights
-      if (dprsData.length > 0) {
-        generateInsights(dprsData);
-      }
+      processDPRsData(dprsData);
     } catch (error: any) {
       console.error('Failed to load data:', error);
       
@@ -176,6 +192,34 @@ export const Dashboard: React.FC = () => {
       toast.error('Failed to load dashboard data. Showing empty state.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const processDPRsData = (dprsData: DPR[]) => {
+    setDprs(dprsData);
+    
+    // Calculate stats
+    const draft = dprsData.filter((d: DPR) => d.status === 'draft').length;
+    const submitted = dprsData.filter((d: DPR) => d.status === 'submitted').length;
+    const approved = dprsData.filter((d: DPR) => d.status === 'approved').length;
+    const qualityScores = dprsData
+      .filter((d: DPR) => d.qualityScore !== undefined)
+      .map((d: DPR) => d.qualityScore || 0);
+    const avgQualityScore = qualityScores.length > 0
+      ? Math.round(qualityScores.reduce((a: number, b: number) => a + b, 0) / qualityScores.length)
+      : 0;
+
+    setStats({
+      total: dprsData.length,
+      draft,
+      submitted,
+      approved,
+      avgQualityScore,
+    });
+
+    // Generate AI insights
+    if (dprsData.length > 0) {
+      generateInsights(dprsData);
     }
   };
 

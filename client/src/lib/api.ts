@@ -7,9 +7,68 @@ import { OfflineDetector } from './offlineDetector';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true' || false;
 
+// Cache configuration
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  ttl: number;
+}
+
 class APIClient {
   private client: AxiosInstance;
   private useMockData: boolean = USE_MOCK_DATA;
+  private cache: Map<string, CacheEntry<any>> = new Map();
+  
+  // Cache TTLs (in milliseconds)
+  private readonly CACHE_TTL = {
+    projects: 5 * 60 * 1000, // 5 minutes
+    project: 5 * 60 * 1000, // 5 minutes
+    dprs: 3 * 60 * 1000, // 3 minutes
+    dpr: 3 * 60 * 1000, // 3 minutes
+    schemes: 10 * 60 * 1000, // 10 minutes
+    profile: 5 * 60 * 1000, // 5 minutes
+    default: 2 * 60 * 1000, // 2 minutes
+  };
+
+  private getCacheKey(method: string, url: string, params?: any): string {
+    const paramsStr = params ? JSON.stringify(params) : '';
+    return `${method}:${url}:${paramsStr}`;
+  }
+
+  private getCache<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    
+    const now = Date.now();
+    if (now - entry.timestamp > entry.ttl) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    return entry.data as T;
+  }
+
+  private setCache<T>(key: string, data: T, ttl: number): void {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl,
+    });
+  }
+
+  private clearCache(pattern?: string): void {
+    if (pattern) {
+      const keysToDelete: string[] = [];
+      this.cache.forEach((_, key) => {
+        if (key.includes(pattern)) {
+          keysToDelete.push(key);
+        }
+      });
+      keysToDelete.forEach(key => this.cache.delete(key));
+    } else {
+      this.cache.clear();
+    }
+  }
 
   constructor() {
     this.client = axios.create({
@@ -76,8 +135,18 @@ class APIClient {
 
   private async handleRequest<T>(
     request: () => Promise<T>,
-    mockRequest: () => Promise<T>
+    mockRequest: () => Promise<T>,
+    cacheKey?: string,
+    cacheTTL?: number
   ): Promise<T> {
+    // Check cache first if cacheKey is provided
+    if (cacheKey) {
+      const cached = this.getCache<T>(cacheKey);
+      if (cached !== null) {
+        console.log(`📦 Cache hit for ${cacheKey}`);
+        return cached;
+      }
+    }
     // Always use mock data regardless of online/offline status
     const navigatorOffline = !navigator.onLine;
     const detectorOffline = !OfflineDetector.getStatus();
@@ -89,6 +158,13 @@ class APIClient {
       try {
         const result = await mockRequest();
         console.log('✅ Mock data returned successfully');
+        
+        // Cache mock results
+        if (cacheKey && cacheTTL) {
+          this.setCache(cacheKey, result, cacheTTL);
+          console.log(`💾 Cached mock response for ${cacheKey}`);
+        }
+        
         return result;
       } catch (mockError) {
         console.error('❌ Mock data request failed:', mockError);
@@ -101,6 +177,13 @@ class APIClient {
     try {
       const result = await request();
       console.log('✅ Real API request successful');
+      
+      // Cache the result if cacheKey is provided
+      if (cacheKey && cacheTTL) {
+        this.setCache(cacheKey, result, cacheTTL);
+        console.log(`💾 Cached response for ${cacheKey}`);
+      }
+      
       return result;
     } catch (error: any) {
       console.log('❌ API request failed, checking if network error...', {
@@ -134,6 +217,13 @@ class APIClient {
         try {
           const mockResult = await mockRequest();
           console.log('✅ Mock data fallback successful');
+          
+          // Cache mock results too
+          if (cacheKey && cacheTTL) {
+            this.setCache(cacheKey, mockResult, cacheTTL);
+            console.log(`💾 Cached mock response for ${cacheKey}`);
+          }
+          
           return mockResult;
         } catch (mockError) {
           console.error('❌ Mock data fallback also failed:', mockError);
@@ -167,12 +257,15 @@ class APIClient {
   }
 
   async getProfile() {
+    const cacheKey = this.getCacheKey('GET', '/auth/profile');
     return this.handleRequest(
       async () => {
         const response = await this.client.get('/auth/profile');
         return response.data;
       },
-      () => MockDataService.getProfile()
+      () => MockDataService.getProfile(),
+      cacheKey,
+      this.CACHE_TTL.profile
     );
   }
 
@@ -183,6 +276,8 @@ class APIClient {
 
   // Project endpoints
   async createProject(data: any) {
+    // Clear projects cache when creating a new project
+    this.clearCache('/projects');
     return this.handleRequest(
       async () => {
         const response = await this.client.post('/projects', data);
@@ -193,26 +288,35 @@ class APIClient {
   }
 
   async getProjects(params?: any) {
+    const cacheKey = this.getCacheKey('GET', '/projects', params);
     return this.handleRequest(
       async () => {
         const response = await this.client.get('/projects', { params });
         return response.data;
       },
-      () => MockDataService.getProjects(params)
+      () => MockDataService.getProjects(params),
+      cacheKey,
+      this.CACHE_TTL.projects
     );
   }
 
   async getProject(id: string) {
+    const cacheKey = this.getCacheKey('GET', `/projects/${id}`);
     return this.handleRequest(
       async () => {
         const response = await this.client.get(`/projects/${id}`);
         return response.data;
       },
-      () => MockDataService.getProject(id)
+      () => MockDataService.getProject(id),
+      cacheKey,
+      this.CACHE_TTL.project
     );
   }
 
   async updateProject(id: string, data: any) {
+    // Clear project cache when updating
+    this.clearCache('/projects');
+    this.clearCache(`/projects/${id}`);
     return this.handleRequest(
       async () => {
         const response = await this.client.put(`/projects/${id}`, data);
@@ -223,6 +327,9 @@ class APIClient {
   }
 
   async deleteProject(id: string) {
+    // Clear project cache when deleting
+    this.clearCache('/projects');
+    this.clearCache(`/projects/${id}`);
     return this.handleRequest(
       async () => {
         const response = await this.client.delete(`/projects/${id}`);
@@ -244,12 +351,15 @@ class APIClient {
   }
 
   async getDPR(dprId: string) {
+    const cacheKey = this.getCacheKey('GET', `/dpr/${dprId}`);
     return this.handleRequest(
       async () => {
         const response = await this.client.get(`/dpr/${dprId}`);
         return response.data;
       },
-      () => MockDataService.getDPR(dprId)
+      () => MockDataService.getDPR(dprId),
+      cacheKey,
+      this.CACHE_TTL.dpr
     );
   }
 
@@ -319,12 +429,15 @@ class APIClient {
   }
 
   async getUserDPRs() {
+    const cacheKey = this.getCacheKey('GET', '/dpr/user/list');
     return this.handleRequest(
       async () => {
         const response = await this.client.get('/dpr/user/list');
         return response.data;
       },
-      () => MockDataService.getUserDPRs()
+      () => MockDataService.getUserDPRs(),
+      cacheKey,
+      this.CACHE_TTL.dprs
     );
   }
 
@@ -344,12 +457,15 @@ class APIClient {
 
   // Scheme endpoints
   async getSchemes() {
+    const cacheKey = this.getCacheKey('GET', '/schemes');
     return this.handleRequest(
       async () => {
         const response = await this.client.get('/schemes');
         return response.data;
       },
-      () => MockDataService.getSchemes()
+      () => MockDataService.getSchemes(),
+      cacheKey,
+      this.CACHE_TTL.schemes
     );
   }
 
@@ -632,12 +748,15 @@ class APIClient {
 
   // Admin DPR management endpoints
   async getAllDPRsAdmin(params?: any) {
+    const cacheKey = this.getCacheKey('GET', '/admin/dprs', params);
     return this.handleRequest(
       async () => {
         const response = await this.client.get('/admin/dprs', { params });
         return response.data;
       },
-      () => MockDataService.getAllDPRsAdmin(params)
+      () => MockDataService.getAllDPRsAdmin(params),
+      cacheKey,
+      this.CACHE_TTL.dprs
     );
   }
 

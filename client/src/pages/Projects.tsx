@@ -18,7 +18,7 @@ export const Projects: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
-  const { projects, setProjects, deleteProject } = useProjectStore();
+  const { projects, setProjects, deleteProject, isStale } = useProjectStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,6 +27,12 @@ export const Projects: React.FC = () => {
   }, []);
 
   const loadProjects = async () => {
+    // Use cached data if available and not stale
+    if (projects.length > 0 && !isStale()) {
+      console.log('📦 Using cached projects data');
+      return;
+    }
+
     setIsLoading(true);
     try {
       if (isAdmin) {

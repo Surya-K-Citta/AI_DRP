@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/store/authStore';
+import { useDPRStore } from '@/store/dprStore';
 import { 
   FileText, 
   Search,
@@ -45,7 +46,8 @@ export const AllDPRs: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
-  const [dprs, setDprs] = useState<DPR[]>([]);
+  const { dprs: cachedDPRs, setDPRs, isStale } = useDPRStore();
+  const [dprs, setDprs] = useState<DPR[]>(cachedDPRs);
   const [filteredDprs, setFilteredDprs] = useState<DPR[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,6 +68,14 @@ export const AllDPRs: React.FC = () => {
   }, [dprs, searchQuery, statusFilter, sortField, sortOrder]);
 
   const loadDPRs = async () => {
+    // Use cached data if available and not stale
+    if (cachedDPRs.length > 0 && !isStale()) {
+      console.log('📦 Using cached DPRs data');
+      setDprs(cachedDPRs);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const response = isAdmin 
@@ -103,6 +113,7 @@ export const AllDPRs: React.FC = () => {
       }
       
       setDprs(dprsData);
+      setDPRs(dprsData); // Update store
     } catch (error: any) {
       console.error('Failed to load DPRs:', error);
       
