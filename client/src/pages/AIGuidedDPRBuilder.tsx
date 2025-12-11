@@ -29,13 +29,171 @@ import {
   ArrowUp,
   ArrowDown,
   HelpCircle,
+  Users,
+  Zap,
+  MapPin,
+  Wrench,
 } from 'lucide-react';
+import {
+  DataInputSheetStep,
+  LandBuildingStep,
+  MachineryEquipmentStep,
+  FinancingStep,
+  SalesProductionStep,
+  RawMaterialsStep,
+  WagesLaborStep,
+  SalariesStep,
+  WorkingCapitalPowerStep,
+  OtherExpensesStep,
+  BeneficiaryStep,
+} from '@/components/dpr/DPRSteps';
 
 interface StepData {
+  // Section 1: Data Input Sheet
+  dataInputSheet?: {
+    sponsoringAgency?: string;
+    unitLocation?: 'rural' | 'urban';
+    applicantName?: string;
+    gender?: 'male' | 'female' | 'transgender';
+    address?: {
+      street?: string;
+      village?: string;
+      taluk?: string;
+      district?: string;
+      state?: string;
+      pin?: string;
+      email?: string;
+      mobile?: string;
+    };
+    socialCategory?: string[];
+    projectType?: 'manufacturing' | 'service';
+    legalStatus?: string;
+    panNumber?: string;
+    gstNumber?: string;
+    aadhaarNumber?: string;
+  };
+  // Section 2: Land & Building
+  landBuilding?: {
+    landOwnership?: 'owned' | 'leased' | 'rented' | 'to_be_purchased';
+    landArea?: string;
+    landCost?: string;
+    buildingDetails?: Array<{
+      floor?: string;
+      area?: string;
+      ratePerSqft?: string;
+      amount?: string;
+    }>;
+  };
+  // Section 3: Machinery & Equipment
+  machinery?: {
+    items?: Array<{
+      name?: string;
+      quantity?: string;
+      rate?: string;
+      amount?: string;
+    }>;
+    preliminaryCost?: string;
+    furnitureFixtures?: string;
+    contingency?: string;
+  };
+  // Section 4: Means of Financing
+  financing?: {
+    ownContribution?: string;
+    bankFinance?: string;
+    marginMoney?: string;
+    bankName?: string;
+    branchName?: string;
+  };
+  // Section 5: Sales & Production
+  sales?: {
+    products?: Array<{
+      name?: string;
+      ratePerUnit?: string;
+      quantity?: string;
+      amount?: string;
+    }>;
+  };
+  // Section 6: Raw Materials
+  rawMaterials?: {
+    items?: Array<{
+      name?: string;
+      unit?: string;
+      ratePerUnit?: string;
+      requiredUnits?: string;
+      amount?: string;
+    }>;
+  };
+  // Section 7: Wages & Labor
+  wages?: {
+    items?: Array<{
+      category?: string;
+      numberOfWorkers?: string;
+      wagesPerMonth?: string;
+      amount?: string;
+    }>;
+  };
+  // Section 8: Salary Details
+  salaries?: {
+    items?: Array<{
+      position?: string;
+      numberOfStaff?: string;
+      salaryPerMonth?: string;
+      amount?: string;
+    }>;
+  };
+  // Section 9: Working Capital & Power
+  workingCapital?: {
+    stockInProcess?: { amount?: string; days?: string };
+    finishedGoods?: { amount?: string; days?: string };
+    receivables?: { amount?: string; days?: string };
+    sundryCreditors?: { amount?: string; days?: string };
+  };
+  powerEstimate?: {
+    connectedLoad?: string;
+    sanctionedLoad?: string;
+    monthlyConsumption?: string;
+    ratePerUnit?: string;
+    monthlyCost?: string;
+    annualCost?: string;
+  };
+  // Section 10: Other Expenses
+  otherExpenses?: {
+    repairMaintenance?: string;
+    powerFuel?: string;
+    otherOverhead?: string;
+    telephone?: string;
+    stationery?: string;
+    advertisement?: string;
+    buildingRent?: string;
+    miscellaneous?: string;
+    interestRate?: string;
+    depreciationBuilding?: string;
+    depreciationMachinery?: string;
+  };
+  // Section 11: About the Beneficiary
+  beneficiary?: {
+    fullName?: string;
+    fathersName?: string;
+    dateOfBirth?: string;
+    age?: string;
+    educationalQualification?: string;
+    experience?: string;
+    previousBusinessExperience?: string;
+    permanentAddress?: string;
+    correspondenceAddress?: string;
+  };
+  // Section 12: Financial Projections
+  financialProjections?: {
+    profitLoss?: any;
+    dscr?: any;
+    balanceSheet?: any;
+    cashFlow?: any;
+    breakEven?: any;
+  };
+  // Legacy fields for backward compatibility
   businessOverview?: any;
   marketAnalysis?: any;
   costStructure?: any;
-  financialProjections?: any;
   eligibleSchemes?: any;
 }
 
@@ -45,12 +203,19 @@ export const AIGuidedDPRBuilder: React.FC = () => {
   const { projectId } = useParams();
   
   const STEPS = [
-    { id: 'business-overview', title: t('dprBuilder.businessOverview.title'), icon: Building2 },
-    { id: 'market-analysis', title: t('dprBuilder.marketAnalysis.title'), icon: TrendingUp },
-    { id: 'cost-structure', title: t('dprBuilder.costStructure.title'), icon: DollarSign },
-    { id: 'financial-projections', title: t('dprBuilder.financialProjections.title'), icon: FileText },
-    { id: 'eligible-schemes', title: t('dprBuilder.eligibleSchemes.title'), icon: Award },
-    { id: 'ai-review', title: t('dprBuilder.aiReview.title'), icon: Brain },
+    { id: 'data-input-sheet', title: 'Data Input Sheet', icon: FileText },
+    { id: 'land-building', title: 'Land & Building Details', icon: Building2 },
+    { id: 'machinery-equipment', title: 'Machinery & Equipment', icon: Building2 },
+    { id: 'financing', title: 'Means of Financing', icon: DollarSign },
+    { id: 'sales-production', title: 'Sales & Production', icon: TrendingUp },
+    { id: 'raw-materials', title: 'Raw Materials', icon: FileText },
+    { id: 'wages-labor', title: 'Wages & Labor', icon: Users },
+    { id: 'salaries', title: 'Salary Details', icon: Users },
+    { id: 'working-capital-power', title: 'Working Capital & Power', icon: DollarSign },
+    { id: 'other-expenses', title: 'Other Expenses', icon: FileText },
+    { id: 'beneficiary', title: 'About the Beneficiary', icon: Users },
+    { id: 'financial-projections', title: 'Financial Projections', icon: BarChart3 },
+    { id: 'ai-review', title: 'AI Review & Generate', icon: Brain },
   ];
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -377,6 +542,44 @@ Return ready-to-use content that can be directly filled into form fields. The us
     const step = STEPS[currentStep];
     
     switch (step.id) {
+      case 'data-input-sheet':
+        return <DataInputSheetStep data={stepData.dataInputSheet} onChange={(data: any) => setStepData({...stepData, dataInputSheet: data})} />;
+      case 'land-building':
+        return <LandBuildingStep data={stepData.landBuilding} onChange={(data: any) => setStepData({...stepData, landBuilding: data})} />;
+      case 'machinery-equipment':
+        return <MachineryEquipmentStep data={stepData.machinery} onChange={(data: any) => setStepData({...stepData, machinery: data})} />;
+      case 'financing':
+        return <FinancingStep data={stepData.financing} onChange={(data: any) => setStepData({...stepData, financing: data})} />;
+      case 'sales-production':
+        return <SalesProductionStep data={stepData.sales} onChange={(data: any) => setStepData({...stepData, sales: data})} />;
+      case 'raw-materials':
+        return <RawMaterialsStep data={stepData.rawMaterials} onChange={(data: any) => setStepData({...stepData, rawMaterials: data})} />;
+      case 'wages-labor':
+        return <WagesLaborStep data={stepData.wages} onChange={(data: any) => setStepData({...stepData, wages: data})} />;
+      case 'salaries':
+        return <SalariesStep data={stepData.salaries} onChange={(data: any) => setStepData({...stepData, salaries: data})} />;
+      case 'working-capital-power':
+        return <WorkingCapitalPowerStep data={{...stepData.workingCapital, ...stepData.powerEstimate}} onChange={(data: any) => setStepData({...stepData, workingCapital: data, powerEstimate: data})} />;
+      case 'other-expenses':
+        return <OtherExpensesStep data={stepData.otherExpenses} onChange={(data: any) => setStepData({...stepData, otherExpenses: data})} />;
+      case 'beneficiary':
+        return <BeneficiaryStep data={stepData.beneficiary} onChange={(data: any) => setStepData({...stepData, beneficiary: data})} />;
+      case 'financial-projections':
+        return (
+          <FinancialProjectionsStep 
+            data={stepData.financialProjections} 
+            onChange={(data: any) => setStepData({...stepData, financialProjections: data})} 
+            project={project}
+            suggestions={aiSuggestions['financial-projections']}
+            loading={loadingSuggestions['financial-projections']}
+            onGetSuggestions={() => getAISuggestions('financial-projections', stepData, true, true)}
+            businessData={stepData.dataInputSheet || stepData.businessOverview}
+            costData={stepData.machinery || stepData.costStructure}
+          />
+        );
+      case 'ai-review':
+        return <AIReviewStep stepData={stepData} project={project} onGenerate={handleGenerateDPR} />;
+      // Legacy steps for backward compatibility
       case 'business-overview':
         return <BusinessOverviewStep data={stepData.businessOverview} onChange={(data: any) => setStepData({...stepData, businessOverview: data})} project={project} />;
       case 'market-analysis':
@@ -400,23 +603,8 @@ Return ready-to-use content that can be directly filled into form fields. The us
             onGetSuggestions={() => getAISuggestions('cost-structure', stepData, true, true)}
           />
         );
-      case 'financial-projections':
-        return (
-          <FinancialProjectionsStep 
-            data={stepData.financialProjections} 
-            onChange={(data: any) => setStepData({...stepData, financialProjections: data})} 
-            project={project}
-            suggestions={aiSuggestions['financial-projections']}
-            loading={loadingSuggestions['financial-projections']}
-            onGetSuggestions={() => getAISuggestions('financial-projections', stepData, true, true)}
-            businessData={stepData.businessOverview}
-            costData={stepData.costStructure}
-          />
-        );
       case 'eligible-schemes':
         return <EligibleSchemesStep data={stepData.eligibleSchemes} onChange={(data: any) => setStepData({...stepData, eligibleSchemes: data})} project={project} />;
-      case 'ai-review':
-        return <AIReviewStep stepData={stepData} project={project} onGenerate={handleGenerateDPR} />;
       default:
         return null;
     }
