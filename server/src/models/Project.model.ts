@@ -86,9 +86,23 @@ const projectSchema = new Schema<IProject>(
       enum: ['draft', 'in-progress', 'completed'],
       default: 'draft',
     },
+    eligibleSchemes: {
+      selectedSchemes: [String], // Array of scheme codes
+      schemesData: [
+        {
+          schemeCode: String,
+          schemeName: String,
+          description: String,
+          eligibility: Schema.Types.Mixed,
+          benefits: Schema.Types.Mixed,
+          documentsRequired: [String],
+        },
+      ],
+    },
   },
   {
     timestamps: true,
+    strict: false, // Allow additional fields for flexibility
   }
 );
 

@@ -328,6 +328,11 @@
       "businessDescriptionHint": "Business Description should include:",
       "businessDescriptionItems": "Products or services you will produce/offer, Business model and how you will operate, Unique value proposition and competitive advantages, Production capacity or service volume, Business objectives and goals, Target customers and market approach"
     },
+    "generateSampleContent": "Generate Sample Content",
+    "aiGeneratedSample": "AI-Generated Sample Content",
+    "clickApplyToUse": "Click \"Apply All\" to use the AI-generated suggestions. You can edit them after applying.",
+    "applyAll": "Apply All",
+    "refresh": "Refresh",
     "marketAnalysis": {
       "title": "Market Analysis",
       "description": "Analyze your target market, competition, and opportunities. Use AI to generate sample content that you can edit.",
@@ -425,6 +430,112 @@
       "completenessCheck": "Completeness Check",
       "readyToGenerate": "Ready to Generate!",
       "dprCompleteReady": "Your DPR is complete and ready for generation. Click \"Generate DPR\" below to create your professional Detailed Project Report in both English and Telugu."
+    },
+    "applicantInfo": {
+      "title": "Applicant Information",
+      "description": "Provide basic applicant and project information",
+      "sponsoringAgency": "Sponsoring Agency",
+      "gender": "Gender",
+      "locationType": "Location Type",
+      "category": "Category",
+      "projectType": "Project Type",
+      "legalStatus": "Legal Status - Land"
+    },
+    "buildingDetails": {
+      "title": "Building Details",
+      "description": "Document building/workspace costs with area and rates"
+    },
+    "machineryDetails": {
+      "title": "Machinery Details",
+      "description": "List all machinery and equipment with quantities and costs"
+    },
+    "otherCapitalCosts": {
+      "title": "Other Capital Costs",
+      "description": "Capture additional capital expenditure",
+      "preliminaryCost": "Preliminary & Pre-operative Cost",
+      "furnitureFixtures": "Furniture & Fixtures",
+      "contingency": "Contingency/Others/Miscellaneous",
+      "workingCapital": "Working Capital"
+    },
+    "financing": {
+      "title": "Means of Financing",
+      "description": "Define project financing structure",
+      "ownContribution": "Own Contribution",
+      "bankFinance": "Bank Finance",
+      "marginMoney": "Margin Money (Govt. Subsidy)",
+      "schemeName": "Scheme Name"
+    },
+    "salesDetails": {
+      "title": "Sales Details",
+      "description": "Project revenue from product sales"
+    },
+    "rawMaterials": {
+      "title": "Raw Materials",
+      "description": "Estimate raw material requirements and costs"
+    },
+    "wages": {
+      "title": "Wages (Labor)",
+      "description": "Calculate labor costs"
+    },
+    "salaryDetails": {
+      "title": "Salary Details (Staff)",
+      "description": "Calculate staff salary costs"
+    },
+    "workingCapitalEstimate": {
+      "title": "Working Capital Estimate",
+      "description": "Calculate working capital requirements",
+      "stockInProcess": "Stock in Process",
+      "finishedGoods": "Finished Goods",
+      "receivables": "Receivables"
+    },
+    "powerEstimate": {
+      "title": "Power Estimate",
+      "description": "Estimate power/energy requirements",
+      "powerRequirement": "Power Requirement",
+      "monthlyCost": "Monthly Cost"
+    },
+    "overheadExpenses": {
+      "title": "Overhead Expenses",
+      "description": "Document all operational overhead costs",
+      "repairMaintenance": "Repair and Maintenance",
+      "powerFuel": "Power and Fuel",
+      "otherOverhead": "Other Overhead Expenses",
+      "telephone": "Telephone Expenses",
+      "stationeryPostage": "Stationery & Postage",
+      "advertisement": "Advertisement & Publicity",
+      "buildingRent": "Building Rent",
+      "otherMiscellaneous": "Other Miscellaneous Expenditure"
+    },
+    "financialParameters": {
+      "title": "Financial Parameters",
+      "description": "Set financial calculation parameters",
+      "rateOfInterest": "Rate of Interest",
+      "depreciationBuilding": "Depreciation on Building",
+      "depreciationMachinery": "Depreciation on Machinery"
+    },
+    "beneficiaryInfo": {
+      "title": "About the Beneficiary",
+      "description": "Document beneficiary personal and professional details",
+      "fullName": "Full Name",
+      "fatherSpouseName": "Father's/Spouse's Name",
+      "address": "Address",
+      "email": "Email",
+      "mobile": "Mobile",
+      "educationalQualifications": "Educational Qualifications",
+      "experience": "Experience/Background"
+    },
+    "projectAtGlance": {
+      "title": "Project at a Glance",
+      "description": "Executive summary of the project",
+      "beneficiaryName": "Name of the Beneficiary",
+      "constitution": "Constitution (Legal Status)",
+      "unitAddress": "Unit Address",
+      "talukBlock": "Taluk/Block",
+      "district": "District",
+      "pinCode": "PIN Code",
+      "email": "Email",
+      "mobile": "Mobile",
+      "products": "Product and By Product"
     },
     "errors": {
       "completeBusinessOverview": "Please complete Business Overview section (Project Name and Industry Sector are required)",

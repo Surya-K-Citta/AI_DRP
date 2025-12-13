@@ -621,7 +621,42 @@ Return only valid JSON without markdown formatting.`;
           Loan Amount: ₹${projectData.loanAmount}
           Location: ${projectData.location}
           
+          ${(projectData as any).eligibleSchemes?.schemesData && (projectData as any).eligibleSchemes.schemesData.length > 0 ? `
+          CRITICAL: The following government schemes have been SELECTED by the user for this project. You MUST include ALL of these schemes with their complete details:
+          
+          ${(projectData as any).eligibleSchemes.schemesData.map((scheme: any, index: number) => `
+          Scheme ${index + 1}:
+          - Scheme Code: ${scheme.schemeCode}
+          - Scheme Name: ${scheme.schemeName}
+          - Description: ${scheme.description || 'Not provided'}
+          - Eligibility Criteria: ${scheme.eligibility ? JSON.stringify(scheme.eligibility) : 'Standard MSME eligibility'}
+          - Benefits: ${scheme.benefits ? JSON.stringify(scheme.benefits) : 'As per scheme guidelines'}
+          - Required Documents: ${scheme.documentsRequired && scheme.documentsRequired.length > 0 ? scheme.documentsRequired.join(', ') : 'Standard DPR and project documents'}
+          `).join('\n')}
+          
+          IMPORTANT INSTRUCTIONS:
+          1. You MUST include ALL the above selected schemes in the Eligible Schemes section
+          2. For each selected scheme, provide:
+            * Full scheme name and code (exactly as provided above)
+            * Detailed description
+            * Specific eligibility criteria for this project (use the provided eligibility info)
+            * Benefits and subsidy details (use the provided benefits info, include percentages and maximum amounts)
+            * How THIS SPECIFIC PROJECT qualifies for the scheme (reference project details like sector, investment amount, location)
+            * Application process and required documents (use the provided documents list)
+            * Contact information or portal link if available
+          3. Format each scheme as a clear section with heading
+          4. Explain how multiple schemes can be combined if applicable
+          5. Make the content specific to this project (${projectData.projectName} in ${projectData.industrySector} sector)
+          
           ${(projectData as any).governmentSchemas ? `
+          ADDITIONAL CONTEXT: The following additional government schemes were identified from knowledge base as potentially relevant:
+          ${(projectData as any).governmentSchemas}
+          
+          You may mention these as additional options, but prioritize the SELECTED schemes listed above.
+          ` : ''}
+          
+          Format: Use clear headings for each selected scheme, bullet points for key information, and ensure all details are accurate and specific to this project.
+          ` : (projectData as any).governmentSchemas ? `
           IMPORTANT: The following government schemes and financial assistance programs have been identified from the government schemes category documents as relevant to this project:
           
           ${(projectData as any).governmentSchemas}
@@ -642,7 +677,7 @@ Return only valid JSON without markdown formatting.`;
           
           Format: Use clear headings for each scheme, bullet points for key information, and ensure all details are accurate and specific to this project.
           ` : `
-          Note: No specific government schemes were found in the government schemes category documents for this project. 
+          Note: No specific government schemes were selected for this project. 
           However, you may mention general schemes like PMEGP, MUDRA, CGTMSE that are commonly applicable to MSME projects.
           `}
           
@@ -851,10 +886,12 @@ Return only valid JSON without markdown formatting.`;
     const governmentSchemas = await this.searchGovernmentSchemas(projectData, vectorStoreIds);
     
     // Add government schemas to project data for use in section generation
-    const enrichedProjectData: IProject & { governmentSchemas?: string } = {
+    // Preserve eligibleSchemes if they exist (user-selected schemes)
+    const enrichedProjectData: IProject & { governmentSchemas?: string; eligibleSchemes?: any } = {
       ...projectData,
       governmentSchemas: governmentSchemas,
-    } as IProject & { governmentSchemas?: string };
+      eligibleSchemes: (projectData as any).eligibleSchemes || undefined,
+    } as IProject & { governmentSchemas?: string; eligibleSchemes?: any };
 
     // OPTIMIZATION: Generate all sections in parallel instead of sequentially
     // This reduces generation time from ~60-90s to ~15-20s

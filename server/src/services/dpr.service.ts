@@ -11,6 +11,11 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import fs from 'fs';
 import path from 'path';
 import { Buffer } from 'buffer';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import os from 'os';
+
+const execAsync = promisify(exec);
 
 export class DPRService {
   /**
@@ -21,9 +26,9 @@ export class DPRService {
     language: 'english' | 'telugu' | 'bilingual' = 'bilingual'
   ): Promise<any> {
     try {
-      // OPTIMIZATION: Fetch project with only needed fields
+      // OPTIMIZATION: Fetch project with only needed fields including eligibleSchemes
       const project = await Project.findById(projectId)
-        .select('projectName industrySector projectType totalCost loanAmount location inputs')
+        .select('projectName industrySector projectType totalCost loanAmount location inputs eligibleSchemes')
         .lean(); // Use lean() for faster queries
       if (!project) {
         throw new Error('Project not found');
@@ -99,9 +104,137 @@ export class DPRService {
   }
 
   /**
+   * Check if LibreOffice is available for Word to PDF conversion
+   */
+  private static async checkLibreOfficeAvailable(): Promise<{ available: boolean; command: string; error?: string }> {
+    const isWindows = process.platform === 'win32';
+    
+    if (isWindows) {
+      // Windows: Try common LibreOffice installation paths
+      const possiblePaths = [
+        'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+        'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe',
+      ];
+      
+      for (const possiblePath of possiblePaths) {
+        if (fs.existsSync(possiblePath)) {
+          return { available: true, command: `"${possiblePath}"` };
+        }
+      }
+      
+      // Check if soffice is in PATH
+      try {
+        await execAsync('where soffice');
+        return { available: true, command: 'soffice' };
+      } catch {
+        return { 
+          available: false, 
+          command: '', 
+          error: 'LibreOffice not found. Please install from https://www.libreoffice.org/' 
+        };
+      }
+    } else {
+      // Linux/Mac: Check if libreoffice command exists
+      try {
+        await execAsync('which libreoffice');
+        return { available: true, command: 'libreoffice' };
+      } catch {
+        return { 
+          available: false, 
+          command: '', 
+          error: 'LibreOffice not found. Install with: sudo apt-get install libreoffice (Ubuntu) or brew install --cask libreoffice (Mac)' 
+        };
+      }
+    }
+  }
+
+  /**
    * Generate PDF document
+   * For Telugu: Generate Word document first, then convert to PDF (ensures proper Unicode support)
+   * For English: Generate PDF directly (works fine with PDFKit)
    */
   static async generatePDF(dprId: string, language: 'english' | 'telugu'): Promise<Buffer> {
+    // For Telugu language, generate Word document first and convert to PDF
+    // This ensures proper Unicode/encoding support since PDFKit doesn't handle Telugu well
+    if (language === 'telugu') {
+      try {
+        console.log('📄 Generating Telugu PDF via Word conversion (ensures proper Unicode support)...');
+        
+        // First generate Word document (which handles Telugu perfectly)
+        const docxBuffer = await this.generateDOCX(dprId, language);
+        
+        // Check if LibreOffice is available for conversion
+        const libreOfficeCheck = await this.checkLibreOfficeAvailable();
+        
+        if (!libreOfficeCheck.available) {
+          // If LibreOffice is not available, throw clear error
+          throw new Error(
+            `LibreOffice is required for Telugu PDF generation. ${libreOfficeCheck.error || ''}\n\n` +
+            `Alternative: Download the Word document (.docx) which displays Telugu perfectly, ` +
+            `or install LibreOffice from https://www.libreoffice.org/`
+          );
+        }
+        
+        // Create temporary files
+        const tempDir = os.tmpdir();
+        const tempDocxPath = path.join(tempDir, `dpr_${dprId}_${Date.now()}.docx`);
+        
+        // Write DOCX to temp file
+        fs.writeFileSync(tempDocxPath, docxBuffer);
+        console.log(`✅ Generated Word document: ${tempDocxPath}`);
+        
+        try {
+          // Convert Word to PDF using LibreOffice
+          const libreOfficeCmd = `${libreOfficeCheck.command} --headless --convert-to pdf --outdir "${tempDir}" "${tempDocxPath}"`;
+          
+          console.log(`🔄 Converting Word to PDF using LibreOffice...`);
+          console.log(`   Command: ${libreOfficeCmd}`);
+          
+          await execAsync(libreOfficeCmd, { 
+            timeout: 30000, // 30 second timeout
+            maxBuffer: 10 * 1024 * 1024 // 10MB buffer
+          });
+          
+          // LibreOffice creates PDF with same name but .pdf extension
+          const generatedPdfPath = tempDocxPath.replace('.docx', '.pdf');
+          
+          // Wait for file to be written (LibreOffice is async)
+          let retries = 10;
+          while (!fs.existsSync(generatedPdfPath) && retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            retries--;
+          }
+          
+          if (fs.existsSync(generatedPdfPath)) {
+            const pdfBuffer = fs.readFileSync(generatedPdfPath);
+            
+            // Clean up temp files
+            try { fs.unlinkSync(tempDocxPath); } catch {}
+            try { fs.unlinkSync(generatedPdfPath); } catch {}
+            
+            console.log('✅ Successfully converted Word to PDF for Telugu');
+            return pdfBuffer;
+          } else {
+            throw new Error('LibreOffice conversion failed - PDF file was not created');
+          }
+        } catch (error: any) {
+          // Clean up temp files
+          try { fs.unlinkSync(tempDocxPath); } catch {}
+          
+          console.error('❌ Error converting Word to PDF:', error);
+          throw new Error(
+            `Failed to convert Word to PDF: ${error.message}\n\n` +
+            `Please ensure LibreOffice is properly installed and accessible. ` +
+            `Alternatively, download the Word document (.docx) which displays Telugu perfectly.`
+          );
+        }
+      } catch (error: any) {
+        console.error('Error generating Telugu PDF:', error);
+        throw error;
+      }
+    }
+    
+    // For English language, generate PDF directly (works fine with PDFKit)
     try {
       const dpr = await this.getDPR(dprId);
       if (!dpr) {
@@ -115,9 +248,7 @@ export class DPRService {
 
       // Safely access content with fallback
       const content = dpr.content || {};
-      const contentLang = language === 'telugu' 
-        ? (content.telugu || content.english || {}) 
-        : (content.english || {});
+      const contentLang = content.english || {};
 
       if (!contentLang || Object.keys(contentLang).length === 0) {
         throw new Error(`No ${language} content available for this DPR`);

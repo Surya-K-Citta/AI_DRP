@@ -21,6 +21,8 @@ import {
   BarChart3,
   Eye,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
@@ -51,6 +53,8 @@ export const Dashboard: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   useEffect(() => {
     loadData();
@@ -233,10 +237,18 @@ export const Dashboard: React.FC = () => {
 
       const topSector = Object.entries(sectorCounts).sort((a, b) => b[1] - a[1])[0];
       
+      // Calculate average quality score directly from dprsData
+      const qualityScores = dprsData
+        .filter((d: DPR) => d.qualityScore !== undefined && d.qualityScore !== null)
+        .map((d: DPR) => d.qualityScore || 0);
+      const avgQualityScore = qualityScores.length > 0
+        ? Math.round(qualityScores.reduce((a: number, b: number) => a + b, 0) / qualityScores.length)
+        : null;
+      
       setInsights({
         topSector: topSector ? { name: topSector[0], count: topSector[1] } : null,
         totalProjects: dprsData.length,
-        avgQuality: stats.avgQualityScore,
+        avgQuality: avgQualityScore,
       });
     } catch (error) {
       console.error('Error generating insights:', error);
@@ -414,7 +426,7 @@ export const Dashboard: React.FC = () => {
                 <div className="p-4 rounded-lg bg-muted/50 border border-border">
                   <p className="text-sm text-muted-foreground mb-1">{t('dashboard.averageDPRQuality')}</p>
                   <p className={`text-xl font-bold ${getQualityColor(insights.avgQuality)}`}>
-                    {insights.avgQuality || 'N/A'}
+                    {insights.avgQuality !== null && insights.avgQuality !== undefined ? `${insights.avgQuality}/100` : 'N/A'}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     {getQualityLabel(insights.avgQuality)}
@@ -461,8 +473,16 @@ export const Dashboard: React.FC = () => {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-3">
-                {dprs.slice(0, 8).map((dpr: DPR) => (
+              <>
+                <div className="space-y-3">
+                  {(() => {
+                    // Calculate pagination
+                    const totalPages = Math.ceil(dprs.length / itemsPerPage);
+                    const startIndex = (currentPage - 1) * itemsPerPage;
+                    const endIndex = startIndex + itemsPerPage;
+                    const paginatedDPRs = dprs.slice(startIndex, endIndex);
+                    
+                    return paginatedDPRs.map((dpr: DPR) => (
                   <div
                     key={dpr._id}
                     className="group flex items-center justify-between p-5 border rounded-[14px] hover:border-primary/50 hover:shadow-md transition-all cursor-pointer bg-card"
@@ -516,8 +536,82 @@ export const Dashboard: React.FC = () => {
                       </Button>
                     </div>
                   </div>
-                ))}
-              </div>
+                    ));
+                  })()}
+                </div>
+                
+                {/* Pagination Controls */}
+                {(() => {
+                  const totalPages = Math.ceil(dprs.length / itemsPerPage);
+                  if (totalPages <= 1) return null;
+                  
+                  return (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-6 border-t border-border">
+                      <div className="text-sm text-muted-foreground">
+                        Showing <span className="font-semibold text-foreground">{((currentPage - 1) * itemsPerPage) + 1}</span> to <span className="font-semibold text-foreground">{Math.min(currentPage * itemsPerPage, dprs.length)}</span> of <span className="font-semibold text-foreground">{dprs.length}</span> DPRs
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                          className="flex items-center gap-1.5 border-2 hover:border-primary/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          <span className="hidden sm:inline">Previous</span>
+                        </Button>
+                        
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1)
+                            .filter(page => {
+                              // Show first page, last page, current page, and pages around current
+                              return page === 1 || 
+                                     page === totalPages || 
+                                     (page >= currentPage - 1 && page <= currentPage + 1);
+                            })
+                            .map((page, index, array) => {
+                              // Add ellipsis if there's a gap
+                              const showEllipsisBefore = index > 0 && array[index - 1] !== page - 1;
+                              const isActive = currentPage === page;
+                              
+                              return (
+                                <React.Fragment key={page}>
+                                  {showEllipsisBefore && (
+                                    <span className="px-2 py-1 text-muted-foreground font-medium">...</span>
+                                  )}
+                                  <Button
+                                    variant={isActive ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`min-w-[44px] h-9 font-semibold transition-all ${
+                                      isActive 
+                                        ? "bg-primary text-primary-foreground shadow-md hover:bg-primary/90 border-2 border-primary scale-105" 
+                                        : "border-2 hover:border-primary/50 hover:bg-primary/5 hover:scale-105"
+                                    }`}
+                                  >
+                                    {page}
+                                  </Button>
+                                </React.Fragment>
+                              );
+                            })}
+                        </div>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          disabled={currentPage === totalPages}
+                          className="flex items-center gap-1.5 border-2 hover:border-primary/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          <span className="hidden sm:inline">Next</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </>
             )}
           </CardContent>
         </Card>

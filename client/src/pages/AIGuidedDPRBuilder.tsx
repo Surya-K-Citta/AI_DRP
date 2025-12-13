@@ -29,10 +29,35 @@ import {
   ArrowUp,
   ArrowDown,
   HelpCircle,
+  Hammer,
+  Package,
+  ShoppingCart,
+  Users,
+  Zap,
+  Settings,
+  User,
+  Calculator,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 
 interface StepData {
   businessOverview?: any;
+  applicantInfo?: any;
+  buildingDetails?: any;
+  machineryDetails?: any;
+  otherCapitalCosts?: any;
+  financing?: any;
+  salesDetails?: any;
+  rawMaterials?: any;
+  wages?: any;
+  salaryDetails?: any;
+  workingCapitalEstimate?: any;
+  powerEstimate?: any;
+  overheadExpenses?: any;
+  financialParameters?: any;
+  beneficiaryInfo?: any;
+  projectAtGlance?: any;
   marketAnalysis?: any;
   costStructure?: any;
   financialProjections?: any;
@@ -46,9 +71,23 @@ export const AIGuidedDPRBuilder: React.FC = () => {
   
   const STEPS = [
     { id: 'business-overview', title: t('dprBuilder.businessOverview.title'), icon: Building2 },
+    { id: 'applicant-info', title: t('dprBuilder.applicantInfo.title'), icon: User },
+    { id: 'building-details', title: t('dprBuilder.buildingDetails.title'), icon: Building2 },
+    { id: 'machinery-details', title: t('dprBuilder.machineryDetails.title'), icon: Hammer },
+    { id: 'other-capital-costs', title: t('dprBuilder.otherCapitalCosts.title'), icon: Package },
+    { id: 'financing', title: t('dprBuilder.financing.title'), icon: DollarSign },
+    { id: 'sales-details', title: t('dprBuilder.salesDetails.title'), icon: ShoppingCart },
+    { id: 'raw-materials', title: t('dprBuilder.rawMaterials.title'), icon: Package },
+    { id: 'wages', title: t('dprBuilder.wages.title'), icon: Users },
+    { id: 'salary-details', title: t('dprBuilder.salaryDetails.title'), icon: Users },
+    { id: 'working-capital-estimate', title: t('dprBuilder.workingCapitalEstimate.title'), icon: Calculator },
+    { id: 'power-estimate', title: t('dprBuilder.powerEstimate.title'), icon: Zap },
+    { id: 'overhead-expenses', title: t('dprBuilder.overheadExpenses.title'), icon: Settings },
+    { id: 'financial-parameters', title: t('dprBuilder.financialParameters.title'), icon: Calculator },
+    { id: 'beneficiary-info', title: t('dprBuilder.beneficiaryInfo.title'), icon: User },
+    { id: 'project-at-glance', title: t('dprBuilder.projectAtGlance.title'), icon: FileText },
     { id: 'market-analysis', title: t('dprBuilder.marketAnalysis.title'), icon: TrendingUp },
-    { id: 'cost-structure', title: t('dprBuilder.costStructure.title'), icon: DollarSign },
-    { id: 'financial-projections', title: t('dprBuilder.financialProjections.title'), icon: FileText },
+    { id: 'financial-projections', title: t('dprBuilder.financialProjections.title'), icon: BarChart3 },
     { id: 'eligible-schemes', title: t('dprBuilder.eligibleSchemes.title'), icon: Award },
     { id: 'ai-review', title: t('dprBuilder.aiReview.title'), icon: Brain },
   ];
@@ -111,6 +150,111 @@ export const AIGuidedDPRBuilder: React.FC = () => {
     }
   };
 
+  // Helper function to parse Other Capital Costs from text/markdown
+  const parseOtherCapitalCostsFromText = (text: string): any => {
+    const result: any = {
+      preliminaryCost: '0',
+      furnitureFixtures: '0',
+      contingency: '0',
+      workingCapital: '0'
+    };
+    
+    // Extract numbers with ₹ symbol or keywords
+    let furnitureTotal = 0;
+    let preliminaryTotal = 0;
+    let contingencyTotal = 0;
+    let workingCapitalTotal = 0;
+    
+    // Helper to extract number from text
+    const extractNumber = (str: string): number => {
+      const match = str.match(/[₹]?\s*(\d+(?:,\d+)*)/);
+      return match ? parseInt(match[1].replace(/,/g, '')) : 0;
+    };
+    
+    // Look for Furniture and Fixtures section with Total
+    const furnitureSectionMatch = text.match(/(?:Furniture|Fixtures).*?Total.*?[₹]?\s*(\d+(?:,\d+)*)/gi);
+    if (furnitureSectionMatch) {
+      furnitureTotal = Math.max(...furnitureSectionMatch.map(m => extractNumber(m)));
+    } else {
+      // Try individual items
+      const furnitureItems = text.match(/(?:Office Furniture|Display Racks|desks|chairs|cabinets|Furniture|Fixtures).*?[₹]?\s*(\d+(?:,\d+)*)/gi);
+      if (furnitureItems) {
+        furnitureItems.forEach(item => {
+          furnitureTotal += extractNumber(item);
+        });
+      }
+    }
+    
+    // Look for Office Equipment (goes to preliminaryCost)
+    const officeEquipmentMatch = text.match(/(?:Office Equipment|Computers|Laptops|Printer|Scanner|Telephone|Communication).*?Total.*?[₹]?\s*(\d+(?:,\d+)*)/gi);
+    if (officeEquipmentMatch) {
+      officeEquipmentMatch.forEach(match => {
+        preliminaryTotal += extractNumber(match);
+      });
+    } else {
+      const equipmentItems = text.match(/(?:Computers|Laptops|Printer|Scanner|Telephone|Communication).*?[₹]?\s*(\d+(?:,\d+)*)/gi);
+      if (equipmentItems) {
+        equipmentItems.forEach(item => {
+          preliminaryTotal += extractNumber(item);
+        });
+      }
+    }
+    
+    // Look for Licenses and Permits (goes to preliminaryCost)
+    const licensesMatch = text.match(/(?:Licenses|Permits|License|Permit|Food Safety|GST Registration|Registration).*?Total.*?[₹]?\s*(\d+(?:,\d+)*)/gi);
+    if (licensesMatch) {
+      licensesMatch.forEach(match => {
+        preliminaryTotal += extractNumber(match);
+      });
+    } else {
+      const licenseItems = text.match(/(?:Food Safety|GST|Registration|Permits|Licenses).*?[₹]?\s*(\d+(?:,\d+)*)/gi);
+      if (licenseItems) {
+        licenseItems.forEach(item => {
+          preliminaryTotal += extractNumber(item);
+        });
+      }
+    }
+    
+    // Look for Utilities and Installation (goes to contingency)
+    const utilitiesMatch = text.match(/(?:Utilities|Installation|Electrical|Plumbing|Wiring|Setup).*?Total.*?[₹]?\s*(\d+(?:,\d+)*)/gi);
+    if (utilitiesMatch) {
+      utilitiesMatch.forEach(match => {
+        contingencyTotal += extractNumber(match);
+      });
+    } else {
+      const utilityItems = text.match(/(?:Electrical|Plumbing|Wiring|Setup|Installation).*?[₹]?\s*(\d+(?:,\d+)*)/gi);
+      if (utilityItems) {
+        utilityItems.forEach(item => {
+          contingencyTotal += extractNumber(item);
+        });
+      }
+    }
+    
+    // Look for Miscellaneous Expenses (goes to contingency)
+    const miscMatch = text.match(/(?:Miscellaneous|Branding|Marketing|Others|Other).*?Total.*?[₹]?\s*(\d+(?:,\d+)*)/gi);
+    if (miscMatch) {
+      miscMatch.forEach(match => {
+        contingencyTotal += extractNumber(match);
+      });
+    }
+    
+    // Look for Working Capital explicitly
+    const workingCapitalMatch = text.match(/(?:Working Capital|working capital|Initial Working Capital).*?[₹]?\s*(\d+(?:,\d+)*)/gi);
+    if (workingCapitalMatch) {
+      workingCapitalMatch.forEach(match => {
+        workingCapitalTotal += extractNumber(match);
+      });
+    }
+    
+    // Set values if found
+    if (furnitureTotal > 0) result.furnitureFixtures = furnitureTotal.toString();
+    if (preliminaryTotal > 0) result.preliminaryCost = preliminaryTotal.toString();
+    if (contingencyTotal > 0) result.contingency = contingencyTotal.toString();
+    if (workingCapitalTotal > 0) result.workingCapital = workingCapitalTotal.toString();
+    
+    return result;
+  };
+
   const getAISuggestions = async (stepId: string, _currentData: any, showLoading = true, forceRefresh = false) => {
     // Don't fetch if already loaded (unless user explicitly requests refresh)
     if (aiSuggestions[stepId] && showLoading && !forceRefresh) {
@@ -137,6 +281,8 @@ export const AIGuidedDPRBuilder: React.FC = () => {
       const costData = stepData.costStructure || {};
       
       let prompt = '';
+      
+      const currentStepData = stepData[stepId.replace(/-/g, '')] || {};
       
       switch (stepId) {
         case 'market-analysis':
@@ -188,24 +334,398 @@ CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT incl
 Provide realistic values based on ${businessData.industrySector || 'the industry'} sector. If current values exist, use them as reference but suggest improvements if needed. Return ONLY the JSON object with numeric values, nothing else.`;
           break;
           
-        case 'financial-projections':
-          prompt = `You are a financial analyst. Provide guidance text for financial projections (this section already auto-generates numbers, so provide helpful guidance instead).
+        case 'building-details':
+          prompt = `You are a construction consultant. Generate ACTUAL SAMPLE BUILDING ENTRIES for a ${businessData.industrySector || 'business'} project.
 
 Project details:
 - Industry: ${businessData.industrySector || 'Not specified'}
 - Project Name: ${businessData.projectName || 'Not specified'}
 
-Provide guidance on:
-1. Realistic revenue growth rates for ${businessData.industrySector || 'this sector'}
-2. Key cost drivers and their typical percentages
-3. Break-even analysis timeline
-4. Cash flow considerations
+CRITICAL: Return ONLY a valid JSON array with building entries. Each entry should have: particulars, area (sq.ft), rate (per sq.ft), amount (calculated). Do NOT include markdown formatting:
+[
+  {
+    "particulars": "2 Floor Building - Ground Floor",
+    "area": "1500",
+    "rate": "800",
+    "amount": "1200000"
+  },
+  {
+    "particulars": "2 Floor Building - First Floor",
+    "area": "1500",
+    "rate": "700",
+    "amount": "1050000"
+  }
+]
 
-Keep it concise (150-200 words) and actionable.`;
+Provide 2-3 realistic building entries based on ${businessData.industrySector || 'the industry'} sector. Return ONLY the JSON array, nothing else.`;
           break;
           
+        case 'machinery-details':
+          prompt = `You are a machinery consultant. Generate ACTUAL SAMPLE MACHINERY ENTRIES for a ${businessData.industrySector || 'business'} project.
+
+Project details:
+- Industry: ${businessData.industrySector || 'Not specified'}
+- Project Name: ${businessData.projectName || 'Not specified'}
+
+CRITICAL: Return ONLY a valid JSON array with machinery entries. Each entry should have: particulars, qty, rate, amount (calculated). Do NOT include markdown formatting:
+[
+  {
+    "particulars": "CNC Machine",
+    "qty": "1",
+    "rate": "500000",
+    "amount": "500000"
+  },
+  {
+    "particulars": "Grinding Machine",
+    "qty": "2",
+    "rate": "250000",
+    "amount": "500000"
+  }
+]
+
+Provide 3-5 realistic machinery entries specific to ${businessData.industrySector || 'the industry'} sector. Return ONLY the JSON array, nothing else.`;
+          break;
+          
+        case 'sales-details':
+          prompt = `You are a sales consultant. Generate ACTUAL SAMPLE SALES ENTRIES for a ${businessData.industrySector || 'business'} project.
+
+Project details:
+- Industry: ${businessData.industrySector || 'Not specified'}
+- Project Name: ${businessData.projectName || 'Not specified'}
+- Products: ${businessData.businessDescription || 'Not specified'}
+
+CRITICAL: Return ONLY a valid JSON array with sales entries. Each entry should have: particulars (product name), rate (per unit), quantity, amount (calculated). Do NOT include markdown formatting:
+[
+  {
+    "particulars": "Product A",
+    "rate": "500",
+    "quantity": "1000",
+    "amount": "500000"
+  }
+]
+
+Provide 2-4 realistic product sales entries specific to ${businessData.industrySector || 'the industry'} sector. Return ONLY the JSON array, nothing else.`;
+          break;
+          
+        case 'raw-materials':
+          prompt = `You are a procurement consultant. Generate ACTUAL SAMPLE RAW MATERIAL ENTRIES for a ${businessData.industrySector || 'business'} project.
+
+Project details:
+- Industry: ${businessData.industrySector || 'Not specified'}
+- Project Name: ${businessData.projectName || 'Not specified'}
+
+CRITICAL: Return ONLY a valid JSON array with raw material entries. Each entry should have: particulars, unit (kg/liters/pieces), rate (per unit), requiredUnit (quantity), amount (calculated). Do NOT include markdown formatting:
+[
+  {
+    "particulars": "Raw Material A",
+    "unit": "kg",
+    "rate": "100",
+    "requiredUnit": "1000",
+    "amount": "100000"
+  }
+]
+
+Provide 3-5 realistic raw material entries specific to ${businessData.industrySector || 'the industry'} sector. Return ONLY the JSON array, nothing else.`;
+          break;
+          
+        case 'wages':
+          prompt = `You are an HR consultant. Generate ACTUAL SAMPLE WAGE ENTRIES for a ${businessData.industrySector || 'business'} project.
+
+Project details:
+- Industry: ${businessData.industrySector || 'Not specified'}
+- Project Name: ${businessData.projectName || 'Not specified'}
+
+CRITICAL: Return ONLY a valid JSON array with wage entries. Each entry should have: particulars (job role), noOfWorkers, wagesPerMonth, amount (calculated for 12 months). Do NOT include markdown formatting:
+[
+  {
+    "particulars": "Skilled Labor",
+    "noOfWorkers": "5",
+    "wagesPerMonth": "15000",
+    "amount": "900000"
+  }
+]
+
+Provide 2-4 realistic worker categories specific to ${businessData.industrySector || 'the industry'} sector. Return ONLY the JSON array, nothing else.`;
+          break;
+          
+        case 'salary-details':
+          prompt = `You are an HR consultant. Generate ACTUAL SAMPLE SALARY ENTRIES for a ${businessData.industrySector || 'business'} project.
+
+Project details:
+- Industry: ${businessData.industrySector || 'Not specified'}
+- Project Name: ${businessData.projectName || 'Not specified'}
+
+CRITICAL: Return ONLY a valid JSON array with salary entries. Each entry should have: particulars (designation), noOfStaff, wagesPerMonth, amount (calculated for 12 months). Do NOT include markdown formatting:
+[
+  {
+    "particulars": "Production Manager",
+    "noOfStaff": "1",
+    "wagesPerMonth": "35000",
+    "amount": "420000"
+  }
+]
+
+Provide 2-4 realistic staff positions specific to ${businessData.industrySector || 'the industry'} sector. Return ONLY the JSON array, nothing else.`;
+          break;
+          
+        case 'financial-projections':
+          const currentProjections = stepData.financialProjections || {};
+          const totalCapex = parseFloat(costData?.capex?.landBuilding || 0) + parseFloat(costData?.capex?.machinery || 0);
+          const monthlyOpex = parseFloat(costData?.opex?.rawMaterials || 0) + parseFloat(costData?.opex?.salaries || 0);
+          const annualOpex = monthlyOpex * 12;
+          const totalProjectCost = project?.totalCost || (totalCapex + (annualOpex * 0.3));
+          
+          prompt = `You are a financial analyst. Generate ACTUAL NUMERICAL VALUES for 5-year financial projections for a ${businessData.industrySector || 'business'} project named "${businessData.projectName || 'the project'}".
+
+IMPORTANT: Generate REAL NUMBERS (revenue and costs) that can be directly filled into the financial projections table. The user will edit these values.
+
+Project details:
+- Industry: ${businessData.industrySector || 'Not specified'}
+- Project Name: ${businessData.projectName || 'Not specified'}
+- Total Project Cost: ₹${totalProjectCost.toLocaleString('en-IN') || 'Not specified'}
+- CAPEX (Land & Building): ₹${parseFloat(costData?.capex?.landBuilding || 0).toLocaleString('en-IN')}
+- CAPEX (Machinery): ₹${parseFloat(costData?.capex?.machinery || 0).toLocaleString('en-IN')}
+- Annual OPEX: ₹${annualOpex.toLocaleString('en-IN')}
+
+Current projections (if any):
+${Object.keys(currentProjections).length > 0 ? JSON.stringify(currentProjections, null, 2) : 'None - generate new projections'}
+
+CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON with string values for revenue and costs:
+{
+  "guidance": "Brief guidance text (150-200 words) covering: 1) Realistic revenue growth rates for ${businessData.industrySector || 'this sector'}, 2) Key cost drivers and their typical percentages, 3) Break-even analysis timeline, 4) Cash flow considerations",
+  "projections": {
+    "year1": {
+      "revenue": "1000000",
+      "costs": "850000"
+    },
+    "year2": {
+      "revenue": "1120000",
+      "costs": "918000"
+    },
+    "year3": {
+      "revenue": "1254400",
+      "costs": "991440"
+    },
+    "year4": {
+      "revenue": "1404928",
+      "costs": "1070755"
+    },
+    "year5": {
+      "revenue": "1573520",
+      "costs": "1156415"
+    }
+  }
+}
+
+Guidelines for generating realistic projections:
+- Year 1 revenue should be 70-90% of total project cost, growing at 10-15% annually
+- Costs should include: OPEX (${annualOpex.toLocaleString('en-IN')}), depreciation (~10% of CAPEX), and loan interest (~11% of loan amount)
+- Ensure break-even occurs by Year 2-3 (revenue >= costs)
+- Profit margins should improve each year (start at 10-15%, reach 20-25% by Year 5)
+- All values should be realistic for ${businessData.industrySector || 'the industry'} sector
+
+Return ONLY the JSON object, nothing else.`;
+          break;
+          
+        case 'other-capital-costs':
+          prompt = `You are a financial consultant. Generate ACTUAL SAMPLE VALUES for Other Capital Costs for a ${businessData.industrySector || 'business'} project.
+
+IMPORTANT: The form has exactly 4 fields:
+1. "preliminaryCost" - Preliminary & Pre-operative Cost (includes licenses, permits, legal fees, etc.)
+2. "furnitureFixtures" - Furniture & Fixtures (office furniture, display racks, etc.)
+3. "contingency" - Contingency/Others/Miscellaneous (unexpected expenses, buffer)
+4. "workingCapital" - Working Capital (initial operating funds)
+
+CRITICAL INSTRUCTIONS:
+- Return ONLY valid JSON, no markdown, no explanations, no text before or after
+- Use numeric strings (e.g., "100000" not 100000)
+- Map all costs appropriately:
+  * Licenses, permits, legal fees → preliminaryCost
+  * Furniture, fixtures, office equipment → furnitureFixtures
+  * Contingency, miscellaneous, buffer → contingency
+  * Working capital for operations → workingCapital
+
+Example response (copy this format exactly):
+{"preliminaryCost":"100000","furnitureFixtures":"80000","contingency":"125000","workingCapital":"500000"}
+
+Now generate realistic values for ${businessData.industrySector || 'the industry'} sector. Return ONLY the JSON object, nothing else.`;
+          break;
+          
+        case 'financing':
+          prompt = `You are a financial consultant. Generate ACTUAL SAMPLE VALUES (not guidance) for Financing structure for a ${businessData.industrySector || 'business'} project.
+
+Project details:
+- Industry: ${businessData.industrySector || 'Not specified'}
+- Project Name: ${businessData.projectName || 'Not specified'}
+
+CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON:
+{
+  "ownContributionPercent": "5",
+  "bankFinancePercent": "95",
+  "marginMoneyPercent": "35",
+  "schemeName": "PMEGP"
+}
+
+Provide realistic values. Return ONLY the JSON object, nothing else.`;
+          break;
+          
+        case 'working-capital-estimate':
+          prompt = `You are a financial consultant. Generate ACTUAL SAMPLE VALUES (not guidance) for Working Capital Estimate for a ${businessData.industrySector || 'business'} project.
+
+CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON:
+{
+  "stockInProcess": "15",
+  "finishedGoods": "30",
+  "receivables": "45"
+}
+
+Provide realistic values in days. Return ONLY the JSON object, nothing else.`;
+          break;
+          
+        case 'power-estimate':
+          prompt = `You are an energy consultant. Generate ACTUAL SAMPLE VALUES (not guidance) for Power Estimate for a ${businessData.industrySector || 'business'} project.
+
+CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON:
+{
+  "powerRequirement": "50",
+  "monthlyCost": "25000"
+}
+
+Provide realistic values. Return ONLY the JSON object, nothing else.`;
+          break;
+          
+        case 'overhead-expenses':
+          prompt = `You are a financial consultant. Generate ACTUAL SAMPLE VALUES (not guidance) for Overhead Expenses for a ${businessData.industrySector || 'business'} project.
+
+CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON:
+{
+  "repairMaintenance": "50000",
+  "powerFuel": "30000",
+  "otherOverhead": "20000",
+  "telephone": "5000",
+  "stationeryPostage": "3000",
+  "advertisement": "25000",
+  "buildingRent": "0",
+  "otherMiscellaneous": "10000"
+}
+
+Provide realistic values. Return ONLY the JSON object, nothing else.`;
+          break;
+          
+        case 'financial-parameters':
+          prompt = `You are a financial consultant. Generate ACTUAL SAMPLE VALUES (not guidance) for Financial Parameters for a ${businessData.industrySector || 'business'} project.
+
+CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON:
+{
+  "rateOfInterest": "11",
+  "depreciationBuilding": "5",
+  "depreciationMachinery": "10"
+}
+
+Provide realistic values. Return ONLY the JSON object, nothing else.`;
+          break;
+          
+        case 'applicant-info':
+          prompt = `You are a consultant. Generate ACTUAL SAMPLE VALUES (not guidance) for Applicant Information for a ${businessData.industrySector || 'business'} project.
+
+CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON:
+{
+  "sponsoringAgency": "KVIC",
+  "gender": "Male",
+  "locationType": "Rural",
+  "categories": ["OBC"],
+  "projectType": "Manufacturing Unit",
+  "legalStatus": "Owned"
+}
+
+Provide realistic values. Return ONLY the JSON object, nothing else.`;
+          break;
+          
+        case 'beneficiary-info':
+          prompt = `You are a consultant. Generate ACTUAL SAMPLE VALUES (not guidance) for Beneficiary Information for a ${businessData.industrySector || 'business'} project.
+
+CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON:
+{
+  "fullName": "Sample Name",
+  "fatherSpouseName": "Father's Name",
+  "address": "Complete Address",
+  "email": "email@example.com",
+  "mobile": "+91 9876543210",
+  "educationalQualifications": "Graduate",
+  "experience": "5 years experience"
+}
+
+Provide realistic values. Return ONLY the JSON object, nothing else.`;
+          break;
+          
+        case 'project-at-glance':
+          prompt = `You are a consultant. Generate ACTUAL SAMPLE VALUES (not guidance) for Project at a Glance for a ${businessData.industrySector || 'business'} project.
+
+CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON:
+{
+  "beneficiaryName": "Sample Name",
+  "constitution": "Individual",
+  "unitAddress": "Complete Address",
+  "talukBlock": "Taluk Name",
+  "district": "District Name",
+  "pinCode": "500001",
+  "email": "email@example.com",
+  "mobile": "+91 9876543210",
+  "products": "Product list"
+}
+
+Provide realistic values. Return ONLY the JSON object, nothing else.`;
+          break;
+          
+        case 'eligible-schemes': {
+          const eligibleSchemesTotalCost = project?.totalCost || (parseFloat(costData?.capex?.landBuilding || 0) + parseFloat(costData?.capex?.machinery || 0));
+          const projectType = businessData?.projectType || 'Manufacturing';
+          const location = businessData?.location || project?.location || 'Not specified';
+          
+          prompt = `You are a government schemes consultant. Generate ACTUAL SCHEME SUGGESTIONS (not just guidance) for a ${businessData.industrySector || 'business'} project.
+
+IMPORTANT: Generate REAL scheme codes and names that are commonly applicable to MSME projects in India. The user will select these schemes.
+
+Project details:
+- Industry Sector: ${businessData.industrySector || 'Not specified'}
+- Project Name: ${businessData.projectName || 'Not specified'}
+- Project Type: ${projectType}
+- Total Project Cost: ₹${eligibleSchemesTotalCost.toLocaleString('en-IN') || 'Not specified'}
+- Location: ${location}
+- Applicant Category: ${businessData?.applicantInfo?.categories?.join(', ') || 'General'}
+
+CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON:
+{
+  "guidance": "Brief explanation (100-150 words) about why these schemes are relevant to this project and how they can benefit the entrepreneur.",
+  "schemes": [
+    {
+      "schemeCode": "PMEGP",
+      "schemeName": "Prime Minister Employment Generation Programme",
+      "description": "Credit-linked subsidy scheme for setting up new micro-enterprises. Provides 15-35% subsidy on project cost.",
+      "relevance": "Highly relevant for ${businessData.industrySector || 'this'} sector MSME projects with investment up to ₹25 lakhs."
+    },
+    {
+      "schemeCode": "MUDRA",
+      "schemeName": "Pradhan Mantri MUDRA Yojana",
+      "description": "Provides loans up to ₹10 lakhs for micro enterprises without collateral.",
+      "relevance": "Suitable for working capital and equipment financing needs."
+    }
+  ]
+}
+
+Guidelines:
+- Suggest 3-5 relevant government schemes (PMEGP, MUDRA, CGTMSE, Stand-Up India, etc.)
+- Focus on schemes applicable to ${businessData.industrySector || 'the industry'} sector
+- Consider project cost, location, and applicant category
+- Include both central and state government schemes if applicable
+- Ensure schemes are realistic and commonly available for MSME projects
+
+Return ONLY the JSON object, nothing else.`;
+          break;
+        }
+          
         default:
-          prompt = `Generate ACTUAL SAMPLE CONTENT (not guidance) for ${stepId.replace('-', ' ')} section for a ${businessData.industrySector || 'business'} project. 
+          prompt = `Generate ACTUAL SAMPLE CONTENT (not guidance) for ${stepId.replace(/-/g, ' ')} section for a ${businessData.industrySector || 'business'} project. 
 
 Return ready-to-use content that can be directly filled into form fields. The user will edit this content.`;
       }
@@ -228,16 +748,33 @@ Return ready-to-use content that can be directly filled into form fields. The us
       // Try to parse JSON if it's structured data, otherwise use as-is
       let parsedSuggestion: any = suggestionText;
       try {
-        // Extract JSON from markdown code blocks if present
-        const jsonMatch = suggestionText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+        // Extract JSON from markdown code blocks if present (supports both objects and arrays)
+        const jsonMatch = suggestionText.match(/```(?:json)?\s*([\[\{][\s\S]*[\]\}])\s*```/);
         if (jsonMatch) {
           parsedSuggestion = JSON.parse(jsonMatch[1]);
-        } else if (suggestionText.trim().startsWith('{')) {
+        } else if (suggestionText.trim().startsWith('{') || suggestionText.trim().startsWith('[')) {
           parsedSuggestion = JSON.parse(suggestionText);
+        } else {
+          // Try to extract JSON from text that contains JSON
+          const jsonInText = suggestionText.match(/\{[\s\S]*\}/);
+          if (jsonInText) {
+            parsedSuggestion = JSON.parse(jsonInText[0]);
+          } else {
+            // For other-capital-costs, try to parse markdown/text and extract values
+            if (stepId === 'other-capital-costs') {
+              parsedSuggestion = parseOtherCapitalCostsFromText(suggestionText);
+            } else {
+              parsedSuggestion = suggestionText;
+            }
+          }
         }
       } catch (e) {
-        // Not JSON, use as plain text
-        parsedSuggestion = suggestionText;
+        // If JSON parsing fails, try to extract values from text for specific steps
+        if (stepId === 'other-capital-costs') {
+          parsedSuggestion = parseOtherCapitalCostsFromText(suggestionText);
+        } else {
+          parsedSuggestion = suggestionText;
+        }
       }
       
       setAiSuggestions(prev => ({
@@ -261,14 +798,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
     if (currentStep < STEPS.length - 1) {
       // Navigate immediately without waiting for AI
       setCurrentStep(currentStep + 1);
-      
-      // Load AI suggestions in background (non-blocking)
-      const nextStepId = STEPS[currentStep + 1].id;
-      if (!aiSuggestions[nextStepId]) {
-        getAISuggestions(nextStepId, stepData, false).catch(() => {
-          // Silently fail - don't block user
-        });
-      }
+      // Don't auto-load AI suggestions - user must click the button to get suggestions
     }
   };
 
@@ -358,6 +888,49 @@ Return ready-to-use content that can be directly filled into form fields. The us
         }
       }
 
+      // Save selected schemes to project before generating DPR
+      const selectedSchemes = stepData.eligibleSchemes?.selectedSchemes || [];
+      if (selectedSchemes.length > 0) {
+        try {
+          // Get full scheme details for selected schemes
+          const schemesData: any[] = [];
+          for (const schemeCode of selectedSchemes) {
+            try {
+              const schemeResponse = await api.getScheme(schemeCode);
+              const scheme = schemeResponse.data || schemeResponse;
+              if (scheme) {
+                schemesData.push({
+                  schemeCode: scheme.schemeCode || schemeCode,
+                  schemeName: scheme.schemeName || schemeCode,
+                  description: scheme.description || '',
+                  eligibility: scheme.eligibility || {},
+                  benefits: scheme.benefits || {},
+                  documentsRequired: scheme.documentsRequired || [],
+                });
+              }
+            } catch (err) {
+              // If scheme not found, use basic info
+              schemesData.push({
+                schemeCode: schemeCode,
+                schemeName: schemeCode,
+                description: 'Government scheme applicable to this project',
+              });
+            }
+          }
+
+          // Update project with selected schemes
+          await api.updateProject(finalProjectId, {
+            eligibleSchemes: {
+              selectedSchemes: selectedSchemes,
+              schemesData: schemesData,
+            },
+          });
+        } catch (error: any) {
+          console.error('Error saving schemes to project:', error);
+          // Don't block DPR generation if scheme save fails
+        }
+      }
+
       // Generate DPR
       const response = await api.generateDPR(finalProjectId, 'bilingual');
       toast.success('DPR generated successfully!');
@@ -379,6 +952,159 @@ Return ready-to-use content that can be directly filled into form fields. The us
     switch (step.id) {
       case 'business-overview':
         return <BusinessOverviewStep data={stepData.businessOverview} onChange={(data: any) => setStepData({...stepData, businessOverview: data})} project={project} />;
+      case 'applicant-info':
+        return (
+          <ApplicantInfoStep 
+            data={stepData.applicantInfo} 
+            onChange={(data: any) => setStepData({...stepData, applicantInfo: data})}
+            suggestions={aiSuggestions['applicant-info']}
+            loading={loadingSuggestions['applicant-info']}
+            onGetSuggestions={() => getAISuggestions('applicant-info', stepData, true, true)}
+          />
+        );
+      case 'building-details':
+        return (
+          <BuildingDetailsStep 
+            data={stepData.buildingDetails} 
+            onChange={(data: any) => setStepData({...stepData, buildingDetails: data})}
+            suggestions={aiSuggestions['building-details']}
+            loading={loadingSuggestions['building-details']}
+            onGetSuggestions={() => getAISuggestions('building-details', stepData, true, true)}
+          />
+        );
+      case 'machinery-details':
+        return (
+          <MachineryDetailsStep 
+            data={stepData.machineryDetails} 
+            onChange={(data: any) => setStepData({...stepData, machineryDetails: data})}
+            suggestions={aiSuggestions['machinery-details']}
+            loading={loadingSuggestions['machinery-details']}
+            onGetSuggestions={() => getAISuggestions('machinery-details', stepData, true, true)}
+          />
+        );
+      case 'other-capital-costs':
+        return (
+          <OtherCapitalCostsStep 
+            data={stepData.otherCapitalCosts} 
+            onChange={(data: any) => setStepData({...stepData, otherCapitalCosts: data})}
+            suggestions={aiSuggestions['other-capital-costs']}
+            loading={loadingSuggestions['other-capital-costs']}
+            onGetSuggestions={() => getAISuggestions('other-capital-costs', stepData, true, true)}
+          />
+        );
+      case 'financing':
+        return (
+          <FinancingStep 
+            data={stepData.financing} 
+            onChange={(data: any) => setStepData({...stepData, financing: data})} 
+            project={project} 
+            stepData={stepData}
+            suggestions={aiSuggestions['financing']}
+            loading={loadingSuggestions['financing']}
+            onGetSuggestions={() => getAISuggestions('financing', stepData, true, true)}
+          />
+        );
+      case 'sales-details':
+        return (
+          <SalesDetailsStep 
+            data={stepData.salesDetails} 
+            onChange={(data: any) => setStepData({...stepData, salesDetails: data})}
+            suggestions={aiSuggestions['sales-details']}
+            loading={loadingSuggestions['sales-details']}
+            onGetSuggestions={() => getAISuggestions('sales-details', stepData, true, true)}
+          />
+        );
+      case 'raw-materials':
+        return (
+          <RawMaterialsStep 
+            data={stepData.rawMaterials} 
+            onChange={(data: any) => setStepData({...stepData, rawMaterials: data})}
+            suggestions={aiSuggestions['raw-materials']}
+            loading={loadingSuggestions['raw-materials']}
+            onGetSuggestions={() => getAISuggestions('raw-materials', stepData, true, true)}
+          />
+        );
+      case 'wages':
+        return (
+          <WagesStep 
+            data={stepData.wages} 
+            onChange={(data: any) => setStepData({...stepData, wages: data})}
+            suggestions={aiSuggestions['wages']}
+            loading={loadingSuggestions['wages']}
+            onGetSuggestions={() => getAISuggestions('wages', stepData, true, true)}
+          />
+        );
+      case 'salary-details':
+        return (
+          <SalaryDetailsStep 
+            data={stepData.salaryDetails} 
+            onChange={(data: any) => setStepData({...stepData, salaryDetails: data})}
+            suggestions={aiSuggestions['salary-details']}
+            loading={loadingSuggestions['salary-details']}
+            onGetSuggestions={() => getAISuggestions('salary-details', stepData, true, true)}
+          />
+        );
+      case 'working-capital-estimate':
+        return (
+          <WorkingCapitalEstimateStep 
+            data={stepData.workingCapitalEstimate} 
+            onChange={(data: any) => setStepData({...stepData, workingCapitalEstimate: data})}
+            suggestions={aiSuggestions['working-capital-estimate']}
+            loading={loadingSuggestions['working-capital-estimate']}
+            onGetSuggestions={() => getAISuggestions('working-capital-estimate', stepData, true, true)}
+          />
+        );
+      case 'power-estimate':
+        return (
+          <PowerEstimateStep 
+            data={stepData.powerEstimate} 
+            onChange={(data: any) => setStepData({...stepData, powerEstimate: data})}
+            suggestions={aiSuggestions['power-estimate']}
+            loading={loadingSuggestions['power-estimate']}
+            onGetSuggestions={() => getAISuggestions('power-estimate', stepData, true, true)}
+          />
+        );
+      case 'overhead-expenses':
+        return (
+          <OverheadExpensesStep 
+            data={stepData.overheadExpenses} 
+            onChange={(data: any) => setStepData({...stepData, overheadExpenses: data})}
+            suggestions={aiSuggestions['overhead-expenses']}
+            loading={loadingSuggestions['overhead-expenses']}
+            onGetSuggestions={() => getAISuggestions('overhead-expenses', stepData, true, true)}
+          />
+        );
+      case 'financial-parameters':
+        return (
+          <FinancialParametersStep 
+            data={stepData.financialParameters} 
+            onChange={(data: any) => setStepData({...stepData, financialParameters: data})}
+            suggestions={aiSuggestions['financial-parameters']}
+            loading={loadingSuggestions['financial-parameters']}
+            onGetSuggestions={() => getAISuggestions('financial-parameters', stepData, true, true)}
+          />
+        );
+      case 'beneficiary-info':
+        return (
+          <BeneficiaryInfoStep 
+            data={stepData.beneficiaryInfo} 
+            onChange={(data: any) => setStepData({...stepData, beneficiaryInfo: data})}
+            suggestions={aiSuggestions['beneficiary-info']}
+            loading={loadingSuggestions['beneficiary-info']}
+            onGetSuggestions={() => getAISuggestions('beneficiary-info', stepData, true, true)}
+          />
+        );
+      case 'project-at-glance':
+        return (
+          <ProjectAtGlanceStep 
+            data={stepData.projectAtGlance} 
+            onChange={(data: any) => setStepData({...stepData, projectAtGlance: data})} 
+            stepData={stepData}
+            suggestions={aiSuggestions['project-at-glance']}
+            loading={loadingSuggestions['project-at-glance']}
+            onGetSuggestions={() => getAISuggestions('project-at-glance', stepData, true, true)}
+          />
+        );
       case 'market-analysis':
         return (
           <MarketAnalysisStep 
@@ -387,17 +1113,6 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['market-analysis']}
             loading={loadingSuggestions['market-analysis']}
             onGetSuggestions={() => getAISuggestions('market-analysis', stepData, true, true)}
-          />
-        );
-      case 'cost-structure':
-        return (
-          <CostStructureStep 
-            data={stepData.costStructure} 
-            onChange={(data: any) => setStepData({...stepData, costStructure: data})} 
-            project={project}
-            suggestions={aiSuggestions['cost-structure']}
-            loading={loadingSuggestions['cost-structure']}
-            onGetSuggestions={() => getAISuggestions('cost-structure', stepData, true, true)}
           />
         );
       case 'financial-projections':
@@ -414,7 +1129,17 @@ Return ready-to-use content that can be directly filled into form fields. The us
           />
         );
       case 'eligible-schemes':
-        return <EligibleSchemesStep data={stepData.eligibleSchemes} onChange={(data: any) => setStepData({...stepData, eligibleSchemes: data})} project={project} />;
+        return (
+          <EligibleSchemesStep 
+            data={stepData.eligibleSchemes} 
+            onChange={(data: any) => setStepData({...stepData, eligibleSchemes: data})} 
+            project={project}
+            suggestions={aiSuggestions['eligible-schemes']}
+            loading={loadingSuggestions['eligible-schemes']}
+            onGetSuggestions={() => getAISuggestions('eligible-schemes', stepData, true, true)}
+            businessData={stepData.businessOverview}
+          />
+        );
       case 'ai-review':
         return <AIReviewStep stepData={stepData} project={project} onGenerate={handleGenerateDPR} />;
       default:
@@ -578,6 +1303,3114 @@ Return ready-to-use content that can be directly filled into form fields. The us
 };
 
 // Step Components
+
+// Applicant Info Step
+const ApplicantInfoStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  
+  const handleApplySuggestions = () => {
+    if (suggestions && typeof suggestions === 'object') {
+      onChange({...data, ...suggestions});
+      toast.success('Applied AI suggestions');
+    }
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.applicantInfo.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.applicantInfo.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Content */}
+            <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
+              {suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions) ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  {suggestions.sponsoringAgency && (
+                    <div>
+                      <span className="font-semibold text-foreground">Sponsoring Agency: </span>
+                      <span className="text-muted-foreground">{suggestions.sponsoringAgency}</span>
+                    </div>
+                  )}
+                  {suggestions.gender && (
+                    <div>
+                      <span className="font-semibold text-foreground">Gender: </span>
+                      <span className="text-muted-foreground">{suggestions.gender}</span>
+                    </div>
+                  )}
+                  {suggestions.locationType && (
+                    <div>
+                      <span className="font-semibold text-foreground">Location Type: </span>
+                      <span className="text-muted-foreground">{suggestions.locationType}</span>
+                    </div>
+                  )}
+                  {suggestions.categories && Array.isArray(suggestions.categories) && suggestions.categories.length > 0 && (
+                    <div>
+                      <span className="font-semibold text-foreground">Categories: </span>
+                      <span className="text-muted-foreground">{suggestions.categories.join(', ')}</span>
+                    </div>
+                  )}
+                  {suggestions.projectType && (
+                    <div>
+                      <span className="font-semibold text-foreground">Project Type: </span>
+                      <span className="text-muted-foreground">{suggestions.projectType}</span>
+                    </div>
+                  )}
+                  {suggestions.legalStatus && (
+                    <div>
+                      <span className="font-semibold text-foreground">Legal Status: </span>
+                      <span className="text-muted-foreground">{suggestions.legalStatus}</span>
+                    </div>
+                  )}
+                  {Object.keys(suggestions).length === 0 && (
+                    <div className="col-span-2 text-sm text-muted-foreground">
+                      No suggestions available. Please try refreshing.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm">
+                  <p className="text-muted-foreground mb-2">Preview:</p>
+                  <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">
+                    {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.applicantInfo.sponsoringAgency')}</label>
+          <select
+            value={data?.sponsoringAgency || ''}
+            onChange={(e) => onChange({...data, sponsoringAgency: e.target.value})}
+            className="w-full h-12 px-4 border-2 rounded-lg focus:border-primary focus:outline-none bg-background text-foreground"
+          >
+            <option value="">Select Agency</option>
+            <option value="KVIC">KVIC</option>
+            <option value="KVIB">KVIB</option>
+            <option value="DIC">DIC</option>
+            <option value="COIR Board">COIR Board</option>
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.applicantInfo.gender')}</label>
+          <div className="flex gap-4">
+            {['Male', 'Female', 'Transgender'].map((gender) => (
+              <label key={gender} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="gender"
+                  value={gender}
+                  checked={data?.gender === gender}
+                  onChange={(e) => onChange({...data, gender: e.target.value})}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">{gender}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.applicantInfo.locationType')}</label>
+          <div className="flex gap-4">
+            {['Rural', 'Urban'].map((type) => (
+              <label key={type} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="locationType"
+                  value={type}
+                  checked={data?.locationType === type}
+                  onChange={(e) => onChange({...data, locationType: e.target.value})}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">{type}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.applicantInfo.category')}</label>
+          <div className="grid grid-cols-2 gap-2">
+            {['SC', 'ST', 'OBC', 'PHC', 'Ex-Service man', 'Minority', 'Hill Border Area'].map((cat) => (
+              <label key={cat} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={data?.categories?.includes(cat) || false}
+                  onChange={(e) => {
+                    const categories = data?.categories || [];
+                    if (e.target.checked) {
+                      onChange({...data, categories: [...categories, cat]});
+                    } else {
+                      onChange({...data, categories: categories.filter((c: string) => c !== cat)});
+                    }
+                  }}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">{cat}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.applicantInfo.projectType')}</label>
+          <div className="flex gap-4">
+            {['Manufacturing Unit', 'Service Unit'].map((type) => (
+              <label key={type} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="projectType"
+                  value={type}
+                  checked={data?.projectType === type}
+                  onChange={(e) => onChange({...data, projectType: e.target.value})}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">{type}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.applicantInfo.legalStatus')}</label>
+          <Input
+            value={data?.legalStatus || ''}
+            onChange={(e) => onChange({...data, legalStatus: e.target.value})}
+            placeholder="e.g., Owned, Leased, Rented"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Building Details Step
+const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  const buildings = data?.buildings || [{ particulars: '', area: '', rate: '', amount: '' }];
+  
+  const addBuilding = () => {
+    onChange({...data, buildings: [...buildings, { particulars: '', area: '', rate: '', amount: '' }]});
+  };
+  
+  const removeBuilding = (index: number) => {
+    onChange({...data, buildings: buildings.filter((_: any, i: number) => i !== index)});
+  };
+  
+  const updateBuilding = (index: number, field: string, value: string) => {
+    const updated = [...buildings];
+    updated[index] = {...updated[index], [field]: value};
+    if (field === 'area' || field === 'rate') {
+      const area = parseFloat(updated[index].area || '0');
+      const rate = parseFloat(updated[index].rate || '0');
+      updated[index].amount = (area * rate).toString();
+    }
+    onChange({...data, buildings: updated});
+  };
+  
+  const handleApplySuggestions = () => {
+    if (Array.isArray(suggestions) && suggestions.length > 0) {
+      onChange({...data, buildings: suggestions});
+      toast.success('Applied AI suggestions to building details');
+    }
+  };
+  
+  const total = buildings.reduce((sum: number, b: any) => sum + parseFloat(b.amount || '0'), 0);
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.buildingDetails.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.buildingDetails.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && Array.isArray(suggestions) && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Table */}
+            <div className="mt-4 overflow-x-auto border-2 border-primary/20 rounded-lg bg-white/50">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-primary/10">
+                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">Particulars</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Area (Sq.ft)</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Rate/Sq.ft (₹)</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suggestions.map((item: any, index: number) => (
+                    <tr key={index} className="hover:bg-primary/5">
+                      <td className="border-2 border-primary/20 p-3 text-sm">{item.particulars || '-'}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right text-sm">{item.area || '0'}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right text-sm">₹{parseFloat(item.rate || '0').toLocaleString('en-IN')}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right font-semibold text-sm">₹{parseFloat(item.amount || '0').toLocaleString('en-IN')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-primary/5">
+                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Total</td>
+                    <td className="border-2 border-primary/20 p-3 text-right font-bold text-sm">
+                      ₹{suggestions.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0).toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="overflow-x-auto border-2 border-primary/20 rounded-lg">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-primary/10">
+              <th className="border-2 border-primary/20 p-3 text-left font-bold">Particulars</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Area (Sq.ft)</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Rate/Sq.ft (₹)</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Amount (₹)</th>
+              <th className="border-2 border-primary/20 p-3 text-center font-bold">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {buildings.map((building: any, index: number) => (
+              <tr key={index}>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    value={building.particulars}
+                    onChange={(e) => updateBuilding(index, 'particulars', e.target.value)}
+                    placeholder="e.g., 2 Floor Building"
+                    className="border-2"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    type="number"
+                    value={building.area}
+                    onChange={(e) => updateBuilding(index, 'area', e.target.value)}
+                    placeholder="0"
+                    className="border-2 text-right"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    type="number"
+                    value={building.rate}
+                    onChange={(e) => updateBuilding(index, 'rate', e.target.value)}
+                    placeholder="0"
+                    className="border-2 text-right"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3 text-right font-semibold">
+                  ₹{parseFloat(building.amount || '0').toLocaleString('en-IN')}
+                </td>
+                <td className="border-2 border-primary/20 p-3 text-center">
+                  <Button variant="ghost" size="sm" onClick={() => removeBuilding(index)}>
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-primary/5">
+              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">Total</td>
+              <td className="border-2 border-primary/20 p-3 text-right font-bold">₹{total.toLocaleString('en-IN')}</td>
+              <td className="border-2 border-primary/20 p-3"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      
+      <Button onClick={addBuilding} variant="outline" className="border-2 border-primary">
+        <Plus className="h-4 w-4 mr-2" />
+        Add Building Entry
+      </Button>
+    </div>
+  );
+};
+
+// Machinery Details Step
+const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  const machinery = data?.machinery || [{ particulars: '', qty: '', rate: '', amount: '' }];
+  
+  const addMachinery = () => {
+    onChange({...data, machinery: [...machinery, { particulars: '', qty: '', rate: '', amount: '' }]});
+  };
+  
+  const removeMachinery = (index: number) => {
+    onChange({...data, machinery: machinery.filter((_: any, i: number) => i !== index)});
+  };
+  
+  const updateMachinery = (index: number, field: string, value: string) => {
+    const updated = [...machinery];
+    updated[index] = {...updated[index], [field]: value};
+    if (field === 'qty' || field === 'rate') {
+      const qty = parseFloat(updated[index].qty || '0');
+      const rate = parseFloat(updated[index].rate || '0');
+      updated[index].amount = (qty * rate).toString();
+    }
+    onChange({...data, machinery: updated});
+  };
+  
+  const handleApplySuggestions = () => {
+    if (Array.isArray(suggestions) && suggestions.length > 0) {
+      onChange({...data, machinery: suggestions});
+      toast.success('Applied AI suggestions to machinery details');
+    }
+  };
+  
+  const total = machinery.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.machineryDetails.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.machineryDetails.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && Array.isArray(suggestions) && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Table */}
+            <div className="mt-4 overflow-x-auto border-2 border-primary/20 rounded-lg bg-white/50">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-primary/10">
+                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">Particulars</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Qty</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Rate (₹)</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suggestions.map((item: any, index: number) => (
+                    <tr key={index} className="hover:bg-primary/5">
+                      <td className="border-2 border-primary/20 p-3 text-sm">{item.particulars || '-'}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right text-sm">{item.qty || '0'}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right text-sm">₹{parseFloat(item.rate || '0').toLocaleString('en-IN')}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right font-semibold text-sm">₹{parseFloat(item.amount || '0').toLocaleString('en-IN')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-primary/5">
+                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Total</td>
+                    <td className="border-2 border-primary/20 p-3 text-right font-bold text-sm">
+                      ₹{suggestions.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0).toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="overflow-x-auto border-2 border-primary/20 rounded-lg">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-primary/10">
+              <th className="border-2 border-primary/20 p-3 text-left font-bold">Particulars</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Qty</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Rate (₹)</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Amount (₹)</th>
+              <th className="border-2 border-primary/20 p-3 text-center font-bold">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {machinery.map((item: any, index: number) => (
+              <tr key={index}>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    value={item.particulars}
+                    onChange={(e) => updateMachinery(index, 'particulars', e.target.value)}
+                    placeholder="e.g., CNC Machine"
+                    className="border-2"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    type="number"
+                    value={item.qty}
+                    onChange={(e) => updateMachinery(index, 'qty', e.target.value)}
+                    placeholder="0"
+                    className="border-2 text-right"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    type="number"
+                    value={item.rate}
+                    onChange={(e) => updateMachinery(index, 'rate', e.target.value)}
+                    placeholder="0"
+                    className="border-2 text-right"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3 text-right font-semibold">
+                  ₹{parseFloat(item.amount || '0').toLocaleString('en-IN')}
+                </td>
+                <td className="border-2 border-primary/20 p-3 text-center">
+                  <Button variant="ghost" size="sm" onClick={() => removeMachinery(index)}>
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-primary/5">
+              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">Total</td>
+              <td className="border-2 border-primary/20 p-3 text-right font-bold">₹{total.toLocaleString('en-IN')}</td>
+              <td className="border-2 border-primary/20 p-3"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      
+      <Button onClick={addMachinery} variant="outline" className="border-2 border-primary">
+        <Plus className="h-4 w-4 mr-2" />
+        Add Machinery Entry
+      </Button>
+    </div>
+  );
+};
+
+// Other Capital Costs Step
+const OtherCapitalCostsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  
+  const handleApplySuggestions = () => {
+    if (suggestions && typeof suggestions === 'object') {
+      onChange({...data, ...suggestions});
+      toast.success('Applied AI suggestions');
+    }
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.otherCapitalCosts.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.otherCapitalCosts.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Content - Other Capital Costs */}
+            <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
+              {suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions) ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  {suggestions.preliminaryCost && (
+                    <div>
+                      <span className="font-semibold text-foreground">Preliminary & Pre-operative Cost: </span>
+                      <span className="text-muted-foreground">₹{parseFloat(String(suggestions.preliminaryCost || '0')).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {suggestions.furnitureFixtures && (
+                    <div>
+                      <span className="font-semibold text-foreground">Furniture & Fixtures: </span>
+                      <span className="text-muted-foreground">₹{parseFloat(String(suggestions.furnitureFixtures || '0')).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {suggestions.contingency && (
+                    <div>
+                      <span className="font-semibold text-foreground">Contingency: </span>
+                      <span className="text-muted-foreground">₹{parseFloat(String(suggestions.contingency || '0')).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {suggestions.workingCapital && (
+                    <div>
+                      <span className="font-semibold text-foreground">Working Capital: </span>
+                      <span className="text-muted-foreground">₹{parseFloat(String(suggestions.workingCapital || '0')).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {Object.keys(suggestions).length === 0 && (
+                    <div className="col-span-2 text-sm text-muted-foreground">
+                      No suggestions available. Please try refreshing.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  <p className="mb-2">Received suggestions in unexpected format. Raw response:</p>
+                  <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40">
+                    {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.otherCapitalCosts.preliminaryCost')} (₹)</label>
+          <Input
+            type="number"
+            value={data?.preliminaryCost || ''}
+            onChange={(e) => onChange({...data, preliminaryCost: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.otherCapitalCosts.furnitureFixtures')} (₹)</label>
+          <Input
+            type="number"
+            value={data?.furnitureFixtures || ''}
+            onChange={(e) => onChange({...data, furnitureFixtures: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.otherCapitalCosts.contingency')} (₹)</label>
+          <Input
+            type="number"
+            value={data?.contingency || ''}
+            onChange={(e) => onChange({...data, contingency: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.otherCapitalCosts.workingCapital')} (₹)</label>
+          <Input
+            type="number"
+            value={data?.workingCapital || ''}
+            onChange={(e) => onChange({...data, workingCapital: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Financing Step
+const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; project?: any; stepData: any; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, stepData, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  
+  // Calculate total project cost from previous steps
+  const buildingTotal = (stepData.buildingDetails?.buildings || []).reduce((sum: number, b: any) => sum + parseFloat(b.amount || '0'), 0);
+  const machineryTotal = (stepData.machineryDetails?.machinery || []).reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
+  const otherCosts = parseFloat(stepData.otherCapitalCosts?.preliminaryCost || '0') +
+                     parseFloat(stepData.otherCapitalCosts?.furnitureFixtures || '0') +
+                     parseFloat(stepData.otherCapitalCosts?.contingency || '0') +
+                     parseFloat(stepData.otherCapitalCosts?.workingCapital || '0');
+  const totalProjectCost = buildingTotal + machineryTotal + otherCosts;
+  
+  const updateFinancing = (field: string, value: string) => {
+    const updated = {...data, [field]: value};
+    if (field === 'ownContributionPercent' || field === 'bankFinancePercent') {
+      const ownPercent = parseFloat(updated.ownContributionPercent || '0');
+      const bankPercent = parseFloat(updated.bankFinancePercent || '0');
+      updated.ownContribution = ((totalProjectCost * ownPercent) / 100).toString();
+      updated.bankFinance = ((totalProjectCost * bankPercent) / 100).toString();
+    }
+    onChange(updated);
+  };
+  
+  const handleApplySuggestions = () => {
+    if (suggestions && typeof suggestions === 'object') {
+      onChange({...data, ...suggestions});
+      toast.success('Applied AI suggestions');
+    }
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.financing.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.financing.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Content - Financing */}
+            <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                {suggestions.ownContributionPercent && (
+                  <div>
+                    <span className="font-semibold text-foreground">Own Contribution: </span>
+                    <span className="text-muted-foreground">{suggestions.ownContributionPercent}% (₹{parseFloat(suggestions.ownContribution || '0').toLocaleString('en-IN')})</span>
+                  </div>
+                )}
+                {suggestions.bankFinancePercent && (
+                  <div>
+                    <span className="font-semibold text-foreground">Bank Finance: </span>
+                    <span className="text-muted-foreground">{suggestions.bankFinancePercent}% (₹{parseFloat(suggestions.bankFinance || '0').toLocaleString('en-IN')})</span>
+                  </div>
+                )}
+                {suggestions.marginMoneyPercent && (
+                  <div>
+                    <span className="font-semibold text-foreground">Margin Money: </span>
+                    <span className="text-muted-foreground">{suggestions.marginMoneyPercent}% (₹{parseFloat(suggestions.marginMoney || '0').toLocaleString('en-IN')})</span>
+                  </div>
+                )}
+                {suggestions.schemeName && (
+                  <div>
+                    <span className="font-semibold text-foreground">Scheme Name: </span>
+                    <span className="text-muted-foreground">{suggestions.schemeName}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <Card className="border-2 border-primary/20">
+        <CardContent className="pt-6">
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm font-semibold text-foreground">Total Project Cost: ₹{totalProjectCost.toLocaleString('en-IN')}</p>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.financing.ownContribution')} (%)</label>
+                <Input
+                  type="number"
+                  value={data?.ownContributionPercent || ''}
+                  onChange={(e) => updateFinancing('ownContributionPercent', e.target.value)}
+                  placeholder="5"
+                  className="h-12 border-2 focus:border-primary"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Amount: ₹{parseFloat(data?.ownContribution || '0').toLocaleString('en-IN')}</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.financing.bankFinance')} (%)</label>
+                <Input
+                  type="number"
+                  value={data?.bankFinancePercent || ''}
+                  onChange={(e) => updateFinancing('bankFinancePercent', e.target.value)}
+                  placeholder="95"
+                  className="h-12 border-2 focus:border-primary"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Amount: ₹{parseFloat(data?.bankFinance || '0').toLocaleString('en-IN')}</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.financing.marginMoney')} (%)</label>
+                <Input
+                  type="number"
+                  value={data?.marginMoneyPercent || ''}
+                  onChange={(e) => {
+                    const percent = parseFloat(e.target.value || '0');
+                    onChange({...data, marginMoneyPercent: e.target.value, marginMoney: ((totalProjectCost * percent) / 100).toString()});
+                  }}
+                  placeholder="35"
+                  className="h-12 border-2 focus:border-primary"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Amount: ₹{parseFloat(data?.marginMoney || '0').toLocaleString('en-IN')}</p>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.financing.schemeName')}</label>
+              <Input
+                value={data?.schemeName || ''}
+                onChange={(e) => onChange({...data, schemeName: e.target.value})}
+                placeholder="e.g., PMEGP, MUDRA"
+                className="h-12 border-2 focus:border-primary"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// Sales Details Step
+const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  const sales = data?.sales || [{ particulars: '', rate: '', quantity: '', amount: '' }];
+  
+  const addSale = () => {
+    onChange({...data, sales: [...sales, { particulars: '', rate: '', quantity: '', amount: '' }]});
+  };
+  
+  const removeSale = (index: number) => {
+    onChange({...data, sales: sales.filter((_: any, i: number) => i !== index)});
+  };
+  
+  const updateSale = (index: number, field: string, value: string) => {
+    const updated = [...sales];
+    updated[index] = {...updated[index], [field]: value};
+    if (field === 'rate' || field === 'quantity') {
+      const rate = parseFloat(updated[index].rate || '0');
+      const qty = parseFloat(updated[index].quantity || '0');
+      updated[index].amount = (rate * qty).toString();
+    }
+    onChange({...data, sales: updated});
+  };
+  
+  const handleApplySuggestions = () => {
+    if (Array.isArray(suggestions) && suggestions.length > 0) {
+      onChange({...data, sales: suggestions});
+      toast.success('Applied AI suggestions to sales details');
+    }
+  };
+  
+  const total = sales.reduce((sum: number, s: any) => sum + parseFloat(s.amount || '0'), 0);
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.salesDetails.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.salesDetails.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && Array.isArray(suggestions) && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Table - Sales Details */}
+            <div className="mt-4 overflow-x-auto border-2 border-primary/20 rounded-lg bg-white/50">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-primary/10">
+                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">Particulars</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Rate/Unit (₹)</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Quantity</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suggestions.map((item: any, index: number) => (
+                    <tr key={index} className="hover:bg-primary/5">
+                      <td className="border-2 border-primary/20 p-3 text-sm">{item.particulars || '-'}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right text-sm">₹{parseFloat(item.rate || '0').toLocaleString('en-IN')}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right text-sm">{item.quantity || '0'}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right font-semibold text-sm">₹{parseFloat(item.amount || '0').toLocaleString('en-IN')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-primary/5">
+                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Total</td>
+                    <td className="border-2 border-primary/20 p-3 text-right font-bold text-sm">
+                      ₹{suggestions.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0).toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="overflow-x-auto border-2 border-primary/20 rounded-lg">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-primary/10">
+              <th className="border-2 border-primary/20 p-3 text-left font-bold">Particulars</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Rate/Unit (₹)</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Quantity</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Amount (₹)</th>
+              <th className="border-2 border-primary/20 p-3 text-center font-bold">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sales.map((sale: any, index: number) => (
+              <tr key={index}>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    value={sale.particulars}
+                    onChange={(e) => updateSale(index, 'particulars', e.target.value)}
+                    placeholder="Product name"
+                    className="border-2"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    type="number"
+                    value={sale.rate}
+                    onChange={(e) => updateSale(index, 'rate', e.target.value)}
+                    placeholder="0"
+                    className="border-2 text-right"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    type="number"
+                    value={sale.quantity}
+                    onChange={(e) => updateSale(index, 'quantity', e.target.value)}
+                    placeholder="0"
+                    className="border-2 text-right"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3 text-right font-semibold">
+                  ₹{parseFloat(sale.amount || '0').toLocaleString('en-IN')}
+                </td>
+                <td className="border-2 border-primary/20 p-3 text-center">
+                  <Button variant="ghost" size="sm" onClick={() => removeSale(index)}>
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-primary/5">
+              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">Total</td>
+              <td className="border-2 border-primary/20 p-3 text-right font-bold">₹{total.toLocaleString('en-IN')}</td>
+              <td className="border-2 border-primary/20 p-3"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      
+      <Button onClick={addSale} variant="outline" className="border-2 border-primary">
+        <Plus className="h-4 w-4 mr-2" />
+        Add Product
+      </Button>
+    </div>
+  );
+};
+
+// Raw Materials Step
+const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  const materials = data?.materials || [{ particulars: '', unit: '', rate: '', requiredUnit: '', amount: '' }];
+  
+  const addMaterial = () => {
+    onChange({...data, materials: [...materials, { particulars: '', unit: '', rate: '', requiredUnit: '', amount: '' }]});
+  };
+  
+  const removeMaterial = (index: number) => {
+    onChange({...data, materials: materials.filter((_: any, i: number) => i !== index)});
+  };
+  
+  const updateMaterial = (index: number, field: string, value: string) => {
+    const updated = [...materials];
+    updated[index] = {...updated[index], [field]: value};
+    if (field === 'rate' || field === 'requiredUnit') {
+      const rate = parseFloat(updated[index].rate || '0');
+      const qty = parseFloat(updated[index].requiredUnit || '0');
+      updated[index].amount = (rate * qty).toString();
+    }
+    onChange({...data, materials: updated});
+  };
+  
+  const handleApplySuggestions = () => {
+    if (Array.isArray(suggestions) && suggestions.length > 0) {
+      onChange({...data, materials: suggestions});
+      toast.success('Applied AI suggestions to raw materials');
+    }
+  };
+  
+  const total = materials.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0);
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.rawMaterials.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.rawMaterials.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && Array.isArray(suggestions) && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Table - Raw Materials */}
+            <div className="mt-4 overflow-x-auto border-2 border-primary/20 rounded-lg bg-white/50">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-primary/10">
+                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">Particulars</th>
+                    <th className="border-2 border-primary/20 p-3 text-center font-bold text-sm">Unit</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Rate/Unit (₹)</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Required Unit</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suggestions.map((item: any, index: number) => (
+                    <tr key={index} className="hover:bg-primary/5">
+                      <td className="border-2 border-primary/20 p-3 text-sm">{item.particulars || '-'}</td>
+                      <td className="border-2 border-primary/20 p-3 text-center text-sm">{item.unit || '-'}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right text-sm">₹{parseFloat(item.rate || '0').toLocaleString('en-IN')}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right text-sm">{item.requiredUnit || '0'}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right font-semibold text-sm">₹{parseFloat(item.amount || '0').toLocaleString('en-IN')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-primary/5">
+                    <td colSpan={4} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Total</td>
+                    <td className="border-2 border-primary/20 p-3 text-right font-bold text-sm">
+                      ₹{suggestions.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0).toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="overflow-x-auto border-2 border-primary/20 rounded-lg">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-primary/10">
+              <th className="border-2 border-primary/20 p-3 text-left font-bold">Particulars</th>
+              <th className="border-2 border-primary/20 p-3 text-center font-bold">Unit</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Rate/Unit (₹)</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Required Unit</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Amount (₹)</th>
+              <th className="border-2 border-primary/20 p-3 text-center font-bold">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {materials.map((material: any, index: number) => (
+              <tr key={index}>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    value={material.particulars}
+                    onChange={(e) => updateMaterial(index, 'particulars', e.target.value)}
+                    placeholder="Material name"
+                    className="border-2"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    value={material.unit}
+                    onChange={(e) => updateMaterial(index, 'unit', e.target.value)}
+                    placeholder="kg, liters, etc."
+                    className="border-2 text-center"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    type="number"
+                    value={material.rate}
+                    onChange={(e) => updateMaterial(index, 'rate', e.target.value)}
+                    placeholder="0"
+                    className="border-2 text-right"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    type="number"
+                    value={material.requiredUnit}
+                    onChange={(e) => updateMaterial(index, 'requiredUnit', e.target.value)}
+                    placeholder="0"
+                    className="border-2 text-right"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3 text-right font-semibold">
+                  ₹{parseFloat(material.amount || '0').toLocaleString('en-IN')}
+                </td>
+                <td className="border-2 border-primary/20 p-3 text-center">
+                  <Button variant="ghost" size="sm" onClick={() => removeMaterial(index)}>
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-primary/5">
+              <td colSpan={4} className="border-2 border-primary/20 p-3 text-right font-bold">Total</td>
+              <td className="border-2 border-primary/20 p-3 text-right font-bold">₹{total.toLocaleString('en-IN')}</td>
+              <td className="border-2 border-primary/20 p-3"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      
+      <Button onClick={addMaterial} variant="outline" className="border-2 border-primary">
+        <Plus className="h-4 w-4 mr-2" />
+        Add Raw Material
+      </Button>
+    </div>
+  );
+};
+
+// Wages Step
+const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  const wages = data?.wages || [{ particulars: '', noOfWorkers: '', wagesPerMonth: '', amount: '' }];
+  const totalMonths = 12;
+  
+  const addWage = () => {
+    onChange({...data, wages: [...wages, { particulars: '', noOfWorkers: '', wagesPerMonth: '', amount: '' }]});
+  };
+  
+  const removeWage = (index: number) => {
+    onChange({...data, wages: wages.filter((_: any, i: number) => i !== index)});
+  };
+  
+  const updateWage = (index: number, field: string, value: string) => {
+    const updated = [...wages];
+    updated[index] = {...updated[index], [field]: value};
+    if (field === 'noOfWorkers' || field === 'wagesPerMonth') {
+      const workers = parseFloat(updated[index].noOfWorkers || '0');
+      const wage = parseFloat(updated[index].wagesPerMonth || '0');
+      updated[index].amount = (workers * wage * totalMonths).toString();
+    }
+    onChange({...data, wages: updated});
+  };
+  
+  const handleApplySuggestions = () => {
+    if (Array.isArray(suggestions) && suggestions.length > 0) {
+      onChange({...data, wages: suggestions});
+      toast.success('Applied AI suggestions to wages');
+    }
+  };
+  
+  const total = wages.reduce((sum: number, w: any) => sum + parseFloat(w.amount || '0'), 0);
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.wages.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.wages.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && Array.isArray(suggestions) && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Table - Wages */}
+            <div className="mt-4 overflow-x-auto border-2 border-primary/20 rounded-lg bg-white/50">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-primary/10">
+                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">Particulars</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">No. of Workers</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Wages Per Month (₹)</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suggestions.map((item: any, index: number) => (
+                    <tr key={index} className="hover:bg-primary/5">
+                      <td className="border-2 border-primary/20 p-3 text-sm">{item.particulars || '-'}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right text-sm">{item.noOfWorkers || '0'}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right text-sm">₹{parseFloat(item.wagesPerMonth || '0').toLocaleString('en-IN')}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right font-semibold text-sm">₹{parseFloat(item.amount || '0').toLocaleString('en-IN')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-primary/5">
+                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Total</td>
+                    <td className="border-2 border-primary/20 p-3 text-right font-bold text-sm">
+                      ₹{suggestions.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0).toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+        <p className="text-sm font-semibold text-foreground">Total Months: {totalMonths}</p>
+      </div>
+      
+      <div className="overflow-x-auto border-2 border-primary/20 rounded-lg">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-primary/10">
+              <th className="border-2 border-primary/20 p-3 text-left font-bold">Particulars</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">No. of Workers</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Wages Per Month (₹)</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Amount (₹)</th>
+              <th className="border-2 border-primary/20 p-3 text-center font-bold">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {wages.map((wage: any, index: number) => (
+              <tr key={index}>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    value={wage.particulars}
+                    onChange={(e) => updateWage(index, 'particulars', e.target.value)}
+                    placeholder="e.g., Labor, Skilled Worker"
+                    className="border-2"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    type="number"
+                    value={wage.noOfWorkers}
+                    onChange={(e) => updateWage(index, 'noOfWorkers', e.target.value)}
+                    placeholder="0"
+                    className="border-2 text-right"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    type="number"
+                    value={wage.wagesPerMonth}
+                    onChange={(e) => updateWage(index, 'wagesPerMonth', e.target.value)}
+                    placeholder="0"
+                    className="border-2 text-right"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3 text-right font-semibold">
+                  ₹{parseFloat(wage.amount || '0').toLocaleString('en-IN')}
+                </td>
+                <td className="border-2 border-primary/20 p-3 text-center">
+                  <Button variant="ghost" size="sm" onClick={() => removeWage(index)}>
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-primary/5">
+              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">Total</td>
+              <td className="border-2 border-primary/20 p-3 text-right font-bold">₹{total.toLocaleString('en-IN')}</td>
+              <td className="border-2 border-primary/20 p-3"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      
+      <Button onClick={addWage} variant="outline" className="border-2 border-primary">
+        <Plus className="h-4 w-4 mr-2" />
+        Add Worker Category
+      </Button>
+    </div>
+  );
+};
+
+// Salary Details Step
+const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  const salaries = data?.salaries || [{ particulars: '', noOfStaff: '', wagesPerMonth: '', amount: '' }];
+  const totalMonths = 12;
+  
+  const addSalary = () => {
+    onChange({...data, salaries: [...salaries, { particulars: '', noOfStaff: '', wagesPerMonth: '', amount: '' }]});
+  };
+  
+  const removeSalary = (index: number) => {
+    onChange({...data, salaries: salaries.filter((_: any, i: number) => i !== index)});
+  };
+  
+  const updateSalary = (index: number, field: string, value: string) => {
+    const updated = [...salaries];
+    updated[index] = {...updated[index], [field]: value};
+    if (field === 'noOfStaff' || field === 'wagesPerMonth') {
+      const staff = parseFloat(updated[index].noOfStaff || '0');
+      const wage = parseFloat(updated[index].wagesPerMonth || '0');
+      updated[index].amount = (staff * wage * totalMonths).toString();
+    }
+    onChange({...data, salaries: updated});
+  };
+  
+  const handleApplySuggestions = () => {
+    if (Array.isArray(suggestions) && suggestions.length > 0) {
+      onChange({...data, salaries: suggestions});
+      toast.success('Applied AI suggestions to salary details');
+    }
+  };
+  
+  const total = salaries.reduce((sum: number, s: any) => sum + parseFloat(s.amount || '0'), 0);
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.salaryDetails.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.salaryDetails.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && Array.isArray(suggestions) && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Table - Salary Details */}
+            <div className="mt-4 overflow-x-auto border-2 border-primary/20 rounded-lg bg-white/50">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-primary/10">
+                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">Particulars</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">No. of Staff</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Wages Per Month (₹)</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suggestions.map((item: any, index: number) => (
+                    <tr key={index} className="hover:bg-primary/5">
+                      <td className="border-2 border-primary/20 p-3 text-sm">{item.particulars || '-'}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right text-sm">{item.noOfStaff || '0'}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right text-sm">₹{parseFloat(item.wagesPerMonth || '0').toLocaleString('en-IN')}</td>
+                      <td className="border-2 border-primary/20 p-3 text-right font-semibold text-sm">₹{parseFloat(item.amount || '0').toLocaleString('en-IN')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-primary/5">
+                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Total</td>
+                    <td className="border-2 border-primary/20 p-3 text-right font-bold text-sm">
+                      ₹{suggestions.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0).toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+        <p className="text-sm font-semibold text-foreground">Total Months: {totalMonths}</p>
+      </div>
+      
+      <div className="overflow-x-auto border-2 border-primary/20 rounded-lg">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-primary/10">
+              <th className="border-2 border-primary/20 p-3 text-left font-bold">Particulars</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">No. of Staff</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Wages Per Month (₹)</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">Amount (₹)</th>
+              <th className="border-2 border-primary/20 p-3 text-center font-bold">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {salaries.map((salary: any, index: number) => (
+              <tr key={index}>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    value={salary.particulars}
+                    onChange={(e) => updateSalary(index, 'particulars', e.target.value)}
+                    placeholder="e.g., Manager, Supervisor"
+                    className="border-2"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    type="number"
+                    value={salary.noOfStaff}
+                    onChange={(e) => updateSalary(index, 'noOfStaff', e.target.value)}
+                    placeholder="0"
+                    className="border-2 text-right"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3">
+                  <Input
+                    type="number"
+                    value={salary.wagesPerMonth}
+                    onChange={(e) => updateSalary(index, 'wagesPerMonth', e.target.value)}
+                    placeholder="0"
+                    className="border-2 text-right"
+                  />
+                </td>
+                <td className="border-2 border-primary/20 p-3 text-right font-semibold">
+                  ₹{parseFloat(salary.amount || '0').toLocaleString('en-IN')}
+                </td>
+                <td className="border-2 border-primary/20 p-3 text-center">
+                  <Button variant="ghost" size="sm" onClick={() => removeSalary(index)}>
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-primary/5">
+              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">Total</td>
+              <td className="border-2 border-primary/20 p-3 text-right font-bold">₹{total.toLocaleString('en-IN')}</td>
+              <td className="border-2 border-primary/20 p-3"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      
+      <Button onClick={addSalary} variant="outline" className="border-2 border-primary">
+        <Plus className="h-4 w-4 mr-2" />
+        Add Staff Category
+      </Button>
+    </div>
+  );
+};
+
+// Working Capital Estimate Step
+const WorkingCapitalEstimateStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  
+  const handleApplySuggestions = () => {
+    if (suggestions && typeof suggestions === 'object') {
+      onChange({...data, ...suggestions});
+      toast.success('Applied AI suggestions');
+    }
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.workingCapitalEstimate.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.workingCapitalEstimate.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Content */}
+            <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
+              {suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions) ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  {suggestions.stockInProcess && (
+                    <div>
+                      <span className="font-semibold text-foreground">Stock in Process: </span>
+                      <span className="text-muted-foreground">{suggestions.stockInProcess} days</span>
+                    </div>
+                  )}
+                  {suggestions.finishedGoods && (
+                    <div>
+                      <span className="font-semibold text-foreground">Finished Goods: </span>
+                      <span className="text-muted-foreground">{suggestions.finishedGoods} days</span>
+                    </div>
+                  )}
+                  {suggestions.receivables && (
+                    <div>
+                      <span className="font-semibold text-foreground">Receivables: </span>
+                      <span className="text-muted-foreground">{suggestions.receivables} days</span>
+                    </div>
+                  )}
+                  {Object.keys(suggestions).length === 0 && (
+                    <div className="col-span-2 text-sm text-muted-foreground">
+                      No suggestions available. Please try refreshing.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm">
+                  <p className="text-muted-foreground mb-2">Preview:</p>
+                  <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">
+                    {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.workingCapitalEstimate.stockInProcess')} (Days)</label>
+          <Input
+            type="number"
+            value={data?.stockInProcess || ''}
+            onChange={(e) => onChange({...data, stockInProcess: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.workingCapitalEstimate.finishedGoods')} (Days)</label>
+          <Input
+            type="number"
+            value={data?.finishedGoods || ''}
+            onChange={(e) => onChange({...data, finishedGoods: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.workingCapitalEstimate.receivables')} (Days)</label>
+          <Input
+            type="number"
+            value={data?.receivables || ''}
+            onChange={(e) => onChange({...data, receivables: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Power Estimate Step
+const PowerEstimateStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  
+  const handleApplySuggestions = () => {
+    if (suggestions && typeof suggestions === 'object') {
+      onChange({...data, ...suggestions});
+      toast.success('Applied AI suggestions');
+    }
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.powerEstimate.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.powerEstimate.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Content */}
+            <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
+              {suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions) ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  {suggestions.powerRequirement && (
+                    <div>
+                      <span className="font-semibold text-foreground">Power Requirement: </span>
+                      <span className="text-muted-foreground">{suggestions.powerRequirement} KW</span>
+                    </div>
+                  )}
+                  {suggestions.monthlyCost && (
+                    <div>
+                      <span className="font-semibold text-foreground">Monthly Cost: </span>
+                      <span className="text-muted-foreground">₹{parseFloat(String(suggestions.monthlyCost || '0')).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {Object.keys(suggestions).length === 0 && (
+                    <div className="col-span-2 text-sm text-muted-foreground">
+                      No suggestions available. Please try refreshing.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm">
+                  <p className="text-muted-foreground mb-2">Preview:</p>
+                  <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">
+                    {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.powerEstimate.powerRequirement')} (KW)</label>
+          <Input
+            type="number"
+            value={data?.powerRequirement || ''}
+            onChange={(e) => onChange({...data, powerRequirement: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.powerEstimate.monthlyCost')} (₹)</label>
+          <Input
+            type="number"
+            value={data?.monthlyCost || ''}
+            onChange={(e) => onChange({...data, monthlyCost: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Overhead Expenses Step
+const OverheadExpensesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  
+  const handleApplySuggestions = () => {
+    if (suggestions && typeof suggestions === 'object') {
+      onChange({...data, ...suggestions});
+      toast.success('Applied AI suggestions');
+    }
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.overheadExpenses.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.overheadExpenses.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Content */}
+            <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
+              {suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions) ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  {suggestions.repairMaintenance && (
+                    <div>
+                      <span className="font-semibold text-foreground">Repair & Maintenance: </span>
+                      <span className="text-muted-foreground">₹{parseFloat(String(suggestions.repairMaintenance || '0')).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {suggestions.powerFuel && (
+                    <div>
+                      <span className="font-semibold text-foreground">Power & Fuel: </span>
+                      <span className="text-muted-foreground">₹{parseFloat(String(suggestions.powerFuel || '0')).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {suggestions.otherOverhead && (
+                    <div>
+                      <span className="font-semibold text-foreground">Other Overhead: </span>
+                      <span className="text-muted-foreground">₹{parseFloat(String(suggestions.otherOverhead || '0')).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {suggestions.telephone && (
+                    <div>
+                      <span className="font-semibold text-foreground">Telephone: </span>
+                      <span className="text-muted-foreground">₹{parseFloat(String(suggestions.telephone || '0')).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {suggestions.stationeryPostage && (
+                    <div>
+                      <span className="font-semibold text-foreground">Stationery & Postage: </span>
+                      <span className="text-muted-foreground">₹{parseFloat(String(suggestions.stationeryPostage || '0')).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {suggestions.advertisement && (
+                    <div>
+                      <span className="font-semibold text-foreground">Advertisement: </span>
+                      <span className="text-muted-foreground">₹{parseFloat(String(suggestions.advertisement || '0')).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {suggestions.buildingRent && (
+                    <div>
+                      <span className="font-semibold text-foreground">Building Rent: </span>
+                      <span className="text-muted-foreground">₹{parseFloat(String(suggestions.buildingRent || '0')).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {suggestions.otherMiscellaneous && (
+                    <div>
+                      <span className="font-semibold text-foreground">Other Miscellaneous: </span>
+                      <span className="text-muted-foreground">₹{parseFloat(String(suggestions.otherMiscellaneous || '0')).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  {Object.keys(suggestions).length === 0 && (
+                    <div className="col-span-2 text-sm text-muted-foreground">
+                      No suggestions available. Please try refreshing.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm">
+                  <p className="text-muted-foreground mb-2">Preview:</p>
+                  <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">
+                    {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.overheadExpenses.repairMaintenance')} (₹)</label>
+          <Input
+            type="number"
+            value={data?.repairMaintenance || ''}
+            onChange={(e) => onChange({...data, repairMaintenance: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.overheadExpenses.powerFuel')} (₹)</label>
+          <Input
+            type="number"
+            value={data?.powerFuel || ''}
+            onChange={(e) => onChange({...data, powerFuel: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.overheadExpenses.otherOverhead')} (₹)</label>
+          <Input
+            type="number"
+            value={data?.otherOverhead || ''}
+            onChange={(e) => onChange({...data, otherOverhead: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.overheadExpenses.telephone')} (₹)</label>
+          <Input
+            type="number"
+            value={data?.telephone || ''}
+            onChange={(e) => onChange({...data, telephone: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.overheadExpenses.stationeryPostage')} (₹)</label>
+          <Input
+            type="number"
+            value={data?.stationeryPostage || ''}
+            onChange={(e) => onChange({...data, stationeryPostage: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.overheadExpenses.advertisement')} (₹)</label>
+          <Input
+            type="number"
+            value={data?.advertisement || ''}
+            onChange={(e) => onChange({...data, advertisement: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.overheadExpenses.buildingRent')} (₹)</label>
+          <Input
+            type="number"
+            value={data?.buildingRent || ''}
+            onChange={(e) => onChange({...data, buildingRent: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.overheadExpenses.otherMiscellaneous')} (₹)</label>
+          <Input
+            type="number"
+            value={data?.otherMiscellaneous || ''}
+            onChange={(e) => onChange({...data, otherMiscellaneous: e.target.value})}
+            placeholder="0"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Financial Parameters Step
+const FinancialParametersStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  
+  const handleApplySuggestions = () => {
+    if (suggestions && typeof suggestions === 'object') {
+      onChange({...data, ...suggestions});
+      toast.success('Applied AI suggestions');
+    }
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.financialParameters.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.financialParameters.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Content */}
+            <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
+              {suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions) ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  {suggestions.rateOfInterest && (
+                    <div>
+                      <span className="font-semibold text-foreground">Rate of Interest: </span>
+                      <span className="text-muted-foreground">{suggestions.rateOfInterest}%</span>
+                    </div>
+                  )}
+                  {suggestions.depreciationBuilding && (
+                    <div>
+                      <span className="font-semibold text-foreground">Depreciation on Building: </span>
+                      <span className="text-muted-foreground">{suggestions.depreciationBuilding}%</span>
+                    </div>
+                  )}
+                  {suggestions.depreciationMachinery && (
+                    <div>
+                      <span className="font-semibold text-foreground">Depreciation on Machinery: </span>
+                      <span className="text-muted-foreground">{suggestions.depreciationMachinery}%</span>
+                    </div>
+                  )}
+                  {Object.keys(suggestions).length === 0 && (
+                    <div className="col-span-2 text-sm text-muted-foreground">
+                      No suggestions available. Please try refreshing.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm">
+                  <p className="text-muted-foreground mb-2">Preview:</p>
+                  <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">
+                    {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.financialParameters.rateOfInterest')} (%)</label>
+          <Input
+            type="number"
+            value={data?.rateOfInterest || ''}
+            onChange={(e) => onChange({...data, rateOfInterest: e.target.value})}
+            placeholder="11"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.financialParameters.depreciationBuilding')} (%)</label>
+          <Input
+            type="number"
+            value={data?.depreciationBuilding || ''}
+            onChange={(e) => onChange({...data, depreciationBuilding: e.target.value})}
+            placeholder="5"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.financialParameters.depreciationMachinery')} (%)</label>
+          <Input
+            type="number"
+            value={data?.depreciationMachinery || ''}
+            onChange={(e) => onChange({...data, depreciationMachinery: e.target.value})}
+            placeholder="10"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Beneficiary Info Step
+const BeneficiaryInfoStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  
+  const handleApplySuggestions = () => {
+    if (suggestions && typeof suggestions === 'object') {
+      onChange({...data, ...suggestions});
+      toast.success('Applied AI suggestions');
+    }
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.beneficiaryInfo.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.beneficiaryInfo.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Content */}
+            <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
+              {suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions) ? (
+                <div className="space-y-3 text-sm">
+                  {suggestions.fullName && (
+                    <div>
+                      <span className="font-semibold text-foreground">Full Name: </span>
+                      <span className="text-muted-foreground">{suggestions.fullName}</span>
+                    </div>
+                  )}
+                  {suggestions.fatherSpouseName && (
+                    <div>
+                      <span className="font-semibold text-foreground">Father's/Spouse's Name: </span>
+                      <span className="text-muted-foreground">{suggestions.fatherSpouseName}</span>
+                    </div>
+                  )}
+                  {suggestions.address && (
+                    <div>
+                      <span className="font-semibold text-foreground">Address: </span>
+                      <span className="text-muted-foreground">{suggestions.address}</span>
+                    </div>
+                  )}
+                  {suggestions.email && (
+                    <div>
+                      <span className="font-semibold text-foreground">Email: </span>
+                      <span className="text-muted-foreground">{suggestions.email}</span>
+                    </div>
+                  )}
+                  {suggestions.mobile && (
+                    <div>
+                      <span className="font-semibold text-foreground">Mobile: </span>
+                      <span className="text-muted-foreground">{suggestions.mobile}</span>
+                    </div>
+                  )}
+                  {suggestions.educationalQualifications && (
+                    <div>
+                      <span className="font-semibold text-foreground">Educational Qualifications: </span>
+                      <span className="text-muted-foreground">{suggestions.educationalQualifications}</span>
+                    </div>
+                  )}
+                  {suggestions.experience && (
+                    <div>
+                      <span className="font-semibold text-foreground">Experience: </span>
+                      <span className="text-muted-foreground">{suggestions.experience}</span>
+                    </div>
+                  )}
+                  {Object.keys(suggestions).length === 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      No suggestions available. Please try refreshing.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm">
+                  <p className="text-muted-foreground mb-2">Preview:</p>
+                  <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">
+                    {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.beneficiaryInfo.fullName')}</label>
+          <Input
+            value={data?.fullName || ''}
+            onChange={(e) => onChange({...data, fullName: e.target.value})}
+            placeholder="Full Name"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.beneficiaryInfo.fatherSpouseName')}</label>
+          <Input
+            value={data?.fatherSpouseName || ''}
+            onChange={(e) => onChange({...data, fatherSpouseName: e.target.value})}
+            placeholder="Father's/Spouse's Name"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div className="md:col-span-2">
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.beneficiaryInfo.address')}</label>
+          <textarea
+            className="w-full p-4 border-2 rounded-lg focus:border-primary focus:outline-none resize-none"
+            rows={3}
+            value={data?.address || ''}
+            onChange={(e) => onChange({...data, address: e.target.value})}
+            placeholder="Complete Address"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.beneficiaryInfo.email')}</label>
+          <Input
+            type="email"
+            value={data?.email || ''}
+            onChange={(e) => onChange({...data, email: e.target.value})}
+            placeholder="email@example.com"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.beneficiaryInfo.mobile')}</label>
+          <Input
+            type="tel"
+            value={data?.mobile || ''}
+            onChange={(e) => onChange({...data, mobile: e.target.value})}
+            placeholder="+91 9876543210"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div className="md:col-span-2">
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.beneficiaryInfo.educationalQualifications')}</label>
+          <Input
+            value={data?.educationalQualifications || ''}
+            onChange={(e) => onChange({...data, educationalQualifications: e.target.value})}
+            placeholder="Educational Qualifications"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div className="md:col-span-2">
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.beneficiaryInfo.experience')}</label>
+          <textarea
+            className="w-full p-4 border-2 rounded-lg focus:border-primary focus:outline-none resize-none"
+            rows={3}
+            value={data?.experience || ''}
+            onChange={(e) => onChange({...data, experience: e.target.value})}
+            placeholder="Work Experience and Background"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Project at a Glance Step
+const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; stepData: any; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, stepData, suggestions, loading, onGetSuggestions }) => {
+  const { t } = useTranslation();
+  
+  // Auto-populate from other steps
+  useEffect(() => {
+    if (!data?.beneficiaryName && stepData.beneficiaryInfo?.fullName) {
+      onChange({...data, beneficiaryName: stepData.beneficiaryInfo.fullName});
+    }
+    if (!data?.constitution && stepData.applicantInfo?.projectType) {
+      onChange({...data, constitution: stepData.applicantInfo.projectType});
+    }
+    if (!data?.unitAddress && stepData.beneficiaryInfo?.address) {
+      onChange({...data, unitAddress: stepData.beneficiaryInfo.address});
+    }
+  }, [stepData]);
+  
+  const handleApplySuggestions = () => {
+    if (suggestions && typeof suggestions === 'object') {
+      onChange({...data, ...suggestions});
+      toast.success('Applied AI suggestions');
+    }
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.projectAtGlance.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.projectAtGlance.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('common.loading')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.generateSampleContent')}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('dprBuilder.clickApplyToUse')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleApplySuggestions}
+                  className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    t('dprBuilder.refresh')
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview Content */}
+            <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
+              {suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions) ? (
+                <div className="space-y-3 text-sm">
+                  {suggestions.beneficiaryName && (
+                    <div>
+                      <span className="font-semibold text-foreground">Beneficiary Name: </span>
+                      <span className="text-muted-foreground">{suggestions.beneficiaryName}</span>
+                    </div>
+                  )}
+                  {suggestions.constitution && (
+                    <div>
+                      <span className="font-semibold text-foreground">Constitution: </span>
+                      <span className="text-muted-foreground">{suggestions.constitution}</span>
+                    </div>
+                  )}
+                  {suggestions.unitAddress && (
+                    <div>
+                      <span className="font-semibold text-foreground">Unit Address: </span>
+                      <span className="text-muted-foreground">{suggestions.unitAddress}</span>
+                    </div>
+                  )}
+                  {suggestions.talukBlock && (
+                    <div>
+                      <span className="font-semibold text-foreground">Taluk/Block: </span>
+                      <span className="text-muted-foreground">{suggestions.talukBlock}</span>
+                    </div>
+                  )}
+                  {suggestions.district && (
+                    <div>
+                      <span className="font-semibold text-foreground">District: </span>
+                      <span className="text-muted-foreground">{suggestions.district}</span>
+                    </div>
+                  )}
+                  {suggestions.pinCode && (
+                    <div>
+                      <span className="font-semibold text-foreground">PIN Code: </span>
+                      <span className="text-muted-foreground">{suggestions.pinCode}</span>
+                    </div>
+                  )}
+                  {suggestions.email && (
+                    <div>
+                      <span className="font-semibold text-foreground">Email: </span>
+                      <span className="text-muted-foreground">{suggestions.email}</span>
+                    </div>
+                  )}
+                  {suggestions.mobile && (
+                    <div>
+                      <span className="font-semibold text-foreground">Mobile: </span>
+                      <span className="text-muted-foreground">{suggestions.mobile}</span>
+                    </div>
+                  )}
+                  {suggestions.products && (
+                    <div>
+                      <span className="font-semibold text-foreground">Products: </span>
+                      <span className="text-muted-foreground">{suggestions.products}</span>
+                    </div>
+                  )}
+                  {Object.keys(suggestions).length === 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      No suggestions available. Please try refreshing.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm">
+                  <p className="text-muted-foreground mb-2">Preview:</p>
+                  <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">
+                    {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.projectAtGlance.beneficiaryName')}</label>
+          <Input
+            value={data?.beneficiaryName || ''}
+            onChange={(e) => onChange({...data, beneficiaryName: e.target.value})}
+            placeholder="Name of the Beneficiary"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.projectAtGlance.constitution')}</label>
+          <Input
+            value={data?.constitution || ''}
+            onChange={(e) => onChange({...data, constitution: e.target.value})}
+            placeholder="e.g., Individual"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div className="md:col-span-2">
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.projectAtGlance.unitAddress')}</label>
+          <textarea
+            className="w-full p-4 border-2 rounded-lg focus:border-primary focus:outline-none resize-none"
+            rows={3}
+            value={data?.unitAddress || ''}
+            onChange={(e) => onChange({...data, unitAddress: e.target.value})}
+            placeholder="Complete Unit Address"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.projectAtGlance.talukBlock')}</label>
+          <Input
+            value={data?.talukBlock || ''}
+            onChange={(e) => onChange({...data, talukBlock: e.target.value})}
+            placeholder="Taluk/Block"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.projectAtGlance.district')}</label>
+          <Input
+            value={data?.district || ''}
+            onChange={(e) => onChange({...data, district: e.target.value})}
+            placeholder="District"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.projectAtGlance.pinCode')}</label>
+          <Input
+            value={data?.pinCode || ''}
+            onChange={(e) => onChange({...data, pinCode: e.target.value})}
+            placeholder="PIN Code"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.projectAtGlance.email')}</label>
+          <Input
+            type="email"
+            value={data?.email || ''}
+            onChange={(e) => onChange({...data, email: e.target.value})}
+            placeholder="email@example.com"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.projectAtGlance.mobile')}</label>
+          <Input
+            type="tel"
+            value={data?.mobile || ''}
+            onChange={(e) => onChange({...data, mobile: e.target.value})}
+            placeholder="+91 9876543210"
+            className="h-12 border-2 focus:border-primary"
+          />
+        </div>
+        
+        <div className="md:col-span-2">
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.projectAtGlance.products')}</label>
+          <textarea
+            className="w-full p-4 border-2 rounded-lg focus:border-primary focus:outline-none resize-none"
+            rows={3}
+            value={data?.products || ''}
+            onChange={(e) => onChange({...data, products: e.target.value})}
+            placeholder="List of Products and By-Products"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const BusinessOverviewStep: React.FC<{ data: any; onChange: (data: any) => void; project?: any }> = ({ data, onChange }) => {
   const { t } = useTranslation();
   return (
@@ -1269,12 +5102,12 @@ const generateFinancialProjections = (businessData: any, costData: any, project?
   return projections;
 };
 
-const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => void; project?: any; suggestions?: string; loading?: boolean; onGetSuggestions: () => void; businessData?: any; costData?: any }> = ({ 
+const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => void; project?: any; suggestions?: string | any; loading?: boolean; onGetSuggestions: () => void; businessData?: any; costData?: any }> = ({ 
   data, 
   onChange, 
   project, 
   suggestions, 
-  loading, 
+  loading,
   onGetSuggestions,
   businessData,
   costData
@@ -1627,31 +5460,94 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
       {suggestions && (
         <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
           <CardContent className="pt-5 pb-5">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start justify-between gap-4 mb-4">
               <div className="flex items-start gap-4 flex-1">
                 <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
                   <Sparkles className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
                   <p className="text-base font-bold text-primary mb-2">AI-Powered Suggestion</p>
-                  <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium">{suggestions}</p>
+                  <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium">
+                    {typeof suggestions === 'object' && suggestions.guidance 
+                      ? suggestions.guidance 
+                      : typeof suggestions === 'string' 
+                      ? suggestions 
+                      : 'Financial Projections Guidance for ' + (businessData?.industrySector || 'your project')}
+                  </p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onGetSuggestions}
-                disabled={loading}
-                title="Get updated suggestions based on your current data"
-                className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
-              >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  'Refresh'
+              <div className="flex gap-2">
+                {typeof suggestions === 'object' && suggestions.projections && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (suggestions.projections) {
+                        onChange(suggestions.projections);
+                        toast.success('Applied AI suggestions to financial projections');
+                      }
+                    }}
+                    className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    Apply Suggestions
+                  </Button>
                 )}
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={loading}
+                  title="Get updated suggestions based on your current data"
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Refresh'
+                  )}
+                </Button>
+              </div>
             </div>
+            
+            {/* Preview Table for Suggested Projections */}
+            {typeof suggestions === 'object' && suggestions.projections && (
+              <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
+                <p className="text-sm font-semibold text-primary mb-3">Suggested Financial Projections Preview:</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-primary/10">
+                        <th className="p-2 text-left font-semibold">Year</th>
+                        <th className="p-2 text-right font-semibold">Revenue (₹)</th>
+                        <th className="p-2 text-right font-semibold">Costs (₹)</th>
+                        <th className="p-2 text-right font-semibold">Profit (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[1, 2, 3, 4, 5].map((year) => {
+                        const yearData = suggestions.projections[`year${year}`];
+                        if (!yearData) return null;
+                        const revenue = parseFloat(yearData.revenue || 0);
+                        const costs = parseFloat(yearData.costs || 0);
+                        const profit = revenue - costs;
+                        return (
+                          <tr key={year} className="border-b border-primary/10">
+                            <td className="p-2 font-medium">Year {year}</td>
+                            <td className="p-2 text-right">₹{revenue.toLocaleString('en-IN')}</td>
+                            <td className="p-2 text-right">₹{costs.toLocaleString('en-IN')}</td>
+                            <td className={`p-2 text-right font-semibold ${profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                              ₹{Math.abs(profit).toLocaleString('en-IN')}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3 italic">
+                  Click "Apply Suggestions" above to populate the main table with these values.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -1761,7 +5657,7 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
   );
 };
 
-const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project }) => {
+const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestions, loading: suggestionsLoading, onGetSuggestions, businessData }) => {
   const [schemes, setSchemes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -1774,7 +5670,9 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project }) => {
     try {
       setLoading(true);
       const response = await api.recommendSchemes(project._id);
-      setSchemes(response.data || []);
+      // Handle both old format (array) and new format (object with data property)
+      const schemesData = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.recommendedSchemes || []);
+      setSchemes(schemesData);
     } catch (error) {
       console.error('Error loading schemes:', error);
     } finally {
@@ -1782,14 +5680,158 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project }) => {
     }
   };
 
+  const handleApplySuggestions = () => {
+    if (!suggestions || typeof suggestions !== 'object' || !suggestions.schemes) {
+      return;
+    }
+
+    // Convert AI-suggested schemes to the format expected by the component
+    const suggestedSchemes = suggestions.schemes.map((scheme: any) => ({
+      _id: `ai_${scheme.schemeCode}`,
+      schemeCode: scheme.schemeCode,
+      schemeName: scheme.schemeName,
+      description: scheme.description || scheme.relevance || '',
+      eligibility: {},
+      benefits: {},
+      documentsRequired: [],
+      status: 'active',
+      isAISuggested: true,
+    }));
+
+    // Add suggested schemes to the existing schemes list (avoid duplicates)
+    const existingSchemeCodes = new Set(schemes.map((s: any) => s.schemeCode));
+    const newSchemes = suggestedSchemes.filter((s: any) => !existingSchemeCodes.has(s.schemeCode));
+    
+    if (newSchemes.length > 0) {
+      setSchemes([...schemes, ...newSchemes]);
+      
+      // Auto-select the first 2-3 most relevant schemes
+      const schemesToSelect = newSchemes.slice(0, Math.min(3, newSchemes.length)).map((s: any) => s.schemeCode);
+      const currentSelected = data?.selectedSchemes || [];
+      const updatedSelected = [...new Set([...currentSelected, ...schemesToSelect])];
+      
+      onChange({
+        ...data,
+        selectedSchemes: updatedSelected,
+      });
+      
+      toast.success(`Applied ${newSchemes.length} AI-suggested scheme(s). ${schemesToSelect.length} scheme(s) auto-selected.`);
+    } else {
+      toast.info('All suggested schemes are already in the list.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
-        <h3 className="text-xl font-bold text-foreground mb-2">Eligible Schemes</h3>
-        <p className="text-sm text-muted-foreground">
-          Review and select applicable government schemes for your project. These will be included in your DPR.
-        </p>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">Eligible Schemes</h3>
+            <p className="text-sm text-muted-foreground">
+              Review and select applicable government schemes for your project. These will be included in your DPR.
+            </p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={suggestionsLoading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {suggestionsLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Get AI Suggestions
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* AI Suggestions Card */}
+      {suggestions && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">AI-Powered Scheme Suggestions</p>
+                  <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium">
+                    {typeof suggestions === 'object' && suggestions.guidance 
+                      ? suggestions.guidance 
+                      : typeof suggestions === 'string' 
+                      ? suggestions 
+                      : 'AI-generated scheme suggestions based on your project details.'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {typeof suggestions === 'object' && suggestions.schemes && suggestions.schemes.length > 0 && (
+                  <Button
+                    size="sm"
+                    onClick={handleApplySuggestions}
+                    className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    Apply Suggestions
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onGetSuggestions}
+                  disabled={suggestionsLoading}
+                  title="Get updated suggestions based on your current data"
+                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+                >
+                  {suggestionsLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Refresh'
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Preview of Suggested Schemes */}
+            {typeof suggestions === 'object' && suggestions.schemes && suggestions.schemes.length > 0 && (
+              <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
+                <p className="text-sm font-semibold text-primary mb-3">Suggested Schemes Preview:</p>
+                <div className="space-y-3">
+                  {suggestions.schemes.map((scheme: any, index: number) => (
+                    <div key={index} className="p-3 bg-white rounded-lg border border-primary/10">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Award className="h-4 w-4 text-primary" />
+                            <p className="font-semibold text-foreground">{scheme.schemeName}</p>
+                            <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full font-medium">
+                              {scheme.schemeCode}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground ml-6">{scheme.description || scheme.relevance}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-3 italic">
+                  Click "Apply Suggestions" above to add these schemes to your list and auto-select the most relevant ones.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {loading ? (
         <div className="text-center py-12">
@@ -1831,7 +5873,15 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project }) => {
                             : 'text-primary'
                         }`} />
                       </div>
-                      <h4 className="font-bold text-lg text-foreground">{scheme.schemeName}</h4>
+                      <div className="flex items-center gap-2 flex-1">
+                        <h4 className="font-bold text-lg text-foreground">{scheme.schemeName}</h4>
+                        {scheme.isAISuggested && (
+                          <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded-full font-medium flex items-center gap-1">
+                            <Sparkles className="h-3 w-3" />
+                            AI Suggested
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <p className="text-sm text-muted-foreground ml-[52px]">{scheme.description}</p>
                   </div>
