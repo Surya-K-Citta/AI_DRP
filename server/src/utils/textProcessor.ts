@@ -82,10 +82,11 @@ export function hasMarkdownBold(text: string): boolean {
  * @returns Array of processed paragraphs
  */
 export interface ProcessedParagraph {
-  type: 'heading' | 'text';
+  type: 'heading' | 'text' | 'table';
   headingLevel?: 1 | 2 | 3; // 1 for #, 2 for ##, 3 for ###
   content: TextSegment[];
   originalText: string;
+  tableData?: string[][]; // For table rows and columns
 }
 
 export function processMarkdownText(text: string): ProcessedParagraph[] {
@@ -93,9 +94,44 @@ export function processMarkdownText(text: string): ProcessedParagraph[] {
 
   const paragraphs: ProcessedParagraph[] = [];
   const lines = text.split('\n');
+  let inTable = false;
+  let tableRows: string[][] = [];
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const trimmedLine = line.trim();
+    
+    // Check if it's a markdown table row (contains |)
+    const isTableRow = trimmedLine.includes('|') && trimmedLine.split('|').length > 2;
+    const isTableSeparator = /^\|[\s\-:]+\|/.test(trimmedLine);
+    
+    if (isTableRow && !isTableSeparator) {
+      if (!inTable) {
+        inTable = true;
+        tableRows = [];
+      }
+      // Parse table row
+      const cells = trimmedLine.split('|').map(cell => cell.trim()).filter(cell => cell.length > 0);
+      if (cells.length > 0) {
+        tableRows.push(cells);
+      }
+      continue;
+    } else if (isTableSeparator) {
+      // Skip separator row
+      continue;
+    } else if (inTable && !isTableRow) {
+      // End of table - add table paragraph
+      if (tableRows.length > 0) {
+        paragraphs.push({
+          type: 'table',
+          content: [{ text: '', bold: false }],
+          originalText: '',
+          tableData: tableRows,
+        });
+        tableRows = [];
+      }
+      inTable = false;
+    }
     
     // Check if it's a heading-1 (#) - must start with exactly one #
     if (/^#\s/.test(trimmedLine) || (trimmedLine.startsWith('#') && trimmedLine.length > 1 && !trimmedLine.startsWith('##'))) {
@@ -155,6 +191,16 @@ export function processMarkdownText(text: string): ProcessedParagraph[] {
         originalText: '',
       });
     }
+  }
+  
+  // Handle table at end of text
+  if (inTable && tableRows.length > 0) {
+    paragraphs.push({
+      type: 'table',
+      content: [{ text: '', bold: false }],
+      originalText: '',
+      tableData: tableRows,
+    });
   }
 
   return paragraphs;

@@ -2,15 +2,29 @@
 import { Response } from 'express';
 import { Project } from '../models/Project.model';
 import { AuthRequest } from '../types';
+import { OpenAIService } from '../services/openai.service';
 
 export class ProjectController {
   /**
    * Create new project
+   * Automatically converts chat responses to stepData structure if stepData is not provided
    */
   static async createProject(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.userId;
-      const projectData = req.body;
+      let projectData = req.body;
+
+      // If stepData is not provided but we have chat responses, convert them to stepData structure
+      // This ensures projects created from AI assistant chat use the same template as AI-Guided DPR Builder
+      if (!projectData.stepData && projectData) {
+        const stepData = OpenAIService.convertChatResponsesToStepData(projectData);
+        if (stepData && Object.keys(stepData).length > 0) {
+          projectData = {
+            ...projectData,
+            stepData,
+          };
+        }
+      }
 
       const project = await Project.create({
         ...projectData,

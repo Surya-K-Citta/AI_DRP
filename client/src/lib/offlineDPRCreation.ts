@@ -18,18 +18,140 @@ export interface DPRCreationStep {
   validationMessage?: string;
 }
 
+// Match the StepData structure from AI-Guided DPR Builder
 export interface DPRCreationData {
-  projectName?: string;
-  industrySector?: string;
-  projectType?: string;
-  totalInvestment?: number;
-  location?: string;
-  businessDescription?: string;
-  targetMarket?: string;
-  rawMaterials?: string;
-  machinery?: string;
-  manpower?: string;
-  competitiveAdvantages?: string;
+  businessOverview?: {
+    projectName?: string;
+    industrySector?: string;
+    projectType?: string;
+    location?: string;
+    businessDescription?: string;
+  };
+  applicantInfo?: {
+    sponsoringAgency?: string;
+    gender?: string;
+    locationType?: string;
+    categories?: string[];
+    projectType?: string;
+    legalStatus?: string;
+  };
+  buildingDetails?: Array<{
+    particulars?: string;
+    area?: string;
+    rate?: string;
+    amount?: string;
+  }>;
+  machineryDetails?: Array<{
+    particulars?: string;
+    qty?: string;
+    rate?: string;
+    amount?: string;
+  }>;
+  otherCapitalCosts?: {
+    preliminaryCost?: string;
+    furnitureFixtures?: string;
+    contingency?: string;
+    workingCapital?: string;
+  };
+  financing?: {
+    ownContributionPercent?: string;
+    bankFinancePercent?: string;
+    marginMoneyPercent?: string;
+    schemeName?: string;
+  };
+  salesDetails?: Array<{
+    particulars?: string;
+    rate?: string;
+    quantity?: string;
+    amount?: string;
+  }>;
+  rawMaterials?: Array<{
+    particulars?: string;
+    unit?: string;
+    rate?: string;
+    requiredUnit?: string;
+    amount?: string;
+  }>;
+  wages?: Array<{
+    particulars?: string;
+    noOfWorkers?: string;
+    wagesPerMonth?: string;
+    amount?: string;
+  }>;
+  salaryDetails?: Array<{
+    particulars?: string;
+    noOfStaff?: string;
+    wagesPerMonth?: string;
+    amount?: string;
+  }>;
+  workingCapitalEstimate?: {
+    stockInProcess?: string;
+    finishedGoods?: string;
+    receivables?: string;
+  };
+  powerEstimate?: {
+    powerRequirement?: string;
+    monthlyCost?: string;
+  };
+  overheadExpenses?: {
+    repairMaintenance?: string;
+    powerFuel?: string;
+    otherOverhead?: string;
+    telephone?: string;
+    stationeryPostage?: string;
+    advertisement?: string;
+    buildingRent?: string;
+    otherMiscellaneous?: string;
+  };
+  financialParameters?: {
+    rateOfInterest?: string;
+    depreciationBuilding?: string;
+    depreciationMachinery?: string;
+  };
+  beneficiaryInfo?: {
+    fullName?: string;
+    fatherSpouseName?: string;
+    address?: string;
+    email?: string;
+    mobile?: string;
+    educationalQualifications?: string;
+    experience?: string;
+  };
+  projectAtGlance?: {
+    beneficiaryName?: string;
+    constitution?: string;
+    unitAddress?: string;
+    talukBlock?: string;
+    district?: string;
+    pinCode?: string;
+    email?: string;
+    mobile?: string;
+    products?: string;
+  };
+  marketAnalysis?: {
+    targetMarket?: string;
+    competitorAnalysis?: string;
+  };
+  costStructure?: {
+    capex?: {
+      landBuilding?: string;
+      machinery?: string;
+    };
+    opex?: {
+      rawMaterials?: string;
+      salaries?: string;
+    };
+  };
+  financialProjections?: {
+    year1?: { revenue?: string; costs?: string; profit?: string };
+    year2?: { revenue?: string; costs?: string; profit?: string };
+    year3?: { revenue?: string; costs?: string; profit?: string };
+    year4?: { revenue?: string; costs?: string; profit?: string };
+    year5?: { revenue?: string; costs?: string; profit?: string };
+  };
+  eligibleSchemes?: {
+    selectedSchemes?: string[];
+  };
 }
 
 export interface DPRCreationSession {
@@ -41,12 +163,13 @@ export interface DPRCreationSession {
   isComplete: boolean;
 }
 
+// Map to AI-Guided DPR Builder steps structure
 const DPR_CREATION_STEPS: DPRCreationStep[] = [
   {
     step: 1,
-    totalSteps: 10,
+    totalSteps: 19,
     question: "What is your project name?",
-    field: "projectName",
+    field: "businessOverview.projectName",
     type: "text",
     helpText: "Provide a clear, descriptive name for your project",
     examples: [
@@ -61,9 +184,9 @@ const DPR_CREATION_STEPS: DPRCreationStep[] = [
   },
   {
     step: 2,
-    totalSteps: 10,
+    totalSteps: 19,
     question: "What industry sector does your project belong to?",
-    field: "industrySector",
+    field: "businessOverview.industrySector",
     type: "select",
     options: [
       "Food Processing",
@@ -85,9 +208,9 @@ const DPR_CREATION_STEPS: DPRCreationStep[] = [
   },
   {
     step: 3,
-    totalSteps: 10,
+    totalSteps: 19,
     question: "What is your project type?",
-    field: "projectType",
+    field: "businessOverview.projectType",
     type: "select",
     options: [
       "Individual",
@@ -105,28 +228,9 @@ const DPR_CREATION_STEPS: DPRCreationStep[] = [
   },
   {
     step: 4,
-    totalSteps: 10,
-    question: "What is the total investment for your project?",
-    field: "totalInvestment",
-    type: "number",
-    helpText: "Enter the total project cost including land, building, machinery, working capital, etc.",
-    examples: [
-      "₹10,00,000 (10 lakhs)",
-      "₹25,00,000 (25 lakhs)",
-      "₹50,00,000 (50 lakhs)",
-      "₹1,00,00,000 (1 crore)"
-    ],
-    validation: (value: string) => {
-      const num = parseFloat(value.replace(/[₹,\s]/g, ''));
-      return !isNaN(num) && num > 0;
-    },
-    validationMessage: "Please enter a valid positive amount"
-  },
-  {
-    step: 5,
-    totalSteps: 10,
+    totalSteps: 19,
     question: "Where is your project located?",
-    field: "location",
+    field: "businessOverview.location",
     type: "text",
     helpText: "Provide the city, district, and state where you plan to set up the project",
     examples: [
@@ -139,10 +243,10 @@ const DPR_CREATION_STEPS: DPRCreationStep[] = [
     validationMessage: "Please include city and state (e.g., Hyderabad, Telangana)"
   },
   {
-    step: 6,
-    totalSteps: 10,
+    step: 5,
+    totalSteps: 19,
     question: "Can you describe your business in detail?",
-    field: "businessDescription",
+    field: "businessOverview.businessDescription",
     type: "textarea",
     helpText: "Explain what your business does, products/services offered, production capacity, and unique selling points",
     examples: [
@@ -153,10 +257,10 @@ const DPR_CREATION_STEPS: DPRCreationStep[] = [
     validationMessage: "Please provide a detailed description (at least 50 characters)"
   },
   {
-    step: 7,
-    totalSteps: 10,
+    step: 6,
+    totalSteps: 19,
     question: "Who are your target customers and what is your market reach?",
-    field: "targetMarket",
+    field: "marketAnalysis.targetMarket",
     type: "textarea",
     helpText: "Describe your primary customers, geographic markets (domestic/export), distribution channels, and market size",
     examples: [
@@ -167,46 +271,172 @@ const DPR_CREATION_STEPS: DPRCreationStep[] = [
     validationMessage: "Please describe your target market in detail (at least 40 characters)"
   },
   {
-    step: 8,
-    totalSteps: 10,
-    question: "What are the key raw materials you'll need?",
-    field: "rawMaterials",
-    type: "textarea",
-    helpText: "List the main raw materials, their quantities, costs, and sources",
+    step: 7,
+    totalSteps: 19,
+    question: "What is the total investment for your project (CAPEX - Land & Building)?",
+    field: "costStructure.capex.landBuilding",
+    type: "number",
+    helpText: "Enter the cost for land and building",
     examples: [
-      "1. Organic Turmeric - 5000 kg/month at ₹120/kg from local organic farms\n2. Red Chili - 3000 kg/month at ₹150/kg from AP markets\n3. Coriander Seeds - 2000 kg/month at ₹80/kg from local suppliers\n4. Packaging Materials - ₹50,000/month",
-      "1. Cotton Yarn - 1000 kg/month at ₹180/kg from mills\n2. Dyes and Chemicals - 500 kg/month at ₹250/kg\n3. Packaging - ₹20,000/month"
+      "₹5,00,000 (5 lakhs)",
+      "₹10,00,000 (10 lakhs)",
+      "₹15,00,000 (15 lakhs)"
     ],
-    validation: (value: string) => value.length >= 30,
-    validationMessage: "Please list your raw materials (at least 30 characters)"
+    validation: (value: string) => {
+      const num = parseFloat(value.replace(/[₹,\s]/g, ''));
+      return !isNaN(num) && num >= 0;
+    },
+    validationMessage: "Please enter a valid amount"
+  },
+  {
+    step: 8,
+    totalSteps: 19,
+    question: "What is the total investment for machinery and equipment (CAPEX - Machinery)?",
+    field: "costStructure.capex.machinery",
+    type: "number",
+    helpText: "Enter the total cost for all machinery and equipment",
+    examples: [
+      "₹10,00,000 (10 lakhs)",
+      "₹25,00,000 (25 lakhs)",
+      "₹50,00,000 (50 lakhs)"
+    ],
+    validation: (value: string) => {
+      const num = parseFloat(value.replace(/[₹,\s]/g, ''));
+      return !isNaN(num) && num >= 0;
+    },
+    validationMessage: "Please enter a valid amount"
   },
   {
     step: 9,
-    totalSteps: 10,
-    question: "What machinery and equipment do you need?",
-    field: "machinery",
-    type: "textarea",
-    helpText: "List the key machinery/equipment, their specifications, quantities, and costs",
+    totalSteps: 19,
+    question: "What are your monthly raw materials costs (OPEX)?",
+    field: "costStructure.opex.rawMaterials",
+    type: "number",
+    helpText: "Enter the monthly cost for raw materials",
     examples: [
-      "1. Spice Grinding Machine - 2 units at ₹2,25,000 each = ₹4,50,000\n2. Packaging Machine - 1 unit at ₹2,50,000\n3. Quality Testing Equipment - 1 unit at ₹1,80,000\n4. Storage Racks and Utilities - ₹1,20,000\nTotal: ₹10,00,000",
-      "1. Handloom Machines - 10 units at ₹60,000 each = ₹6,00,000\n2. Dyeing Unit - 1 unit at ₹2,00,000\n3. Finishing Equipment - ₹1,50,000\nTotal: ₹9,50,000"
+      "₹50,000/month",
+      "₹1,00,000/month",
+      "₹2,00,000/month"
     ],
-    validation: (value: string) => value.length >= 30,
-    validationMessage: "Please list your machinery requirements (at least 30 characters)"
+    validation: (value: string) => {
+      const num = parseFloat(value.replace(/[₹,\s]/g, ''));
+      return !isNaN(num) && num >= 0;
+    },
+    validationMessage: "Please enter a valid amount"
   },
   {
     step: 10,
-    totalSteps: 10,
-    question: "What manpower do you need?",
-    field: "manpower",
-    type: "textarea",
-    helpText: "List the key positions, number of employees, qualifications, and salaries",
+    totalSteps: 19,
+    question: "What are your monthly salaries/wages costs (OPEX)?",
+    field: "costStructure.opex.salaries",
+    type: "number",
+    helpText: "Enter the total monthly cost for salaries and wages",
     examples: [
-      "1. Production Manager - 1 person at ₹35,000/month (BTech/MBA)\n2. Quality Control Officer - 1 person at ₹25,000/month (BSc)\n3. Machine Operators - 4 people at ₹18,000/month each (ITI/Diploma)\n4. Packaging Staff - 3 people at ₹15,000/month each (10th pass)\nTotal: 9 employees, Monthly: ₹1,62,000",
-      "1. Master Weaver - 2 people at ₹30,000/month each\n2. Weavers - 8 people at ₹20,000/month each\n3. Designer - 1 person at ₹25,000/month\n4. Helper - 2 people at ₹12,000/month each\nTotal: 13 employees, Monthly: ₹2,69,000"
+      "₹80,000/month",
+      "₹1,50,000/month",
+      "₹3,00,000/month"
     ],
-    validation: (value: string) => value.length >= 30,
-    validationMessage: "Please list your manpower requirements (at least 30 characters)"
+    validation: (value: string) => {
+      const num = parseFloat(value.replace(/[₹,\s]/g, ''));
+      return !isNaN(num) && num >= 0;
+    },
+    validationMessage: "Please enter a valid amount"
+  },
+  {
+    step: 11,
+    totalSteps: 19,
+    question: "What is your sponsoring agency preference?",
+    field: "applicantInfo.sponsoringAgency",
+    type: "select",
+    options: ["KVIC", "KVIB", "DIC", "COIR Board"],
+    helpText: "Select your preferred sponsoring agency",
+    examples: ["KVIC - Khadi and Village Industries Commission", "KVIB - Khadi and Village Industries Board"]
+  },
+  {
+    step: 12,
+    totalSteps: 19,
+    question: "What is your gender?",
+    field: "applicantInfo.gender",
+    type: "select",
+    options: ["Male", "Female", "Transgender"],
+    helpText: "Select your gender"
+  },
+  {
+    step: 13,
+    totalSteps: 19,
+    question: "What is your location type?",
+    field: "applicantInfo.locationType",
+    type: "select",
+    options: ["Rural", "Urban"],
+    helpText: "Select whether your project is in a rural or urban area"
+  },
+  {
+    step: 14,
+    totalSteps: 19,
+    question: "What is your category? (Select all that apply, comma-separated)",
+    field: "applicantInfo.categories",
+    type: "text",
+    helpText: "Enter categories like SC, ST, OBC, PHC, Ex-Serviceman, Minority, etc. (comma-separated)",
+    examples: ["OBC", "SC, OBC", "ST", "PHC"]
+  },
+  {
+    step: 15,
+    totalSteps: 19,
+    question: "What is your full name?",
+    field: "beneficiaryInfo.fullName",
+    type: "text",
+    helpText: "Enter your full name as per official documents",
+    validation: (value: string) => value.length >= 3,
+    validationMessage: "Please enter a valid name"
+  },
+  {
+    step: 16,
+    totalSteps: 19,
+    question: "What is your email address?",
+    field: "beneficiaryInfo.email",
+    type: "text",
+    helpText: "Enter your email address",
+    validation: (value: string) => value.includes('@') && value.includes('.'),
+    validationMessage: "Please enter a valid email address"
+  },
+  {
+    step: 17,
+    totalSteps: 19,
+    question: "What is your mobile number?",
+    field: "beneficiaryInfo.mobile",
+    type: "text",
+    helpText: "Enter your 10-digit mobile number",
+    examples: ["9876543210", "+91 9876543210"],
+    validation: (value: string) => {
+      const digits = value.replace(/\D/g, '');
+      return digits.length >= 10;
+    },
+    validationMessage: "Please enter a valid 10-digit mobile number"
+  },
+  {
+    step: 18,
+    totalSteps: 19,
+    question: "What is your complete address?",
+    field: "beneficiaryInfo.address",
+    type: "textarea",
+    helpText: "Enter your complete address including street, city, district, state, and PIN code",
+    examples: ["123 Main Street, Hyderabad, Telangana - 500001"],
+    validation: (value: string) => value.length >= 20,
+    validationMessage: "Please provide a complete address"
+  },
+  {
+    step: 19,
+    totalSteps: 19,
+    question: "What are your educational qualifications and experience?",
+    field: "beneficiaryInfo.experience",
+    type: "textarea",
+    helpText: "Describe your educational background and relevant work experience",
+    examples: [
+      "B.Tech in Mechanical Engineering, 5 years experience in manufacturing",
+      "MBA in Finance, 3 years experience in business management"
+    ],
+    validation: (value: string) => value.length >= 20,
+    validationMessage: "Please provide your qualifications and experience"
   }
 ];
 
@@ -310,14 +540,29 @@ export class OfflineDPRCreationService {
       };
     }
 
-    // Store the answer
-    const field = currentStep.field as keyof DPRCreationData;
+    // Store the answer - handle nested field paths (e.g., "businessOverview.projectName" or "costStructure.capex.landBuilding")
+    const fieldPath = currentStep.field.split('.');
+    
+    // Navigate/create nested structure
+    let target: any = session.data;
+    for (let i = 0; i < fieldPath.length - 1; i++) {
+      const key = fieldPath[i];
+      if (!target[key]) {
+        target[key] = {};
+      }
+      target = target[key];
+    }
+    
+    // Set the final value
+    const finalKey = fieldPath[fieldPath.length - 1];
     if (currentStep.type === 'number') {
-      // Parse number (remove currency symbols and commas)
       const numValue = parseFloat(answer.replace(/[₹,\s]/g, ''));
-      session.data[field] = numValue as any;
+      target[finalKey] = numValue.toString();
+    } else if (finalKey === 'categories' && answer.includes(',')) {
+      // Handle comma-separated categories
+      target[finalKey] = answer.split(',').map((c: string) => c.trim()).filter((c: string) => c.length > 0);
     } else {
-      session.data[field] = answer as any;
+      target[finalKey] = answer;
     }
 
     // Move to next step
@@ -436,23 +681,32 @@ export class OfflineDPRCreationService {
 
     let summary = "**DPR Information Collected:**\n\n";
     
-    if (session.data.projectName) {
-      summary += `📌 **Project Name:** ${session.data.projectName}\n`;
+    const bo = session.data.businessOverview || {};
+    const cs = session.data.costStructure || {};
+    const ma = session.data.marketAnalysis || {};
+    
+    if (bo.projectName) {
+      summary += `📌 **Project Name:** ${bo.projectName}\n`;
     }
-    if (session.data.industrySector) {
-      summary += `🏭 **Industry:** ${session.data.industrySector}\n`;
+    if (bo.industrySector) {
+      summary += `🏭 **Industry:** ${bo.industrySector}\n`;
     }
-    if (session.data.projectType) {
-      summary += `📋 **Type:** ${session.data.projectType}\n`;
+    if (bo.projectType) {
+      summary += `📋 **Type:** ${bo.projectType}\n`;
     }
-    if (session.data.totalInvestment) {
-      const amount = typeof session.data.totalInvestment === 'number' 
-        ? session.data.totalInvestment 
-        : parseFloat(session.data.totalInvestment.toString().replace(/[₹,\s]/g, ''));
-      summary += `💰 **Investment:** ₹${amount.toLocaleString('en-IN')} (₹${(amount/100000).toFixed(2)} lakhs)\n`;
+    if (cs.capex?.landBuilding || cs.capex?.machinery) {
+      const landBuilding = parseFloat(cs.capex?.landBuilding || '0');
+      const machinery = parseFloat(cs.capex?.machinery || '0');
+      const totalInvestment = landBuilding + machinery;
+      if (totalInvestment > 0) {
+        summary += `💰 **Investment:** ₹${totalInvestment.toLocaleString('en-IN')} (₹${(totalInvestment/100000).toFixed(2)} lakhs)\n`;
+      }
     }
-    if (session.data.location) {
-      summary += `📍 **Location:** ${session.data.location}\n`;
+    if (bo.location) {
+      summary += `📍 **Location:** ${bo.location}\n`;
+    }
+    if (ma.targetMarket) {
+      summary += `🎯 **Target Market:** ${ma.targetMarket.substring(0, 50)}...\n`;
     }
 
     summary += `\n📊 **Progress:** ${this.getProgress()}% complete (${session.currentStep - 1}/${session.totalSteps} questions answered)`;
@@ -495,9 +749,10 @@ export class OfflineDPRCreationService {
   }
 
   /**
-   * Generate final DPR document (simplified for offline mode)
+   * Generate final DPR document using the same structure as AI-Guided DPR Builder
    */
   static generateOfflineDPR(): {
+    stepData: DPRCreationData; // Same structure as AI-Guided DPR Builder StepData
     projectData: any;
     message: string;
   } {
@@ -506,66 +761,62 @@ export class OfflineDPRCreationService {
       throw new Error("DPR creation not complete");
     }
 
-    // Create project data structure
-    const investment = typeof session.data.totalInvestment === 'number'
-      ? session.data.totalInvestment
-      : parseFloat((session.data.totalInvestment || '0').toString().replace(/[₹,\s]/g, ''));
+    // Use the stepData structure directly (matches AI-Guided DPR Builder)
+    const stepData = session.data;
 
-    const ownContribution = Math.round(investment * 0.25);
-    const loanAmount = investment - ownContribution;
+    // Calculate total investment from cost structure
+    const landBuilding = parseFloat(stepData.costStructure?.capex?.landBuilding || '0');
+    const machinery = parseFloat(stepData.costStructure?.capex?.machinery || '0');
+    const totalInvestment = landBuilding + machinery;
 
+    const ownContribution = Math.round(totalInvestment * 0.25);
+    const loanAmount = totalInvestment - ownContribution;
+
+    // Create project data structure compatible with API
     const projectData = {
-      projectName: session.data.projectName,
-      projectType: session.data.projectType?.toLowerCase() || 'individual',
-      industrySector: session.data.industrySector,
-      subSector: session.data.industrySector,
-      totalCost: investment,
+      projectName: stepData.businessOverview?.projectName,
+      projectType: stepData.businessOverview?.projectType?.toLowerCase() || 'individual',
+      industrySector: stepData.businessOverview?.industrySector,
+      subSector: stepData.businessOverview?.industrySector,
+      totalCost: totalInvestment,
       ownContribution: ownContribution,
       loanAmount: loanAmount,
-      location: session.data.location,
+      location: stepData.businessOverview?.location,
       status: 'draft',
       inputs: {
-        businessDescription: session.data.businessDescription,
-        targetMarket: session.data.targetMarket,
-        rawMaterials: session.data.rawMaterials,
-        machinery: session.data.machinery,
-        manpower: session.data.manpower,
+        businessDescription: stepData.businessOverview?.businessDescription || '',
+        targetMarket: stepData.marketAnalysis?.targetMarket || '',
       },
       createdOffline: true,
       createdAt: new Date().toISOString(),
     };
 
     const message = `
-✅ **DPR Created Successfully in Offline Mode!**
+✅ **DPR Created Successfully!**
 
-Your project "${session.data.projectName}" has been created with all the information you provided.
+Your project "${stepData.businessOverview?.projectName}" has been created with all the information you provided.
 
 **Project Summary:**
-- Industry: ${session.data.industrySector}
-- Type: ${session.data.projectType}
-- Investment: ₹${investment.toLocaleString('en-IN')}
-- Location: ${session.data.location}
+- Industry: ${stepData.businessOverview?.industrySector}
+- Type: ${stepData.businessOverview?.projectType}
+- Investment: ₹${totalInvestment.toLocaleString('en-IN')}
+- Location: ${stepData.businessOverview?.location}
 
 **Financial Structure:**
 - Own Contribution (25%): ₹${ownContribution.toLocaleString('en-IN')}
 - Loan Amount (75%): ₹${loanAmount.toLocaleString('en-IN')}
 
 **Next Steps:**
-1. When you're back online, you can save this project
+1. Navigate to AI-Guided DPR Builder to continue filling remaining details
 2. Generate a complete DPR document
 3. Get quality score and recommendations
 4. Check scheme eligibility
 
-**Offline Mode Note:**
-Your project data has been saved locally. It will be available when you reconnect to generate the full DPR document.
-
-Would you like to:
-- Create another DPR
-- Review scheme information
-- Learn about financial projections
+**Note:**
+Your DPR data has been saved in the same structure as the AI-Guided DPR Builder. You can continue editing in the builder interface.
     `.trim();
 
-    return { projectData, message };
+    return { stepData, projectData, message };
   }
 }
 

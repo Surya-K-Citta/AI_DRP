@@ -507,110 +507,225 @@ Return only valid JSON without markdown formatting.`;
 
       const prompts: Record<string, string> = {
         executiveSummary: `
-          Create a comprehensive Executive Summary for an MSME DPR with the following details:
-          Project Name: ${projectData.projectName}
-          Industry Sector: ${projectData.industrySector}
-          Project Type: ${projectData.projectType}
-          Total Investment: ₹${projectData.totalCost}
-          Loan Amount: ₹${projectData.loanAmount}
-          Location: ${projectData.location}
+          Create a comprehensive, BANK-INVESTOR READY Executive Summary for an MSME DPR.
           
-          Include:
-          - Brief overview of the business
-          - Key objectives and goals
-          - Financial highlights
-          - Expected outcomes and benefits
-          ${(projectData as any).governmentSchemas ? '- Brief mention of applicable government schemes and financial assistance programs' : ''}
+          PROJECT DETAILS:
+          - Project Name: ${projectData.projectName}
+          - Industry Sector: ${projectData.industrySector}
+          - Project Type: ${projectData.projectType}
+          - Total Investment: ₹${projectData.totalCost?.toLocaleString() || '0'}
+          - Loan Amount: ₹${projectData.loanAmount?.toLocaleString() || '0'}
+          - Own Contribution: ₹${projectData.ownContribution?.toLocaleString() || '0'}
+          - Location: ${projectData.location}
+          
+          ${(projectData as any).stepData ? `
+          DETAILED PROJECT DATA FROM AI-GUIDED DPR BUILDER:
+          ${JSON.stringify((projectData as any).stepData, null, 2)}
+          
+          Use this comprehensive data to create a detailed, accurate executive summary that reflects the actual project information provided.
+          ` : ''}
+          
+          CRITICAL REQUIREMENTS FOR BANK/INVESTOR READINESS:
+          1. Start with a compelling project overview that immediately establishes credibility
+          2. Highlight key financial metrics: Total investment, loan requirement, own contribution percentage, expected ROI
+          3. Emphasize project viability, market opportunity, and competitive advantages
+          4. Include specific numbers, percentages, and concrete data from the project details
+          5. Mention risk mitigation strategies and project strengths
+          6. Reference applicable government schemes if available
+          7. Conclude with a strong recommendation for approval
           
           ${(projectData as any).governmentSchemas ? `
-          Note: Relevant government schemes have been identified from the knowledge base. You may briefly mention them in the executive summary if they are particularly relevant to this project.
+          APPLICABLE GOVERNMENT SCHEMES:
+          ${(projectData as any).governmentSchemas}
+          Briefly mention relevant schemes that enhance project viability.
+          ` : ''}
+          
+          ${(projectData as any).eligibleSchemes?.schemesData ? `
+          SELECTED GOVERNMENT SCHEMES:
+          ${JSON.stringify((projectData as any).eligibleSchemes.schemesData, null, 2)}
+          Mention these selected schemes and their benefits to the project.
           ` : ''}
           
           ${languageInstruction}
-          Format: Professional, concise, and bankable.
+          
+          TONE: Professional, confident, persuasive, and investor-friendly. Use formal business language suitable for bank loan applications and investor presentations.
+          LENGTH: 300-400 words, comprehensive yet concise.
+          FORMAT: Well-structured paragraphs with clear sections. Use **bold** for key metrics and important points.
         `,
         businessProfile: `
-          Create a detailed Business Profile section for:
-          Project: ${projectData.projectName}
-          Sector: ${projectData.industrySector}
-          Description: ${projectData.inputs.businessDescription || 'Not provided'}
-          Location: ${projectData.location}
+          Create a detailed, BANK-INVESTOR READY Business Profile section.
           
-          Include:
-          - Business concept and vision
-          - Products/Services offered
-          - Unique selling proposition
-          - Entrepreneur background (if available)
-          - Business structure
+          PROJECT INFORMATION:
+          - Project: ${projectData.projectName}
+          - Sector: ${projectData.industrySector}
+          - Description: ${projectData.inputs.businessDescription || 'Not provided'}
+          - Location: ${projectData.location}
+          
+          ${(projectData as any).stepData?.businessOverview ? `
+          COMPREHENSIVE BUSINESS DATA:
+          ${JSON.stringify((projectData as any).stepData.businessOverview, null, 2)}
+          Use ALL this data to create a detailed business profile.
+          ` : ''}
+          
+          ${(projectData as any).stepData?.applicantInfo ? `
+          APPLICANT/ENTREPRENEUR INFORMATION:
+          ${JSON.stringify((projectData as any).stepData.applicantInfo, null, 2)}
+          Include relevant entrepreneur background, qualifications, and experience.
+          ` : ''}
+          
+          CRITICAL REQUIREMENTS:
+          1. **Business Concept**: Clear, compelling description of the business idea and its market positioning
+          2. **Products/Services**: Detailed list with specifications, quality standards, and competitive advantages
+          3. **Unique Selling Proposition (USP)**: What makes this business different and better than competitors
+          4. **Entrepreneur Profile**: Background, qualifications, relevant experience, and why they are suited for this business
+          5. **Business Structure**: Legal structure, ownership details, organizational setup
+          6. **Market Positioning**: How the business fits into the market and competitive landscape
+          7. **Value Proposition**: Clear articulation of value delivered to customers
           
           ${languageInstruction}
+          
+          TONE: Professional, detailed, and confidence-inspiring. Use specific details and concrete information.
+          LENGTH: 400-500 words with comprehensive coverage.
+          FORMAT: Well-organized with clear subheadings using ###. Use **bold** for key terms and important points.
         `,
         marketAnalysis: `
-          Generate a Market Analysis section for:
-          Project: ${projectData.projectName}
-          Sector: ${projectData.industrySector}
-          Target Market: ${projectData.inputs.targetMarket || 'To be defined'}
-          Location: ${projectData.location}
+          Generate a comprehensive, BANK-INVESTOR READY Market Analysis section.
           
-          Include:
-          - Market size and potential
-          - Target customer segments
-          - Competitive landscape
-          - Market trends and opportunities
-          - Demand-supply gap analysis
-          - Marketing and sales strategy
+          PROJECT INFORMATION:
+          - Project: ${projectData.projectName}
+          - Sector: ${projectData.industrySector}
+          - Location: ${projectData.location}
+          
+          ${(projectData as any).stepData?.marketAnalysis ? `
+          DETAILED MARKET DATA FROM AI-GUIDED DPR BUILDER:
+          ${JSON.stringify((projectData as any).stepData.marketAnalysis, null, 2)}
+          Use ALL this data to create a comprehensive market analysis.
+          ` : ''}
+          
+          ${(projectData as any).stepData?.salesDetails ? `
+          SALES AND MARKETING DATA:
+          ${JSON.stringify((projectData as any).stepData.salesDetails, null, 2)}
+          Incorporate sales projections, pricing strategy, and marketing approach from this data.
+          ` : ''}
+          
+          CRITICAL REQUIREMENTS FOR BANK/INVESTOR READINESS:
+          1. **Market Size & Potential**: Quantify the total addressable market (TAM), serviceable addressable market (SAM), and serviceable obtainable market (SOM) with specific numbers
+          2. **Target Customer Segments**: Detailed customer personas, demographics, purchasing behavior, and market share
+          3. **Competitive Landscape**: Analysis of major competitors, their market share, strengths, weaknesses, and competitive positioning
+          4. **Market Trends**: Current and future trends affecting the industry, growth drivers, and market dynamics
+          5. **Demand-Supply Gap**: Specific analysis showing unmet demand and how this project addresses it
+          6. **Marketing & Sales Strategy**: Detailed go-to-market strategy, distribution channels, pricing strategy, and sales projections
+          7. **Market Entry Strategy**: How the business will capture market share and establish presence
+          8. **Risk Assessment**: Market risks and mitigation strategies
           
           ${languageInstruction}
-          Base on Indian MSME context and Andhra Pradesh/Telangana region if applicable.
+          Base analysis on Indian MSME context and specific regional market (${projectData.location || 'India'}).
+          
+          TONE: Analytical, data-driven, and professional. Use specific numbers, percentages, and market data.
+          LENGTH: 500-600 words with comprehensive market insights.
+          FORMAT: Use ### for subheadings. Use **bold** for key metrics, percentages, and important findings.
         `,
         technicalFeasibility: `
-          Create a Technical Feasibility section for:
-          Project: ${projectData.projectName}
-          Sector: ${projectData.industrySector}
+          Create a comprehensive, BANK-INVESTOR READY Technical Feasibility section.
           
-          Machinery: ${JSON.stringify(projectData.inputs.machinery || [])}
-          Raw Materials: ${JSON.stringify(projectData.inputs.rawMaterials || [])}
-          Manpower: ${JSON.stringify(projectData.inputs.manpower || [])}
-          Infrastructure: ${JSON.stringify(projectData.inputs.infrastructure || {})}
+          PROJECT INFORMATION:
+          - Project: ${projectData.projectName}
+          - Sector: ${projectData.industrySector}
           
-          Include:
-          - Production process/Service delivery
-          - Technology and equipment requirements
-          - Raw material availability
-          - Manpower planning
-          - Infrastructure needs
-          - Capacity utilization
-          - Quality control measures
+          ${(projectData as any).stepData ? `
+          COMPREHENSIVE TECHNICAL DATA FROM AI-GUIDED DPR BUILDER:
+          - Building Details: ${JSON.stringify((projectData as any).stepData.buildingDetails || {}, null, 2)}
+          - Machinery Details: ${JSON.stringify((projectData as any).stepData.machineryDetails || {}, null, 2)}
+          - Raw Materials: ${JSON.stringify((projectData as any).stepData.rawMaterials || {}, null, 2)}
+          - Wages: ${JSON.stringify((projectData as any).stepData.wages || {}, null, 2)}
+          - Salary Details: ${JSON.stringify((projectData as any).stepData.salaryDetails || {}, null, 2)}
+          - Power Estimate: ${JSON.stringify((projectData as any).stepData.powerEstimate || {}, null, 2)}
+          - Working Capital: ${JSON.stringify((projectData as any).stepData.workingCapitalEstimate || {}, null, 2)}
+          
+          Use ALL this detailed data to create a comprehensive technical feasibility analysis.
+          ` : `
+          Basic Project Data:
+          - Machinery: ${JSON.stringify(projectData.inputs.machinery || [])}
+          - Raw Materials: ${JSON.stringify(projectData.inputs.rawMaterials || [])}
+          - Manpower: ${JSON.stringify(projectData.inputs.manpower || [])}
+          - Infrastructure: ${JSON.stringify(projectData.inputs.infrastructure || {})}
+          `}
+          
+          CRITICAL REQUIREMENTS FOR BANK/INVESTOR READINESS:
+          1. **Production Process/Service Delivery**: Detailed step-by-step process flow, technology used, and operational methodology
+          2. **Technology & Equipment**: Complete list with specifications, capacity, suppliers, and technical specifications. Reference the machinery details provided.
+          3. **Raw Material Availability**: Sources, suppliers, quality standards, procurement plan, and supply chain reliability. Use raw materials data provided.
+          4. **Manpower Planning**: Organizational structure, staffing requirements, skill levels, recruitment plan, and training needs. Reference wages and salary data.
+          5. **Infrastructure Needs**: Building requirements, utilities (power, water), connectivity, and facility specifications. Use building details provided.
+          6. **Capacity Utilization**: Production capacity, utilization plan, scalability, and expansion potential
+          7. **Quality Control**: Quality standards, testing procedures, certifications, and compliance measures
+          8. **Technical Risks**: Identify technical challenges and mitigation strategies
+          9. **Technology Readiness**: Assessment of technology maturity and implementation feasibility
           
           ${languageInstruction}
+          
+          TONE: Technical, detailed, and professional. Use specific technical terms, numbers, and specifications.
+          LENGTH: 500-600 words with comprehensive technical coverage.
+          FORMAT: Use ### for subheadings. Use **bold** for key technical specifications and important points.
         `,
         financialProjections: `
-          Create a Financial Projections narrative for:
-          Project: ${projectData.projectName}
-          Total Cost: ₹${projectData.totalCost}
-          Own Contribution: ₹${projectData.ownContribution}
-          Loan Amount: ₹${projectData.loanAmount}
+          Create a comprehensive, BANK-INVESTOR READY Financial Projections narrative.
           
-          Provide narrative explaining:
-          - Project cost breakdown
-          - Means of finance
-          - Revenue assumptions
-          - Profitability expectations (IMPORTANT: Always emphasize positive profits and growth potential)
-          - Break-even analysis
-          - Debt servicing capacity (DSCR)
-          - Return on investment
+          PROJECT FINANCIAL INFORMATION:
+          - Project: ${projectData.projectName}
+          - Total Cost: ₹${projectData.totalCost?.toLocaleString() || '0'}
+          - Own Contribution: ₹${projectData.ownContribution?.toLocaleString() || '0'} (${projectData.ownContribution && projectData.totalCost ? ((projectData.ownContribution / projectData.totalCost) * 100).toFixed(1) : '0'}%)
+          - Loan Amount: ₹${projectData.loanAmount?.toLocaleString() || '0'} (${projectData.loanAmount && projectData.totalCost ? ((projectData.loanAmount / projectData.totalCost) * 100).toFixed(1) : '0'}%)
+          
+          ${(projectData as any).stepData ? `
+          COMPREHENSIVE FINANCIAL DATA FROM AI-GUIDED DPR BUILDER:
+          - Cost Structure: ${JSON.stringify((projectData as any).stepData.costStructure || {}, null, 2)}
+          - Financial Projections: ${JSON.stringify((projectData as any).stepData.financialProjections || {}, null, 2)}
+          - Financial Parameters: ${JSON.stringify((projectData as any).stepData.financialParameters || {}, null, 2)}
+          - Financing Details: ${JSON.stringify((projectData as any).stepData.financing || {}, null, 2)}
+          - Sales Details: ${JSON.stringify((projectData as any).stepData.salesDetails || {}, null, 2)}
+          - Other Capital Costs: ${JSON.stringify((projectData as any).stepData.otherCapitalCosts || {}, null, 2)}
+          - Overhead Expenses: ${JSON.stringify((projectData as any).stepData.overheadExpenses || {}, null, 2)}
+          
+          Use ALL this detailed financial data to create accurate, comprehensive financial projections.
+          ` : ''}
+          
+          CRITICAL REQUIREMENTS FOR BANK/INVESTOR READINESS:
+          1. **Project Cost Breakdown**: Detailed breakdown of fixed capital (land, building, machinery), working capital, and other costs. Use cost structure data provided.
+          2. **Means of Finance**: Clear financing structure showing own contribution, term loan, interest rates, repayment schedule, and debt-equity ratio
+          3. **Revenue Assumptions**: Realistic revenue projections based on sales data, pricing strategy, market demand, and growth assumptions. Use sales details provided.
+          4. **Profitability Analysis**: 
+             - Gross profit margins
+             - Net profit margins
+             - Profit growth trajectory (Year 1, 2, 3)
+             - Always emphasize positive, realistic profits
+          5. **Break-Even Analysis**: Break-even point in months/years, break-even sales volume, and margin of safety
+          6. **Debt Servicing Capacity (DSCR)**: 
+             - Debt Service Coverage Ratio calculation
+             - Minimum DSCR of 1.5+ for bank approval
+             - Cash flow available for debt servicing
+          7. **Return on Investment (ROI)**: 
+             - Expected ROI percentage
+             - Payback period
+             - Internal Rate of Return (IRR)
+          8. **Financial Ratios**: Current ratio, debt-equity ratio, profitability ratios, and liquidity ratios
+          9. **Cash Flow Projections**: Operating cash flow, investing cash flow, financing cash flow
+          10. **Sensitivity Analysis**: Impact of variations in key assumptions on profitability
           
           CRITICAL INSTRUCTIONS:
-          - Always present the financial projections in a positive, encouraging manner
-          - Emphasize profits, growth potential, and positive returns
-          - Highlight the profitability and viability of the project
-          - Focus on success metrics and positive financial indicators
-          - Avoid negative language or highlighting potential losses
-          - Frame the projections to inspire confidence in new businessmen
-          - Show how the project will generate healthy profits from Year 1 onwards
+          - Present financials in a positive, confidence-inspiring manner while being realistic
+          - Use specific numbers, percentages, and financial metrics from the provided data
+          - Emphasize strong profitability, healthy margins, and sustainable growth
+          - Highlight financial strengths and risk mitigation
+          - Show how the project generates positive cash flows and profits from Year 1
+          - Frame projections to demonstrate bankability and investment attractiveness
           
           ${languageInstruction}
-          Note: Include tables will be generated separately.
+          
+          TONE: Professional, confident, and data-driven. Use financial terminology appropriately.
+          LENGTH: 600-700 words with comprehensive financial analysis.
+          FORMAT: Use ### for subheadings. Use **bold** for key financial metrics, percentages, and important numbers.
+          Note: Financial tables will be generated separately, but include narrative explaining the numbers.
         `,
         eligibleSchemes: `
           Create a comprehensive Eligible Government Schemes section for the DPR:
@@ -701,6 +816,381 @@ Return only valid JSON without markdown formatting.`;
           ${languageInstruction}
           Tone: Confident, professional, and persuasive for bank approval.
         `,
+        applicantInfo: `
+          Create an Applicant Information section for the DPR:
+          Project: ${projectData.projectName}
+          
+          ${(projectData as any).stepData?.applicantInfo ? `
+          Applicant Data:
+          ${JSON.stringify((projectData as any).stepData.applicantInfo, null, 2)}
+          ` : 'Use standard applicant information format.'}
+          
+          Include:
+          - Applicant name and personal details
+          - Educational qualifications
+          - Professional experience
+          - Category (SC/ST/OBC/General, etc.)
+          - Location type (Rural/Urban)
+          - Contact information
+          - Any relevant background information
+          
+          ${languageInstruction}
+          Format: Professional and comprehensive.
+        `,
+        projectAtGlance: `
+          Create a Project at a Glance section for the DPR:
+          Project: ${projectData.projectName}
+          Sector: ${projectData.industrySector}
+          Total Investment: ₹${projectData.totalCost}
+          Location: ${projectData.location}
+          
+          ${(projectData as any).stepData?.projectAtGlance ? `
+          Project Data:
+          ${JSON.stringify((projectData as any).stepData.projectAtGlance, null, 2)}
+          ` : ''}
+          
+          Include:
+          - Project overview summary
+          - Key highlights
+          - Investment summary
+          - Expected outcomes
+          - Quick reference information
+          
+          ${languageInstruction}
+          Format: Concise, bullet points or short paragraphs.
+        `,
+        buildingDetails: `
+          Create a Building Details section for the DPR:
+          Project: ${projectData.projectName}
+          
+          ${(projectData as any).stepData?.buildingDetails ? `
+          Building Data (present as a TABLE with columns: Particulars, Area, Rate, Amount):
+          ${JSON.stringify((projectData as any).stepData.buildingDetails, null, 2)}
+          
+          IMPORTANT: If the building data contains an array of buildings with particulars, area, rate, and amount fields, format it as a MARKDOWN TABLE with the following structure:
+          | Particulars | Area | Rate | Amount |
+          |------------|------|------|--------|
+          | [data from buildingDetails] | [data] | [data] | [data] |
+          
+          Include a summary with total amount at the end.
+          ` : 'Include standard building details based on project requirements.'}
+          
+          Include:
+          - Building particulars and specifications
+          - Area details (in square feet/meters)
+          - Rate per unit area
+          - Total cost calculations
+          - Building type and purpose
+          - Location and site details
+          
+          ${languageInstruction}
+          Format: Use MARKDOWN TABLE format if building data is provided, otherwise use detailed paragraphs.
+        `,
+        machineryDetails: `
+          Create a Machinery Details section for the DPR:
+          Project: ${projectData.projectName}
+          Sector: ${projectData.industrySector}
+          
+          ${(projectData as any).stepData?.machineryDetails ? `
+          Machinery Data (present as a TABLE with columns: Particulars, Quantity, Rate, Amount):
+          ${JSON.stringify((projectData as any).stepData.machineryDetails, null, 2)}
+          
+          IMPORTANT: If the machinery data contains an array of machinery items with particulars, quantity, rate, and amount fields, format it as a MARKDOWN TABLE:
+          | Particulars | Quantity | Rate | Amount |
+          |------------|----------|------|--------|
+          | [data from machineryDetails] | [data] | [data] | [data] |
+          
+          Include a summary with total amount at the end.
+          ` : 'Include standard machinery details based on project requirements.'}
+          
+          Include:
+          - List of machinery and equipment
+          - Specifications and capacity
+          - Quantity and unit prices
+          - Total machinery cost
+          - Supplier information (if available)
+          - Installation and commissioning details
+          
+          ${languageInstruction}
+          Format: Use MARKDOWN TABLE format if machinery data is provided, otherwise use detailed list with specifications.
+        `,
+        otherCapitalCosts: `
+          Create an Other Capital Costs section for the DPR:
+          Project: ${projectData.projectName}
+          
+          ${(projectData as any).stepData?.otherCapitalCosts ? `
+          Other Capital Costs Data (present as a TABLE if structured data exists):
+          ${JSON.stringify((projectData as any).stepData.otherCapitalCosts, null, 2)}
+          
+          IMPORTANT: If the other capital costs data contains structured information (like preliminaryCost, furnitureFixtures, contingency, workingCapital), format key items as a MARKDOWN TABLE:
+          | Item | Amount |
+          |------|--------|
+          | Preliminary Costs | [amount] |
+          | Furniture & Fixtures | [amount] |
+          | Contingency | [amount] |
+          | Working Capital | [amount] |
+          
+          Include a summary with total at the end.
+          ` : 'Include standard other capital costs details based on project requirements.'}
+          
+          Include:
+          - Preliminary and pre-operative expenses
+          - Furniture and fixtures
+          - Office equipment
+          - Contingency provisions
+          - Working capital margin
+          - Any other capital expenses
+          
+          ${languageInstruction}
+          Format: Use MARKDOWN TABLE format if structured data is provided, otherwise use itemized list with costs.
+        `,
+        rawMaterials: `
+          Create a Raw Materials section for the DPR:
+          Project: ${projectData.projectName}
+          Sector: ${projectData.industrySector}
+          
+          ${(projectData as any).stepData?.rawMaterials ? `
+          Raw Materials Data (present as a TABLE with columns: Material, Quantity, Unit, Rate, Amount):
+          ${JSON.stringify((projectData as any).stepData.rawMaterials, null, 2)}
+          
+          IMPORTANT: If the raw materials data contains an array of materials with material name, quantity, unit, rate, and amount fields, format it as a MARKDOWN TABLE:
+          | Material | Quantity | Unit | Rate | Amount |
+          |----------|----------|------|------|--------|
+          | [data from rawMaterials] | [data] | [data] | [data] | [data] |
+          
+          Include a summary with total amount at the end.
+          ` : 'Include standard raw materials details based on project requirements.'}
+          
+          Include:
+          - List of raw materials required
+          - Quantity and units
+          - Rate per unit
+          - Total cost
+          - Source of supply
+          - Availability and procurement plan
+          
+          ${languageInstruction}
+          Format: Use MARKDOWN TABLE format if raw materials data is provided, otherwise use detailed list format.
+        `,
+        wages: `
+          Create a Wages section for the DPR:
+          Project: ${projectData.projectName}
+          
+          ${(projectData as any).stepData?.wages ? `
+          Wages Data (present as a TABLE with columns: Category, Number of Workers, Monthly Wage, Total):
+          ${JSON.stringify((projectData as any).stepData.wages, null, 2)}
+          
+          IMPORTANT: If the wages data contains an array of wage entries with category, number of workers, monthly wage, and total fields, format it as a MARKDOWN TABLE:
+          | Category | Number of Workers | Monthly Wage | Total |
+          |----------|-------------------|--------------|-------|
+          | [data from wages] | [data] | [data] | [data] |
+          
+          Include a summary with total wages at the end.
+          ` : 'Include standard wages details based on project requirements.'}
+          
+          Include:
+          - Wage structure for workers
+          - Number of workers
+          - Monthly/annual wage costs
+          - Skill levels and categories
+          - Total wage expenses
+          
+          ${languageInstruction}
+          Format: Use MARKDOWN TABLE format if wages data is provided, otherwise use detailed breakdown by category.
+        `,
+        salaryDetails: `
+          Create a Salary Details section for the DPR:
+          Project: ${projectData.projectName}
+          
+          ${(projectData as any).stepData?.salaryDetails?.salaries && Array.isArray((projectData as any).stepData.salaryDetails.salaries) ? `
+          Salary Data - MUST be formatted as a MARKDOWN TABLE:
+          
+          ${this.formatStepDataAsTable(
+            (projectData as any).stepData.salaryDetails.salaries,
+            ['particulars', 'noOfStaff', 'wagesPerMonth', 'amount']
+          )}
+          
+          CRITICAL REQUIREMENTS:
+          1. You MUST include the above table EXACTLY as shown in your response
+          2. The table should be the PRIMARY format for displaying salary details
+          3. Add a summary row showing the total salary expenses
+          4. Include brief narrative before/after the table explaining the organizational structure
+          5. Use proper markdown table syntax with | separators
+          
+          Total Monthly Salaries: ₹${(projectData as any).stepData.salaryDetails.salaries.reduce((sum: number, s: any) => sum + parseFloat(s.amount || '0'), 0).toLocaleString()}
+          ` : (projectData as any).stepData?.salaryDetails ? `
+          Salary Data:
+          ${JSON.stringify((projectData as any).stepData.salaryDetails, null, 2)}
+          
+          Format this data as a MARKDOWN TABLE if it contains salary entries with designation, number, monthly salary, and total fields.
+          ` : 'Include standard salary details based on project requirements.'}
+          
+          Include:
+          - Staff positions and designations
+          - Number of employees
+          - Monthly/annual salary
+          - Total salary expenses
+          - Organizational structure
+          
+          ${languageInstruction}
+          Format: ALWAYS use MARKDOWN TABLE format when salary data is provided. The table is the PRIMARY format for this section.
+        `,
+        workingCapitalEstimate: `
+          Create a Working Capital Estimate section for the DPR:
+          Project: ${projectData.projectName}
+          
+          ${(projectData as any).stepData?.workingCapitalEstimate ? `
+          Working Capital Data:
+          ${JSON.stringify((projectData as any).stepData.workingCapitalEstimate, null, 2)}
+          ` : ''}
+          
+          Include:
+          - Working capital requirements
+          - Components (raw materials, finished goods, receivables, etc.)
+          - Calculation methodology
+          - Total working capital needed
+          - Sources of working capital
+          
+          ${languageInstruction}
+          Format: Detailed with calculations.
+        `,
+        powerEstimate: `
+          Create a Power Estimate section for the DPR:
+          Project: ${projectData.projectName}
+          
+          ${(projectData as any).stepData?.powerEstimate ? `
+          Power Data:
+          ${JSON.stringify((projectData as any).stepData.powerEstimate, null, 2)}
+          ` : ''}
+          
+          Include:
+          - Power requirement (in kW/HP)
+          - Connected load
+          - Monthly power consumption
+          - Power cost estimates
+          - Backup power arrangements (if any)
+          
+          ${languageInstruction}
+          Format: Detailed with calculations.
+        `,
+        overheadExpenses: `
+          Create an Overhead Expenses section for the DPR:
+          Project: ${projectData.projectName}
+          
+          ${(projectData as any).stepData?.overheadExpenses ? `
+          Overhead Expenses Data:
+          ${JSON.stringify((projectData as any).stepData.overheadExpenses, null, 2)}
+          ` : ''}
+          
+          Include:
+          - List of overhead expenses
+          - Monthly/annual costs
+          - Categories (utilities, insurance, maintenance, etc.)
+          - Total overhead expenses
+          
+          ${languageInstruction}
+          Format: Itemized list with costs.
+        `,
+        financing: `
+          Create a Financing section for the DPR:
+          Project: ${projectData.projectName}
+          Total Cost: ₹${projectData.totalCost}
+          Loan Amount: ₹${projectData.loanAmount}
+          
+          ${(projectData as any).stepData?.financing ? `
+          Financing Data:
+          ${JSON.stringify((projectData as any).stepData.financing, null, 2)}
+          ` : ''}
+          
+          Include:
+          - Means of finance breakdown
+          - Own contribution details
+          - Term loan details
+          - Interest rates and repayment terms
+          - Security and collateral
+          - Financial institutions involved
+          
+          ${languageInstruction}
+          Format: Detailed financing structure.
+        `,
+        salesDetails: `
+          Create a Sales Details section for the DPR:
+          Project: ${projectData.projectName}
+          Sector: ${projectData.industrySector}
+          
+          ${(projectData as any).stepData?.salesDetails?.sales && Array.isArray((projectData as any).stepData.salesDetails.sales) ? `
+          Sales Data - MUST be formatted as a MARKDOWN TABLE:
+          
+          ${this.formatStepDataAsTable(
+            (projectData as any).stepData.salesDetails.sales,
+            ['particulars', 'rate', 'quantity', 'amount']
+          )}
+          
+          CRITICAL REQUIREMENTS:
+          1. You MUST include the above table EXACTLY as shown in your response
+          2. The table should be the PRIMARY format for displaying sales details
+          3. Add a summary row showing the total sales/revenue
+          4. Include brief narrative before/after the table explaining sales projections and strategy
+          5. Use proper markdown table syntax with | separators
+          
+          Total Sales/Revenue: ₹${(projectData as any).stepData.salesDetails.sales.reduce((sum: number, s: any) => sum + parseFloat(s.amount || '0'), 0).toLocaleString()}
+          ` : (projectData as any).stepData?.salesDetails ? `
+          Sales Data:
+          ${JSON.stringify((projectData as any).stepData.salesDetails, null, 2)}
+          
+          Format this data as a MARKDOWN TABLE if it contains sales entries with particulars, rate, quantity, and amount fields.
+          ` : ''}
+          
+          Include:
+          - Sales projections
+          - Product/service pricing
+          - Sales channels and strategy
+          - Target customers
+          - Sales volume estimates
+          - Revenue projections
+          
+          ${languageInstruction}
+          Format: ALWAYS use MARKDOWN TABLE format when sales data is provided. The table is the PRIMARY format for this section.
+        `,
+        financialParameters: `
+          Create a Financial Parameters section for the DPR:
+          Project: ${projectData.projectName}
+          
+          ${(projectData as any).stepData?.financialParameters ? `
+          Financial Parameters Data:
+          ${JSON.stringify((projectData as any).stepData.financialParameters, null, 2)}
+          ` : ''}
+          
+          Include:
+          - Key financial ratios
+          - Break-even analysis
+          - Debt service coverage ratio (DSCR)
+          - Internal rate of return (IRR)
+          - Payback period
+          - Profitability margins
+          
+          ${languageInstruction}
+          Format: Detailed financial analysis.
+        `,
+        beneficiaryInfo: `
+          Create a Beneficiary Information section for the DPR:
+          Project: ${projectData.projectName}
+          
+          ${(projectData as any).stepData?.beneficiaryInfo ? `
+          Beneficiary Data:
+          ${JSON.stringify((projectData as any).stepData.beneficiaryInfo, null, 2)}
+          ` : ''}
+          
+          Include:
+          - Beneficiary details
+          - Background information
+          - Eligibility for schemes
+          - Category and classification
+          - Any relevant personal or business information
+          
+          ${languageInstruction}
+          Format: Professional and comprehensive.
+        `,
       };
 
       const prompt = prompts[section] || prompts.executiveSummary;
@@ -713,7 +1203,21 @@ Return only valid JSON without markdown formatting.`;
           {
             role: 'system',
             content:
-              'You are an expert MSME consultant specializing in creating bankable Detailed Project Reports (DPRs) for Indian entrepreneurs. Generate professional, comprehensive, and lender-ready content. Be concise but thorough.',
+              `You are an expert MSME consultant and financial analyst specializing in creating BANK-INVESTOR READY Detailed Project Reports (DPRs) for Indian entrepreneurs.
+
+CRITICAL REQUIREMENTS:
+1. **Bank/Investor Readiness**: All content must be suitable for bank loan applications and investor presentations
+2. **Data-Driven**: Use ALL provided stepData and project information comprehensively - do not ignore any data
+3. **Professional Tone**: Formal, confident, persuasive business language
+4. **Specific Details**: Include actual numbers, percentages, amounts, and concrete data from the provided information
+5. **Comprehensive Coverage**: Cover all aspects thoroughly - be detailed, not generic
+6. **Risk-Aware**: Acknowledge risks but emphasize strengths and mitigation strategies
+7. **Formatting**: Use markdown formatting (### for headings, **bold** for key metrics)
+8. **Accuracy**: Ensure all numbers, calculations, and facts are accurate based on provided data
+
+When stepData is provided, you MUST use it extensively to create detailed, accurate content. Do not create generic content when specific data is available.
+
+Generate professional, comprehensive, and lender-ready content that inspires confidence in banks and investors.`,
           },
           {
             role: 'user',
@@ -721,7 +1225,7 @@ Return only valid JSON without markdown formatting.`;
           },
         ],
         temperature: 0.7,
-        max_tokens: 1500, // Reduced from 2000 for faster generation
+        max_tokens: 2000, // Increased to allow for more comprehensive bank-ready content
       });
 
       let content = response.choices[0].message.content || '';
@@ -866,12 +1370,28 @@ Return only valid JSON without markdown formatting.`;
     language: 'english' | 'telugu' | 'bilingual' = 'bilingual',
     vectorStoreIds?: string[]
   ): Promise<any> {
+    // Always include ALL 22 sections for comprehensive DPR
     const sections = [
       'executiveSummary',
       'businessProfile',
+      'applicantInfo',
+      'projectAtGlance',
+      'buildingDetails',
+      'machineryDetails',
+      'otherCapitalCosts',
+      'rawMaterials',
+      'wages',
+      'salaryDetails',
+      'workingCapitalEstimate',
+      'powerEstimate',
+      'overheadExpenses',
+      'financing',
+      'salesDetails',
       'marketAnalysis',
       'technicalFeasibility',
       'financialProjections',
+      'financialParameters',
+      'beneficiaryInfo',
       'eligibleSchemes',
       'conclusion',
     ];
@@ -885,13 +1405,14 @@ Return only valid JSON without markdown formatting.`;
     console.log('🔍 Searching for related government schemas...');
     const governmentSchemas = await this.searchGovernmentSchemas(projectData, vectorStoreIds);
     
-    // Add government schemas to project data for use in section generation
+    // Add government schemas and stepData to project data for use in section generation
     // Preserve eligibleSchemes if they exist (user-selected schemes)
-    const enrichedProjectData: IProject & { governmentSchemas?: string; eligibleSchemes?: any } = {
+    const enrichedProjectData: IProject & { governmentSchemas?: string; eligibleSchemes?: any; stepData?: any } = {
       ...projectData,
       governmentSchemas: governmentSchemas,
       eligibleSchemes: (projectData as any).eligibleSchemes || undefined,
-    } as IProject & { governmentSchemas?: string; eligibleSchemes?: any };
+      stepData: (projectData as any).stepData || undefined,
+    } as IProject & { governmentSchemas?: string; eligibleSchemes?: any; stepData?: any };
 
     // OPTIMIZATION: Generate all sections in parallel instead of sequentially
     // This reduces generation time from ~60-90s to ~15-20s
@@ -1404,29 +1925,122 @@ Current Context: ${userContext ? JSON.stringify(userContext) : 'New user'}
 
 Be professional, supportive, and focus on creating high-quality, bankable DPRs.`;
 
-      const messages: any[] = [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
-        ...conversationHistory,
-        {
-          role: 'user',
-          content: userMessage,
-        },
-      ];
+      // OPTIMIZATION: Check if this is a suggestions request (from DPR Builder) - optimize for speed
+      const isSuggestionsRequest = (userContext?.currentStep && !useRAG && conversationHistory.length === 0) || userContext?.isSuggestionRequest;
+      const stepId = userContext?.currentStep || '';
+      
+      // Define timeout durations based on step complexity
+      // Complex steps (market analysis, financial projections, etc.) need more time
+      const getStepTimeout = (step: string): number => {
+        const complexSteps = [
+          'market-analysis',
+          'financial-projections',
+          'technical-feasibility',
+          'business-profile',
+          'project-at-glance',
+        ];
+        const mediumSteps = [
+          'cost-structure',
+          'financial-parameters',
+          'sales-details',
+          'raw-materials',
+          'working-capital-estimate',
+        ];
+        
+        if (complexSteps.includes(step)) {
+          return 15000; // 15 seconds for complex steps
+        } else if (mediumSteps.includes(step)) {
+          return 10000; // 10 seconds for medium complexity steps
+        } else {
+          return 8000; // 8 seconds for simple steps (default for suggestions)
+        }
+      };
+      
+      const suggestionsTimeout = stepId ? getStepTimeout(stepId) : 8000; // Default 8s if stepId not provided
+      
+      // OPTIMIZATION: For suggestions, use minimal system prompt and skip extra processing
+      const messages: any[] = isSuggestionsRequest
+        ? [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant. Generate concise, accurate responses. Return ONLY the requested JSON format, no explanations, no markdown code blocks, just pure JSON. Be extremely brief.',
+            },
+            {
+              role: 'user',
+              content: userMessage,
+            },
+          ]
+        : [
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
+            ...conversationHistory,
+            {
+              role: 'user',
+              content: userMessage,
+            },
+          ];
 
-      // OPTIMIZATION: Use faster model for chat responses
-      // Increased max_tokens for clearer, more detailed responses
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini', // Faster model for chat
-        messages,
-        temperature: 0.7,
-        max_tokens: 1000, // Increased for clearer, more detailed responses
-      });
+      // OPTIMIZATION: Adjust max_tokens based on step complexity
+      const getStepMaxTokens = (step: string): number => {
+        const complexSteps = ['market-analysis', 'financial-projections', 'technical-feasibility'];
+        if (complexSteps.includes(step)) {
+          return 800; // More tokens for complex steps
+        } else if (step === 'cost-structure' || step === 'sales-details' || step === 'raw-materials') {
+          return 600; // Medium tokens for structured data
+        } else {
+          return 400; // Default for simple steps
+        }
+      };
+      
+      const suggestionsMaxTokens = stepId ? getStepMaxTokens(stepId) : 400;
+
+      // OPTIMIZATION: Use faster model and reduced tokens for suggestions with timeout
+      const startTime = Date.now();
+      let response;
+      
+      try {
+        response = await Promise.race([
+          openai.chat.completions.create({
+            model: 'gpt-4o-mini', // Fastest model
+            messages,
+            temperature: isSuggestionsRequest ? 0.2 : 0.7, // Lower temperature for faster, more consistent suggestions
+            max_tokens: isSuggestionsRequest ? suggestionsMaxTokens : 1000, // Dynamic tokens based on step complexity
+            stream: false, // Ensure no streaming for faster response
+          }),
+          // Dynamic timeout based on step complexity: 8-15s for suggestions, 60s for regular chat
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout')), isSuggestionsRequest ? suggestionsTimeout : 60000)
+          ) as Promise<any>
+        ]);
+      } catch (error: any) {
+        if (error.message === 'Request timeout') {
+          const timeoutSeconds = isSuggestionsRequest ? (suggestionsTimeout / 1000) : 60;
+          console.error(`⏱️ Request timed out after ${timeoutSeconds} seconds${stepId ? ` (step: ${stepId})` : ''}`);
+          throw new Error(`Request took too long (${timeoutSeconds}s timeout). The AI service may be experiencing high load. Please try again in a moment.`);
+        }
+        throw error;
+      }
+
+      const elapsedTime = Date.now() - startTime;
+      if (isSuggestionsRequest) {
+        console.log(`⚡ Suggestions generated in ${elapsedTime}ms`);
+      }
 
       let responseText = response.choices[0].message.content || '';
 
+      // Skip translation and extra processing for suggestions requests
+      if (isSuggestionsRequest) {
+        // For suggestions, return immediately without extra processing
+        return {
+          response: responseText,
+          suggestions: {},
+          nextSteps: []
+        };
+      }
+
+      // Regular chat processing
       // If user requested Telugu but response is in English, translate it
       if (shouldRespondInTelugu && !/[\u0C00-\u0C7F]/.test(responseText)) {
         console.log('🔄 Translating response to Telugu...');
@@ -1439,19 +2053,35 @@ Be professional, supportive, and focus on creating high-quality, bankable DPRs.`
         }
       }
 
-      // Extract suggestions and next steps using AI
+      // Extract suggestions and next steps using AI (with timeout to prevent blocking)
       let suggestions = {};
       let nextSteps: string[] = [];
 
       try {
-        suggestions = await this.extractSuggestions(userMessage, responseText, userContext);
+        // Add timeout for suggestions extraction (5 seconds max)
+        const suggestionsPromise = this.extractSuggestions(userMessage, responseText, userContext);
+        const suggestionsTimeout = new Promise((resolve) => 
+          setTimeout(() => resolve({}), 5000)
+        );
+        suggestions = await Promise.race([suggestionsPromise, suggestionsTimeout]) as any;
+        if (!suggestions || Object.keys(suggestions).length === 0) {
+          suggestions = {};
+        }
       } catch (error) {
         console.error('Failed to extract suggestions, continuing without them:', error);
         suggestions = {};
       }
 
       try {
-        nextSteps = await this.generateNextSteps(userMessage, responseText, userContext);
+        // Add timeout for next steps generation (5 seconds max)
+        const nextStepsPromise = this.generateNextSteps(userMessage, responseText, userContext);
+        const nextStepsTimeout = new Promise((resolve) => 
+          setTimeout(() => resolve([]), 5000)
+        );
+        nextSteps = await Promise.race([nextStepsPromise, nextStepsTimeout]) as string[];
+        if (!nextSteps || !Array.isArray(nextSteps)) {
+          nextSteps = [];
+        }
       } catch (error) {
         console.error('Failed to generate next steps, continuing without them:', error);
         nextSteps = [];
@@ -1464,9 +2094,23 @@ Be professional, supportive, and focus on creating high-quality, bankable DPRs.`
         dprAction: wantsToCreateDPR ? 'start_creation' : undefined,
         dprQuestions: dprQuestions.isDPRMode ? dprQuestions : undefined
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in chat response:', error);
-      throw new Error('Failed to generate chat response');
+      console.error('Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        isTimeout: error.message?.includes('timeout') || error.message?.includes('too long'),
+      });
+      
+      // Preserve original error message if it's informative
+      if (error.message && (error.message.includes('timeout') || error.message.includes('too long'))) {
+        throw error; // Re-throw timeout errors as-is
+      }
+      
+      // For other errors, provide more context
+      const errorMessage = error.message || 'Unknown error occurred';
+      throw new Error(`Failed to generate chat response: ${errorMessage}`);
     }
   }
 
@@ -3705,6 +4349,197 @@ Return only valid JSON without markdown formatting.`;
       // Fallback to basic question generation
       return this.generateDPRQuestionnaire(templateStructure, currentStep, userResponses);
     }
+  }
+
+  /**
+   * Convert chat responses to stepData structure (same as AI-Guided DPR Builder)
+   * This ensures projects created from chat use the same template structure
+   */
+  static convertChatResponsesToStepData(responses: Record<string, any>): any {
+    const stepData: any = {};
+
+    // Map basic project information to businessOverview
+    if (responses.projectName || responses.name) {
+      stepData.businessOverview = {
+        projectName: responses.projectName || responses.name,
+        industrySector: responses.industrySector || responses.industry || responses.sector,
+        projectType: responses.projectType || responses.type,
+        location: responses.location || responses.address,
+        businessDescription: responses.businessDescription || responses.description,
+      };
+    }
+
+    // Map applicant information
+    if (responses.sponsoringAgency || responses.gender || responses.categories) {
+      stepData.applicantInfo = {
+        sponsoringAgency: responses.sponsoringAgency,
+        gender: responses.gender,
+        locationType: responses.locationType || responses.location_type,
+        categories: Array.isArray(responses.categories) 
+          ? responses.categories 
+          : responses.categories ? responses.categories.split(',').map((c: string) => c.trim()) : [],
+        projectType: responses.projectType || responses.type,
+        legalStatus: responses.legalStatus || responses.legal_status,
+      };
+    }
+
+    // Map building details
+    if (responses.buildingDetails || responses.building) {
+      stepData.buildingDetails = Array.isArray(responses.buildingDetails) 
+        ? responses.buildingDetails 
+        : responses.building ? [responses.building] : [];
+    }
+
+    // Map machinery details
+    if (responses.machineryDetails || responses.machinery) {
+      stepData.machineryDetails = Array.isArray(responses.machineryDetails)
+        ? responses.machineryDetails
+        : responses.machinery ? [responses.machinery] : [];
+    }
+
+    // Map cost structure
+    if (responses.totalInvestment || responses.totalCost || responses.capex || responses.opex) {
+      const totalInvestment = parseFloat(
+        (responses.totalInvestment || responses.totalCost || '0').toString().replace(/[₹,\s]/g, '')
+      );
+      const landBuilding = parseFloat(
+        (responses.landBuilding || responses.land_cost || responses.buildingCost || '0').toString().replace(/[₹,\s]/g, '')
+      );
+      const machinery = parseFloat(
+        (responses.machineryCost || responses.machinery || '0').toString().replace(/[₹,\s]/g, '')
+      );
+      const rawMaterials = parseFloat(
+        (responses.rawMaterialsCost || responses.rawMaterials || '0').toString().replace(/[₹,\s]/g, '')
+      );
+      const salaries = parseFloat(
+        (responses.salariesCost || responses.salaries || responses.wages || '0').toString().replace(/[₹,\s]/g, '')
+      );
+
+      stepData.costStructure = {
+        capex: {
+          landBuilding: landBuilding > 0 ? landBuilding.toString() : (responses.capex?.landBuilding || '0'),
+          machinery: machinery > 0 ? machinery.toString() : (responses.capex?.machinery || '0'),
+        },
+        opex: {
+          rawMaterials: rawMaterials > 0 ? rawMaterials.toString() : (responses.opex?.rawMaterials || '0'),
+          salaries: salaries > 0 ? salaries.toString() : (responses.opex?.salaries || '0'),
+        },
+      };
+    }
+
+    // Map market analysis
+    if (responses.targetMarket || responses.market) {
+      stepData.marketAnalysis = {
+        targetMarket: responses.targetMarket || responses.market,
+        competitorAnalysis: responses.competitorAnalysis || responses.competitors,
+      };
+    }
+
+    // Map beneficiary information
+    if (responses.fullName || responses.name || responses.email || responses.mobile) {
+      stepData.beneficiaryInfo = {
+        fullName: responses.fullName || responses.name,
+        fatherSpouseName: responses.fatherSpouseName || responses.father_name,
+        address: responses.address || responses.location,
+        email: responses.email,
+        mobile: responses.mobile || responses.phone,
+        educationalQualifications: responses.educationalQualifications || responses.qualifications,
+        experience: responses.experience,
+      };
+    }
+
+    // Map financial projections if provided
+    if (responses.financialProjections || responses.revenue || responses.costs) {
+      stepData.financialProjections = responses.financialProjections || {
+        year1: {
+          revenue: responses.revenue?.year1 || responses.revenue || '0',
+          costs: responses.costs?.year1 || responses.costs || '0',
+          profit: '0',
+        },
+        year2: {
+          revenue: responses.revenue?.year2 || '0',
+          costs: responses.costs?.year2 || '0',
+          profit: '0',
+        },
+        year3: {
+          revenue: responses.revenue?.year3 || '0',
+          costs: responses.costs?.year3 || '0',
+          profit: '0',
+        },
+        year4: {
+          revenue: responses.revenue?.year4 || '0',
+          costs: responses.costs?.year4 || '0',
+          profit: '0',
+        },
+        year5: {
+          revenue: responses.revenue?.year5 || '0',
+          costs: responses.costs?.year5 || '0',
+          profit: '0',
+        },
+      };
+    }
+
+    // Map eligible schemes
+    if (responses.selectedSchemes || responses.schemes) {
+      stepData.eligibleSchemes = {
+        selectedSchemes: Array.isArray(responses.selectedSchemes)
+          ? responses.selectedSchemes
+          : responses.schemes ? (Array.isArray(responses.schemes) ? responses.schemes : [responses.schemes]) : [],
+      };
+    }
+
+    // Map other fields if they exist in responses
+    if (responses.rawMaterials) {
+      stepData.rawMaterials = Array.isArray(responses.rawMaterials)
+        ? responses.rawMaterials
+        : [{ particulars: responses.rawMaterials }];
+    }
+
+    if (responses.salesDetails || responses.sales) {
+      stepData.salesDetails = Array.isArray(responses.salesDetails)
+        ? responses.salesDetails
+        : responses.sales ? [responses.sales] : [];
+    }
+
+    if (responses.wages) {
+      stepData.wages = Array.isArray(responses.wages) ? responses.wages : [responses.wages];
+    }
+
+    if (responses.salaryDetails || responses.salaries) {
+      stepData.salaryDetails = Array.isArray(responses.salaryDetails)
+        ? responses.salaryDetails
+        : responses.salaries ? [responses.salaries] : [];
+    }
+
+    if (responses.otherCapitalCosts) {
+      stepData.otherCapitalCosts = responses.otherCapitalCosts;
+    }
+
+    if (responses.financing) {
+      stepData.financing = responses.financing;
+    }
+
+    if (responses.workingCapitalEstimate) {
+      stepData.workingCapitalEstimate = responses.workingCapitalEstimate;
+    }
+
+    if (responses.powerEstimate) {
+      stepData.powerEstimate = responses.powerEstimate;
+    }
+
+    if (responses.overheadExpenses) {
+      stepData.overheadExpenses = responses.overheadExpenses;
+    }
+
+    if (responses.financialParameters) {
+      stepData.financialParameters = responses.financialParameters;
+    }
+
+    if (responses.projectAtGlance) {
+      stepData.projectAtGlance = responses.projectAtGlance;
+    }
+
+    return stepData;
   }
 }
 

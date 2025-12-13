@@ -7,7 +7,7 @@ import { FinancialService } from './financial.service';
 import { QualityService } from './quality.service';
 import { processMarkdownBold, removeMarkdownBold, processMarkdownText, ProcessedParagraph } from '../utils/textProcessor';
 import PDFDocument from 'pdfkit';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType } from 'docx';
 import fs from 'fs';
 import path from 'path';
 import { Buffer } from 'buffer';
@@ -26,16 +26,16 @@ export class DPRService {
     language: 'english' | 'telugu' | 'bilingual' = 'bilingual'
   ): Promise<any> {
     try {
-      // OPTIMIZATION: Fetch project with only needed fields including eligibleSchemes
+      // Fetch project with all needed fields including stepData and eligibleSchemes
       const project = await Project.findById(projectId)
-        .select('projectName industrySector projectType totalCost loanAmount location inputs eligibleSchemes')
+        .select('projectName industrySector projectType totalCost loanAmount location inputs eligibleSchemes stepData')
         .lean(); // Use lean() for faster queries
       if (!project) {
         throw new Error('Project not found');
       }
 
-      // Generate AI content
-      console.log('Generating AI content...');
+      // Generate AI content with comprehensive step data
+      console.log('Generating AI content with comprehensive step data...');
       const content = await OpenAIService.generateCompleteDPR(project, language);
 
       // Generate financial projections
@@ -382,7 +382,72 @@ export class DPRService {
             const paragraphs = processMarkdownText(text);
             
             paragraphs.forEach((para) => {
-              if (para.type === 'heading') {
+              if (para.type === 'table' && para.tableData) {
+                // Render table
+                doc.moveDown(0.5);
+                const tableData = para.tableData;
+                const tableWidth = 500;
+                const colCount = tableData[0]?.length || 0;
+                const colWidth = tableWidth / colCount;
+                const rowHeight = 20;
+                
+                // Draw table header (first row) with background
+                if (tableData.length > 0) {
+                  let x = doc.x;
+                  const startY = doc.y;
+                  
+                  // Draw header row with background
+                  doc.rect(x, startY, tableWidth, rowHeight).fill('#E5E7EB');
+                  
+                  // Draw header text
+                  tableData[0].forEach((cell, colIndex) => {
+                    const cellX = x + (colIndex * colWidth);
+                    const cellIsTelugu = isTeluguText(cell);
+                    doc.fontSize(fontSize - 1).font('Helvetica-Bold');
+                    if (cellIsTelugu && teluguFontRegistered) {
+                      doc.font('NotoSansTelugu');
+                    }
+                    doc.text(cell, cellX + 5, startY + 5, {
+                      width: colWidth - 10,
+                      height: rowHeight - 10,
+                      align: 'left',
+                    });
+                  });
+                  
+                  // Draw data rows
+                  for (let rowIndex = 1; rowIndex < tableData.length; rowIndex++) {
+                    const rowY = startY + (rowIndex * rowHeight);
+                    doc.rect(x, rowY, tableWidth, rowHeight).stroke();
+                    
+                    tableData[rowIndex].forEach((cell, colIndex) => {
+                      const cellX = x + (colIndex * colWidth);
+                      const cellIsTelugu = isTeluguText(cell);
+                      doc.fontSize(fontSize - 1).font('Helvetica');
+                      if (cellIsTelugu && teluguFontRegistered) {
+                        doc.font('NotoSansTelugu');
+                      }
+                      doc.text(cell || '', cellX + 5, rowY + 5, {
+                        width: colWidth - 10,
+                        height: rowHeight - 10,
+                        align: 'left',
+                      });
+                    });
+                  }
+                  
+                  // Draw borders
+                  doc.rect(x, startY, tableWidth, tableData.length * rowHeight).stroke();
+                  
+                  // Draw vertical lines
+                  for (let i = 1; i < colCount; i++) {
+                    const lineX = x + (i * colWidth);
+                    doc.moveTo(lineX, startY)
+                      .lineTo(lineX, startY + (tableData.length * rowHeight))
+                      .stroke();
+                  }
+                  
+                  doc.moveDown(1);
+                }
+              } else if (para.type === 'heading') {
                 // Render heading as semi-bold subheading
                 doc.moveDown(0.5);
                 let headingFontSize: number;
@@ -467,24 +532,56 @@ export class DPRService {
             });
           };
 
-          // Section labels based on language
+          // Section labels based on language - includes all AI-Guided DPR Builder sections
           const sectionLabels = language === 'telugu' ? {
             executiveSummary: '1. కార్యనిర్వాహక సారాంశం',
             businessProfile: '2. వ్యాపార ప్రొఫైల్',
-            marketAnalysis: '3. మార్కెట్ విశ్లేషణ',
-            technicalFeasibility: '4. సాంకేతిక సాధ్యత',
-            financialProjections: '5. ఆర్థిక అంచనాలు',
-            conclusion: '6. ముగింపు',
+            applicantInfo: '3. దరఖాస్తుదారు సమాచారం',
+            projectAtGlance: '4. ప్రాజెక్ట్ సంగ్రహం',
+            buildingDetails: '5. భవన వివరాలు',
+            machineryDetails: '6. యంత్రసామగ్రి వివరాలు',
+            otherCapitalCosts: '7. ఇతర మూలధన ఖర్చులు',
+            rawMaterials: '8. ముడి పదార్థాలు',
+            wages: '9. వేతనాలు',
+            salaryDetails: '10. జీత వివరాలు',
+            workingCapitalEstimate: '11. పని మూలధన అంచనా',
+            powerEstimate: '12. విద్యుత్ అంచనా',
+            overheadExpenses: '13. ఓవర్ హెడ్ ఖర్చులు',
+            financing: '14. ఆర్థిక సహాయం',
+            salesDetails: '15. అమ్మకాల వివరాలు',
+            marketAnalysis: '16. మార్కెట్ విశ్లేషణ',
+            technicalFeasibility: '17. సాంకేతిక సాధ్యత',
+            financialProjections: '18. ఆర్థిక అంచనాలు',
+            financialParameters: '19. ఆర్థిక పారామితులు',
+            beneficiaryInfo: '20. లాభాంశకుడి సమాచారం',
+            eligibleSchemes: '21. అర్హతగల ప్రభుత్వ పథకాలు',
+            conclusion: '22. ముగింపు',
             financialSummary: 'ఆర్థిక సారాంశం',
             projectCostBreakdown: 'ప్రాజెక్ట్ ఖర్చు విభజన:',
             meansOfFinance: 'ఆర్థిక మార్గాలు:'
           } : {
             executiveSummary: '1. Executive Summary',
             businessProfile: '2. Business Profile',
-            marketAnalysis: '3. Market Analysis',
-            technicalFeasibility: '4. Technical Feasibility',
-            financialProjections: '5. Financial Projections',
-            conclusion: '6. Conclusion',
+            applicantInfo: '3. Applicant Information',
+            projectAtGlance: '4. Project at a Glance',
+            buildingDetails: '5. Building Details',
+            machineryDetails: '6. Machinery Details',
+            otherCapitalCosts: '7. Other Capital Costs',
+            rawMaterials: '8. Raw Materials',
+            wages: '9. Wages',
+            salaryDetails: '10. Salary Details',
+            workingCapitalEstimate: '11. Working Capital Estimate',
+            powerEstimate: '12. Power Estimate',
+            overheadExpenses: '13. Overhead Expenses',
+            financing: '14. Financing',
+            salesDetails: '15. Sales Details',
+            marketAnalysis: '16. Market Analysis',
+            technicalFeasibility: '17. Technical Feasibility',
+            financialProjections: '18. Financial Projections',
+            financialParameters: '19. Financial Parameters',
+            beneficiaryInfo: '20. Beneficiary Information',
+            eligibleSchemes: '21. Eligible Government Schemes',
+            conclusion: '22. Conclusion',
             financialSummary: 'Financial Summary',
             projectCostBreakdown: 'Project Cost Breakdown:',
             meansOfFinance: 'Means of Finance:'
@@ -504,40 +601,79 @@ export class DPRService {
             }
           };
 
+          // Helper function to render section if content exists
+          const renderSection = (sectionKey: string, label: string) => {
+            if (contentLang[sectionKey]) {
+              doc.addPage();
+              renderSectionHeader(label);
+              doc.moveDown();
+              addFormattedText(contentLang[sectionKey] || '');
+              doc.moveDown();
+            }
+          };
+
           // Executive Summary
-          doc.addPage();
-          renderSectionHeader(sectionLabels.executiveSummary);
-          doc.moveDown();
-          addFormattedText(contentLang.executiveSummary || '');
-          doc.moveDown();
+          renderSection('executiveSummary', sectionLabels.executiveSummary);
 
           // Business Profile
-          doc.addPage();
-          renderSectionHeader(sectionLabels.businessProfile);
-          doc.moveDown();
-          addFormattedText(contentLang.businessProfile || '');
-          doc.moveDown();
+          renderSection('businessProfile', sectionLabels.businessProfile);
+
+          // Applicant Information
+          renderSection('applicantInfo', sectionLabels.applicantInfo);
+
+          // Project at a Glance
+          renderSection('projectAtGlance', sectionLabels.projectAtGlance);
+
+          // Building Details
+          renderSection('buildingDetails', sectionLabels.buildingDetails);
+
+          // Machinery Details
+          renderSection('machineryDetails', sectionLabels.machineryDetails);
+
+          // Other Capital Costs
+          renderSection('otherCapitalCosts', sectionLabels.otherCapitalCosts);
+
+          // Raw Materials
+          renderSection('rawMaterials', sectionLabels.rawMaterials);
+
+          // Wages
+          renderSection('wages', sectionLabels.wages);
+
+          // Salary Details
+          renderSection('salaryDetails', sectionLabels.salaryDetails);
+
+          // Working Capital Estimate
+          renderSection('workingCapitalEstimate', sectionLabels.workingCapitalEstimate);
+
+          // Power Estimate
+          renderSection('powerEstimate', sectionLabels.powerEstimate);
+
+          // Overhead Expenses
+          renderSection('overheadExpenses', sectionLabels.overheadExpenses);
+
+          // Financing
+          renderSection('financing', sectionLabels.financing);
+
+          // Sales Details
+          renderSection('salesDetails', sectionLabels.salesDetails);
 
           // Market Analysis
-          doc.addPage();
-          renderSectionHeader(sectionLabels.marketAnalysis);
-          doc.moveDown();
-          addFormattedText(contentLang.marketAnalysis || '');
-          doc.moveDown();
+          renderSection('marketAnalysis', sectionLabels.marketAnalysis);
 
           // Technical Feasibility
-          doc.addPage();
-          renderSectionHeader(sectionLabels.technicalFeasibility);
-          doc.moveDown();
-          addFormattedText(contentLang.technicalFeasibility || '');
-          doc.moveDown();
+          renderSection('technicalFeasibility', sectionLabels.technicalFeasibility);
 
           // Financial Projections
-          doc.addPage();
-          renderSectionHeader(sectionLabels.financialProjections);
-          doc.moveDown();
-          addFormattedText(contentLang.financialProjections || '');
-          doc.moveDown();
+          renderSection('financialProjections', sectionLabels.financialProjections);
+
+          // Financial Parameters
+          renderSection('financialParameters', sectionLabels.financialParameters);
+
+          // Beneficiary Information
+          renderSection('beneficiaryInfo', sectionLabels.beneficiaryInfo);
+
+          // Eligible Government Schemes
+          renderSection('eligibleSchemes', sectionLabels.eligibleSchemes);
 
           // Financial Tables (if available)
           if (dpr.financials && dpr.financials.projectCost) {
@@ -596,10 +732,7 @@ export class DPRService {
           }
 
           // Conclusion
-          doc.addPage();
-          renderSectionHeader(sectionLabels.conclusion);
-          doc.moveDown();
-          addFormattedText(contentLang.conclusion || '');
+          renderSection('conclusion', sectionLabels.conclusion);
 
           doc.end();
         } catch (error) {
@@ -637,17 +770,65 @@ export class DPRService {
         throw new Error(`No ${language} content available for this DPR`);
       }
 
-    // Helper function to create paragraphs with formatting (bold and headings)
-    const createFormattedParagraphs = (text: string): Paragraph[] => {
+    // Helper function to create paragraphs with formatting (bold, headings, and tables)
+    const createFormattedParagraphs = (text: string): (Paragraph | Table)[] => {
       if (!text) {
         return [new Paragraph({ text: '' })];
       }
       
-      const paragraphs: Paragraph[] = [];
+      const elements: (Paragraph | Table)[] = [];
       const processedParas = processMarkdownText(text);
       
       processedParas.forEach((para) => {
-        if (para.type === 'heading') {
+        if (para.type === 'table' && para.tableData) {
+          // Create table
+          const tableData = para.tableData;
+          if (tableData.length > 0) {
+            const colCount = tableData[0].length;
+            const colWidth = 100 / colCount; // Percentage width per column
+            
+            const rows = tableData.map((row, rowIndex) => {
+              const cells = row.map((cell, colIndex) => {
+                return new TableCell({
+                  children: [new Paragraph({
+                    text: cell || '',
+                  })],
+                  width: {
+                    size: colWidth,
+                    type: WidthType.PERCENTAGE,
+                  },
+                });
+              });
+              
+              // Ensure all rows have the same number of cells
+              while (cells.length < colCount) {
+                cells.push(new TableCell({
+                  children: [new Paragraph({ text: '' })],
+                  width: {
+                    size: colWidth,
+                    type: WidthType.PERCENTAGE,
+                  },
+                }));
+              }
+              
+              return new TableRow({
+                children: cells,
+                tableHeader: rowIndex === 0, // First row is header
+              });
+            });
+            
+            elements.push(new Table({
+              rows,
+              width: {
+                size: 100,
+                type: WidthType.PERCENTAGE,
+              },
+            }));
+            
+            // Add spacing after table
+            elements.push(new Paragraph({ text: '', spacing: { after: 200 } }));
+          }
+        } else if (para.type === 'heading') {
           // Create heading paragraph with semi-bold
           const children = para.content.map(segment => 
             new TextRun({
@@ -674,7 +855,7 @@ export class DPRService {
             spacingAfter = 100;
           }
           
-          paragraphs.push(new Paragraph({ 
+          elements.push(new Paragraph({ 
             children,
             heading: headingLevel,
             spacing: { 
@@ -687,7 +868,7 @@ export class DPRService {
           const segments = processMarkdownBold(para.originalText);
           
           if (segments.length === 1 && !segments[0].bold) {
-            paragraphs.push(new Paragraph({ 
+            elements.push(new Paragraph({ 
               text: removeMarkdownBold(para.originalText),
               spacing: { after: 100 },
             }));
@@ -698,93 +879,134 @@ export class DPRService {
                 bold: segment.bold,
               })
             );
-            paragraphs.push(new Paragraph({ 
+            elements.push(new Paragraph({ 
               children,
               spacing: { after: 100 },
             }));
           }
         } else {
           // Empty paragraph for spacing
-          paragraphs.push(new Paragraph({ text: '', spacing: { after: 50 } }));
+          elements.push(new Paragraph({ text: '', spacing: { after: 50 } }));
         }
       });
       
-      return paragraphs;
+      return elements;
     };
 
-    // Section labels based on language
+    // Section labels based on language - includes all AI-Guided DPR Builder sections
     const sectionLabels = language === 'telugu' ? {
       title: 'వివరణాత్మక ప్రాజెక్ట్ నివేదిక',
       sector: 'రంగం',
       location: 'స్థానం',
       executiveSummary: '1. కార్యనిర్వాహక సారాంశం',
       businessProfile: '2. వ్యాపార ప్రొఫైల్',
-      marketAnalysis: '3. మార్కెట్ విశ్లేషణ',
-      technicalFeasibility: '4. సాంకేతిక సాధ్యత',
-      financialProjections: '5. ఆర్థిక అంచనాలు',
-      conclusion: '6. ముగింపు'
+      applicantInfo: '3. దరఖాస్తుదారు సమాచారం',
+      projectAtGlance: '4. ప్రాజెక్ట్ సంగ్రహం',
+      buildingDetails: '5. భవన వివరాలు',
+      machineryDetails: '6. యంత్రసామగ్రి వివరాలు',
+      otherCapitalCosts: '7. ఇతర మూలధన ఖర్చులు',
+      rawMaterials: '8. ముడి పదార్థాలు',
+      wages: '9. వేతనాలు',
+      salaryDetails: '10. జీత వివరాలు',
+      workingCapitalEstimate: '11. పని మూలధన అంచనా',
+      powerEstimate: '12. విద్యుత్ అంచనా',
+      overheadExpenses: '13. ఓవర్ హెడ్ ఖర్చులు',
+      financing: '14. ఆర్థిక సహాయం',
+      salesDetails: '15. అమ్మకాల వివరాలు',
+      marketAnalysis: '16. మార్కెట్ విశ్లేషణ',
+      technicalFeasibility: '17. సాంకేతిక సాధ్యత',
+      financialProjections: '18. ఆర్థిక అంచనాలు',
+      financialParameters: '19. ఆర్థిక పారామితులు',
+      beneficiaryInfo: '20. లాభాంశకుడి సమాచారం',
+      eligibleSchemes: '21. అర్హతగల ప్రభుత్వ పథకాలు',
+      conclusion: '22. ముగింపు'
     } : {
       title: 'Detailed Project Report',
       sector: 'Sector',
       location: 'Location',
       executiveSummary: '1. Executive Summary',
       businessProfile: '2. Business Profile',
-      marketAnalysis: '3. Market Analysis',
-      technicalFeasibility: '4. Technical Feasibility',
-      financialProjections: '5. Financial Projections',
-      conclusion: '6. Conclusion'
+      applicantInfo: '3. Applicant Information',
+      projectAtGlance: '4. Project at a Glance',
+      buildingDetails: '5. Building Details',
+      machineryDetails: '6. Machinery Details',
+      otherCapitalCosts: '7. Other Capital Costs',
+      rawMaterials: '8. Raw Materials',
+      wages: '9. Wages',
+      salaryDetails: '10. Salary Details',
+      workingCapitalEstimate: '11. Working Capital Estimate',
+      powerEstimate: '12. Power Estimate',
+      overheadExpenses: '13. Overhead Expenses',
+      financing: '14. Financing',
+      salesDetails: '15. Sales Details',
+      marketAnalysis: '16. Market Analysis',
+      technicalFeasibility: '17. Technical Feasibility',
+      financialProjections: '18. Financial Projections',
+      financialParameters: '19. Financial Parameters',
+      beneficiaryInfo: '20. Beneficiary Information',
+      eligibleSchemes: '21. Eligible Government Schemes',
+      conclusion: '22. Conclusion'
     };
+
+    // Helper function to add section if content exists
+    const addSection = (sectionKey: string, label: string): (Paragraph | Table)[] => {
+      if (contentLang[sectionKey]) {
+        return [
+          new Paragraph({
+            text: label,
+            heading: HeadingLevel.HEADING_2,
+          }),
+          ...createFormattedParagraphs(contentLang[sectionKey] || ''),
+        ];
+      }
+      return [];
+    };
+
+    // Build all sections
+    const allSections: (Paragraph | Table)[] = [
+      new Paragraph({
+        text: sectionLabels.title,
+        heading: HeadingLevel.TITLE,
+      }),
+      new Paragraph({
+        text: project.projectName,
+        heading: HeadingLevel.HEADING_1,
+      }),
+      new Paragraph({
+        text: `${sectionLabels.sector}: ${project.industrySector}`,
+      }),
+      new Paragraph({
+        text: `${sectionLabels.location}: ${project.location}`,
+      }),
+      new Paragraph({ text: '' }),
+      ...addSection('executiveSummary', sectionLabels.executiveSummary),
+      ...addSection('businessProfile', sectionLabels.businessProfile),
+      ...addSection('applicantInfo', sectionLabels.applicantInfo),
+      ...addSection('projectAtGlance', sectionLabels.projectAtGlance),
+      ...addSection('buildingDetails', sectionLabels.buildingDetails),
+      ...addSection('machineryDetails', sectionLabels.machineryDetails),
+      ...addSection('otherCapitalCosts', sectionLabels.otherCapitalCosts),
+      ...addSection('rawMaterials', sectionLabels.rawMaterials),
+      ...addSection('wages', sectionLabels.wages),
+      ...addSection('salaryDetails', sectionLabels.salaryDetails),
+      ...addSection('workingCapitalEstimate', sectionLabels.workingCapitalEstimate),
+      ...addSection('powerEstimate', sectionLabels.powerEstimate),
+      ...addSection('overheadExpenses', sectionLabels.overheadExpenses),
+      ...addSection('financing', sectionLabels.financing),
+      ...addSection('salesDetails', sectionLabels.salesDetails),
+      ...addSection('marketAnalysis', sectionLabels.marketAnalysis),
+      ...addSection('technicalFeasibility', sectionLabels.technicalFeasibility),
+      ...addSection('financialProjections', sectionLabels.financialProjections),
+      ...addSection('financialParameters', sectionLabels.financialParameters),
+      ...addSection('beneficiaryInfo', sectionLabels.beneficiaryInfo),
+      ...addSection('eligibleSchemes', sectionLabels.eligibleSchemes),
+      ...addSection('conclusion', sectionLabels.conclusion),
+    ];
 
     const doc = new Document({
       sections: [
         {
-          children: [
-            new Paragraph({
-              text: sectionLabels.title,
-              heading: HeadingLevel.TITLE,
-            }),
-            new Paragraph({
-              text: project.projectName,
-              heading: HeadingLevel.HEADING_1,
-            }),
-            new Paragraph({
-              text: `${sectionLabels.sector}: ${project.industrySector}`,
-            }),
-            new Paragraph({
-              text: `${sectionLabels.location}: ${project.location}`,
-            }),
-            new Paragraph({ text: '' }),
-            new Paragraph({
-              text: sectionLabels.executiveSummary,
-              heading: HeadingLevel.HEADING_2,
-            }),
-            ...createFormattedParagraphs(contentLang.executiveSummary || ''),
-            new Paragraph({
-              text: sectionLabels.businessProfile,
-              heading: HeadingLevel.HEADING_2,
-            }),
-            ...createFormattedParagraphs(contentLang.businessProfile || ''),
-            new Paragraph({
-              text: sectionLabels.marketAnalysis,
-              heading: HeadingLevel.HEADING_2,
-            }),
-            ...createFormattedParagraphs(contentLang.marketAnalysis || ''),
-            new Paragraph({
-              text: sectionLabels.technicalFeasibility,
-              heading: HeadingLevel.HEADING_2,
-            }),
-            ...createFormattedParagraphs(contentLang.technicalFeasibility || ''),
-            new Paragraph({
-              text: sectionLabels.financialProjections,
-              heading: HeadingLevel.HEADING_2,
-            }),
-            ...createFormattedParagraphs(contentLang.financialProjections || ''),
-            new Paragraph({
-              text: sectionLabels.conclusion,
-              heading: HeadingLevel.HEADING_2,
-            }),
-            ...createFormattedParagraphs(contentLang.conclusion || ''),
-          ],
+          children: allSections,
         },
       ],
     });

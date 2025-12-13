@@ -1068,12 +1068,17 @@ ${currentQuestion}`,
           const result = OfflineDPRCreationService.submitAnswer(defaultAnswer);
           
           if (result.isComplete) {
-            const { projectData, message: completionMessage } = OfflineDPRCreationService.generateOfflineDPR();
+            const { stepData, projectData, message: completionMessage } = OfflineDPRCreationService.generateOfflineDPR();
             
             // Create project and generate DPR automatically
             try {
               const createdProject = await this.createProject(projectData);
               const projectId = createdProject.data._id || createdProject.data.id;
+              
+              // Update project with stepData structure (same as AI-Guided DPR Builder)
+              if (stepData) {
+                await this.updateProject(projectId, { stepData });
+              }
               
               // Automatically generate the DPR document
               const dprResponse = await this.generateDPR(projectId, 'bilingual');
@@ -1099,7 +1104,8 @@ Your comprehensive DPR document has been automatically generated with all 6 sect
                     type: 'completed', 
                     projectId,
                     dprId,
-                    projectData 
+                    projectData,
+                    stepData 
                   }
                 }
               };
@@ -1115,7 +1121,7 @@ ${completionMessage}
 
 ⚠️ **Note:** There was an issue generating the DPR document automatically.`,
                   suggestions: ['Try again', 'View projects'],
-                  dprAction: { type: 'completed', projectData }
+                  dprAction: { type: 'completed', projectData, stepData }
                 }
               };
             }
@@ -1159,12 +1165,17 @@ ${nextQuestion}`,
         
         if (result.isComplete) {
           // DPR creation completed!
-          const { projectData, message: completionMessage } = OfflineDPRCreationService.generateOfflineDPR();
+          const { stepData, projectData, message: completionMessage } = OfflineDPRCreationService.generateOfflineDPR();
           
           // Create the project first
           try {
             const createdProject = await this.createProject(projectData);
             const projectId = createdProject.data._id || createdProject.data.id;
+            
+            // Update project with stepData structure (same as AI-Guided DPR Builder)
+            if (stepData) {
+              await this.updateProject(projectId, { stepData });
+            }
             
             // Automatically generate the DPR document
             const dprResponse = await this.generateDPR(projectId, 'bilingual');

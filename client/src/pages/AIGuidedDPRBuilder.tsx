@@ -255,6 +255,15 @@ export const AIGuidedDPRBuilder: React.FC = () => {
     return result;
   };
 
+  // Helper function to clear suggestions for a step
+  const clearSuggestions = (stepId: string) => {
+    setAiSuggestions(prev => {
+      const updated = { ...prev };
+      delete updated[stepId];
+      return updated;
+    });
+  };
+
   const getAISuggestions = async (stepId: string, _currentData: any, showLoading = true, forceRefresh = false) => {
     // Don't fetch if already loaded (unless user explicitly requests refresh)
     if (aiSuggestions[stepId] && showLoading && !forceRefresh) {
@@ -263,13 +272,10 @@ export const AIGuidedDPRBuilder: React.FC = () => {
     
     // Clear cached suggestion if refreshing
     if (forceRefresh) {
-      setAiSuggestions(prev => {
-        const updated = { ...prev };
-        delete updated[stepId];
-        return updated;
-      });
+      clearSuggestions(stepId);
     }
 
+    const startTime = Date.now();
     try {
       if (showLoading) {
         setLoadingSuggestions(prev => ({ ...prev, [stepId]: true }));
@@ -286,104 +292,49 @@ export const AIGuidedDPRBuilder: React.FC = () => {
       
       switch (stepId) {
         case 'market-analysis':
-          prompt = `You are an MSME business consultant. Generate ACTUAL SAMPLE CONTENT (not guidance) for a ${businessData.industrySector || 'business'} project named "${businessData.projectName || 'the project'}".
+          prompt = `Generate sample content for ${businessData.industrySector || 'business'} project "${businessData.projectName || 'project'}".
 
-IMPORTANT: Generate REAL, READY-TO-USE sample content that can be directly filled into form fields. The user will edit this content.
+Current: Target Market: ${marketData.targetMarket || 'Not specified'}, Competitor Analysis: ${marketData.competitorAnalysis || 'Not specified'}
 
-Current data entered:
-- Target Market: ${marketData.targetMarket || 'Not specified'}
-- Competitor Analysis: ${marketData.competitorAnalysis || 'Not specified'}
-
-CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON:
+Return ONLY JSON (no markdown, no explanations):
 {
-  "targetMarket": "Complete sample text for target market field (200-300 words). Include: market segments, demographics, geographic coverage, customer types, market size estimates, distribution channels.",
-  "competitorAnalysis": "Complete sample text for competitor analysis field (200-300 words). Include: main competitors, their strengths/weaknesses, market share, pricing strategies, your competitive advantages."
+  "targetMarket": "200-300 words: market segments, demographics, geographic coverage, customer types, market size, distribution channels.",
+  "competitorAnalysis": "200-300 words: main competitors, strengths/weaknesses, market share, pricing, competitive advantages."
 }
 
-Make the content realistic, specific to ${businessData.industrySector || 'the industry'}, and suitable for a bank-ready DPR. Use actual numbers, percentages, and specific examples where appropriate. Return ONLY the JSON object, nothing else.`;
+Make it realistic for ${businessData.industrySector || 'the industry'} with numbers and percentages. JSON only.`;
           break;
           
         case 'cost-structure':
-          prompt = `You are a financial consultant. Generate ACTUAL SAMPLE VALUES (not guidance) for CAPEX and OPEX for a ${businessData.industrySector || 'business'} project.
+          prompt = `Generate CAPEX/OPEX values for ${businessData.industrySector || 'business'} project "${businessData.projectName || 'project'}".
 
-IMPORTANT: Generate REAL NUMBERS that can be directly filled into form fields. The user will edit these values.
+Current: Land/Building: ₹${costData?.capex?.landBuilding || '0'}, Machinery: ₹${costData?.capex?.machinery || '0'}, Raw Materials: ₹${costData?.opex?.rawMaterials || '0'}/month, Salaries: ₹${costData?.opex?.salaries || '0'}/month
 
-Current estimates:
-- CAPEX (Land & Building): ₹${costData?.capex?.landBuilding || 'Not specified'}
-- CAPEX (Machinery): ₹${costData?.capex?.machinery || 'Not specified'}
-- OPEX (Raw Materials/Month): ₹${costData?.opex?.rawMaterials || 'Not specified'}
-- OPEX (Salaries/Month): ₹${costData?.opex?.salaries || 'Not specified'}
-
-Project details:
-- Industry: ${businessData.industrySector || 'Not specified'}
-- Project Name: ${businessData.projectName || 'Not specified'}
-- Total Investment: ₹${(parseFloat(costData?.capex?.landBuilding || 0) + parseFloat(costData?.capex?.machinery || 0)).toLocaleString('en-IN') || 'Not specified'}
-
-CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON with numeric values (not strings):
+Return ONLY JSON (numbers, not strings):
 {
-  "capex": {
-    "landBuilding": 500000,
-    "machinery": 1500000
-  },
-  "opex": {
-    "rawMaterials": 50000,
-    "salaries": 80000
-  }
+  "capex": {"landBuilding": 500000, "machinery": 1500000},
+  "opex": {"rawMaterials": 50000, "salaries": 80000}
 }
 
-Provide realistic values based on ${businessData.industrySector || 'the industry'} sector. If current values exist, use them as reference but suggest improvements if needed. Return ONLY the JSON object with numeric values, nothing else.`;
+Realistic for ${businessData.industrySector || 'industry'}. JSON only.`;
           break;
           
         case 'building-details':
-          prompt = `You are a construction consultant. Generate ACTUAL SAMPLE BUILDING ENTRIES for a ${businessData.industrySector || 'business'} project.
+          prompt = `Generate 2-3 building entries for ${businessData.industrySector || 'business'} project "${businessData.projectName || 'project'}".
 
-Project details:
-- Industry: ${businessData.industrySector || 'Not specified'}
-- Project Name: ${businessData.projectName || 'Not specified'}
+Return ONLY JSON array (no markdown):
+[{"particulars": "Building Name", "area": "1500", "rate": "800", "amount": "1200000"}]
 
-CRITICAL: Return ONLY a valid JSON array with building entries. Each entry should have: particulars, area (sq.ft), rate (per sq.ft), amount (calculated). Do NOT include markdown formatting:
-[
-  {
-    "particulars": "2 Floor Building - Ground Floor",
-    "area": "1500",
-    "rate": "800",
-    "amount": "1200000"
-  },
-  {
-    "particulars": "2 Floor Building - First Floor",
-    "area": "1500",
-    "rate": "700",
-    "amount": "1050000"
-  }
-]
-
-Provide 2-3 realistic building entries based on ${businessData.industrySector || 'the industry'} sector. Return ONLY the JSON array, nothing else.`;
+Realistic for ${businessData.industrySector || 'industry'}. JSON only.`;
           break;
           
         case 'machinery-details':
-          prompt = `You are a machinery consultant. Generate ACTUAL SAMPLE MACHINERY ENTRIES for a ${businessData.industrySector || 'business'} project.
+          prompt = `Generate 3-5 machinery entries for ${businessData.industrySector || 'business'} project "${businessData.projectName || 'project'}".
 
-Project details:
-- Industry: ${businessData.industrySector || 'Not specified'}
-- Project Name: ${businessData.projectName || 'Not specified'}
+Return ONLY JSON array:
+[{"particulars": "Machine Name", "qty": "1", "rate": "500000", "amount": "500000"}]
 
-CRITICAL: Return ONLY a valid JSON array with machinery entries. Each entry should have: particulars, qty, rate, amount (calculated). Do NOT include markdown formatting:
-[
-  {
-    "particulars": "CNC Machine",
-    "qty": "1",
-    "rate": "500000",
-    "amount": "500000"
-  },
-  {
-    "particulars": "Grinding Machine",
-    "qty": "2",
-    "rate": "250000",
-    "amount": "500000"
-  }
-]
-
-Provide 3-5 realistic machinery entries specific to ${businessData.industrySector || 'the industry'} sector. Return ONLY the JSON array, nothing else.`;
+Realistic for ${businessData.industrySector || 'industry'}. JSON only.`;
           break;
           
         case 'sales-details':
@@ -730,18 +681,63 @@ Return ONLY the JSON object, nothing else.`;
 Return ready-to-use content that can be directly filled into form fields. The user will edit this content.`;
       }
       
-      const response = await api.chat(
-        prompt,
-        [],
-        { 
-          project: project || {},
-          businessOverview: businessData,
-          marketAnalysis: marketData,
-          costStructure: costData,
-          currentStep: stepId,
-        },
-        false // Disable RAG for faster response
+      // Dynamic timeout based on step complexity
+      // Complex steps (market analysis, financial projections) need more time
+      const getStepTimeout = (step: string): number => {
+        const complexSteps = [
+          'market-analysis',
+          'financial-projections',
+          'technical-feasibility',
+          'business-profile',
+          'project-at-glance',
+        ];
+        const mediumSteps = [
+          'cost-structure',
+          'financial-parameters',
+          'sales-details',
+          'raw-materials',
+          'working-capital-estimate',
+        ];
+        
+        if (complexSteps.includes(step)) {
+          return 20000; // 20 seconds for complex steps (frontend timeout should be slightly longer than backend)
+        } else if (mediumSteps.includes(step)) {
+          return 15000; // 15 seconds for medium complexity steps
+        } else {
+          return 10000; // 10 seconds for simple steps
+        }
+      };
+      
+      const stepTimeout = getStepTimeout(stepId);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error(`Request timeout after ${stepTimeout / 1000} seconds`)), stepTimeout)
       );
+
+      let response;
+      try {
+        response = await Promise.race([
+          api.chat(
+            prompt,
+            [],
+            { 
+              project: project || {},
+              businessOverview: businessData,
+              marketAnalysis: marketData,
+              costStructure: costData,
+              currentStep: stepId,
+              isSuggestionRequest: true, // Flag for optimization
+            },
+            false // Disable RAG for faster response
+          ),
+          timeoutPromise
+        ]) as any;
+      } catch (error: any) {
+        if (error.message?.includes('timeout')) {
+          toast.error('AI suggestions request timed out. Please try again.');
+          throw error;
+        }
+        throw error;
+      }
       
       const suggestionText = response.response || response.data?.response || '';
       
@@ -870,6 +866,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
               businessDescription: businessData.businessDescription || '',
               targetMarket: stepData.marketAnalysis?.targetMarket || '',
             },
+            stepData: stepData, // Save all stepData to project
             status: 'draft',
           };
 
@@ -888,12 +885,13 @@ Return ready-to-use content that can be directly filled into form fields. The us
         }
       }
 
-      // Save selected schemes to project before generating DPR
-      const selectedSchemes = stepData.eligibleSchemes?.selectedSchemes || [];
-      if (selectedSchemes.length > 0) {
-        try {
-          // Get full scheme details for selected schemes
-          const schemesData: any[] = [];
+      // Save stepData and selected schemes to project before generating DPR
+      try {
+        const selectedSchemes = stepData.eligibleSchemes?.selectedSchemes || [];
+        const schemesData: any[] = [];
+        
+        // Get full scheme details for selected schemes
+        if (selectedSchemes.length > 0) {
           for (const schemeCode of selectedSchemes) {
             try {
               const schemeResponse = await api.getScheme(schemeCode);
@@ -917,18 +915,22 @@ Return ready-to-use content that can be directly filled into form fields. The us
               });
             }
           }
-
-          // Update project with selected schemes
-          await api.updateProject(finalProjectId, {
-            eligibleSchemes: {
-              selectedSchemes: selectedSchemes,
-              schemesData: schemesData,
-            },
-          });
-        } catch (error: any) {
-          console.error('Error saving schemes to project:', error);
-          // Don't block DPR generation if scheme save fails
         }
+
+        // Update project with stepData and schemes
+        await api.updateProject(finalProjectId, {
+          stepData: stepData, // Save all stepData to project
+          eligibleSchemes: selectedSchemes.length > 0 ? {
+            selectedSchemes: selectedSchemes,
+            schemesData: schemesData,
+          } : undefined,
+        });
+        
+        console.log('✅ StepData and schemes saved to project successfully');
+      } catch (error: any) {
+        console.error('Error saving stepData to project:', error);
+        // Don't block DPR generation if save fails, but log the error
+        toast.error('Warning: Some data may not have been saved. DPR generation will continue.');
       }
 
       // Generate DPR
@@ -960,6 +962,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['applicant-info']}
             loading={loadingSuggestions['applicant-info']}
             onGetSuggestions={() => getAISuggestions('applicant-info', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('applicant-info')}
           />
         );
       case 'building-details':
@@ -970,6 +973,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['building-details']}
             loading={loadingSuggestions['building-details']}
             onGetSuggestions={() => getAISuggestions('building-details', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('building-details')}
           />
         );
       case 'machinery-details':
@@ -980,6 +984,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['machinery-details']}
             loading={loadingSuggestions['machinery-details']}
             onGetSuggestions={() => getAISuggestions('machinery-details', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('machinery-details')}
           />
         );
       case 'other-capital-costs':
@@ -990,6 +995,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['other-capital-costs']}
             loading={loadingSuggestions['other-capital-costs']}
             onGetSuggestions={() => getAISuggestions('other-capital-costs', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('other-capital-costs')}
           />
         );
       case 'financing':
@@ -1002,6 +1008,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['financing']}
             loading={loadingSuggestions['financing']}
             onGetSuggestions={() => getAISuggestions('financing', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('financing')}
           />
         );
       case 'sales-details':
@@ -1012,6 +1019,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['sales-details']}
             loading={loadingSuggestions['sales-details']}
             onGetSuggestions={() => getAISuggestions('sales-details', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('sales-details')}
           />
         );
       case 'raw-materials':
@@ -1022,6 +1030,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['raw-materials']}
             loading={loadingSuggestions['raw-materials']}
             onGetSuggestions={() => getAISuggestions('raw-materials', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('raw-materials')}
           />
         );
       case 'wages':
@@ -1032,6 +1041,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['wages']}
             loading={loadingSuggestions['wages']}
             onGetSuggestions={() => getAISuggestions('wages', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('wages')}
           />
         );
       case 'salary-details':
@@ -1042,6 +1052,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['salary-details']}
             loading={loadingSuggestions['salary-details']}
             onGetSuggestions={() => getAISuggestions('salary-details', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('salary-details')}
           />
         );
       case 'working-capital-estimate':
@@ -1052,6 +1063,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['working-capital-estimate']}
             loading={loadingSuggestions['working-capital-estimate']}
             onGetSuggestions={() => getAISuggestions('working-capital-estimate', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('working-capital-estimate')}
           />
         );
       case 'power-estimate':
@@ -1062,6 +1074,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['power-estimate']}
             loading={loadingSuggestions['power-estimate']}
             onGetSuggestions={() => getAISuggestions('power-estimate', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('power-estimate')}
           />
         );
       case 'overhead-expenses':
@@ -1072,6 +1085,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['overhead-expenses']}
             loading={loadingSuggestions['overhead-expenses']}
             onGetSuggestions={() => getAISuggestions('overhead-expenses', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('overhead-expenses')}
           />
         );
       case 'financial-parameters':
@@ -1082,6 +1096,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['financial-parameters']}
             loading={loadingSuggestions['financial-parameters']}
             onGetSuggestions={() => getAISuggestions('financial-parameters', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('financial-parameters')}
           />
         );
       case 'beneficiary-info':
@@ -1092,6 +1107,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['beneficiary-info']}
             loading={loadingSuggestions['beneficiary-info']}
             onGetSuggestions={() => getAISuggestions('beneficiary-info', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('beneficiary-info')}
           />
         );
       case 'project-at-glance':
@@ -1103,6 +1119,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['project-at-glance']}
             loading={loadingSuggestions['project-at-glance']}
             onGetSuggestions={() => getAISuggestions('project-at-glance', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('project-at-glance')}
           />
         );
       case 'market-analysis':
@@ -1137,6 +1154,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             suggestions={aiSuggestions['eligible-schemes']}
             loading={loadingSuggestions['eligible-schemes']}
             onGetSuggestions={() => getAISuggestions('eligible-schemes', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('eligible-schemes')}
             businessData={stepData.businessOverview}
           />
         );
@@ -1305,12 +1323,14 @@ Return ready-to-use content that can be directly filled into form fields. The us
 // Step Components
 
 // Applicant Info Step
-const ApplicantInfoStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+const ApplicantInfoStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
+      // Clear suggestions after applying
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions');
     }
   };
@@ -1557,7 +1577,7 @@ const ApplicantInfoStep: React.FC<{ data: any; onChange: (data: any) => void; su
 };
 
 // Building Details Step
-const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   const buildings = data?.buildings || [{ particulars: '', area: '', rate: '', amount: '' }];
   
@@ -1583,6 +1603,8 @@ const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; 
   const handleApplySuggestions = () => {
     if (Array.isArray(suggestions) && suggestions.length > 0) {
       onChange({...data, buildings: suggestions});
+      // Clear suggestions after applying
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions to building details');
     }
   };
@@ -1765,7 +1787,7 @@ const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; 
 };
 
 // Machinery Details Step
-const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   const machinery = data?.machinery || [{ particulars: '', qty: '', rate: '', amount: '' }];
   
@@ -1791,6 +1813,7 @@ const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void;
   const handleApplySuggestions = () => {
     if (Array.isArray(suggestions) && suggestions.length > 0) {
       onChange({...data, machinery: suggestions});
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions to machinery details');
     }
   };
@@ -1973,12 +1996,14 @@ const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void;
 };
 
 // Other Capital Costs Step
-const OtherCapitalCostsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+const OtherCapitalCostsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
+      // Clear suggestions after applying
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions');
     }
   };
@@ -2151,7 +2176,7 @@ const OtherCapitalCostsStep: React.FC<{ data: any; onChange: (data: any) => void
 };
 
 // Financing Step
-const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; project?: any; stepData: any; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, stepData, suggestions, loading, onGetSuggestions }) => {
+const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; project?: any; stepData: any; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, stepData, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   
   // Calculate total project cost from previous steps
@@ -2177,6 +2202,8 @@ const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; projec
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
+      // Clear suggestions after applying
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions');
     }
   };
@@ -2350,7 +2377,7 @@ const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; projec
 };
 
 // Sales Details Step
-const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   const sales = data?.sales || [{ particulars: '', rate: '', quantity: '', amount: '' }];
   
@@ -2376,6 +2403,7 @@ const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
   const handleApplySuggestions = () => {
     if (Array.isArray(suggestions) && suggestions.length > 0) {
       onChange({...data, sales: suggestions});
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions to sales details');
     }
   };
@@ -2558,7 +2586,7 @@ const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
 };
 
 // Raw Materials Step
-const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   const materials = data?.materials || [{ particulars: '', unit: '', rate: '', requiredUnit: '', amount: '' }];
   
@@ -2584,6 +2612,7 @@ const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
   const handleApplySuggestions = () => {
     if (Array.isArray(suggestions) && suggestions.length > 0) {
       onChange({...data, materials: suggestions});
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions to raw materials');
     }
   };
@@ -2777,7 +2806,7 @@ const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
 };
 
 // Wages Step
-const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   const wages = data?.wages || [{ particulars: '', noOfWorkers: '', wagesPerMonth: '', amount: '' }];
   const totalMonths = 12;
@@ -2804,6 +2833,7 @@ const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestion
   const handleApplySuggestions = () => {
     if (Array.isArray(suggestions) && suggestions.length > 0) {
       onChange({...data, wages: suggestions});
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions to wages');
     }
   };
@@ -2990,7 +3020,7 @@ const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestion
 };
 
 // Salary Details Step
-const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   const salaries = data?.salaries || [{ particulars: '', noOfStaff: '', wagesPerMonth: '', amount: '' }];
   const totalMonths = 12;
@@ -3017,6 +3047,8 @@ const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; su
   const handleApplySuggestions = () => {
     if (Array.isArray(suggestions) && suggestions.length > 0) {
       onChange({...data, salaries: suggestions});
+      // Clear suggestions after applying
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions to salary details');
     }
   };
@@ -3203,12 +3235,14 @@ const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; su
 };
 
 // Working Capital Estimate Step
-const WorkingCapitalEstimateStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+const WorkingCapitalEstimateStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
+      // Clear suggestions after applying
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions');
     }
   };
@@ -3364,12 +3398,14 @@ const WorkingCapitalEstimateStep: React.FC<{ data: any; onChange: (data: any) =>
 };
 
 // Power Estimate Step
-const PowerEstimateStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+const PowerEstimateStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
+      // Clear suggestions after applying
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions');
     }
   };
@@ -3508,12 +3544,14 @@ const PowerEstimateStep: React.FC<{ data: any; onChange: (data: any) => void; su
 };
 
 // Overhead Expenses Step
-const OverheadExpensesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+const OverheadExpensesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
+      // Clear suggestions after applying
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions');
     }
   };
@@ -3754,12 +3792,14 @@ const OverheadExpensesStep: React.FC<{ data: any; onChange: (data: any) => void;
 };
 
 // Financial Parameters Step
-const FinancialParametersStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+const FinancialParametersStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
+      // Clear suggestions after applying
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions');
     }
   };
@@ -3915,12 +3955,14 @@ const FinancialParametersStep: React.FC<{ data: any; onChange: (data: any) => vo
 };
 
 // Beneficiary Info Step
-const BeneficiaryInfoStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+const BeneficiaryInfoStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
+      // Clear suggestions after applying
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions');
     }
   };
@@ -4141,7 +4183,7 @@ const BeneficiaryInfoStep: React.FC<{ data: any; onChange: (data: any) => void; 
 };
 
 // Project at a Glance Step
-const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; stepData: any; suggestions?: any; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, stepData, suggestions, loading, onGetSuggestions }) => {
+const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; stepData: any; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, stepData, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
   
   // Auto-populate from other steps
@@ -4160,6 +4202,8 @@ const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; 
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
+      // Clear suggestions after applying
+      onClearSuggestions?.();
       toast.success('Applied AI suggestions');
     }
   };
@@ -5657,7 +5701,7 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
   );
 };
 
-const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestions, loading: suggestionsLoading, onGetSuggestions, businessData }) => {
+const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestions, loading: suggestionsLoading, onGetSuggestions, onClearSuggestions, businessData }) => {
   const [schemes, setSchemes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -5716,8 +5760,12 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
       });
       
       toast.success(`Applied ${newSchemes.length} AI-suggested scheme(s). ${schemesToSelect.length} scheme(s) auto-selected.`);
+      // Clear suggestions after applying
+      onClearSuggestions?.();
     } else {
       toast.info('All suggested schemes are already in the list.');
+      // Clear suggestions even if no new schemes were added
+      onClearSuggestions?.();
     }
   };
 
