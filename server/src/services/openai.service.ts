@@ -289,6 +289,51 @@ function getCacheStats(): { size: number; entries: Array<{ key: string; age: num
 
 export class OpenAIService {
   /**
+   * Format step data array as a markdown table
+   */
+  private static formatStepDataAsTable(
+    data: any[],
+    columns: string[]
+  ): string {
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      return '';
+    }
+
+    // Create header row
+    const headerRow = '| ' + columns.map(col => OpenAIService.formatColumnName(col)).join(' | ') + ' |';
+    const separatorRow = '| ' + columns.map(() => '---').join(' | ') + ' |';
+    
+    // Create data rows
+    const dataRows = data.map(item => {
+      const row = columns.map(col => {
+        const value = item[col] || item[col.toLowerCase()] || '';
+        // Format numbers with commas if they're numeric
+        if (typeof value === 'number') {
+          return value.toLocaleString('en-IN');
+        }
+        // Handle string numbers
+        if (typeof value === 'string' && /^\d+(\.\d+)?$/.test(value.trim())) {
+          return parseFloat(value).toLocaleString('en-IN');
+        }
+        return String(value || '');
+      });
+      return '| ' + row.join(' | ') + ' |';
+    });
+
+    return [headerRow, separatorRow, ...dataRows].join('\n');
+  }
+
+  /**
+   * Format column name for display (convert camelCase to Title Case)
+   */
+  private static formatColumnName(column: string): string {
+    return column
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
+  }
+
+  /**
    * Analyze DPR template and extract structure/fields
    */
   static async analyzeDPRTemplate(templateContent: string): Promise<{
@@ -1005,7 +1050,7 @@ Return only valid JSON without markdown formatting.`;
           ${(projectData as any).stepData?.salaryDetails?.salaries && Array.isArray((projectData as any).stepData.salaryDetails.salaries) ? `
           Salary Data - MUST be formatted as a MARKDOWN TABLE:
           
-          ${this.formatStepDataAsTable(
+          ${OpenAIService.formatStepDataAsTable(
             (projectData as any).stepData.salaryDetails.salaries,
             ['particulars', 'noOfStaff', 'wagesPerMonth', 'amount']
           )}
@@ -1121,7 +1166,7 @@ Return only valid JSON without markdown formatting.`;
           ${(projectData as any).stepData?.salesDetails?.sales && Array.isArray((projectData as any).stepData.salesDetails.sales) ? `
           Sales Data - MUST be formatted as a MARKDOWN TABLE:
           
-          ${this.formatStepDataAsTable(
+          ${OpenAIService.formatStepDataAsTable(
             (projectData as any).stepData.salesDetails.sales,
             ['particulars', 'rate', 'quantity', 'amount']
           )}
