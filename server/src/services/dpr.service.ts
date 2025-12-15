@@ -33,6 +33,16 @@ export class DPRService {
       if (!project) {
         throw new Error('Project not found');
       }
+      
+      // Debug: Log eligibleSchemes to verify they're being fetched
+      if ((project as any).eligibleSchemes) {
+        console.log('📋 Eligible Schemes fetched from database:', {
+          selectedSchemes: (project as any).eligibleSchemes?.selectedSchemes?.length || 0,
+          schemesData: (project as any).eligibleSchemes?.schemesData?.length || 0,
+        });
+      } else {
+        console.log('⚠️ No eligibleSchemes found in database for project:', projectId);
+      }
 
       // Generate AI content with comprehensive step data
       console.log('Generating AI content with comprehensive step data...');

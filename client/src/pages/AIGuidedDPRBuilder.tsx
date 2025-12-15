@@ -751,10 +751,19 @@ Return ready-to-use content that can be directly filled into form fields. The us
         } else if (suggestionText.trim().startsWith('{') || suggestionText.trim().startsWith('[')) {
           parsedSuggestion = JSON.parse(suggestionText);
         } else {
-          // Try to extract JSON from text that contains JSON
-          const jsonInText = suggestionText.match(/\{[\s\S]*\}/);
+          // Try to extract JSON from text that contains JSON (improved regex for nested objects)
+          const jsonInText = suggestionText.match(/\{(?:[^{}]|(?:\{[^{}]*\}))*\}/s);
           if (jsonInText) {
-            parsedSuggestion = JSON.parse(jsonInText[0]);
+            try {
+              parsedSuggestion = JSON.parse(jsonInText[0]);
+            } catch (parseError) {
+              // If parsing the matched text fails, try the full text
+              if (suggestionText.trim().match(/^[\s\n]*\{/)) {
+                parsedSuggestion = JSON.parse(suggestionText.trim());
+              } else {
+                throw parseError;
+              }
+            }
           } else {
             // For other-capital-costs, try to parse markdown/text and extract values
             if (stepId === 'other-capital-costs') {
@@ -764,10 +773,32 @@ Return ready-to-use content that can be directly filled into form fields. The us
             }
           }
         }
+        
+        // For eligible-schemes, ensure the structure is correct
+        if (stepId === 'eligible-schemes' && typeof parsedSuggestion === 'object') {
+          // Ensure it has the expected structure
+          if (!parsedSuggestion.schemes && !parsedSuggestion.guidance) {
+            // If it's an array, wrap it
+            if (Array.isArray(parsedSuggestion)) {
+              parsedSuggestion = {
+                guidance: 'The following government schemes are recommended for your project:',
+                schemes: parsedSuggestion
+              };
+            }
+          }
+        }
       } catch (e) {
         // If JSON parsing fails, try to extract values from text for specific steps
         if (stepId === 'other-capital-costs') {
           parsedSuggestion = parseOtherCapitalCostsFromText(suggestionText);
+        } else if (stepId === 'eligible-schemes') {
+          // For eligible-schemes, if parsing fails, try to extract JSON more aggressively
+          const cleanedText = suggestionText.replace(/```json/g, '').replace(/```/g, '').trim();
+          try {
+            parsedSuggestion = JSON.parse(cleanedText);
+          } catch {
+            parsedSuggestion = suggestionText;
+          }
         } else {
           parsedSuggestion = suggestionText;
         }
@@ -790,9 +821,68 @@ Return ready-to-use content that can be directly filled into form fields. The us
     }
   };
 
-  const handleNext = () => {
+  // Function to save progress to backend if project exists
+  const saveProgressToBackend = async () => {
+    try {
+      // If project exists, save to backend
+      if (projectId || project?._id) {
+        const finalProjectId = projectId || project?._id;
+        
+        // Get selected schemes data if available
+        const selectedSchemes = stepData.eligibleSchemes?.selectedSchemes || [];
+        const schemesData: any[] = [];
+        
+        // Get full scheme details for selected schemes
+        if (selectedSchemes.length > 0) {
+          for (const schemeCode of selectedSchemes) {
+            try {
+              const schemeResponse = await api.getScheme(schemeCode);
+              const scheme = schemeResponse.data || schemeResponse;
+              if (scheme) {
+                schemesData.push({
+                  schemeCode: scheme.schemeCode || schemeCode,
+                  schemeName: scheme.schemeName || schemeCode,
+                  description: scheme.description || '',
+                  eligibility: scheme.eligibility || {},
+                  benefits: scheme.benefits || {},
+                  documentsRequired: scheme.documentsRequired || [],
+                });
+              }
+            } catch (err) {
+              // If scheme not found, use basic info
+              schemesData.push({
+                schemeCode: schemeCode,
+                schemeName: schemeCode,
+                description: 'Government scheme applicable to this project',
+              });
+            }
+          }
+        }
+
+        // Update project with stepData and schemes
+        await api.updateProject(finalProjectId, {
+          stepData: stepData, // Save all stepData to project
+          eligibleSchemes: selectedSchemes.length > 0 ? {
+            selectedSchemes: selectedSchemes,
+            schemesData: schemesData,
+          } : stepData.eligibleSchemes || undefined,
+        });
+        
+        console.log('✅ Progress saved to project successfully');
+      }
+    } catch (error: any) {
+      console.error('Error saving progress to backend:', error);
+      // Don't show error toast as this is background save - just log it
+      // Progress is still saved to localStorage
+    }
+  };
+
+  const handleNext = async () => {
     if (currentStep < STEPS.length - 1) {
-      // Navigate immediately without waiting for AI
+      // Save progress before moving to next step
+      await saveProgressToBackend();
+      
+      // Navigate to next step
       setCurrentStep(currentStep + 1);
       // Don't auto-load AI suggestions - user must click the button to get suggestions
     }
@@ -807,6 +897,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
   const handleSave = async () => {
     try {
       setSaving(true);
+      
       // Save to localStorage (already done automatically, but show confirmation)
       const saveData = {
         stepData,
@@ -814,8 +905,13 @@ Return ready-to-use content that can be directly filled into form fields. The us
         timestamp: Date.now(),
       };
       localStorage.setItem('dpr-builder-progress', JSON.stringify(saveData));
-      toast.success('Progress saved locally');
+      
+      // Also save to backend if project exists
+      await saveProgressToBackend();
+      
+      toast.success('Progress saved successfully');
     } catch (error) {
+      console.error('Error saving progress:', error);
       toast.error('Failed to save progress');
     } finally {
       setSaving(false);
@@ -5814,13 +5910,48 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
                 </div>
                 <div className="flex-1">
                   <p className="text-base font-bold text-primary mb-2">AI-Powered Scheme Suggestions</p>
-                  <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium">
-                    {typeof suggestions === 'object' && suggestions.guidance 
-                      ? suggestions.guidance 
-                      : typeof suggestions === 'string' 
-                      ? suggestions 
-                      : 'AI-generated scheme suggestions based on your project details.'}
-                  </p>
+                  {typeof suggestions === 'object' && suggestions.guidance ? (
+                    <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium">
+                      {suggestions.guidance}
+                    </p>
+                  ) : typeof suggestions === 'string' ? (
+                    // Try to parse if it's a JSON string
+                    (() => {
+                      try {
+                        const parsed = JSON.parse(suggestions);
+                        if (parsed.guidance) {
+                          return (
+                            <div>
+                              <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium mb-3">
+                                {parsed.guidance}
+                              </p>
+                              {parsed.schemes && parsed.schemes.length > 0 && (
+                                <div className="mt-3 space-y-2">
+                                  {parsed.schemes.map((scheme: any, idx: number) => (
+                                    <div key={idx} className="p-2 bg-white/50 rounded border border-primary/10">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <Award className="h-3 w-3 text-primary" />
+                                        <span className="font-semibold text-sm">{scheme.schemeName}</span>
+                                        <span className="text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded">
+                                          {scheme.schemeCode}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground ml-5">{scheme.description || scheme.relevance}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return <p className="text-sm text-foreground">{suggestions}</p>;
+                      } catch {
+                        return <p className="text-sm text-foreground whitespace-pre-line">{suggestions}</p>;
+                      }
+                    })()
+                  ) : (
+                    <p className="text-sm text-foreground">AI-generated scheme suggestions based on your project details.</p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-2">
@@ -5850,29 +5981,44 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
               </div>
             </div>
             
-            {/* Preview of Suggested Schemes */}
+            {/* Preview of Suggested Schemes - Matching actual scheme card format */}
             {typeof suggestions === 'object' && suggestions.schemes && suggestions.schemes.length > 0 && (
-              <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
-                <p className="text-sm font-semibold text-primary mb-3">Suggested Schemes Preview:</p>
-                <div className="space-y-3">
-                  {suggestions.schemes.map((scheme: any, index: number) => (
-                    <div key={index} className="p-3 bg-white rounded-lg border border-primary/10">
-                      <div className="flex items-start justify-between gap-3">
+              <div className="mt-4 space-y-4">
+                {suggestions.schemes.map((scheme: any, index: number) => (
+                  <Card 
+                    key={index}
+                    className="border-2 border-primary/20 hover:border-primary/40 hover:shadow-md transition-all"
+                  >
+                    <CardContent className="pt-5 pb-5">
+                      <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Award className="h-4 w-4 text-primary" />
-                            <p className="font-semibold text-foreground">{scheme.schemeName}</p>
-                            <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full font-medium">
-                              {scheme.schemeCode}
-                            </span>
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-primary/10">
+                              <Award className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex items-center gap-2 flex-1">
+                              <h4 className="font-bold text-lg text-foreground">{scheme.schemeName}</h4>
+                              <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded-full font-medium flex items-center gap-1">
+                                <Sparkles className="h-3 w-3" />
+                                AI Suggested
+                              </span>
+                            </div>
                           </div>
-                          <p className="text-xs text-muted-foreground ml-6">{scheme.description || scheme.relevance}</p>
+                          <p className="text-sm text-muted-foreground ml-[52px]">{scheme.description || scheme.relevance}</p>
                         </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-shrink-0 border-2 border-success bg-success text-white hover:bg-success/90"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Preview
+                        </Button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground mt-3 italic">
+                    </CardContent>
+                  </Card>
+                ))}
+                <p className="text-xs text-muted-foreground mt-3 italic text-center">
                   Click "Apply Suggestions" above to add these schemes to your list and auto-select the most relevant ones.
                 </p>
               </div>

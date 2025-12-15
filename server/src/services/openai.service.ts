@@ -679,11 +679,63 @@ Return only valid JSON without markdown formatting.`;
           
           ${(projectData as any).stepData ? `
           COMPREHENSIVE TECHNICAL DATA FROM AI-GUIDED DPR BUILDER:
-          - Building Details: ${JSON.stringify((projectData as any).stepData.buildingDetails || {}, null, 2)}
-          - Machinery Details: ${JSON.stringify((projectData as any).stepData.machineryDetails || {}, null, 2)}
-          - Raw Materials: ${JSON.stringify((projectData as any).stepData.rawMaterials || {}, null, 2)}
-          - Wages: ${JSON.stringify((projectData as any).stepData.wages || {}, null, 2)}
-          - Salary Details: ${JSON.stringify((projectData as any).stepData.salaryDetails || {}, null, 2)}
+          
+          ${(projectData as any).stepData.machineryDetails && Array.isArray((projectData as any).stepData.machineryDetails) ? `
+          **CRITICAL: Technology & Equipment Data - YOU MUST INCLUDE THIS EXACT TABLE IN YOUR RESPONSE:**
+          
+          ${OpenAIService.formatStepDataAsTable(
+            (projectData as any).stepData.machineryDetails,
+            ['particulars', 'quantity', 'rate', 'amount']
+          )}
+          
+          **MANDATORY REQUIREMENT:** Copy the above table EXACTLY as shown into your response under the "Technology & Equipment" subsection. Do not modify the table structure or data. Add brief narrative before and after the table explaining the equipment.
+          ` : ''}
+          
+          ${(projectData as any).stepData.rawMaterials && Array.isArray((projectData as any).stepData.rawMaterials) ? `
+          **CRITICAL: Raw Material Availability Data - YOU MUST INCLUDE THIS EXACT TABLE IN YOUR RESPONSE:**
+          
+          ${OpenAIService.formatStepDataAsTable(
+            (projectData as any).stepData.rawMaterials,
+            ['particulars', 'quantity', 'unit', 'rate', 'amount']
+          )}
+          
+          **MANDATORY REQUIREMENT:** Copy the above table EXACTLY as shown into your response under the "Raw Material Availability" subsection. Do not modify the table structure or data. Add brief narrative before and after the table explaining procurement strategy.
+          ` : ''}
+          
+          ${(projectData as any).stepData.buildingDetails && Array.isArray((projectData as any).stepData.buildingDetails) ? `
+          **CRITICAL: Infrastructure Needs Data - YOU MUST INCLUDE THIS EXACT TABLE IN YOUR RESPONSE:**
+          
+          ${OpenAIService.formatStepDataAsTable(
+            (projectData as any).stepData.buildingDetails,
+            ['particulars', 'area', 'rate', 'amount']
+          )}
+          
+          **MANDATORY REQUIREMENT:** Copy the above table EXACTLY as shown into your response under the "Infrastructure Needs" subsection. Do not modify the table structure or data. Add brief narrative before and after the table explaining infrastructure purpose.
+          ` : ''}
+          
+          ${(projectData as any).stepData.wages && Array.isArray((projectData as any).stepData.wages) ? `
+          **CRITICAL: Manpower Planning - Wages Data - YOU MUST INCLUDE THIS EXACT TABLE IN YOUR RESPONSE:**
+          
+          ${OpenAIService.formatStepDataAsTable(
+            (projectData as any).stepData.wages,
+            ['particulars', 'noOfWorkers', 'wagesPerMonth', 'amount']
+          )}
+          
+          **MANDATORY REQUIREMENT:** Copy the above table EXACTLY as shown into your response under the "Manpower Planning" subsection. Do not modify the table structure or data.
+          ` : ''}
+          
+          ${(projectData as any).stepData.salaryDetails && (projectData as any).stepData.salaryDetails.salaries && Array.isArray((projectData as any).stepData.salaryDetails.salaries) ? `
+          **CRITICAL: Manpower Planning - Salary Data - YOU MUST INCLUDE THIS EXACT TABLE IN YOUR RESPONSE:**
+          
+          ${OpenAIService.formatStepDataAsTable(
+            (projectData as any).stepData.salaryDetails.salaries,
+            ['particulars', 'noOfStaff', 'wagesPerMonth', 'amount']
+          )}
+          
+          **MANDATORY REQUIREMENT:** Copy the above table EXACTLY as shown into your response under the "Manpower Planning" subsection. Combine with wages table if both exist. Do not modify the table structure or data.
+          ` : ''}
+          
+          Additional Technical Data:
           - Power Estimate: ${JSON.stringify((projectData as any).stepData.powerEstimate || {}, null, 2)}
           - Working Capital: ${JSON.stringify((projectData as any).stepData.workingCapitalEstimate || {}, null, 2)}
           
@@ -696,12 +748,31 @@ Return only valid JSON without markdown formatting.`;
           - Infrastructure: ${JSON.stringify(projectData.inputs.infrastructure || {})}
           `}
           
-          CRITICAL REQUIREMENTS FOR BANK/INVESTOR READINESS:
-          1. **Production Process/Service Delivery**: Detailed step-by-step process flow, technology used, and operational methodology
-          2. **Technology & Equipment**: Complete list with specifications, capacity, suppliers, and technical specifications. Reference the machinery details provided.
-          3. **Raw Material Availability**: Sources, suppliers, quality standards, procurement plan, and supply chain reliability. Use raw materials data provided.
-          4. **Manpower Planning**: Organizational structure, staffing requirements, skill levels, recruitment plan, and training needs. Reference wages and salary data.
-          5. **Infrastructure Needs**: Building requirements, utilities (power, water), connectivity, and facility specifications. Use building details provided.
+          CRITICAL REQUIREMENTS FOR BANK/INVESTOR READINESS - ALL DATA MUST BE IN TABULAR FORMAT:
+          
+          **MANDATORY: You MUST include ALL tables provided above in your response. Copy them EXACTLY as shown.**
+          
+          1. **Production Process/Service Delivery**: 
+             - Create a MARKDOWN TABLE with columns: Step Number, Process Step, Description
+             - If process steps are provided, format them as a table
+             - Include detailed step-by-step process flow, technology used, and operational methodology
+          2. **Technology & Equipment**: 
+             - **YOU MUST INCLUDE THE TABLE PROVIDED ABOVE** if machinery data exists - copy it EXACTLY
+             - Add brief narrative before and after the table explaining equipment purpose, specifications, capacity, suppliers, and technical details
+             - The table is the PRIMARY format - narrative is supplementary
+          3. **Raw Material Availability**: 
+             - **YOU MUST INCLUDE THE TABLE PROVIDED ABOVE** if raw materials data exists - copy it EXACTLY
+             - Add brief narrative before and after the table explaining sources, suppliers, quality standards, procurement plan, and supply chain reliability
+             - The table is the PRIMARY format - narrative is supplementary
+          4. **Manpower Planning**: 
+             - **YOU MUST INCLUDE THE TABLES PROVIDED ABOVE** for wages and salaries if data exists - copy them EXACTLY
+             - Combine wages and salary tables into comprehensive manpower planning section
+             - Add brief narrative explaining organizational structure, staffing requirements, skill levels, recruitment plan, and training needs
+             - The tables are the PRIMARY format - narrative is supplementary
+          5. **Infrastructure Needs**: 
+             - **YOU MUST INCLUDE THE TABLE PROVIDED ABOVE** if building/infrastructure data exists - copy it EXACTLY
+             - Add brief narrative before and after the table explaining building requirements, utilities (power, water), connectivity, and facility specifications
+             - The table is the PRIMARY format - narrative is supplementary
           6. **Capacity Utilization**: Production capacity, utilization plan, scalability, and expansion potential
           7. **Quality Control**: Quality standards, testing procedures, certifications, and compliance measures
           8. **Technical Risks**: Identify technical challenges and mitigation strategies
@@ -711,7 +782,11 @@ Return only valid JSON without markdown formatting.`;
           
           TONE: Technical, detailed, and professional. Use specific technical terms, numbers, and specifications.
           LENGTH: 500-600 words with comprehensive technical coverage.
-          FORMAT: Use ### for subheadings. Use **bold** for key technical specifications and important points.
+          FORMAT: 
+          - Use ### for subheadings
+          - Use **bold** for key technical specifications and important points
+          - ALWAYS format data as MARKDOWN TABLES when tabular data is provided above
+          - Tables are the PRIMARY format for displaying structured data
         `,
         financialProjections: `
           Create a comprehensive, BANK-INVESTOR READY Financial Projections narrative.
@@ -724,38 +799,131 @@ Return only valid JSON without markdown formatting.`;
           
           ${(projectData as any).stepData ? `
           COMPREHENSIVE FINANCIAL DATA FROM AI-GUIDED DPR BUILDER:
+          
+          ${(projectData as any).stepData.salesDetails && (projectData as any).stepData.salesDetails.sales && Array.isArray((projectData as any).stepData.salesDetails.sales) ? `
+          **CRITICAL: Sales/Revenue Projections Data - YOU MUST INCLUDE THIS EXACT TABLE IN YOUR RESPONSE:**
+          
+          ${OpenAIService.formatStepDataAsTable(
+            (projectData as any).stepData.salesDetails.sales,
+            ['particulars', 'rate', 'quantity', 'amount']
+          )}
+          
+          **MANDATORY REQUIREMENT:** Copy the above table EXACTLY as shown into your response under the "Revenue Assumptions" or "Sales Projections" subsection. Do not modify the table structure or data. Add brief narrative explaining revenue growth trajectory.
+          ` : ''}
+          
+          ${(projectData as any).stepData.otherCapitalCosts && Array.isArray((projectData as any).stepData.otherCapitalCosts) ? `
+          **CRITICAL: Other Capital Costs Data - YOU MUST INCLUDE THIS EXACT TABLE IN YOUR RESPONSE:**
+          
+          ${OpenAIService.formatStepDataAsTable(
+            (projectData as any).stepData.otherCapitalCosts,
+            ['particulars', 'amount']
+          )}
+          
+          **MANDATORY REQUIREMENT:** Copy the above table EXACTLY as shown into your response under the "Project Cost Breakdown" subsection. Do not modify the table structure or data.
+          ` : ''}
+          
+          ${(projectData as any).stepData.overheadExpenses && Array.isArray((projectData as any).stepData.overheadExpenses) ? `
+          **CRITICAL: Overhead Expenses Data - YOU MUST INCLUDE THIS EXACT TABLE IN YOUR RESPONSE:**
+          
+          ${OpenAIService.formatStepDataAsTable(
+            (projectData as any).stepData.overheadExpenses,
+            ['particulars', 'amount']
+          )}
+          
+          **MANDATORY REQUIREMENT:** Copy the above table EXACTLY as shown into your response under the "Operating Expenses" or "Overhead Expenses" subsection. Do not modify the table structure or data.
+          ` : ''}
+          
+          Additional Financial Data:
           - Cost Structure: ${JSON.stringify((projectData as any).stepData.costStructure || {}, null, 2)}
           - Financial Projections: ${JSON.stringify((projectData as any).stepData.financialProjections || {}, null, 2)}
           - Financial Parameters: ${JSON.stringify((projectData as any).stepData.financialParameters || {}, null, 2)}
           - Financing Details: ${JSON.stringify((projectData as any).stepData.financing || {}, null, 2)}
-          - Sales Details: ${JSON.stringify((projectData as any).stepData.salesDetails || {}, null, 2)}
-          - Other Capital Costs: ${JSON.stringify((projectData as any).stepData.otherCapitalCosts || {}, null, 2)}
-          - Overhead Expenses: ${JSON.stringify((projectData as any).stepData.overheadExpenses || {}, null, 2)}
           
           Use ALL this detailed financial data to create accurate, comprehensive financial projections.
           ` : ''}
           
-          CRITICAL REQUIREMENTS FOR BANK/INVESTOR READINESS:
-          1. **Project Cost Breakdown**: Detailed breakdown of fixed capital (land, building, machinery), working capital, and other costs. Use cost structure data provided.
-          2. **Means of Finance**: Clear financing structure showing own contribution, term loan, interest rates, repayment schedule, and debt-equity ratio
-          3. **Revenue Assumptions**: Realistic revenue projections based on sales data, pricing strategy, market demand, and growth assumptions. Use sales details provided.
+          CRITICAL REQUIREMENTS FOR BANK/INVESTOR READINESS - USE TABULAR FORMAT FOR ALL FINANCIAL DATA:
+          
+          **MANDATORY: You MUST include ALL tables provided above in your response. Copy them EXACTLY as shown.**
+          
+          1. **Project Cost Breakdown**: 
+             - Create a MARKDOWN TABLE with columns: Cost Component, Amount (₹), Percentage
+             - Include fixed capital (land, building, machinery), working capital, and other costs
+             - Use cost structure data provided above
+             - Add summary row with total project cost
+             - **YOU MUST INCLUDE THE "Other Capital Costs" TABLE PROVIDED ABOVE** if it exists - copy it EXACTLY
+          2. **Means of Finance**: 
+             - Create a MARKDOWN TABLE with columns: Source, Amount (₹), Percentage, Terms
+             - Include own contribution, term loan, interest rates, repayment schedule, and debt-equity ratio
+          3. **Revenue Assumptions**: 
+             - **YOU MUST INCLUDE THE SALES/REVENUE TABLE PROVIDED ABOVE** if sales data exists - copy it EXACTLY
+             - Add brief narrative explaining revenue growth trajectory based on sales data, pricing strategy, market demand, and growth assumptions
+             - The table is the PRIMARY format - narrative is supplementary
           4. **Profitability Analysis**: 
-             - Gross profit margins
-             - Net profit margins
-             - Profit growth trajectory (Year 1, 2, 3)
+             - Create a MARKDOWN TABLE with columns: Year, Revenue, Gross Profit, Net Profit, Gross Margin %, Net Margin %
+             - Include Year 1, 2, 3 projections
              - Always emphasize positive, realistic profits
-          5. **Break-Even Analysis**: Break-even point in months/years, break-even sales volume, and margin of safety
+          5. **Break-Even Analysis**: 
+             - Create a MARKDOWN TABLE showing break-even calculations
+             - Include break-even point in months/years, break-even sales volume, and margin of safety
           6. **Debt Servicing Capacity (DSCR)**: 
-             - Debt Service Coverage Ratio calculation
+             - Create a PROPERLY FORMATTED MARKDOWN TABLE with columns: Year, Net Operating Income (₹), Debt Service (₹), DSCR
+             - Use EXACT format: | Year | Net Operating Income (₹) | Debt Service (₹) | DSCR |
+             - Follow with separator: |------|------------------------|------------------|------|
              - Minimum DSCR of 1.5+ for bank approval
-             - Cash flow available for debt servicing
+             - Show cash flow available for debt servicing
+             - Example format:
+               | Year | Net Operating Income (₹) | Debt Service (₹) | DSCR |
+               |------|------------------------|------------------|------|
+               | 1 | 1,00,000 | 50,000 | 2.0 |
           7. **Return on Investment (ROI)**: 
-             - Expected ROI percentage
-             - Payback period
-             - Internal Rate of Return (IRR)
-          8. **Financial Ratios**: Current ratio, debt-equity ratio, profitability ratios, and liquidity ratios
-          9. **Cash Flow Projections**: Operating cash flow, investing cash flow, financing cash flow
-          10. **Sensitivity Analysis**: Impact of variations in key assumptions on profitability
+             - Create a PROPERLY FORMATTED MARKDOWN TABLE showing ROI metrics
+             - Use EXACT format: | Metric | Value |
+             - Follow with separator: |--------|-------|
+             - Include expected ROI percentage, payback period, and Internal Rate of Return (IRR)
+             - Example format:
+               | Metric | Value |
+               |--------|-------|
+               | Expected ROI | 20% |
+               | Payback Period | 5 years |
+          8. **Financial Ratios**: 
+             - Create a PROPERLY FORMATTED MARKDOWN TABLE with columns: Ratio Name, Year 1, Year 2, Year 3
+             - Use EXACT format: | Ratio Name | Year 1 | Year 2 | Year 3 |
+             - Follow with separator: |------------|--------|--------|--------|
+             - Include current ratio, debt-equity ratio, profitability ratios, and liquidity ratios
+             - Example format:
+               | Ratio Name | Year 1 | Year 2 | Year 3 |
+               |------------|--------|--------|--------|
+               | Current Ratio | 1.5 | 1.6 | 1.7 |
+          9. **Cash Flow Projections**: 
+             - Create a PROPERLY FORMATTED MARKDOWN TABLE with columns: Year, Operating Cash Flow (₹), Investing Cash Flow (₹), Financing Cash Flow (₹), Net Cash Flow (₹)
+             - Use EXACT format: | Year | Operating Cash Flow (₹) | Investing Cash Flow (₹) | Financing Cash Flow (₹) | Net Cash Flow (₹) |
+             - Follow with separator: |------|----------------------|----------------------|----------------------|------------------|
+             - Show operating, investing, and financing cash flows
+             - Example format:
+               | Year | Operating Cash Flow (₹) | Investing Cash Flow (₹) | Financing Cash Flow (₹) | Net Cash Flow (₹) |
+               |------|----------------------|----------------------|----------------------|------------------|
+               | 1 | 1,00,000 | -50,000 | 5,00,000 | 5,50,000 |
+          10. **Sensitivity Analysis**: 
+              - Create a PROPERLY FORMATTED MARKDOWN TABLE showing impact of variations in key assumptions on profitability
+              - Ensure proper separator line with correct number of columns
+          
+          CRITICAL INSTRUCTIONS FOR TABLE FORMATTING:
+          - ALL tables MUST use proper markdown table syntax with correct separators
+          - Table format MUST be: Header row, separator row (with ---), then data rows
+          - Separator row MUST have exactly the same number of columns as header row
+          - Each column separator MUST be: | (pipe character with spaces)
+          - Separator line MUST use: |------|------|------| (one separator per column, minimum 3 dashes)
+          - NO broken or incomplete separator lines
+          - All values MUST be properly aligned within columns
+          - Use proper spacing: | Column Name | (space before and after pipe)
+          - Example of CORRECT format:
+            | Year | Amount (₹) | Percentage |
+            |------|------------|------------|
+            | 1 | 1,00,000 | 10% |
+          - Example of INCORRECT format (DO NOT USE):
+            | Year | Amount | Percentage |
+            |- -|- --| (broken separator)
           
           CRITICAL INSTRUCTIONS:
           - Present financials in a positive, confidence-inspiring manner while being realistic
@@ -764,6 +932,9 @@ Return only valid JSON without markdown formatting.`;
           - Highlight financial strengths and risk mitigation
           - Show how the project generates positive cash flows and profits from Year 1
           - Frame projections to demonstrate bankability and investment attractiveness
+          - ALWAYS format financial data as PROPERLY FORMATTED MARKDOWN TABLES
+          - Tables are the PRIMARY format for displaying structured financial data
+          - DOUBLE-CHECK that all table separators are complete and properly formatted
           
           ${languageInstruction}
           
@@ -781,10 +952,16 @@ Return only valid JSON without markdown formatting.`;
           Loan Amount: ₹${projectData.loanAmount}
           Location: ${projectData.location}
           
-          ${(projectData as any).eligibleSchemes?.schemesData && (projectData as any).eligibleSchemes.schemesData.length > 0 ? `
-          CRITICAL: The following government schemes have been SELECTED by the user for this project. You MUST include ALL of these schemes with their complete details:
+          ${(() => {
+            const eligibleSchemes = (projectData as any).eligibleSchemes;
+            const schemesData = eligibleSchemes?.schemesData;
+            const selectedSchemes = eligibleSchemes?.selectedSchemes;
+            
+            // Check if we have schemes data or selected schemes
+            if (schemesData && Array.isArray(schemesData) && schemesData.length > 0) {
+              return `CRITICAL: The following government schemes have been SELECTED by the user for this project. You MUST include ALL of these schemes with their complete details:
           
-          ${(projectData as any).eligibleSchemes.schemesData.map((scheme: any, index: number) => `
+          ${schemesData.map((scheme: any, index: number) => `
           Scheme ${index + 1}:
           - Scheme Code: ${scheme.schemeCode}
           - Scheme Name: ${scheme.schemeName}
@@ -807,16 +984,32 @@ Return only valid JSON without markdown formatting.`;
           3. Format each scheme as a clear section with heading
           4. Explain how multiple schemes can be combined if applicable
           5. Make the content specific to this project (${projectData.projectName} in ${projectData.industrySector} sector)
+          `;
+            } else if (selectedSchemes && Array.isArray(selectedSchemes) && selectedSchemes.length > 0) {
+              // Fallback: If we only have selected scheme codes, mention them
+              return `CRITICAL: The following government schemes have been SELECTED by the user for this project. You MUST include ALL of these schemes with their complete details:
           
-          ${(projectData as any).governmentSchemas ? `
-          ADDITIONAL CONTEXT: The following additional government schemes were identified from knowledge base as potentially relevant:
-          ${(projectData as any).governmentSchemas}
+          Selected Scheme Codes: ${selectedSchemes.join(', ')}
           
-          You may mention these as additional options, but prioritize the SELECTED schemes listed above.
-          ` : ''}
+          IMPORTANT INSTRUCTIONS:
+          1. You MUST include ALL the above selected schemes in the Eligible Schemes section
+          2. For each selected scheme, provide:
+            * Full scheme name and code
+            * Detailed description and objectives
+            * Specific eligibility criteria for this project
+            * Benefits and subsidy details (include percentages and maximum amounts)
+            * How THIS SPECIFIC PROJECT qualifies for the scheme (reference project details like sector, investment amount, location)
+            * Application process and required documents
+            * Contact information or portal link if available
+          3. Format each scheme as a clear section with heading
+          4. Explain how multiple schemes can be combined if applicable
+          5. Make the content specific to this project (${projectData.projectName} in ${projectData.industrySector} sector)
+          `;
+            }
+            return '';
+          })()}
           
-          Format: Use clear headings for each selected scheme, bullet points for key information, and ensure all details are accurate and specific to this project.
-          ` : (projectData as any).governmentSchemas ? `
+          ${!((projectData as any).eligibleSchemes?.schemesData && Array.isArray((projectData as any).eligibleSchemes.schemesData) && (projectData as any).eligibleSchemes.schemesData.length > 0) && !((projectData as any).eligibleSchemes?.selectedSchemes && Array.isArray((projectData as any).eligibleSchemes.selectedSchemes) && (projectData as any).eligibleSchemes.selectedSchemes.length > 0) ? ((projectData as any).governmentSchemas ? `
           IMPORTANT: The following government schemes and financial assistance programs have been identified from the government schemes category documents as relevant to this project:
           
           ${(projectData as any).governmentSchemas}
@@ -839,7 +1032,7 @@ Return only valid JSON without markdown formatting.`;
           ` : `
           Note: No specific government schemes were selected for this project. 
           However, you may mention general schemes like PMEGP, MUDRA, CGTMSE that are commonly applicable to MSME projects.
-          `}
+          `) : ''}
           
           ${languageInstruction}
           Tone: Professional, informative, and encouraging. Make it clear how these schemes will benefit the entrepreneur.
@@ -908,16 +1101,27 @@ Return only valid JSON without markdown formatting.`;
           Create a Building Details section for the DPR:
           Project: ${projectData.projectName}
           
-          ${(projectData as any).stepData?.buildingDetails ? `
-          Building Data (present as a TABLE with columns: Particulars, Area, Rate, Amount):
+          ${(projectData as any).stepData?.buildingDetails && Array.isArray((projectData as any).stepData.buildingDetails) ? `
+          Building/Infrastructure Data - MUST be formatted as a MARKDOWN TABLE:
+          
+          ${OpenAIService.formatStepDataAsTable(
+            (projectData as any).stepData.buildingDetails,
+            ['particulars', 'area', 'rate', 'amount']
+          )}
+          
+          CRITICAL REQUIREMENTS:
+          1. You MUST include the above table EXACTLY as shown in your response
+          2. The table should be the PRIMARY format for displaying infrastructure/building details
+          3. Add a summary row showing the total infrastructure cost
+          4. Include brief narrative before/after the table explaining building specifications and purpose
+          5. Use proper markdown table syntax with | separators
+          
+          Total Infrastructure Cost: ₹${(projectData as any).stepData.buildingDetails.reduce((sum: number, b: any) => sum + parseFloat(b.amount || '0'), 0).toLocaleString()}
+          ` : (projectData as any).stepData?.buildingDetails ? `
+          Building/Infrastructure Data:
           ${JSON.stringify((projectData as any).stepData.buildingDetails, null, 2)}
           
-          IMPORTANT: If the building data contains an array of buildings with particulars, area, rate, and amount fields, format it as a MARKDOWN TABLE with the following structure:
-          | Particulars | Area | Rate | Amount |
-          |------------|------|------|--------|
-          | [data from buildingDetails] | [data] | [data] | [data] |
-          
-          Include a summary with total amount at the end.
+          Format this data as a MARKDOWN TABLE if it contains building entries with particulars, area, rate, and amount fields.
           ` : 'Include standard building details based on project requirements.'}
           
           Include:
@@ -929,23 +1133,34 @@ Return only valid JSON without markdown formatting.`;
           - Location and site details
           
           ${languageInstruction}
-          Format: Use MARKDOWN TABLE format if building data is provided, otherwise use detailed paragraphs.
+          Format: ALWAYS use MARKDOWN TABLE format when building/infrastructure data is provided. The table is the PRIMARY format for this section.
         `,
         machineryDetails: `
           Create a Machinery Details section for the DPR:
           Project: ${projectData.projectName}
           Sector: ${projectData.industrySector}
           
-          ${(projectData as any).stepData?.machineryDetails ? `
-          Machinery Data (present as a TABLE with columns: Particulars, Quantity, Rate, Amount):
+          ${(projectData as any).stepData?.machineryDetails && Array.isArray((projectData as any).stepData.machineryDetails) ? `
+          Technology & Equipment Data - MUST be formatted as a MARKDOWN TABLE:
+          
+          ${OpenAIService.formatStepDataAsTable(
+            (projectData as any).stepData.machineryDetails,
+            ['particulars', 'quantity', 'rate', 'amount']
+          )}
+          
+          CRITICAL REQUIREMENTS:
+          1. You MUST include the above table EXACTLY as shown in your response
+          2. The table should be the PRIMARY format for displaying technology & equipment details
+          3. Add a summary row showing the total machinery/equipment cost
+          4. Include brief narrative before/after the table explaining equipment specifications, capacity, and suppliers
+          5. Use proper markdown table syntax with | separators
+          
+          Total Machinery/Equipment Cost: ₹${(projectData as any).stepData.machineryDetails.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0).toLocaleString()}
+          ` : (projectData as any).stepData?.machineryDetails ? `
+          Technology & Equipment Data:
           ${JSON.stringify((projectData as any).stepData.machineryDetails, null, 2)}
           
-          IMPORTANT: If the machinery data contains an array of machinery items with particulars, quantity, rate, and amount fields, format it as a MARKDOWN TABLE:
-          | Particulars | Quantity | Rate | Amount |
-          |------------|----------|------|--------|
-          | [data from machineryDetails] | [data] | [data] | [data] |
-          
-          Include a summary with total amount at the end.
+          Format this data as a MARKDOWN TABLE if it contains machinery entries with particulars, quantity, rate, and amount fields.
           ` : 'Include standard machinery details based on project requirements.'}
           
           Include:
@@ -957,7 +1172,7 @@ Return only valid JSON without markdown formatting.`;
           - Installation and commissioning details
           
           ${languageInstruction}
-          Format: Use MARKDOWN TABLE format if machinery data is provided, otherwise use detailed list with specifications.
+          Format: ALWAYS use MARKDOWN TABLE format when machinery/equipment data is provided. The table is the PRIMARY format for this section.
         `,
         otherCapitalCosts: `
           Create an Other Capital Costs section for the DPR:
@@ -994,16 +1209,27 @@ Return only valid JSON without markdown formatting.`;
           Project: ${projectData.projectName}
           Sector: ${projectData.industrySector}
           
-          ${(projectData as any).stepData?.rawMaterials ? `
-          Raw Materials Data (present as a TABLE with columns: Material, Quantity, Unit, Rate, Amount):
+          ${(projectData as any).stepData?.rawMaterials && Array.isArray((projectData as any).stepData.rawMaterials) ? `
+          Raw Materials Data - MUST be formatted as a MARKDOWN TABLE:
+          
+          ${OpenAIService.formatStepDataAsTable(
+            (projectData as any).stepData.rawMaterials,
+            ['particulars', 'quantity', 'unit', 'rate', 'amount']
+          )}
+          
+          CRITICAL REQUIREMENTS:
+          1. You MUST include the above table EXACTLY as shown in your response
+          2. The table should be the PRIMARY format for displaying raw materials
+          3. Add a summary row showing the total raw materials cost
+          4. Include brief narrative before/after the table explaining procurement plan and supplier information
+          5. Use proper markdown table syntax with | separators
+          
+          Total Raw Materials Cost: ₹${(projectData as any).stepData.rawMaterials.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0).toLocaleString()}
+          ` : (projectData as any).stepData?.rawMaterials ? `
+          Raw Materials Data:
           ${JSON.stringify((projectData as any).stepData.rawMaterials, null, 2)}
           
-          IMPORTANT: If the raw materials data contains an array of materials with material name, quantity, unit, rate, and amount fields, format it as a MARKDOWN TABLE:
-          | Material | Quantity | Unit | Rate | Amount |
-          |----------|----------|------|------|--------|
-          | [data from rawMaterials] | [data] | [data] | [data] | [data] |
-          
-          Include a summary with total amount at the end.
+          Format this data as a MARKDOWN TABLE if it contains raw material entries with particulars, quantity, unit, rate, and amount fields.
           ` : 'Include standard raw materials details based on project requirements.'}
           
           Include:
@@ -1015,22 +1241,33 @@ Return only valid JSON without markdown formatting.`;
           - Availability and procurement plan
           
           ${languageInstruction}
-          Format: Use MARKDOWN TABLE format if raw materials data is provided, otherwise use detailed list format.
+          Format: ALWAYS use MARKDOWN TABLE format when raw materials data is provided. The table is the PRIMARY format for this section.
         `,
         wages: `
           Create a Wages section for the DPR:
           Project: ${projectData.projectName}
           
-          ${(projectData as any).stepData?.wages ? `
-          Wages Data (present as a TABLE with columns: Category, Number of Workers, Monthly Wage, Total):
+          ${(projectData as any).stepData?.wages && Array.isArray((projectData as any).stepData.wages) ? `
+          Wages Data - MUST be formatted as a MARKDOWN TABLE:
+          
+          ${OpenAIService.formatStepDataAsTable(
+            (projectData as any).stepData.wages,
+            ['particulars', 'noOfWorkers', 'wagesPerMonth', 'amount']
+          )}
+          
+          CRITICAL REQUIREMENTS:
+          1. You MUST include the above table EXACTLY as shown in your response
+          2. The table should be the PRIMARY format for displaying wages
+          3. Add a summary row showing the total wages
+          4. Include brief narrative before/after the table explaining the workforce structure
+          5. Use proper markdown table syntax with | separators
+          
+          Total Monthly Wages: ₹${(projectData as any).stepData.wages.reduce((sum: number, w: any) => sum + parseFloat(w.amount || '0'), 0).toLocaleString()}
+          ` : (projectData as any).stepData?.wages ? `
+          Wages Data:
           ${JSON.stringify((projectData as any).stepData.wages, null, 2)}
           
-          IMPORTANT: If the wages data contains an array of wage entries with category, number of workers, monthly wage, and total fields, format it as a MARKDOWN TABLE:
-          | Category | Number of Workers | Monthly Wage | Total |
-          |----------|-------------------|--------------|-------|
-          | [data from wages] | [data] | [data] | [data] |
-          
-          Include a summary with total wages at the end.
+          Format this data as a MARKDOWN TABLE if it contains wage entries with particulars, number of workers, monthly wage, and total fields.
           ` : 'Include standard wages details based on project requirements.'}
           
           Include:
@@ -1206,16 +1443,39 @@ Return only valid JSON without markdown formatting.`;
           ${JSON.stringify((projectData as any).stepData.financialParameters, null, 2)}
           ` : ''}
           
-          Include:
-          - Key financial ratios
-          - Break-even analysis
-          - Debt service coverage ratio (DSCR)
-          - Internal rate of return (IRR)
-          - Payback period
-          - Profitability margins
+          Include the following financial parameters, each in a PROPERLY FORMATTED MARKDOWN TABLE:
+          
+          1. **Key Financial Ratios**: 
+             - Create a table: | Ratio Name | Year 1 | Year 2 | Year 3 |
+             - Separator: |------------|--------|--------|--------|
+             - Include current ratio, debt-equity ratio, profitability ratios, and liquidity ratios
+          
+          2. **Break-Even Analysis**: 
+             - Create a table with break-even calculations
+             - Use proper markdown table format with complete separator line
+          
+          3. **Debt Service Coverage Ratio (DSCR)**: 
+             - Create a table: | Year | Net Operating Income (₹) | Debt Service (₹) | DSCR |
+             - Separator: |------|------------------------|------------------|------|
+          
+          4. **Return on Investment Metrics**: 
+             - Create a table: | Metric | Value |
+             - Separator: |--------|-------|
+             - Include IRR, payback period, expected ROI
+          
+          5. **Profitability Margins**: 
+             - Create a table showing margins over years
+             - Use proper markdown table format
+          
+          CRITICAL TABLE FORMATTING:
+          - ALL tables MUST use proper markdown syntax
+          - Separator row MUST match header row column count
+          - Use format: |------|------|------| (minimum 3 dashes per column)
+          - NO broken or incomplete separators
+          - Ensure proper spacing around pipe characters
           
           ${languageInstruction}
-          Format: Detailed financial analysis.
+          Format: Detailed financial analysis with PROPERLY FORMATTED markdown tables. Each financial parameter should be in its own table with correct formatting.
         `,
         beneficiaryInfo: `
           Create a Beneficiary Information section for the DPR:
@@ -1247,6 +1507,16 @@ Return only valid JSON without markdown formatting.`;
         messages: [
           {
             role: 'system',
+            content: `You are a professional DPR (Detailed Project Report) writer. CRITICAL INSTRUCTIONS:
+1. When a table is provided in the prompt with "YOU MUST INCLUDE THIS EXACT TABLE", you MUST copy it EXACTLY as shown in your response.
+2. Tables are the PRIMARY format for displaying structured financial and technical data.
+3. Do NOT modify table structure, column names, or data when copying tables.
+4. Add brief narrative before and after tables, but the tables themselves must appear verbatim.
+5. For sections with financial amounts, costs, quantities, or structured data, ALWAYS use markdown table format.
+6. Investors and banks need clear tabular data for easy understanding and analysis.`
+          },
+          {
+            role: 'system',
             content:
               `You are an expert MSME consultant and financial analyst specializing in creating BANK-INVESTOR READY Detailed Project Reports (DPRs) for Indian entrepreneurs.
 
@@ -1259,8 +1529,24 @@ CRITICAL REQUIREMENTS:
 6. **Risk-Aware**: Acknowledge risks but emphasize strengths and mitigation strategies
 7. **Formatting**: Use markdown formatting (### for headings, **bold** for key metrics)
 8. **Accuracy**: Ensure all numbers, calculations, and facts are accurate based on provided data
+9. **MANDATORY TABLE INCLUSION**: When a table is provided in the prompt with instructions like "YOU MUST INCLUDE THIS EXACT TABLE", you MUST copy it EXACTLY as shown in your response. Do NOT modify the table structure, column names, or data. Tables are the PRIMARY format for displaying structured financial and technical data. Investors and banks need clear tabular data for easy understanding and analysis.
+
+CRITICAL TABLE FORMATTING RULES:
+- ALL markdown tables MUST follow this EXACT format:
+  1. Header row: | Column 1 | Column 2 | Column 3 |
+  2. Separator row: |----------|----------|----------| (minimum 3 dashes per column, MUST match number of columns)
+  3. Data rows: | Value 1 | Value 2 | Value 3 |
+- Separator row MUST have the SAME number of columns as header row
+- Each column MUST be separated by: | (pipe with spaces)
+- NO broken, incomplete, or malformed separator lines
+- NO separators like: |- -| or |--| or incomplete lines
+- ALWAYS use: |------|------|------| format for separators
+- Ensure proper spacing: space before and after each pipe character
+- Double-check that separator line is complete before submitting
 
 When stepData is provided, you MUST use it extensively to create detailed, accurate content. Do not create generic content when specific data is available.
+
+For sections containing financial amounts, costs, quantities, equipment lists, raw materials, manpower details, or infrastructure costs, ALWAYS format them as PROPERLY FORMATTED markdown tables. This makes the DPR more professional and easier for investors/banks to analyze.
 
 Generate professional, comprehensive, and lender-ready content that inspires confidence in banks and investors.`,
           },
@@ -1458,6 +1744,14 @@ Generate professional, comprehensive, and lender-ready content that inspires con
       eligibleSchemes: (projectData as any).eligibleSchemes || undefined,
       stepData: (projectData as any).stepData || undefined,
     } as IProject & { governmentSchemas?: string; eligibleSchemes?: any; stepData?: any };
+    
+    // Debug: Log eligibleSchemes to verify they're being passed
+    if ((projectData as any).eligibleSchemes) {
+      console.log('📋 Eligible Schemes found in project data:', JSON.stringify((projectData as any).eligibleSchemes, null, 2));
+      console.log('📋 Schemes Data:', (projectData as any).eligibleSchemes?.schemesData?.length || 0, 'schemes');
+    } else {
+      console.log('⚠️ No eligibleSchemes found in project data');
+    }
 
     // OPTIMIZATION: Generate all sections in parallel instead of sequentially
     // This reduces generation time from ~60-90s to ~15-20s
@@ -1993,15 +2287,15 @@ Be professional, supportive, and focus on creating high-quality, bankable DPRs.`
         ];
         
         if (complexSteps.includes(step)) {
-          return 15000; // 15 seconds for complex steps
+          return 30000; // 30 seconds for complex steps (increased for scheme generation)
         } else if (mediumSteps.includes(step)) {
-          return 10000; // 10 seconds for medium complexity steps
+          return 25000; // 25 seconds for medium complexity steps (increased for scheme generation)
         } else {
-          return 8000; // 8 seconds for simple steps (default for suggestions)
+          return 20000; // 20 seconds for simple steps (increased from 8s to allow scheme generation)
         }
       };
       
-      const suggestionsTimeout = stepId ? getStepTimeout(stepId) : 8000; // Default 8s if stepId not provided
+      const suggestionsTimeout = stepId ? getStepTimeout(stepId) : 20000; // Default 20s if stepId not provided (increased from 8s)
       
       // OPTIMIZATION: For suggestions, use minimal system prompt and skip extra processing
       const messages: any[] = isSuggestionsRequest
@@ -2054,7 +2348,7 @@ Be professional, supportive, and focus on creating high-quality, bankable DPRs.`
             max_tokens: isSuggestionsRequest ? suggestionsMaxTokens : 1000, // Dynamic tokens based on step complexity
             stream: false, // Ensure no streaming for faster response
           }),
-          // Dynamic timeout based on step complexity: 8-15s for suggestions, 60s for regular chat
+          // Dynamic timeout based on step complexity: 20-30s for suggestions (increased for scheme generation), 60s for regular chat
           new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Request timeout')), isSuggestionsRequest ? suggestionsTimeout : 60000)
           ) as Promise<any>
