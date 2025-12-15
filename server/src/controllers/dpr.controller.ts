@@ -493,8 +493,38 @@ export class DPRController {
    */
   static async generateDPR(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
       const { projectId } = req.params;
       const { language = 'bilingual' } = req.body;
+
+      // Verify that the project belongs to the current user
+      const { Project } = await import('../models/Project.model');
+      const project = await Project.findById(projectId);
+      
+      if (!project) {
+        res.status(404).json({
+          success: false,
+          message: 'Project not found',
+        });
+        return;
+      }
+
+      // Check if project belongs to the current user
+      if (project.userId?.toString() !== userId.toString()) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied: This project does not belong to you',
+        });
+        return;
+      }
 
       console.log(`📝 Generating DPR for project ${projectId} in ${language}...`);
 
@@ -527,7 +557,37 @@ export class DPRController {
    */
   static async getProjectDPRs(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
       const { projectId } = req.params;
+
+      // Verify that the project belongs to the current user
+      const { Project } = await import('../models/Project.model');
+      const project = await Project.findById(projectId);
+      
+      if (!project) {
+        res.status(404).json({
+          success: false,
+          message: 'Project not found',
+        });
+        return;
+      }
+
+      // Check if project belongs to the current user
+      if (project.userId?.toString() !== userId.toString()) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied: This project does not belong to you',
+        });
+        return;
+      }
 
       const dprs = await DPRService.getProjectDPRs(projectId);
 
@@ -556,9 +616,47 @@ export class DPRController {
    */
   static async getDPR(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
       const { dprId } = req.params;
 
       const dpr = await DPRService.getDPR(dprId);
+      
+      if (!dpr) {
+        res.status(404).json({
+          success: false,
+          message: 'DPR not found',
+        });
+        return;
+      }
+
+      // Verify that the DPR's project belongs to the current user
+      const { Project } = await import('../models/Project.model');
+      const project = await Project.findById(dpr.projectId);
+      
+      if (!project) {
+        res.status(404).json({
+          success: false,
+          message: 'Project associated with this DPR not found',
+        });
+        return;
+      }
+
+      // Check if project belongs to the current user
+      if (project.userId?.toString() !== userId.toString()) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied: This DPR does not belong to you',
+        });
+        return;
+      }
 
       res.status(200).json({
         success: true,
@@ -781,6 +879,15 @@ export class DPRController {
    */
   static async updateDPRContent(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
       const { dprId } = req.params;
       const { content, language } = req.body;
 
@@ -789,6 +896,27 @@ export class DPRController {
         res.status(404).json({
           success: false,
           message: 'DPR not found',
+        });
+        return;
+      }
+
+      // Verify that the DPR's project belongs to the current user
+      const { Project } = await import('../models/Project.model');
+      const project = await Project.findById(dpr.projectId);
+      
+      if (!project) {
+        res.status(404).json({
+          success: false,
+          message: 'Project associated with this DPR not found',
+        });
+        return;
+      }
+
+      // Check if project belongs to the current user
+      if (project.userId?.toString() !== userId.toString()) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied: This DPR does not belong to you',
         });
         return;
       }
@@ -828,6 +956,15 @@ export class DPRController {
    */
   static async submitDPR(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
       const { dprId } = req.params;
       const { submittedTo } = req.body;
 
@@ -836,6 +973,27 @@ export class DPRController {
         res.status(404).json({
           success: false,
           message: 'DPR not found',
+        });
+        return;
+      }
+
+      // Verify that the DPR's project belongs to the current user
+      const { Project } = await import('../models/Project.model');
+      const project = await Project.findById(dpr.projectId);
+      
+      if (!project) {
+        res.status(404).json({
+          success: false,
+          message: 'Project associated with this DPR not found',
+        });
+        return;
+      }
+
+      // Check if project belongs to the current user
+      if (project.userId?.toString() !== userId.toString()) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied: This DPR does not belong to you',
         });
         return;
       }
@@ -881,7 +1039,12 @@ export class DPRController {
       }
 
       const { Project } = await import('../models/Project.model');
-      const projects = await Project.find({ userId });
+      
+      // Find projects belonging to this user - ensure userId matches exactly
+      // Handle both string and ObjectId cases
+      const projects = await Project.find({ 
+        userId: userId.toString() 
+      });
       const projectIds = projects.map(p => p._id.toString());
 
       if (projectIds.length === 0) {
@@ -892,28 +1055,43 @@ export class DPRController {
         return;
       }
 
+      // Find DPRs for user's projects
       const dprs = await DPRVersion.find({ projectId: { $in: projectIds } })
         .sort({ createdAt: -1 })
         .lean(); // Use lean() for faster queries
 
-      // Manually populate project data since projectId is stored as String
+      // Additional safety check: Filter DPRs to ensure their projects belong to the user
+      // This prevents any edge cases where projectId might not match
       const dprsWithProjects = await Promise.all(
         dprs.map(async (dpr: any) => {
           const project = await Project.findById(dpr.projectId)
-            .select('projectName industrySector location')
+            .select('projectName industrySector location userId')
             .lean();
+          
+          // Only include DPR if the project belongs to the current user
+          if (!project || project.userId?.toString() !== userId.toString()) {
+            return null;
+          }
+          
           return {
             ...dpr,
-            projectId: project || { projectName: 'Unknown Project', industrySector: 'Unknown', location: 'Unknown' },
+            projectId: {
+              projectName: project.projectName || 'Unknown Project',
+              industrySector: project.industrySector || 'Unknown',
+              location: project.location || 'Unknown',
+            },
           };
         })
       );
 
-      console.log(`📊 Retrieved ${dprsWithProjects.length} DPRs for user ${userId}`);
+      // Filter out any null values from the safety check
+      const filteredDprs = dprsWithProjects.filter(dpr => dpr !== null);
+
+      console.log(`📊 Retrieved ${filteredDprs.length} DPRs for user ${userId} (from ${projects.length} projects)`);
 
       res.status(200).json({
         success: true,
-        data: dprsWithProjects,
+        data: filteredDprs,
       });
     } catch (error: any) {
       console.error('Error getting user DPRs:', error);
@@ -930,11 +1108,49 @@ export class DPRController {
    */
   static async downloadXLS(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
       const { dprId } = req.params;
       const { language = 'english' } = req.query;
 
       const dpr = await DPRService.getDPR(dprId);
-      const project = dpr.projectId;
+      
+      if (!dpr) {
+        res.status(404).json({
+          success: false,
+          message: 'DPR not found',
+        });
+        return;
+      }
+
+      // Verify that the DPR's project belongs to the current user
+      const { Project } = await import('../models/Project.model');
+      const project = await Project.findById(dpr.projectId);
+      
+      if (!project) {
+        res.status(404).json({
+          success: false,
+          message: 'Project associated with this DPR not found',
+        });
+        return;
+      }
+
+      // Check if project belongs to the current user
+      if (project.userId?.toString() !== userId.toString()) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied: This DPR does not belong to you',
+        });
+        return;
+      }
+
       const contentLang = language === 'telugu' ? dpr.content.telugu : dpr.content.english;
 
       // Try to use exceljs if available, otherwise use CSV
