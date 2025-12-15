@@ -740,7 +740,7 @@ export const DPRPreview: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="prose max-w-none">
+                    <div className="prose max-w-none" style={{ textAlign: 'left' }}>
                       {content ? (
                         <FormattedText text={content} />
                       ) : (

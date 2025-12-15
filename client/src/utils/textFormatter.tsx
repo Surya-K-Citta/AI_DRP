@@ -73,7 +73,10 @@ export function processMarkdownText(text: string): React.ReactNode[] {
               width: '100%',
               clear: 'both',
               marginTop: '0.5rem',
-              marginBottom: '1rem'
+              marginBottom: '1rem',
+              textAlign: 'left',
+              paddingLeft: '0',
+              paddingRight: '0'
             }}
           >
             {boldSegments}
@@ -116,7 +119,7 @@ export function processMarkdownText(text: string): React.ReactNode[] {
         tableRows = [];
       }
       inTable = false;
-      // Add proper spacing after table - ensure content flows below, not beside
+      // Add proper spacing after table - ensure content flows below, not beside, and is left-aligned
       elements.push(
         <div 
           key={key++} 
@@ -125,7 +128,8 @@ export function processMarkdownText(text: string): React.ReactNode[] {
             display: 'block',
             width: '100%',
             marginTop: '1rem',
-            marginBottom: '1rem'
+            marginBottom: '1rem',
+            textAlign: 'left'
           }} 
         />
       );
@@ -146,7 +150,12 @@ export function processMarkdownText(text: string): React.ReactNode[] {
           <h1 
             key={key++} 
             className="text-xl font-bold mt-8 mb-4 text-gray-900"
-            style={{ fontWeight: 700 }}
+            style={{ 
+              fontWeight: 700,
+              textAlign: 'left',
+              width: '100%',
+              clear: 'both'
+            }}
           >
             {boldSegments}
           </h1>
@@ -165,7 +174,12 @@ export function processMarkdownText(text: string): React.ReactNode[] {
           <h2 
             key={key++} 
             className="text-lg font-bold mt-6 mb-3 text-gray-900"
-            style={{ fontWeight: 700 }}
+            style={{ 
+              fontWeight: 700,
+              textAlign: 'left',
+              width: '100%',
+              clear: 'both'
+            }}
           >
             {boldSegments}
           </h2>
@@ -184,7 +198,12 @@ export function processMarkdownText(text: string): React.ReactNode[] {
           <h3 
             key={key++} 
             className="text-base font-semibold mt-4 mb-2 text-gray-900"
-            style={{ fontWeight: 600 }}
+            style={{ 
+              fontWeight: 600,
+              textAlign: 'left',
+              width: '100%',
+              clear: 'both'
+            }}
           >
             {boldSegments}
           </h3>
@@ -309,13 +328,23 @@ export const FormattedText: React.FC<{ text: string; className?: string }> = ({ 
         color: '#374151',
         display: 'block',
         width: '100%',
-        clear: 'both'
+        clear: 'both',
+        textAlign: 'left',
+        marginLeft: '0',
+        marginRight: '0',
+        paddingLeft: '0',
+        paddingRight: '0'
       }}
     >
       <div style={{ 
         display: 'block',
         width: '100%',
-        clear: 'both'
+        clear: 'both',
+        textAlign: 'left',
+        paddingLeft: '0',
+        paddingRight: '0',
+        marginLeft: '0',
+        marginRight: '0'
       }}>
         {formatted}
       </div>

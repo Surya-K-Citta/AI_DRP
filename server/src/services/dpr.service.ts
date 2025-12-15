@@ -470,13 +470,18 @@ export class DPRService {
                       .stroke('#000000');
                   }
                   
-                  // Reset fill color
+                  // Reset fill color and position to left margin after table
                   doc.fillColor('#000000');
+                  doc.y = startY + (tableData.length * rowHeight);
+                  doc.x = 50; // Reset to left margin
                   doc.moveDown(1);
                 }
               } else if (para.type === 'heading') {
                 // Render heading as semi-bold subheading
                 doc.moveDown(0.5);
+                // Ensure x position is at left margin before rendering heading
+                doc.x = 50;
+                
                 let headingFontSize: number;
                 let spacingAfter: number;
                 
@@ -502,17 +507,23 @@ export class DPRService {
                     // Telugu text - use registered Telugu font
                     if (teluguFontRegistered) {
                       doc.fontSize(headingFontSize).font('NotoSansTelugu').text(segmentText, { 
+                        align: 'left',
+                        width: 500,
                         continued: !isLast 
                       });
                     } else {
                       // Fallback: try without font (may not render correctly)
                       doc.fontSize(headingFontSize).text(segmentText, { 
+                        align: 'left',
+                        width: 500,
                         continued: !isLast 
                       });
                     }
                   } else {
                     // English text - use Helvetica-Bold for headings
                     doc.fontSize(headingFontSize).font('Helvetica-Bold').text(segmentText, { 
+                      align: 'left',
+                      width: 500,
                       continued: !isLast 
                     });
                   }
@@ -527,28 +538,36 @@ export class DPRService {
                   
                   if (segmentIsTelugu) {
                     // Telugu text - use registered Telugu font if available
+                    // Ensure x position is at left margin before rendering text
+                    doc.x = 50;
                     if (teluguFontRegistered) {
                       doc.fontSize(fontSize).font('NotoSansTelugu').text(segmentText, { 
-                        align: 'justify', 
+                        align: 'left', 
+                        width: 500, // Set explicit width for proper alignment
                         continued: !isLast 
                       });
                     } else {
                       // Fallback: try without font (may not render correctly)
                       doc.fontSize(fontSize).text(segmentText, { 
-                        align: 'justify', 
+                        align: 'left', 
+                        width: 500, // Set explicit width for proper alignment
                         continued: !isLast 
                       });
                     }
                   } else {
                     // English text - use Helvetica with bold if needed
+                    // Ensure x position is at left margin before rendering text
+                    doc.x = 50;
                     if (segment.bold) {
                       doc.fontSize(fontSize).font('Helvetica-Bold').text(segmentText, { 
-                        align: 'justify', 
+                        align: 'left', 
+                        width: 500, // Set explicit width for proper alignment
                         continued: !isLast 
                       });
                     } else {
                       doc.fontSize(fontSize).font('Helvetica').text(segmentText, { 
-                        align: 'justify', 
+                        align: 'left', 
+                        width: 500, // Set explicit width for proper alignment
                         continued: !isLast 
                       });
                     }
@@ -726,16 +745,35 @@ export class DPRService {
                 .stroke('#000000');
             }
             
+            // Reset position to left margin after table
+            const tableHeight = (data.length + 1) * rowHeight;
+            doc.y = startY + tableHeight;
+            doc.x = 50; // Reset to left margin (50 is standard PDF margin)
             doc.fillColor('#000000');
             doc.moveDown(1);
           };
 
+          // Track section number for sequential numbering
+          let sectionNumber = 0;
+          
+          // Helper function to get section title without number (removes leading number if present)
+          const getSectionTitle = (label: string): string => {
+            // Remove leading number and dot (e.g., "1. Executive Summary" -> "Executive Summary")
+            return label.replace(/^\d+\.\s*/, '').trim();
+          };
+          
           // Helper function to render section if content exists
           // Special handling for wages, salaries, and financial projections to ensure tabular format
           const renderSection = (sectionKey: string, label: string) => {
             if (contentLang[sectionKey]) {
+              sectionNumber++; // Increment section number for each section with content
               doc.addPage();
-              renderSectionHeader(label);
+              
+              // Use sequential numbering instead of hardcoded numbers
+              const sectionTitle = getSectionTitle(label);
+              const numberedLabel = `${sectionNumber}. ${sectionTitle}`;
+              
+              renderSectionHeader(numberedLabel);
               doc.moveDown();
               
               // Special handling for sections that should be in tabular format
@@ -799,8 +837,13 @@ export class DPRService {
                 }
               }
               
+              // Clean content to remove any embedded section numbers from AI generation
+              let cleanedContent = contentLang[sectionKey] || '';
+              // Remove section numbers that might be embedded in the content (e.g., "16. Market Analysis" -> "Market Analysis")
+              cleanedContent = cleanedContent.replace(/^\d+\.\s+/gm, '');
+              
               // Render the content (which may already contain tables)
-              addFormattedText(contentLang[sectionKey] || '');
+              addFormattedText(cleanedContent);
               doc.moveDown();
             }
           };
@@ -1141,15 +1184,33 @@ export class DPRService {
       conclusion: '22. Conclusion'
     };
 
-    // Helper function to add section if content exists
+    // Helper to get section title without number
+    const getSectionTitle = (label: string): string => {
+      return label.replace(/^\d+\.\s*/, '').trim();
+    };
+    
+    // Track section number for sequential numbering
+    let sectionNumber = 0;
+    
+    // Helper function to add section if content exists with sequential numbering
     const addSection = (sectionKey: string, label: string): (Paragraph | Table)[] => {
       if (contentLang[sectionKey]) {
+        sectionNumber++; // Increment section number for each section with content
+        
+        // Use sequential numbering instead of hardcoded numbers
+        const sectionTitle = getSectionTitle(label);
+        const numberedLabel = `${sectionNumber}. ${sectionTitle}`;
+        
+        // Clean content to remove any embedded section numbers from AI generation
+        let cleanedContent = contentLang[sectionKey] || '';
+        cleanedContent = cleanedContent.replace(/^\d+\.\s+/gm, '');
+        
         return [
           new Paragraph({
-            text: label,
+            text: numberedLabel,
             heading: HeadingLevel.HEADING_2,
           }),
-          ...createFormattedParagraphs(contentLang[sectionKey] || ''),
+          ...createFormattedParagraphs(cleanedContent),
         ];
       }
       return [];
