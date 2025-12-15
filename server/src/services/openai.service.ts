@@ -2271,6 +2271,11 @@ Be professional, supportive, and focus on creating high-quality, bankable DPRs.`
       // Define timeout durations based on step complexity
       // Complex steps (market analysis, financial projections, etc.) need more time
       const getStepTimeout = (step: string): number => {
+        // Special case: eligible-schemes needs more time for AI to generate multiple schemes
+        if (step === 'eligible-schemes') {
+          return 30000; // 30 seconds for eligible-schemes (AI needs time to generate scheme suggestions)
+        }
+        
         const complexSteps = [
           'market-analysis',
           'financial-projections',
@@ -2323,6 +2328,11 @@ Be professional, supportive, and focus on creating high-quality, bankable DPRs.`
 
       // OPTIMIZATION: Adjust max_tokens based on step complexity
       const getStepMaxTokens = (step: string): number => {
+        // Special case: eligible-schemes needs more tokens to generate multiple schemes with details
+        if (step === 'eligible-schemes') {
+          return 1000; // More tokens for generating multiple scheme suggestions
+        }
+        
         const complexSteps = ['market-analysis', 'financial-projections', 'technical-feasibility'];
         if (complexSteps.includes(step)) {
           return 800; // More tokens for complex steps

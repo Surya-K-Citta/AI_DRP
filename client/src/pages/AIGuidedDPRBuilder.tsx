@@ -684,6 +684,11 @@ Return ready-to-use content that can be directly filled into form fields. The us
       // Dynamic timeout based on step complexity
       // Complex steps (market analysis, financial projections) need more time
       const getStepTimeout = (step: string): number => {
+        // Special case: eligible-schemes needs more time for AI to generate multiple schemes
+        if (step === 'eligible-schemes') {
+          return 35000; // 35 seconds for eligible-schemes (AI needs time to generate scheme suggestions)
+        }
+        
         const complexSteps = [
           'market-analysis',
           'financial-projections',
@@ -733,7 +738,10 @@ Return ready-to-use content that can be directly filled into form fields. The us
         ]) as any;
       } catch (error: any) {
         if (error.message?.includes('timeout')) {
-          toast.error('AI suggestions request timed out. Please try again.');
+          const timeoutMsg = stepId === 'eligible-schemes' 
+            ? 'AI scheme generation is taking longer than expected. Please wait or try again - schemes are being generated.'
+            : 'AI suggestions request timed out. Please try again.';
+          toast.error(timeoutMsg, { duration: 5000 });
           throw error;
         }
         throw error;
@@ -830,10 +838,11 @@ Return ready-to-use content that can be directly filled into form fields. The us
         
         // Get selected schemes data if available
         const selectedSchemes = stepData.eligibleSchemes?.selectedSchemes || [];
-        const schemesData: any[] = [];
+        // Use schemesData from stepData if available (includes full scheme details)
+        let schemesData: any[] = stepData.eligibleSchemes?.schemesData || [];
         
-        // Get full scheme details for selected schemes
-        if (selectedSchemes.length > 0) {
+        // If we have selected schemes but no schemesData, try to fetch from API
+        if (selectedSchemes.length > 0 && schemesData.length === 0) {
           for (const schemeCode of selectedSchemes) {
             try {
               const schemeResponse = await api.getScheme(schemeCode);
@@ -843,9 +852,11 @@ Return ready-to-use content that can be directly filled into form fields. The us
                   schemeCode: scheme.schemeCode || schemeCode,
                   schemeName: scheme.schemeName || schemeCode,
                   description: scheme.description || '',
-                  eligibility: scheme.eligibility || {},
+                  eligibility: scheme.eligibility || scheme.eligibilityCriteria || {},
                   benefits: scheme.benefits || {},
                   documentsRequired: scheme.documentsRequired || [],
+                  category: scheme.category || 'Central Government',
+                  portal: scheme.portal || '',
                 });
               }
             } catch (err) {
@@ -854,17 +865,20 @@ Return ready-to-use content that can be directly filled into form fields. The us
                 schemeCode: schemeCode,
                 schemeName: schemeCode,
                 description: 'Government scheme applicable to this project',
+                eligibility: {},
+                benefits: {},
+                documentsRequired: [],
               });
             }
           }
         }
 
-        // Update project with stepData and schemes
+        // Update project with stepData and schemes (use schemesData from stepData if available)
         await api.updateProject(finalProjectId, {
           stepData: stepData, // Save all stepData to project
           eligibleSchemes: selectedSchemes.length > 0 ? {
             selectedSchemes: selectedSchemes,
-            schemesData: schemesData,
+            schemesData: schemesData.length > 0 ? schemesData : undefined, // Use schemesData from stepData
           } : stepData.eligibleSchemes || undefined,
         });
         
@@ -984,10 +998,11 @@ Return ready-to-use content that can be directly filled into form fields. The us
       // Save stepData and selected schemes to project before generating DPR
       try {
         const selectedSchemes = stepData.eligibleSchemes?.selectedSchemes || [];
-        const schemesData: any[] = [];
+        // Use schemesData from stepData if available (includes full scheme details)
+        let schemesData: any[] = stepData.eligibleSchemes?.schemesData || [];
         
-        // Get full scheme details for selected schemes
-        if (selectedSchemes.length > 0) {
+        // If we have selected schemes but no schemesData, try to fetch from API
+        if (selectedSchemes.length > 0 && schemesData.length === 0) {
           for (const schemeCode of selectedSchemes) {
             try {
               const schemeResponse = await api.getScheme(schemeCode);
@@ -997,9 +1012,11 @@ Return ready-to-use content that can be directly filled into form fields. The us
                   schemeCode: scheme.schemeCode || schemeCode,
                   schemeName: scheme.schemeName || schemeCode,
                   description: scheme.description || '',
-                  eligibility: scheme.eligibility || {},
+                  eligibility: scheme.eligibility || scheme.eligibilityCriteria || {},
                   benefits: scheme.benefits || {},
                   documentsRequired: scheme.documentsRequired || [],
+                  category: scheme.category || 'Central Government',
+                  portal: scheme.portal || '',
                 });
               }
             } catch (err) {
@@ -1008,17 +1025,20 @@ Return ready-to-use content that can be directly filled into form fields. The us
                 schemeCode: schemeCode,
                 schemeName: schemeCode,
                 description: 'Government scheme applicable to this project',
+                eligibility: {},
+                benefits: {},
+                documentsRequired: [],
               });
             }
           }
         }
 
-        // Update project with stepData and schemes
+        // Update project with stepData and schemes (use schemesData from stepData if available)
         await api.updateProject(finalProjectId, {
           stepData: stepData, // Save all stepData to project
           eligibleSchemes: selectedSchemes.length > 0 ? {
             selectedSchemes: selectedSchemes,
-            schemesData: schemesData,
+            schemesData: schemesData.length > 0 ? schemesData : undefined, // Use schemesData from stepData
           } : undefined,
         });
         
@@ -5811,7 +5831,21 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
       setLoading(true);
       const response = await api.recommendSchemes(project._id);
       // Handle both old format (array) and new format (object with data property)
-      const schemesData = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.recommendedSchemes || []);
+      let schemesData = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.recommendedSchemes || []);
+      
+      // If schemes are wrapped in a scheme object (from matchSchemes), extract them
+      schemesData = schemesData.map((item: any) => {
+        if (item.scheme) {
+          // Extract scheme from match object
+          return {
+            ...item.scheme,
+            confidenceScore: item.confidenceScore,
+            matchReason: item.matchReason,
+          };
+        }
+        return item;
+      });
+      
       setSchemes(schemesData);
     } catch (error) {
       console.error('Error loading schemes:', error);
@@ -5820,49 +5854,28 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
     }
   };
 
-  const handleApplySuggestions = () => {
-    if (!suggestions || typeof suggestions !== 'object' || !suggestions.schemes) {
-      return;
-    }
-
-    // Convert AI-suggested schemes to the format expected by the component
-    const suggestedSchemes = suggestions.schemes.map((scheme: any) => ({
-      _id: `ai_${scheme.schemeCode}`,
-      schemeCode: scheme.schemeCode,
-      schemeName: scheme.schemeName,
-      description: scheme.description || scheme.relevance || '',
-      eligibility: {},
-      benefits: {},
-      documentsRequired: [],
-      status: 'active',
-      isAISuggested: true,
-    }));
-
-    // Add suggested schemes to the existing schemes list (avoid duplicates)
+  // Helper function to add AI-suggested scheme to the main schemes list
+  const addAISchemeToList = (scheme: any) => {
+    const schemeCode = scheme.schemeCode || scheme.code || `ai_scheme_${Date.now()}`;
     const existingSchemeCodes = new Set(schemes.map((s: any) => s.schemeCode));
-    const newSchemes = suggestedSchemes.filter((s: any) => !existingSchemeCodes.has(s.schemeCode));
     
-    if (newSchemes.length > 0) {
-      setSchemes([...schemes, ...newSchemes]);
-      
-      // Auto-select the first 2-3 most relevant schemes
-      const schemesToSelect = newSchemes.slice(0, Math.min(3, newSchemes.length)).map((s: any) => s.schemeCode);
-      const currentSelected = data?.selectedSchemes || [];
-      const updatedSelected = [...new Set([...currentSelected, ...schemesToSelect])];
-      
-      onChange({
-        ...data,
-        selectedSchemes: updatedSelected,
-      });
-      
-      toast.success(`Applied ${newSchemes.length} AI-suggested scheme(s). ${schemesToSelect.length} scheme(s) auto-selected.`);
-      // Clear suggestions after applying
-      onClearSuggestions?.();
-    } else {
-      toast.info('All suggested schemes are already in the list.');
-      // Clear suggestions even if no new schemes were added
-      onClearSuggestions?.();
+    // Only add if not already in the list
+    if (!existingSchemeCodes.has(schemeCode)) {
+      const newScheme = {
+        _id: `ai_${schemeCode}`,
+        schemeCode: schemeCode,
+        schemeName: scheme.schemeName || scheme.name || 'Unnamed Scheme',
+        description: scheme.description || scheme.relevance || '',
+        eligibility: {},
+        benefits: {},
+        documentsRequired: [],
+        status: 'active',
+        isAISuggested: true,
+      };
+      setSchemes([...schemes, newScheme]);
+      return true;
     }
+    return false;
   };
 
   return (
@@ -5900,132 +5913,229 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
       </div>
 
       {/* AI Suggestions Card */}
-      {suggestions && (
-        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
-          <CardContent className="pt-5 pb-5">
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div className="flex items-start gap-4 flex-1">
-                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
-                  <Sparkles className="h-6 w-6 text-primary" />
+      {suggestions && (() => {
+        // Parse suggestions - handle both object and JSON string formats
+        let parsedSuggestions: any = suggestions;
+        if (typeof suggestions === 'string') {
+          try {
+            // Try to extract JSON from markdown code blocks if present
+            const jsonMatch = suggestions.match(/```(?:json)?\s*([\[\{][\s\S]*[\]\}])\s*```/);
+            if (jsonMatch) {
+              parsedSuggestions = JSON.parse(jsonMatch[1]);
+            } else if (suggestions.trim().startsWith('{') || suggestions.trim().startsWith('[')) {
+              parsedSuggestions = JSON.parse(suggestions);
+            } else {
+              // Try to extract JSON from text
+              const jsonInText = suggestions.match(/\{(?:[^{}]|(?:\{[^{}]*\}))*\}/s);
+              if (jsonInText) {
+                parsedSuggestions = JSON.parse(jsonInText[0]);
+              }
+            }
+          } catch (e) {
+            console.error('Failed to parse suggestions JSON:', e);
+            parsedSuggestions = suggestions;
+          }
+        }
+
+        // Extract schemes array from parsed suggestions
+        const aiSuggestedSchemes = parsedSuggestions?.schemes || (Array.isArray(parsedSuggestions) ? parsedSuggestions : []);
+        const guidance = parsedSuggestions?.guidance || '';
+
+        return (
+          <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+            <CardContent className="pt-5 pb-5">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex items-start gap-4 flex-1">
+                  <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                    <Sparkles className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-base font-bold text-primary mb-2">AI-Powered Scheme Suggestions</p>
+                    {guidance && (
+                      <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium mb-3">
+                        {guidance}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-base font-bold text-primary mb-2">AI-Powered Scheme Suggestions</p>
-                  {typeof suggestions === 'object' && suggestions.guidance ? (
-                    <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium">
-                      {suggestions.guidance}
-                    </p>
-                  ) : typeof suggestions === 'string' ? (
-                    // Try to parse if it's a JSON string
-                    (() => {
-                      try {
-                        const parsed = JSON.parse(suggestions);
-                        if (parsed.guidance) {
-                          return (
-                            <div>
-                              <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium mb-3">
-                                {parsed.guidance}
-                              </p>
-                              {parsed.schemes && parsed.schemes.length > 0 && (
-                                <div className="mt-3 space-y-2">
-                                  {parsed.schemes.map((scheme: any, idx: number) => (
-                                    <div key={idx} className="p-2 bg-white/50 rounded border border-primary/10">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <Award className="h-3 w-3 text-primary" />
-                                        <span className="font-semibold text-sm">{scheme.schemeName}</span>
-                                        <span className="text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded">
-                                          {scheme.schemeCode}
-                                        </span>
-                                      </div>
-                                      <p className="text-xs text-muted-foreground ml-5">{scheme.description || scheme.relevance}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        }
-                        return <p className="text-sm text-foreground">{suggestions}</p>;
-                      } catch {
-                        return <p className="text-sm text-foreground whitespace-pre-line">{suggestions}</p>;
-                      }
-                    })()
-                  ) : (
-                    <p className="text-sm text-foreground">AI-generated scheme suggestions based on your project details.</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                {typeof suggestions === 'object' && suggestions.schemes && suggestions.schemes.length > 0 && (
+                <div className="flex gap-2">
                   <Button
+                    variant="outline"
                     size="sm"
-                    onClick={handleApplySuggestions}
-                    className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                    onClick={onGetSuggestions}
+                    disabled={suggestionsLoading}
+                    title="Get updated suggestions based on your current data"
+                    className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
                   >
-                    Apply Suggestions
+                    {suggestionsLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      'Refresh'
+                    )}
                   </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onGetSuggestions}
-                  disabled={suggestionsLoading}
-                  title="Get updated suggestions based on your current data"
-                  className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
-                >
-                  {suggestionsLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    'Refresh'
-                  )}
-                </Button>
+                </div>
               </div>
-            </div>
-            
-            {/* Preview of Suggested Schemes - Matching actual scheme card format */}
-            {typeof suggestions === 'object' && suggestions.schemes && suggestions.schemes.length > 0 && (
-              <div className="mt-4 space-y-4">
-                {suggestions.schemes.map((scheme: any, index: number) => (
-                  <Card 
-                    key={index}
-                    className="border-2 border-primary/20 hover:border-primary/40 hover:shadow-md transition-all"
-                  >
-                    <CardContent className="pt-5 pb-5">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-primary/10">
-                              <Award className="h-5 w-5 text-primary" />
+              
+              {/* Display AI Suggested Schemes as Selectable Options */}
+              {aiSuggestedSchemes.length > 0 ? (
+                <div className="mt-4 space-y-4">
+                  <p className="text-sm font-semibold text-foreground mb-3">Select schemes to apply to your project:</p>
+                  {aiSuggestedSchemes.map((scheme: any, index: number) => {
+                    const schemeCode = scheme.schemeCode || scheme.code || `ai_scheme_${index}`;
+                    const schemeName = scheme.schemeName || scheme.name || 'Unnamed Scheme';
+                    const description = scheme.description || scheme.relevance || '';
+                    const isSelected = data?.selectedSchemes?.includes(schemeCode);
+
+                    return (
+                      <Card 
+                        key={index}
+                        className={`cursor-pointer transition-all border-2 ${
+                          isSelected
+                            ? 'border-success bg-success/5 shadow-lg'
+                            : 'border-primary/20 hover:border-primary/40 hover:shadow-md'
+                        }`}
+                        onClick={() => {
+                          const selected = data?.selectedSchemes || [];
+                          const schemesData = data?.schemesData || [];
+                          const isCurrentlySelected = selected.includes(schemeCode);
+                          
+                          let newSelected: string[];
+                          let newSchemesData: any[] = [...schemesData];
+                          
+                          if (isCurrentlySelected) {
+                            // Deselect: remove from selected and schemesData
+                            newSelected = selected.filter((s: string) => s !== schemeCode);
+                            newSchemesData = schemesData.filter((s: any) => s.schemeCode !== schemeCode);
+                          } else {
+                            // Select: add to selected and include full scheme data
+                            newSelected = [...selected, schemeCode];
+                            // Add to main schemes list if selecting for the first time
+                            addAISchemeToList(scheme);
+                            // Add full scheme details if not already present
+                            const existingScheme = schemesData.find((s: any) => s.schemeCode === schemeCode);
+                            if (!existingScheme) {
+                              newSchemesData.push({
+                                schemeCode: schemeCode,
+                                schemeName: schemeName,
+                                description: description,
+                                eligibility: {},
+                                benefits: {},
+                                documentsRequired: [],
+                                category: 'Central Government',
+                                portal: '',
+                              });
+                            }
+                          }
+                          
+                          onChange({
+                            ...data,
+                            selectedSchemes: newSelected,
+                            schemesData: newSchemesData,
+                          });
+                        }}
+                      >
+                        <CardContent className="pt-5 pb-5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                                  isSelected
+                                    ? 'bg-success/20'
+                                    : 'bg-primary/10'
+                                }`}>
+                                  <Award className={`h-5 w-5 ${
+                                    isSelected
+                                      ? 'text-success'
+                                      : 'text-primary'
+                                  }`} />
+                                </div>
+                                <div className="flex items-center gap-2 flex-1">
+                                  <h4 className="font-bold text-lg text-foreground">{schemeName}</h4>
+                                  <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded-full font-medium flex items-center gap-1">
+                                    <Sparkles className="h-3 w-3" />
+                                    AI Suggested
+                                  </span>
+                                  {schemeCode && schemeCode !== `ai_scheme_${index}` && (
+                                    <span className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded">
+                                      {schemeCode}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <p className="text-sm text-muted-foreground ml-[52px]">{description}</p>
                             </div>
-                            <div className="flex items-center gap-2 flex-1">
-                              <h4 className="font-bold text-lg text-foreground">{scheme.schemeName}</h4>
-                              <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded-full font-medium flex items-center gap-1">
-                                <Sparkles className="h-3 w-3" />
-                                AI Suggested
-                              </span>
-                            </div>
+                            <Button
+                              size="sm"
+                              variant={isSelected ? 'primary' : 'outline'}
+                              className={isSelected 
+                                ? 'bg-green-600 hover:bg-green-700/90 border-2 border-success text-white' 
+                                : 'border-2 border-primary hover:bg-primary hover:text-white'
+                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const selected = data?.selectedSchemes || [];
+                                const schemesData = data?.schemesData || [];
+                                const isCurrentlySelected = selected.includes(schemeCode);
+                                
+                                let newSelected: string[];
+                                let newSchemesData: any[] = [...schemesData];
+                                
+                                if (isCurrentlySelected) {
+                                  // Deselect: remove from selected and schemesData
+                                  newSelected = selected.filter((s: string) => s !== schemeCode);
+                                  newSchemesData = schemesData.filter((s: any) => s.schemeCode !== schemeCode);
+                                } else {
+                                  // Select: add to selected and include full scheme data
+                                  newSelected = [...selected, schemeCode];
+                                  // Add to main schemes list if selecting for the first time
+                                  addAISchemeToList(scheme);
+                                  // Add full scheme details if not already present
+                                  const existingScheme = schemesData.find((s: any) => s.schemeCode === schemeCode);
+                                  if (!existingScheme) {
+                                    newSchemesData.push({
+                                      schemeCode: schemeCode,
+                                      schemeName: schemeName,
+                                      description: description,
+                                      eligibility: {},
+                                      benefits: {},
+                                      documentsRequired: [],
+                                      category: 'Central Government',
+                                      portal: '',
+                                    });
+                                  }
+                                }
+                                
+                                onChange({
+                                  ...data,
+                                  selectedSchemes: newSelected,
+                                  schemesData: newSchemesData,
+                                });
+                              }}
+                            >
+                              {isSelected ? (
+                                <>
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Selected
+                                </>
+                              ) : (
+                                'Select'
+                              )}
+                            </Button>
                           </div>
-                          <p className="text-sm text-muted-foreground ml-[52px]">{scheme.description || scheme.relevance}</p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-shrink-0 border-2 border-success bg-success text-white hover:bg-success/90"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Preview
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                <p className="text-xs text-muted-foreground mt-3 italic text-center">
-                  Click "Apply Suggestions" above to add these schemes to your list and auto-select the most relevant ones.
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground italic text-center py-4">
+                  No schemes found in suggestions. Try refreshing to get new suggestions.
                 </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {loading ? (
         <div className="text-center py-12">
@@ -6088,10 +6198,40 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
                     }
                     onClick={() => {
                       const selected = data?.selectedSchemes || [];
-                      const newSelected = selected.includes(scheme.schemeCode)
-                        ? selected.filter((s: string) => s !== scheme.schemeCode)
-                        : [...selected, scheme.schemeCode];
-                      onChange({...data, selectedSchemes: newSelected});
+                      const schemesData = data?.schemesData || [];
+                      const isCurrentlySelected = selected.includes(scheme.schemeCode);
+                      
+                      let newSelected: string[];
+                      let newSchemesData: any[] = [...schemesData];
+                      
+                      if (isCurrentlySelected) {
+                        // Deselect: remove from selected and schemesData
+                        newSelected = selected.filter((s: string) => s !== scheme.schemeCode);
+                        newSchemesData = schemesData.filter((s: any) => s.schemeCode !== scheme.schemeCode);
+                      } else {
+                        // Select: add to selected and include full scheme data
+                        newSelected = [...selected, scheme.schemeCode];
+                        // Add full scheme details if not already present
+                        const existingScheme = schemesData.find((s: any) => s.schemeCode === scheme.schemeCode);
+                        if (!existingScheme) {
+                          newSchemesData.push({
+                            schemeCode: scheme.schemeCode,
+                            schemeName: scheme.schemeName || scheme.name || 'Unnamed Scheme',
+                            description: scheme.description || scheme.relevance || '',
+                            eligibility: scheme.eligibility || scheme.eligibilityCriteria || {},
+                            benefits: scheme.benefits || {},
+                            documentsRequired: scheme.documentsRequired || [],
+                            category: scheme.category || 'Central Government',
+                            portal: scheme.portal || '',
+                          });
+                        }
+                      }
+                      
+                      onChange({
+                        ...data,
+                        selectedSchemes: newSelected,
+                        schemesData: newSchemesData,
+                      });
                     }}
                   >
                     {data?.selectedSchemes?.includes(scheme.schemeCode) ? (

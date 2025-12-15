@@ -98,8 +98,8 @@ export class DPRService {
     if (!dpr) {
       throw new Error('DPR not found');
     }
-    // Fetch project separately since projectId is stored as String
-    const project = await Project.findById(dpr.projectId);
+    // Fetch project separately since projectId is stored as String, include stepData
+    const project = await Project.findById(dpr.projectId).select('projectName industrySector projectType totalCost loanAmount location inputs eligibleSchemes stepData');
     if (project) {
       dpr.projectId = project as any;
     }
@@ -333,9 +333,12 @@ export class DPRService {
           // Detect if content contains Telugu characters
           const hasTelugu = /[\u0C00-\u0C7F]/.test(contentLang.executiveSummary || '');
           
-          // Title Page
-          const title = language === 'telugu' ? 'వివరణాత్మక ప్రాజెక్ట్ నివేదిక' : 'Detailed Project Report';
+          // Title Page - Matching Floor Polish format
+          const title = language === 'telugu' ? 'వివరణాత్మక ప్రాజెక్ట్ నివేదిక' : 'PROJECT PROFILE';
           const titleIsTelugu = isTeluguText(title);
+          
+          // Use blue color for title (matching Floor Polish document style)
+          doc.fillColor('#1E40AF'); // Blue color
           
           // For Telugu title, use registered Telugu font if available
           if (titleIsTelugu) {
@@ -350,6 +353,7 @@ export class DPRService {
           doc.moveDown();
           
           // Project name
+          doc.fillColor('#000000'); // Black for project name
           const projectNameIsTelugu = isTeluguText(project.projectName);
           if (projectNameIsTelugu) {
             if (teluguFontRegistered) {
@@ -358,7 +362,7 @@ export class DPRService {
               doc.fontSize(18).text(project.projectName, { align: 'center' });
             }
           } else {
-            doc.fontSize(18).font('Helvetica').text(project.projectName, { align: 'center' });
+            doc.fontSize(18).font('Helvetica-Bold').text(project.projectName, { align: 'center' });
           }
           doc.moveDown();
           
@@ -401,15 +405,15 @@ export class DPRService {
                 const colWidth = tableWidth / colCount;
                 const rowHeight = 20;
                 
-                // Draw table header (first row) with background
+                // Draw table header (first row) with background - Floor Polish format
                 if (tableData.length > 0) {
                   let x = doc.x;
                   const startY = doc.y;
                   
-                  // Draw header row with background
-                  doc.rect(x, startY, tableWidth, rowHeight).fill('#E5E7EB');
+                  // Draw header row with light gray background (matching Floor Polish format)
+                  doc.rect(x, startY, tableWidth, rowHeight).fill('#D3D3D3'); // Light gray for table headers
                   
-                  // Draw header text
+                  // Draw header text in bold
                   tableData[0].forEach((cell, colIndex) => {
                     const cellX = x + (colIndex * colWidth);
                     const cellIsTelugu = isTeluguText(cell);
@@ -417,6 +421,7 @@ export class DPRService {
                     if (cellIsTelugu && teluguFontRegistered) {
                       doc.font('NotoSansTelugu');
                     }
+                    doc.fillColor('#000000'); // Black text
                     doc.text(cell, cellX + 5, startY + 5, {
                       width: colWidth - 10,
                       height: rowHeight - 10,
@@ -424,10 +429,19 @@ export class DPRService {
                     });
                   });
                   
-                  // Draw data rows
+                  // Draw data rows with alternating row colors for better readability
                   for (let rowIndex = 1; rowIndex < tableData.length; rowIndex++) {
                     const rowY = startY + (rowIndex * rowHeight);
-                    doc.rect(x, rowY, tableWidth, rowHeight).stroke();
+                    
+                    // Alternate row background color (white and light blue)
+                    if (rowIndex % 2 === 0) {
+                      doc.rect(x, rowY, tableWidth, rowHeight).fill('#F0F8FF'); // Light blue for even rows
+                    } else {
+                      doc.rect(x, rowY, tableWidth, rowHeight).fill('#FFFFFF'); // White for odd rows
+                    }
+                    
+                    // Draw cell borders
+                    doc.rect(x, rowY, tableWidth, rowHeight).stroke('#CCCCCC');
                     
                     tableData[rowIndex].forEach((cell, colIndex) => {
                       const cellX = x + (colIndex * colWidth);
@@ -436,6 +450,7 @@ export class DPRService {
                       if (cellIsTelugu && teluguFontRegistered) {
                         doc.font('NotoSansTelugu');
                       }
+                      doc.fillColor('#000000'); // Black text
                       doc.text(cell || '', cellX + 5, rowY + 5, {
                         width: colWidth - 10,
                         height: rowHeight - 10,
@@ -444,17 +459,19 @@ export class DPRService {
                     });
                   }
                   
-                  // Draw borders
-                  doc.rect(x, startY, tableWidth, tableData.length * rowHeight).stroke();
+                  // Draw outer border
+                  doc.rect(x, startY, tableWidth, tableData.length * rowHeight).stroke('#000000');
                   
                   // Draw vertical lines
                   for (let i = 1; i < colCount; i++) {
                     const lineX = x + (i * colWidth);
                     doc.moveTo(lineX, startY)
                       .lineTo(lineX, startY + (tableData.length * rowHeight))
-                      .stroke();
+                      .stroke('#000000');
                   }
                   
+                  // Reset fill color
+                  doc.fillColor('#000000');
                   doc.moveDown(1);
                 }
               } else if (para.type === 'heading') {
@@ -597,9 +614,11 @@ export class DPRService {
             meansOfFinance: 'Means of Finance:'
           };
 
-          // Helper to render section headers with proper font
+          // Helper to render section headers with proper font and blue color (matching Floor Polish format)
           const renderSectionHeader = (text: string) => {
             const isTelugu = isTeluguText(text);
+            // Use blue color for section headers (matching Floor Polish document style)
+            doc.fillColor('#1E40AF'); // Blue color for headers
             if (isTelugu) {
               if (teluguFontRegistered) {
                 doc.fontSize(16).font('NotoSansTelugu').text(text, { underline: true });
@@ -609,14 +628,178 @@ export class DPRService {
             } else {
               doc.fontSize(16).font('Helvetica-Bold').text(text, { underline: true });
             }
+            // Reset to black for subsequent text
+            doc.fillColor('#000000');
+          };
+
+          // Helper function to create a table from data array (for wages, salaries, etc.)
+          // Handles both array of objects and array of arrays
+          const renderDataTable = (data: any[], columns: string[], title?: string) => {
+            if (!data || data.length === 0) return;
+            
+            doc.moveDown(0.5);
+            const tableWidth = 500;
+            const colCount = columns.length;
+            const colWidth = tableWidth / colCount;
+            const rowHeight = 25;
+            
+            let x = doc.x;
+            const startY = doc.y;
+            
+            // Draw header row with light gray background (matching Floor Polish format)
+            doc.rect(x, startY, tableWidth, rowHeight).fill('#D3D3D3');
+            
+            // Draw header text
+            columns.forEach((col, colIndex) => {
+              const cellX = x + (colIndex * colWidth);
+              const cellIsTelugu = isTeluguText(col);
+              doc.fontSize(10).font('Helvetica-Bold');
+              if (cellIsTelugu && teluguFontRegistered) {
+                doc.font('NotoSansTelugu');
+              }
+              doc.fillColor('#000000');
+              doc.text(col, cellX + 5, startY + 7, {
+                width: colWidth - 10,
+                height: rowHeight - 10,
+                align: 'left',
+              });
+            });
+            
+            // Draw data rows
+            data.forEach((row, rowIndex) => {
+              const rowY = startY + ((rowIndex + 1) * rowHeight);
+              
+              // Alternate row background color (white and light blue for better readability)
+              if (rowIndex % 2 === 0) {
+                doc.rect(x, rowY, tableWidth, rowHeight).fill('#F0F8FF'); // Light blue for even rows
+              } else {
+                doc.rect(x, rowY, tableWidth, rowHeight).fill('#FFFFFF'); // White for odd rows
+              }
+              
+              doc.rect(x, rowY, tableWidth, rowHeight).stroke('#CCCCCC');
+              
+              columns.forEach((col, colIndex) => {
+                const cellX = x + (colIndex * colWidth);
+                // Handle both object format (row[col]) and array format (row[colIndex])
+                let cellValue = '';
+                if (Array.isArray(row)) {
+                  // Array format: use index
+                  cellValue = row[colIndex] || '';
+                } else if (typeof row === 'object' && row !== null) {
+                  // Object format: try to find value by column name or by index
+                  cellValue = row[col] || row[col.toLowerCase()] || row[colIndex] || '';
+                } else {
+                  cellValue = String(row || '');
+                }
+                
+                // Format numbers with proper formatting
+                if (typeof cellValue === 'number') {
+                  cellValue = cellValue.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+                } else if (cellValue && !isNaN(parseFloat(cellValue)) && isFinite(cellValue)) {
+                  // If it's a numeric string, format it
+                  cellValue = parseFloat(cellValue).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+                }
+                
+                const cellText = String(cellValue || '');
+                const cellIsTelugu = isTeluguText(cellText);
+                doc.fontSize(10).font('Helvetica');
+                if (cellIsTelugu && teluguFontRegistered) {
+                  doc.font('NotoSansTelugu');
+                }
+                doc.fillColor('#000000');
+                doc.text(cellText, cellX + 5, rowY + 7, {
+                  width: colWidth - 10,
+                  height: rowHeight - 10,
+                  align: 'left',
+                });
+              });
+            });
+            
+            // Draw outer border
+            doc.rect(x, startY, tableWidth, (data.length + 1) * rowHeight).stroke('#000000');
+            
+            // Draw vertical lines
+            for (let i = 1; i < colCount; i++) {
+              const lineX = x + (i * colWidth);
+              doc.moveTo(lineX, startY)
+                .lineTo(lineX, startY + ((data.length + 1) * rowHeight))
+                .stroke('#000000');
+            }
+            
+            doc.fillColor('#000000');
+            doc.moveDown(1);
           };
 
           // Helper function to render section if content exists
+          // Special handling for wages, salaries, and financial projections to ensure tabular format
           const renderSection = (sectionKey: string, label: string) => {
             if (contentLang[sectionKey]) {
               doc.addPage();
               renderSectionHeader(label);
               doc.moveDown();
+              
+              // Special handling for sections that should be in tabular format
+              if (project && (project as any).stepData) {
+                const stepData = (project as any).stepData;
+                
+                if (sectionKey === 'wages' && stepData.wages && Array.isArray(stepData.wages) && stepData.wages.length > 0) {
+                  // Render wages table
+                  const columns = language === 'telugu' 
+                    ? ['వివరాలు', 'కార్మికుల సంఖ్య', 'నెలకు వేతనం', 'మొత్తం']
+                    : ['Particulars', 'No. of Workers', 'Wages per Month', 'Amount'];
+                  renderDataTable(stepData.wages, columns);
+                  doc.moveDown(0.5);
+                } else if (sectionKey === 'salaryDetails' && stepData.salaryDetails?.salaries && Array.isArray(stepData.salaryDetails.salaries) && stepData.salaryDetails.salaries.length > 0) {
+                  // Render salaries table
+                  const columns = language === 'telugu'
+                    ? ['వివరాలు', 'సిబ్బంది సంఖ్య', 'నెలకు జీతం', 'మొత్తం']
+                    : ['Particulars', 'No. of Staff', 'Salary per Month', 'Amount'];
+                  renderDataTable(stepData.salaryDetails.salaries, columns);
+                  doc.moveDown(0.5);
+                } else if (sectionKey === 'financialProjections' && stepData.financialProjections) {
+                  // Try to create a financial projections table if data is available
+                  const financialData = stepData.financialProjections;
+                  
+                  // Create a cost analysis table similar to Floor Polish format if we have the data
+                  if (financialData.costAnalysis || (financialData.fixedCost && financialData.variableCost)) {
+                    doc.moveDown(0.5);
+                    const costTableData = [];
+                    
+                    // Add header row
+                    const costColumns = language === 'telugu'
+                      ? ['వివరాలు', '100%', '60%', '70%', '80%']
+                      : ['Particulars', '100%', '60%', '70%', '80%'];
+                    
+                    // Add rows for Fixed Cost, Variable Cost, Cost of Production, etc.
+                    if (financialData.fixedCost) {
+                      costTableData.push({
+                        'Particulars': language === 'telugu' ? 'స్థిర ఖర్చు' : 'Fixed Cost',
+                        '100%': financialData.fixedCost.total || '0',
+                        '60%': (financialData.fixedCost.total * 0.6).toFixed(2),
+                        '70%': (financialData.fixedCost.total * 0.7).toFixed(2),
+                        '80%': (financialData.fixedCost.total * 0.8).toFixed(2)
+                      });
+                    }
+                    
+                    if (financialData.variableCost) {
+                      costTableData.push({
+                        'Particulars': language === 'telugu' ? 'వేరియబుల్ ఖర్చు' : 'Variable Cost',
+                        '100%': financialData.variableCost.total || '0',
+                        '60%': (financialData.variableCost.total * 0.6).toFixed(2),
+                        '70%': (financialData.variableCost.total * 0.7).toFixed(2),
+                        '80%': (financialData.variableCost.total * 0.8).toFixed(2)
+                      });
+                    }
+                    
+                    if (costTableData.length > 0) {
+                      renderDataTable(costTableData, costColumns);
+                      doc.moveDown(0.5);
+                    }
+                  }
+                }
+              }
+              
+              // Render the content (which may already contain tables)
               addFormattedText(contentLang[sectionKey] || '');
               doc.moveDown();
             }
