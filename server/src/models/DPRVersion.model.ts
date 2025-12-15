@@ -19,6 +19,7 @@ const dprVersionSchema = new Schema<IDPRVersion>(
         technicalFeasibility: { type: String, default: '' },
         financialProjections: { type: String, default: '' },
         conclusion: { type: String, default: '' },
+        eligibleSchemes: { type: String, default: '' },
       },
       telugu: {
         executiveSummary: { type: String, default: '' },
@@ -27,7 +28,22 @@ const dprVersionSchema = new Schema<IDPRVersion>(
         technicalFeasibility: { type: String, default: '' },
         financialProjections: { type: String, default: '' },
         conclusion: { type: String, default: '' },
+        eligibleSchemes: { type: String, default: '' },
       },
+    },
+    // Store eligible schemes data for easy access
+    eligibleSchemes: {
+      selectedSchemes: [String],
+      schemesData: [{
+        schemeCode: String,
+        schemeName: String,
+        description: String,
+        eligibility: Schema.Types.Mixed,
+        benefits: Schema.Types.Mixed,
+        documentsRequired: [String],
+        category: String,
+        portal: String,
+      }],
     },
     financials: {
       type: Schema.Types.Mixed,

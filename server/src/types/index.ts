@@ -105,6 +105,8 @@ export interface IDPRVersion extends Document {
       technicalFeasibility: string;
       financialProjections: string;
       conclusion: string;
+      eligibleSchemes?: string;
+      [key: string]: any; // Allow additional sections
     };
     telugu: {
       executiveSummary: string;
@@ -113,7 +115,22 @@ export interface IDPRVersion extends Document {
       technicalFeasibility: string;
       financialProjections: string;
       conclusion: string;
+      eligibleSchemes?: string;
+      [key: string]: any; // Allow additional sections
     };
+  };
+  eligibleSchemes?: {
+    selectedSchemes?: string[];
+    schemesData?: Array<{
+      schemeCode: string;
+      schemeName: string;
+      description?: string;
+      eligibility?: any;
+      benefits?: any;
+      documentsRequired?: string[];
+      category?: string;
+      portal?: string;
+    }>;
   };
   financials: {
     projectCost: any;

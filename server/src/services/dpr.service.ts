@@ -52,15 +52,27 @@ export class DPRService {
       console.log('Generating financial projections...');
       const financials = FinancialService.generateCompleteFinancials(project);
 
-      // Create DPR
+      // Extract eligible schemes from project
+      const eligibleSchemes = (project as any).eligibleSchemes ? {
+        selectedSchemes: (project as any).eligibleSchemes.selectedSchemes || [],
+        schemesData: (project as any).eligibleSchemes.schemesData || [],
+      } : undefined;
+
+      // Create DPR with eligible schemes
       const dprVersion = await DPRVersion.create({
         projectId,
         content,
         financials,
         language,
+        eligibleSchemes,
         generatedAt: new Date(),
         status: 'draft',
       });
+
+      // Log eligible schemes storage
+      if (eligibleSchemes) {
+        console.log(`📋 Stored ${eligibleSchemes.schemesData?.length || 0} eligible schemes in DPR`);
+      }
 
       // Verify DPR was saved successfully
       if (!dprVersion || !dprVersion._id) {
