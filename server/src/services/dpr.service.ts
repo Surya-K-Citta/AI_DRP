@@ -28,7 +28,7 @@ export class DPRService {
     try {
       // Fetch project with all needed fields including stepData and eligibleSchemes
       const project = await Project.findById(projectId)
-        .select('projectName industrySector projectType totalCost loanAmount location inputs eligibleSchemes stepData')
+        .select('projectName industrySector projectType totalCost loanAmount ownContribution location inputs eligibleSchemes stepData')
         .lean(); // Use lean() for faster queries
       if (!project) {
         throw new Error('Project not found');
@@ -110,8 +110,8 @@ export class DPRService {
     if (!dpr) {
       throw new Error('DPR not found');
     }
-    // Fetch project separately since projectId is stored as String, include stepData
-    const project = await Project.findById(dpr.projectId).select('projectName industrySector projectType totalCost loanAmount location inputs eligibleSchemes stepData');
+    // Fetch project separately since projectId is stored as String, include stepData and ownContribution
+    const project = await Project.findById(dpr.projectId).select('projectName industrySector projectType totalCost loanAmount ownContribution location inputs eligibleSchemes stepData');
     if (project) {
       dpr.projectId = project as any;
     }
@@ -171,31 +171,83 @@ export class DPRService {
   }
 
   /**
+   * Check if Pandoc is available for DOCX to PDF conversion
+   * Pandoc is a universal document converter that supports Telugu well
+   */
+  private static async checkPandocAvailable(): Promise<{ available: boolean; command: string; error?: string }> {
+    try {
+      // Check if pandoc is in PATH
+      await execAsync('pandoc --version');
+      return { available: true, command: 'pandoc' };
+    } catch {
+      return {
+        available: false,
+        command: '',
+        error: 'Pandoc not found. Install from https://pandoc.org/installing.html'
+      };
+    }
+  }
+
+  /**
+   * Convert DOCX to PDF using Pandoc
+   * Pandoc requires a LaTeX distribution (like MiKTeX or TeX Live) for PDF output
+   */
+  private static async convertDocxToPdfWithPandoc(docxPath: string, outputDir: string): Promise<string> {
+    const pdfPath = docxPath.replace('.docx', '.pdf');
+    const pandocCmd = `pandoc "${docxPath}" -o "${pdfPath}" --pdf-engine=xelatex`;
+    
+    console.log(`🔄 Converting DOCX to PDF using Pandoc...`);
+    console.log(`   Command: ${pandocCmd}`);
+    
+    try {
+      await execAsync(pandocCmd, {
+        timeout: 60000,
+        maxBuffer: 10 * 1024 * 1024
+      });
+      
+      if (fs.existsSync(pdfPath)) {
+        console.log('✅ Successfully converted DOCX to PDF using Pandoc');
+        return pdfPath;
+      } else {
+        throw new Error('Pandoc conversion failed - PDF file was not created');
+      }
+    } catch (error: any) {
+      // If xelatex fails, try with pdflatex (less Unicode support but might work)
+      if (error.message.includes('xelatex') || error.message.includes('LaTeX')) {
+        console.log('⚠️  XeLaTeX not available, trying with pdflatex...');
+        const pandocCmdPdflatex = `pandoc "${docxPath}" -o "${pdfPath}" --pdf-engine=pdflatex`;
+        try {
+          await execAsync(pandocCmdPdflatex, {
+            timeout: 60000,
+            maxBuffer: 10 * 1024 * 1024
+          });
+          if (fs.existsSync(pdfPath)) {
+            console.log('✅ Successfully converted DOCX to PDF using Pandoc (pdflatex)');
+            return pdfPath;
+          }
+        } catch (pdflatexError: any) {
+          throw new Error(`Pandoc conversion failed: ${error.message}. Note: Pandoc requires LaTeX (MiKTeX or TeX Live) for PDF output.`);
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Generate PDF document
    * For Telugu: Generate Word document first, then convert to PDF (ensures proper Unicode support)
    * For English: Generate PDF directly (works fine with PDFKit)
    */
   static async generatePDF(dprId: string, language: 'english' | 'telugu'): Promise<Buffer> {
-    // For Telugu language, generate Word document first and convert to PDF
-    // This ensures proper Unicode/encoding support since PDFKit doesn't handle Telugu well
+    // For Telugu language, ALWAYS use Word document conversion to PDF
+    // DOCX library handles Telugu perfectly, so we convert DOCX -> PDF
+    // Try multiple conversion methods in order: LibreOffice -> Pandoc -> Error
     if (language === 'telugu') {
+      console.log('📄 Generating Telugu PDF via Word conversion (DOCX handles Telugu perfectly)...');
+      
       try {
-        console.log('📄 Generating Telugu PDF via Word conversion (ensures proper Unicode support)...');
-        
         // First generate Word document (which handles Telugu perfectly)
         const docxBuffer = await this.generateDOCX(dprId, language);
-        
-        // Check if LibreOffice is available for conversion
-        const libreOfficeCheck = await this.checkLibreOfficeAvailable();
-        
-        if (!libreOfficeCheck.available) {
-          // If LibreOffice is not available, throw clear error
-          throw new Error(
-            `LibreOffice is required for Telugu PDF generation. ${libreOfficeCheck.error || ''}\n\n` +
-            `Alternative: Download the Word document (.docx) which displays Telugu perfectly, ` +
-            `or install LibreOffice from https://www.libreoffice.org/`
-          );
-        }
         
         // Create temporary files
         const tempDir = os.tmpdir();
@@ -205,58 +257,111 @@ export class DPRService {
         fs.writeFileSync(tempDocxPath, docxBuffer);
         console.log(`✅ Generated Word document: ${tempDocxPath}`);
         
-        try {
-          // Convert Word to PDF using LibreOffice
-          const libreOfficeCmd = `${libreOfficeCheck.command} --headless --convert-to pdf --outdir "${tempDir}" "${tempDocxPath}"`;
-          
-          console.log(`🔄 Converting Word to PDF using LibreOffice...`);
-          console.log(`   Command: ${libreOfficeCmd}`);
-          
-          await execAsync(libreOfficeCmd, { 
-            timeout: 30000, // 30 second timeout
-            maxBuffer: 10 * 1024 * 1024 // 10MB buffer
-          });
-          
-          // LibreOffice creates PDF with same name but .pdf extension
-          const generatedPdfPath = tempDocxPath.replace('.docx', '.pdf');
-          
-          // Wait for file to be written (LibreOffice is async)
-          let retries = 10;
-          while (!fs.existsSync(generatedPdfPath) && retries > 0) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            retries--;
-          }
-          
-          if (fs.existsSync(generatedPdfPath)) {
-            const pdfBuffer = fs.readFileSync(generatedPdfPath);
+        let pdfPath: string | null = null;
+        let conversionMethod = '';
+        
+        // Method 1: Try LibreOffice (preferred - best Telugu support)
+        const libreOfficeCheck = await this.checkLibreOfficeAvailable();
+        if (libreOfficeCheck.available) {
+          try {
+            const libreOfficeCmd = `${libreOfficeCheck.command} --headless --convert-to pdf --outdir "${tempDir}" "${tempDocxPath}"`;
             
-            // Clean up temp files
-            try { fs.unlinkSync(tempDocxPath); } catch {}
-            try { fs.unlinkSync(generatedPdfPath); } catch {}
+            console.log(`🔄 Converting Word to PDF using LibreOffice...`);
+            console.log(`   Command: ${libreOfficeCmd}`);
             
-            console.log('✅ Successfully converted Word to PDF for Telugu');
-            return pdfBuffer;
-          } else {
-            throw new Error('LibreOffice conversion failed - PDF file was not created');
+            await execAsync(libreOfficeCmd, { 
+              timeout: 60000,
+              maxBuffer: 10 * 1024 * 1024
+            });
+            
+            pdfPath = tempDocxPath.replace('.docx', '.pdf');
+            
+            // Wait for file to be written
+            let retries = 20;
+            while (!fs.existsSync(pdfPath) && retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 500));
+              retries--;
+            }
+            
+            if (fs.existsSync(pdfPath)) {
+              conversionMethod = 'LibreOffice';
+            } else {
+              throw new Error('LibreOffice conversion failed - PDF file was not created');
+            }
+          } catch (error: any) {
+            console.warn('⚠️  LibreOffice conversion failed:', error.message);
+            console.log('   Trying alternative: Pandoc...');
           }
-        } catch (error: any) {
+        }
+        
+        // Method 2: Try Pandoc (if LibreOffice failed or not available)
+        if (!pdfPath || !fs.existsSync(pdfPath)) {
+          const pandocCheck = await this.checkPandocAvailable();
+          if (pandocCheck.available) {
+            try {
+              pdfPath = await this.convertDocxToPdfWithPandoc(tempDocxPath, tempDir);
+              conversionMethod = 'Pandoc';
+            } catch (error: any) {
+              console.warn('⚠️  Pandoc conversion failed:', error.message);
+            }
+          }
+        }
+        
+        // If we have a successful conversion, return the PDF
+        if (pdfPath && fs.existsSync(pdfPath)) {
+          const pdfBuffer = fs.readFileSync(pdfPath);
+          
           // Clean up temp files
           try { fs.unlinkSync(tempDocxPath); } catch {}
+          try { fs.unlinkSync(pdfPath); } catch {}
           
-          console.error('❌ Error converting Word to PDF:', error);
-          throw new Error(
-            `Failed to convert Word to PDF: ${error.message}\n\n` +
-            `Please ensure LibreOffice is properly installed and accessible. ` +
-            `Alternatively, download the Word document (.docx) which displays Telugu perfectly.`
-          );
+          console.log(`✅ Successfully converted Word to PDF for Telugu using ${conversionMethod}`);
+          return pdfBuffer;
         }
+        
+        // If all methods failed, provide helpful error message
+        const errorMessages = [];
+        if (!libreOfficeCheck.available) {
+          errorMessages.push(`LibreOffice: ${libreOfficeCheck.error || 'Not installed'}`);
+        }
+        const pandocCheck = await this.checkPandocAvailable();
+        if (!pandocCheck.available) {
+          errorMessages.push(`Pandoc: ${pandocCheck.error || 'Not installed'}`);
+        }
+        
+        throw new Error(
+          `No PDF conversion tool available for Telugu PDF generation.\n\n` +
+          `Reason: PDFKit cannot properly handle Telugu fonts, but DOCX generation works perfectly.\n\n` +
+          `Available Solutions:\n` +
+          `1. Install LibreOffice (Recommended): https://www.libreoffice.org/\n` +
+          `   - Best Telugu support and formatting\n` +
+          `   - Free and open-source\n\n` +
+          `2. Install Pandoc: https://pandoc.org/installing.html\n` +
+          `   - Also requires LaTeX (MiKTeX or TeX Live)\n` +
+          `   - Good Unicode support\n\n` +
+          `3. Download DOCX file: The Word document (.docx) displays Telugu perfectly\n` +
+          `   - Can be opened in Microsoft Word, Google Docs, or LibreOffice Writer\n` +
+          `   - Can be converted to PDF manually using any of the above tools\n\n` +
+          `Current Status:\n${errorMessages.map(msg => `   - ${msg}`).join('\n')}`
+        );
       } catch (error: any) {
+        // Clean up temp files
+        try {
+          const tempDir = os.tmpdir();
+          const files = fs.readdirSync(tempDir);
+          files.forEach(file => {
+            if (file.includes(`dpr_${dprId}`)) {
+              try { fs.unlinkSync(path.join(tempDir, file)); } catch {}
+            }
+          });
+        } catch {}
+        
         console.error('Error generating Telugu PDF:', error);
         throw error;
       }
     }
     
-    // For English language, generate PDF directly (works fine with PDFKit)
+    // For English language or Telugu fallback, generate PDF directly using PDFKit
     try {
       const dpr = await this.getDPR(dprId);
       if (!dpr) {
@@ -268,9 +373,11 @@ export class DPRService {
         throw new Error('Project not found for DPR');
       }
 
-      // Safely access content with fallback
+      // Safely access content with fallback - use correct language content
       const content = dpr.content || {};
-      const contentLang = content.english || {};
+      const contentLang = language === 'telugu' 
+        ? (content.telugu || content.english || {}) 
+        : (content.english || {});
 
       if (!contentLang || Object.keys(contentLang).length === 0) {
         throw new Error(`No ${language} content available for this DPR`);
@@ -321,13 +428,32 @@ export class DPRService {
           // Register the font if found
           if (teluguFontPath) {
             try {
+              // Validate font file exists and is readable
+              const fontStats = fs.statSync(teluguFontPath);
+              if (fontStats.size === 0) {
+                throw new Error('Font file is empty');
+              }
+              
+              // Try to read font as Buffer first to validate it
+              const fontBuffer = fs.readFileSync(teluguFontPath);
+              if (fontBuffer.length === 0) {
+                throw new Error('Font file could not be read');
+              }
+              
+              // Register font using the file path (PDFKit handles TTF files)
+              // Note: Font registration might succeed but font usage might fail
+              // We'll handle font usage errors with try-catch blocks throughout the code
               doc.registerFont('NotoSansTelugu', teluguFontPath);
               teluguFontRegistered = true;
-              console.log('✅ Telugu font registered successfully from:', teluguFontPath);
+              console.log('✅ Telugu font registered from:', teluguFontPath);
+              console.log('   Note: Font will be tested when first used. If it fails, will fall back to default font.');
             } catch (fontError: any) {
               console.warn('⚠️  Failed to register Telugu font:', fontError.message);
+              console.warn('   Font file path:', teluguFontPath);
               console.warn('   Telugu text may not render correctly in PDF');
-              console.warn('   Please ensure the font file is valid and accessible');
+              console.warn('   The font file may be corrupted or in an unsupported format');
+              console.warn('   Please re-download the font from: https://fonts.google.com/noto/specimen/Noto+Sans+Telugu');
+              teluguFontRegistered = false;
             }
           } else {
             console.warn('⚠️  Telugu font not found. Tried paths:');
@@ -340,6 +466,28 @@ export class DPRService {
           // Helper function to detect Telugu text (must be defined first)
           const isTeluguText = (text: string): boolean => {
             return /[\u0C00-\u0C7F]/.test(text);
+          };
+
+          // Helper function to safely apply Telugu font with fallback
+          // This handles cases where font registration appears to succeed but actually fails when used
+          const safeApplyTeluguFont = (callback: () => void) => {
+            if (teluguFontRegistered) {
+              try {
+                doc.font('NotoSansTelugu');
+                callback();
+                return true;
+              } catch (fontError: any) {
+                // Font registration appeared to succeed but actually failed when used
+                console.warn('⚠️  Telugu font failed when used, falling back to default font:', fontError.message);
+                teluguFontRegistered = false; // Disable future attempts
+                // Fall through to default font
+                callback();
+                return false;
+              }
+            } else {
+              callback();
+              return false;
+            }
           };
 
           // Detect if content contains Telugu characters
@@ -355,7 +503,9 @@ export class DPRService {
           // For Telugu title, use registered Telugu font if available
           if (titleIsTelugu) {
             if (teluguFontRegistered) {
-              doc.fontSize(24).font('NotoSansTelugu').text(title, { align: 'center' });
+              safeApplyTeluguFont(() => {
+                doc.fontSize(24).text(title, { align: 'center' });
+              });
             } else {
               doc.fontSize(24).text(title, { align: 'center' });
             }
@@ -369,7 +519,9 @@ export class DPRService {
           const projectNameIsTelugu = isTeluguText(project.projectName);
           if (projectNameIsTelugu) {
             if (teluguFontRegistered) {
-              doc.fontSize(18).font('NotoSansTelugu').text(project.projectName, { align: 'center' });
+              safeApplyTeluguFont(() => {
+                doc.fontSize(18).text(project.projectName, { align: 'center' });
+              });
             } else {
               doc.fontSize(18).text(project.projectName, { align: 'center' });
             }
@@ -384,8 +536,12 @@ export class DPRService {
           // Sector and Location
           if (language === 'telugu') {
             if (teluguFontRegistered) {
-              doc.fontSize(12).font('NotoSansTelugu').text(`${sectorLabel}: ${project.industrySector}`, { align: 'center' });
-              doc.font('NotoSansTelugu').text(`${locationLabel}: ${project.location}`, { align: 'center' });
+              safeApplyTeluguFont(() => {
+                doc.fontSize(12).text(`${sectorLabel}: ${project.industrySector}`, { align: 'center' });
+              });
+              safeApplyTeluguFont(() => {
+                doc.text(`${locationLabel}: ${project.location}`, { align: 'center' });
+              });
             } else {
               doc.fontSize(12).text(`${sectorLabel}: ${project.industrySector}`, { align: 'center' });
               doc.text(`${locationLabel}: ${project.location}`, { align: 'center' });
@@ -431,7 +587,12 @@ export class DPRService {
                     const cellIsTelugu = isTeluguText(cell);
                     doc.fontSize(fontSize - 1).font('Helvetica-Bold');
                     if (cellIsTelugu && teluguFontRegistered) {
-                      doc.font('NotoSansTelugu');
+                      try {
+                        doc.font('NotoSansTelugu');
+                      } catch (e) {
+                        // Font failed, continue with default font
+                        teluguFontRegistered = false;
+                      }
                     }
                     doc.fillColor('#000000'); // Black text
                     doc.text(cell, cellX + 5, startY + 5, {
@@ -460,7 +621,12 @@ export class DPRService {
                       const cellIsTelugu = isTeluguText(cell);
                       doc.fontSize(fontSize - 1).font('Helvetica');
                       if (cellIsTelugu && teluguFontRegistered) {
-                        doc.font('NotoSansTelugu');
+                        try {
+                          doc.font('NotoSansTelugu');
+                        } catch (e) {
+                          // Font failed, continue with default font
+                          teluguFontRegistered = false;
+                        }
                       }
                       doc.fillColor('#000000'); // Black text
                       doc.text(cell || '', cellX + 5, rowY + 5, {
@@ -518,11 +684,21 @@ export class DPRService {
                   if (segmentIsTelugu) {
                     // Telugu text - use registered Telugu font
                     if (teluguFontRegistered) {
-                      doc.fontSize(headingFontSize).font('NotoSansTelugu').text(segmentText, { 
-                        align: 'left',
-                        width: 500,
-                        continued: !isLast 
-                      });
+                      try {
+                        doc.fontSize(headingFontSize).font('NotoSansTelugu').text(segmentText, { 
+                          align: 'left',
+                          width: 500,
+                          continued: !isLast 
+                        });
+                      } catch (e) {
+                        // Font failed, fall back to default
+                        teluguFontRegistered = false;
+                        doc.fontSize(headingFontSize).text(segmentText, { 
+                          align: 'left',
+                          width: 500,
+                          continued: !isLast 
+                        });
+                      }
                     } else {
                       // Fallback: try without font (may not render correctly)
                       doc.fontSize(headingFontSize).text(segmentText, { 
@@ -553,11 +729,21 @@ export class DPRService {
                     // Ensure x position is at left margin before rendering text
                     doc.x = 50;
                     if (teluguFontRegistered) {
-                      doc.fontSize(fontSize).font('NotoSansTelugu').text(segmentText, { 
-                        align: 'left', 
-                        width: 500, // Set explicit width for proper alignment
-                        continued: !isLast 
-                      });
+                      try {
+                        doc.fontSize(fontSize).font('NotoSansTelugu').text(segmentText, { 
+                          align: 'left', 
+                          width: 500, // Set explicit width for proper alignment
+                          continued: !isLast 
+                        });
+                      } catch (e) {
+                        // Font failed, fall back to default
+                        teluguFontRegistered = false;
+                        doc.fontSize(fontSize).text(segmentText, { 
+                          align: 'left', 
+                          width: 500, // Set explicit width for proper alignment
+                          continued: !isLast 
+                        });
+                      }
                     } else {
                       // Fallback: try without font (may not render correctly)
                       doc.fontSize(fontSize).text(segmentText, { 
@@ -652,7 +838,13 @@ export class DPRService {
             doc.fillColor('#1E40AF'); // Blue color for headers
             if (isTelugu) {
               if (teluguFontRegistered) {
-                doc.fontSize(16).font('NotoSansTelugu').text(text, { underline: true });
+                try {
+                  doc.fontSize(16).font('NotoSansTelugu').text(text, { underline: true });
+                } catch (e) {
+                  // Font failed, fall back to default
+                  teluguFontRegistered = false;
+                  doc.fontSize(16).text(text, { underline: true });
+                }
               } else {
                 doc.fontSize(16).text(text, { underline: true });
               }
@@ -686,7 +878,12 @@ export class DPRService {
               const cellIsTelugu = isTeluguText(col);
               doc.fontSize(10).font('Helvetica-Bold');
               if (cellIsTelugu && teluguFontRegistered) {
-                doc.font('NotoSansTelugu');
+                try {
+                  doc.font('NotoSansTelugu');
+                } catch (e) {
+                  // Font failed, continue with default font
+                  teluguFontRegistered = false;
+                }
               }
               doc.fillColor('#000000');
               doc.text(col, cellX + 5, startY + 7, {
@@ -735,7 +932,12 @@ export class DPRService {
                 const cellIsTelugu = isTeluguText(cellText);
                 doc.fontSize(10).font('Helvetica');
                 if (cellIsTelugu && teluguFontRegistered) {
-                  doc.font('NotoSansTelugu');
+                  try {
+                    doc.font('NotoSansTelugu');
+                  } catch (e) {
+                    // Font failed, continue with default font
+                    teluguFontRegistered = false;
+                  }
                 }
                 doc.fillColor('#000000');
                 doc.text(cellText, cellX + 5, rowY + 7, {
@@ -923,8 +1125,16 @@ export class DPRService {
           // Eligible Government Schemes
           renderSection('eligibleSchemes', sectionLabels.eligibleSchemes);
 
-          // Financial Tables (if available)
-          if (dpr.financials && dpr.financials.projectCost) {
+          // Financial Tables - Recalculate if needed to ensure data is present
+          let financials = dpr.financials;
+          if (!financials || !financials.projectCost || !financials.meansOfFinance) {
+            // Recalculate financials with current project data
+            console.log('⚠️ Financial data missing or incomplete, recalculating...');
+            financials = FinancialService.generateCompleteFinancials(project);
+          }
+          
+          // Ensure financial data is valid before displaying
+          if (financials && financials.projectCost) {
             doc.addPage();
             renderSectionHeader(sectionLabels.financialSummary);
             doc.moveDown();
@@ -941,7 +1151,13 @@ export class DPRService {
               if (isTeluguText(text)) {
                 // Telugu text - use registered Telugu font if available
                 if (teluguFontRegistered) {
-                  doc.font('NotoSansTelugu').text(text);
+                  try {
+                    doc.font('NotoSansTelugu').text(text);
+                  } catch (e) {
+                    // Font failed, fall back to default
+                    teluguFontRegistered = false;
+                    doc.text(text);
+                  }
                 } else {
                   doc.text(text);
                 }
@@ -951,29 +1167,126 @@ export class DPRService {
               }
             };
             
-            if (dpr.financials.projectCost.fixedCapital) {
-              renderFinancialText(`${fixedCapitalLabel}: ₹${dpr.financials.projectCost.fixedCapital.total?.toLocaleString() || '0'}`);
+            // Helper function to safely format numbers
+            const formatNumber = (value: any): string => {
+              if (value === null || value === undefined || isNaN(value) || value === 0) {
+                return '0';
+              }
+              const numValue = typeof value === 'number' ? value : parseFloat(value);
+              if (isNaN(numValue) || !isFinite(numValue)) {
+                return '0';
+              }
+              return numValue.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+            };
+            
+            // Helper function to safely format percentage
+            const formatPercentage = (value: any): string => {
+              if (value === null || value === undefined || value === '' || value === 'NaN') {
+                return '0.00';
+              }
+              const numValue = typeof value === 'string' ? parseFloat(value) : value;
+              if (isNaN(numValue) || !isFinite(numValue)) {
+                return '0.00';
+              }
+              return parseFloat(numValue.toString()).toFixed(2);
+            };
+            
+            // Get fixed capital total - ensure it's calculated properly
+            let fixedCapitalTotal = financials.projectCost.fixedCapital?.total || 0;
+            
+            // If fixed capital is 0 but we have total project cost, calculate it
+            // Fixed capital = Total Project Cost - Working Capital - Preliminary Expenses
+            if (fixedCapitalTotal === 0) {
+              const totalProjectCost = financials.projectCost.totalProjectCost || project.totalCost || 0;
+              const workingCapitalTotal = financials.projectCost.workingCapital?.total || 0;
+              const preliminaryExpenses = financials.projectCost.preliminaryExpenses || 0;
+              
+              if (totalProjectCost > 0) {
+                // Calculate fixed capital as remainder
+                fixedCapitalTotal = Math.max(0, totalProjectCost - workingCapitalTotal - preliminaryExpenses);
+                
+                // If still 0, estimate as 70% of total cost (typical for MSME projects)
+                if (fixedCapitalTotal === 0 && totalProjectCost > 0) {
+                  fixedCapitalTotal = totalProjectCost * 0.70;
+                }
+              }
             }
-            if (dpr.financials.projectCost.workingCapital) {
-              renderFinancialText(`${workingCapitalLabel}: ₹${dpr.financials.projectCost.workingCapital.total?.toLocaleString() || '0'}`);
+            
+            if (fixedCapitalTotal > 0 || financials.projectCost.fixedCapital) {
+              renderFinancialText(`${fixedCapitalLabel}: ₹${formatNumber(fixedCapitalTotal)}`);
             }
-            if (dpr.financials.projectCost.totalProjectCost) {
-              renderFinancialText(`${totalProjectCostLabel}: ₹${dpr.financials.projectCost.totalProjectCost.toLocaleString()}`);
+            
+            // Get working capital total
+            const workingCapitalTotal = financials.projectCost.workingCapital?.total || 0;
+            if (workingCapitalTotal > 0 || financials.projectCost.workingCapital) {
+              renderFinancialText(`${workingCapitalLabel}: ₹${formatNumber(workingCapitalTotal)}`);
+            }
+            
+            // Get total project cost
+            const totalProjectCost = financials.projectCost.totalProjectCost || project.totalCost || 0;
+            if (totalProjectCost > 0) {
+              renderFinancialText(`${totalProjectCostLabel}: ₹${formatNumber(totalProjectCost)}`);
             }
             doc.moveDown();
 
             // Means of Finance
-            if (dpr.financials.meansOfFinance) {
+            if (financials.meansOfFinance) {
               renderSectionHeader(sectionLabels.meansOfFinance);
               doc.fontSize(10);
               const ownContributionLabel = language === 'telugu' ? 'సొంత సహకారం' : 'Own Contribution';
               const termLoanLabel = language === 'telugu' ? 'టర్మ్ లోన్' : 'Term Loan';
               
-              if (dpr.financials.meansOfFinance.ownContribution) {
-                renderFinancialText(`${ownContributionLabel}: ₹${dpr.financials.meansOfFinance.ownContribution.amount?.toLocaleString() || '0'} (${dpr.financials.meansOfFinance.ownContribution.percentage || 0}%)`);
+              // Get own contribution - calculate if missing
+              let ownContributionAmount = financials.meansOfFinance.ownContribution?.amount || project.ownContribution || 0;
+              let ownContributionPercent = financials.meansOfFinance.ownContribution?.percentage;
+              
+              // If percentage is NaN or invalid, recalculate it
+              if (!ownContributionPercent || ownContributionPercent === 'NaN' || isNaN(parseFloat(ownContributionPercent))) {
+                const totalCost = totalProjectCost || (ownContributionAmount + (financials.meansOfFinance.termLoan?.amount || project.loanAmount || 0));
+                if (totalCost > 0 && ownContributionAmount > 0) {
+                  ownContributionPercent = ((ownContributionAmount / totalCost) * 100).toFixed(2);
+                } else {
+                  ownContributionPercent = '0.00';
+                }
               }
-              if (dpr.financials.meansOfFinance.termLoan) {
-                renderFinancialText(`${termLoanLabel}: ₹${dpr.financials.meansOfFinance.termLoan.amount?.toLocaleString() || '0'} (${dpr.financials.meansOfFinance.termLoan.percentage || 0}%)`);
+              
+              // If amount is 0 but we have totalCost and loanAmount, calculate it
+              if (ownContributionAmount === 0 && totalProjectCost > 0) {
+                const termLoanAmount = financials.meansOfFinance.termLoan?.amount || project.loanAmount || 0;
+                ownContributionAmount = Math.max(totalProjectCost * 0.20, totalProjectCost - termLoanAmount);
+                if (totalProjectCost > 0) {
+                  ownContributionPercent = ((ownContributionAmount / totalProjectCost) * 100).toFixed(2);
+                }
+              }
+              
+              if (ownContributionAmount > 0 || financials.meansOfFinance.ownContribution) {
+                renderFinancialText(`${ownContributionLabel}: ₹${formatNumber(ownContributionAmount)} (${formatPercentage(ownContributionPercent)}%)`);
+              }
+              
+              // Get term loan
+              let termLoanAmount = financials.meansOfFinance.termLoan?.amount || project.loanAmount || 0;
+              let termLoanPercent = financials.meansOfFinance.termLoan?.percentage;
+              
+              // If percentage is NaN or invalid, recalculate it
+              if (!termLoanPercent || termLoanPercent === 'NaN' || isNaN(parseFloat(termLoanPercent))) {
+                const totalCost = totalProjectCost || (ownContributionAmount + termLoanAmount);
+                if (totalCost > 0 && termLoanAmount > 0) {
+                  termLoanPercent = ((termLoanAmount / totalCost) * 100).toFixed(2);
+                } else {
+                  termLoanPercent = '0.00';
+                }
+              }
+              
+              // If amount is 0 but we have totalCost and ownContribution, calculate it
+              if (termLoanAmount === 0 && totalProjectCost > 0) {
+                termLoanAmount = totalProjectCost - ownContributionAmount;
+                if (totalProjectCost > 0) {
+                  termLoanPercent = ((termLoanAmount / totalProjectCost) * 100).toFixed(2);
+                }
+              }
+              
+              if (termLoanAmount > 0 || financials.meansOfFinance.termLoan) {
+                renderFinancialText(`${termLoanLabel}: ₹${formatNumber(termLoanAmount)} (${formatPercentage(termLoanPercent)}%)`);
               }
               doc.moveDown();
             }
@@ -1266,8 +1579,177 @@ export class DPRService {
       ...addSection('financialParameters', sectionLabels.financialParameters),
       ...addSection('beneficiaryInfo', sectionLabels.beneficiaryInfo),
       ...addSection('eligibleSchemes', sectionLabels.eligibleSchemes),
-      ...addSection('conclusion', sectionLabels.conclusion),
     ];
+
+    // Add Financial Summary section if financials are available
+    let financials = dpr.financials;
+    if (!financials || !financials.projectCost || !financials.meansOfFinance) {
+      // Recalculate financials with current project data
+      console.log('⚠️ Financial data missing or incomplete in DOCX, recalculating...');
+      financials = FinancialService.generateCompleteFinancials(project);
+    }
+    
+    if (financials && financials.projectCost) {
+      sectionNumber++;
+      const financialSummaryLabel = language === 'telugu' ? 'ఆర్థిక సారాంశం' : 'Financial Summary';
+      const projectCostBreakdownLabel = language === 'telugu' ? 'ప్రాజెక్ట్ ఖర్చు విభజన:' : 'Project Cost Breakdown:';
+      const meansOfFinanceLabel = language === 'telugu' ? 'ఆర్థిక మార్గాలు:' : 'Means of Finance:';
+      
+      // Helper function to safely format numbers
+      const formatNumber = (value: any): string => {
+        if (value === null || value === undefined || isNaN(value) || value === 0) {
+          return '0';
+        }
+        const numValue = typeof value === 'number' ? value : parseFloat(value);
+        if (isNaN(numValue) || !isFinite(numValue)) {
+          return '0';
+        }
+        return numValue.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+      };
+      
+      // Helper function to safely format percentage
+      const formatPercentage = (value: any): string => {
+        if (value === null || value === undefined || value === '' || value === 'NaN') {
+          return '0.00';
+        }
+        const numValue = typeof value === 'string' ? parseFloat(value) : value;
+        if (isNaN(numValue) || !isFinite(numValue)) {
+          return '0.00';
+        }
+        return parseFloat(numValue.toString()).toFixed(2);
+      };
+      
+      const financialParagraphs: (Paragraph | Table)[] = [
+        new Paragraph({
+          text: `${sectionNumber}. ${financialSummaryLabel}`,
+          heading: HeadingLevel.HEADING_2,
+        }),
+        new Paragraph({
+          text: projectCostBreakdownLabel,
+          heading: HeadingLevel.HEADING_3,
+        }),
+      ];
+      
+      // Get fixed capital total - calculate if missing
+      let fixedCapitalTotal = financials.projectCost.fixedCapital?.total || 0;
+      
+      // If fixed capital is 0 but we have total project cost, calculate it
+      // Fixed capital = Total Project Cost - Working Capital - Preliminary Expenses
+      if (fixedCapitalTotal === 0) {
+        const totalProjectCost = financials.projectCost.totalProjectCost || project.totalCost || 0;
+        const workingCapitalTotal = financials.projectCost.workingCapital?.total || 0;
+        const preliminaryExpenses = financials.projectCost.preliminaryExpenses || 0;
+        
+        if (totalProjectCost > 0) {
+          // Calculate fixed capital as remainder
+          fixedCapitalTotal = Math.max(0, totalProjectCost - workingCapitalTotal - preliminaryExpenses);
+          
+          // If still 0, estimate as 70% of total cost (typical for MSME projects)
+          if (fixedCapitalTotal === 0 && totalProjectCost > 0) {
+            fixedCapitalTotal = totalProjectCost * 0.70;
+          }
+        }
+      }
+      
+      const fixedCapitalLabel = language === 'telugu' ? 'మొత్తం స్థిర మూలధనం' : 'Total Fixed Capital';
+      if (fixedCapitalTotal > 0 || financials.projectCost.fixedCapital) {
+        financialParagraphs.push(new Paragraph({
+          text: `${fixedCapitalLabel}: ₹${formatNumber(fixedCapitalTotal)}`,
+        }));
+      }
+      
+      // Get working capital total
+      const workingCapitalTotal = financials.projectCost.workingCapital?.total || 0;
+      const workingCapitalLabel = language === 'telugu' ? 'మొత్తం పని మూలధనం' : 'Total Working Capital';
+      if (workingCapitalTotal > 0 || financials.projectCost.workingCapital) {
+        financialParagraphs.push(new Paragraph({
+          text: `${workingCapitalLabel}: ₹${formatNumber(workingCapitalTotal)}`,
+        }));
+      }
+      
+      // Get total project cost
+      const totalProjectCost = financials.projectCost.totalProjectCost || project.totalCost || 0;
+      const totalProjectCostLabel = language === 'telugu' ? 'మొత్తం ప్రాజెక్ట్ ఖర్చు' : 'Total Project Cost';
+      if (totalProjectCost > 0) {
+        financialParagraphs.push(new Paragraph({
+          text: `${totalProjectCostLabel}: ₹${formatNumber(totalProjectCost)}`,
+        }));
+      }
+      
+      // Means of Finance
+      if (financials.meansOfFinance) {
+        financialParagraphs.push(new Paragraph({ text: '' }));
+        financialParagraphs.push(new Paragraph({
+          text: meansOfFinanceLabel,
+          heading: HeadingLevel.HEADING_3,
+        }));
+        
+        // Get own contribution - calculate if missing
+        let ownContributionAmount = financials.meansOfFinance.ownContribution?.amount || project.ownContribution || 0;
+        let ownContributionPercent = financials.meansOfFinance.ownContribution?.percentage;
+        
+        // If percentage is NaN or invalid, recalculate it
+        if (!ownContributionPercent || ownContributionPercent === 'NaN' || isNaN(parseFloat(ownContributionPercent))) {
+          const totalCost = totalProjectCost || (ownContributionAmount + (financials.meansOfFinance.termLoan?.amount || project.loanAmount || 0));
+          if (totalCost > 0 && ownContributionAmount > 0) {
+            ownContributionPercent = ((ownContributionAmount / totalCost) * 100).toFixed(2);
+          } else {
+            ownContributionPercent = '0.00';
+          }
+        }
+        
+        // If amount is 0 but we have totalCost and loanAmount, calculate it
+        if (ownContributionAmount === 0 && totalProjectCost > 0) {
+          const termLoanAmount = financials.meansOfFinance.termLoan?.amount || project.loanAmount || 0;
+          ownContributionAmount = Math.max(totalProjectCost * 0.20, totalProjectCost - termLoanAmount);
+          if (totalProjectCost > 0) {
+            ownContributionPercent = ((ownContributionAmount / totalProjectCost) * 100).toFixed(2);
+          }
+        }
+        
+        const ownContributionLabel = language === 'telugu' ? 'సొంత సహకారం' : 'Own Contribution';
+        if (ownContributionAmount > 0 || financials.meansOfFinance.ownContribution) {
+          financialParagraphs.push(new Paragraph({
+            text: `${ownContributionLabel}: ₹${formatNumber(ownContributionAmount)} (${formatPercentage(ownContributionPercent)}%)`,
+          }));
+        }
+        
+        // Get term loan
+        let termLoanAmount = financials.meansOfFinance.termLoan?.amount || project.loanAmount || 0;
+        let termLoanPercent = financials.meansOfFinance.termLoan?.percentage;
+        
+        // If percentage is NaN or invalid, recalculate it
+        if (!termLoanPercent || termLoanPercent === 'NaN' || isNaN(parseFloat(termLoanPercent))) {
+          const totalCost = totalProjectCost || (ownContributionAmount + termLoanAmount);
+          if (totalCost > 0 && termLoanAmount > 0) {
+            termLoanPercent = ((termLoanAmount / totalCost) * 100).toFixed(2);
+          } else {
+            termLoanPercent = '0.00';
+          }
+        }
+        
+        // If amount is 0 but we have totalCost and ownContribution, calculate it
+        if (termLoanAmount === 0 && totalProjectCost > 0) {
+          termLoanAmount = totalProjectCost - ownContributionAmount;
+          if (totalProjectCost > 0) {
+            termLoanPercent = ((termLoanAmount / totalProjectCost) * 100).toFixed(2);
+          }
+        }
+        
+        const termLoanLabel = language === 'telugu' ? 'టర్మ్ లోన్' : 'Term Loan';
+        if (termLoanAmount > 0 || financials.meansOfFinance.termLoan) {
+          financialParagraphs.push(new Paragraph({
+            text: `${termLoanLabel}: ₹${formatNumber(termLoanAmount)} (${formatPercentage(termLoanPercent)}%)`,
+          }));
+        }
+      }
+      
+      allSections.push(...financialParagraphs);
+    }
+
+    allSections.push(
+      ...addSection('conclusion', sectionLabels.conclusion),
+    );
 
     const doc = new Document({
       sections: [
