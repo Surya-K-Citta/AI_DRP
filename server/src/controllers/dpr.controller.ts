@@ -503,7 +503,7 @@ export class DPRController {
       }
 
       const { projectId } = req.params;
-      const { language = 'bilingual' } = req.body;
+      const { language = 'bilingual', stepData } = req.body;
 
       // Verify that the project belongs to the current user
       const { Project } = await import('../models/Project.model');
@@ -524,6 +524,15 @@ export class DPRController {
           message: 'Access denied: This project does not belong to you',
         });
         return;
+      }
+
+      // If stepData is provided in the request, update the project with it
+      // This ensures locally stored stepData is used for DPR generation
+      if (stepData && Object.keys(stepData).length > 0) {
+        console.log('📊 StepData provided in request, updating project...');
+        project.stepData = stepData;
+        await project.save();
+        console.log('✅ Project updated with stepData from request');
       }
 
       console.log(`📝 Generating DPR for project ${projectId} in ${language}...`);

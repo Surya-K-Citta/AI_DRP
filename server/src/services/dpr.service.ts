@@ -44,6 +44,16 @@ export class DPRService {
         console.log('⚠️ No eligibleSchemes found in database for project:', projectId);
       }
 
+      // Debug: Log stepData to verify it's being fetched
+      if ((project as any).stepData) {
+        console.log('📊 StepData fetched from database:', {
+          hasStepData: true,
+          stepDataKeys: Object.keys((project as any).stepData || {}),
+        });
+      } else {
+        console.log('⚠️ No stepData found in database for project:', projectId);
+      }
+
       // Generate AI content with comprehensive step data
       console.log('Generating AI content with comprehensive step data...');
       const content = await OpenAIService.generateCompleteDPR(project, language);
@@ -385,8 +395,9 @@ export class DPRService {
 
       return new Promise((resolve, reject) => {
         try {
-          // PDFKit configuration for better Unicode support
+          // PDFKit configuration for better Unicode support with A4 page layout
           const doc = new PDFDocument({ 
+            size: 'A4',
             margin: 50,
             autoFirstPage: true,
             // Ensure proper encoding for Unicode characters
@@ -1785,7 +1796,7 @@ export class DPRService {
     const sections = dpr.sections || [];
 
     return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ margin: 50 });
+      const doc = new PDFDocument({ margin: 50, size: 'A4' });
       const chunks: Buffer[] = [];
 
       doc.on('data', (chunk) => chunks.push(chunk));

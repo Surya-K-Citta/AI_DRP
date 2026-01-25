@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { Router } from 'express';
 import { DPRController } from '../controllers/dpr.controller';
+import { ClusterDPRController } from '../controllers/clusterDPR.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -50,6 +51,10 @@ router.get('/user/list', DPRController.getUserDPRs);
 // Project-based DPR generation
 router.post('/generate/:projectId', DPRController.generateDPR);
 router.get('/project/:projectId', DPRController.getProjectDPRs);
+
+// Cluster DPR generation
+router.post('/cluster/generate', ClusterDPRController.generateClusterDPR);
+router.get('/cluster/:dprId', ClusterDPRController.getClusterDPR);
 
 // DPR retrieval and download
 router.get('/:dprId', DPRController.getDPR);

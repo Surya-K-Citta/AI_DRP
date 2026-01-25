@@ -340,10 +340,13 @@ class APIClient {
   }
 
   // DPR endpoints
-  async generateDPR(projectId: string, language: string = 'bilingual') {
+  async generateDPR(projectId: string, language: string = 'bilingual', stepData?: any) {
     return this.handleRequest(
       async () => {
-        const response = await this.client.post(`/dpr/generate/${projectId}`, { language });
+        const response = await this.client.post(`/dpr/generate/${projectId}`, { 
+          language,
+          ...(stepData && { stepData }) // Include stepData if provided
+        });
         return response.data;
       },
       () => MockDataService.generateDPR(projectId, language)
@@ -426,6 +429,45 @@ class APIClient {
   async translateToTelugu(dprId: string) {
     const response = await this.client.post(`/dpr/${dprId}/translate/telugu`);
     return response.data;
+  }
+
+  // Cluster DPR endpoints
+  async generateClusterDPR(clusterData: any, language: 'english' | 'telugu' | 'bilingual' = 'bilingual') {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/dpr/cluster/generate', {
+          clusterData,
+          language,
+        });
+        return response.data;
+      },
+      () => {
+        // Mock fallback - return basic structure
+        return Promise.resolve({
+          success: true,
+          data: {
+            dprId: 'mock-cluster-dpr-id',
+            projectId: 'mock-project-id',
+            content: {
+              coverPage: 'Mock Cluster DPR',
+              sections: {},
+            },
+            generatedAt: new Date(),
+            status: 'draft',
+          },
+        });
+      }
+    );
+  }
+
+  async getClusterDPR(dprId: string) {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.get(`/dpr/cluster/${dprId}`);
+        return response.data;
+      },
+      () => MockDataService.getUserDPRs()
+    );
   }
 
   async getUserDPRs() {

@@ -7,15 +7,16 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { ArrowLeft, Save, Download, Eye, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useClusterDPRStore } from '@/store/clusterDPRStore';
 import { ClusterDPRForm } from '@/components/cluster-dpr/ClusterDPRForm';
-import { ClusterDPRPreview } from '@/components/cluster-dpr/ClusterDPRPreview';
+import { ClusterDPRDocumentView } from '@/components/cluster-dpr/ClusterDPRDocumentView';
 import { toast } from 'react-hot-toast';
-import { generateClusterDPR } from '@/lib/clusterDPRGenerator';
+import { api } from '@/lib/api';
 
 export const ClusterDPRCreation: React.FC = () => {
   const navigate = useNavigate();
   const { data, setCurrentStep, saveDraft, setGeneratedDPR } = useClusterDPRStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewMode, setPreviewMode] = useState<'split' | 'form' | 'preview'>('split');
+  const [viewLanguage, setViewLanguage] = useState<'english' | 'telugu'>('english');
 
   const currentStep = data.currentStep || 1;
   const totalSteps = 18;
@@ -58,12 +59,36 @@ export const ClusterDPRCreation: React.FC = () => {
   const handleGenerateDPR = async () => {
     setIsGenerating(true);
     try {
-      const generatedDPR = await generateClusterDPR(data);
-      setGeneratedDPR(generatedDPR);
-      toast.success('DPR generated successfully!');
+      // Validate that at least some data is provided
+      if (!data.step1 || !data.step1.clusterName) {
+        toast.error('Please fill in at least Step 1 (Basic Cluster Details) before generating DPR.');
+        setIsGenerating(false);
+        return;
+      }
+
+      toast.loading('Generating DPR with AI enhancement...', { id: 'generating-dpr' });
+      
+      // Call backend API to generate DPR with OpenAI enhancement
+      const response = await api.generateClusterDPR(data, 'bilingual');
+      
+      if (response.success && response.data) {
+        // Store the generated DPR in the store
+        setGeneratedDPR(response.data.content);
+        
+        // Navigate to view the generated DPR
+        toast.success('DPR generated successfully!', { id: 'generating-dpr' });
+        navigate(`/dpr/view/${response.data.dprId}`);
+      } else {
+        throw new Error(response.message || 'Failed to generate DPR');
+      }
     } catch (error: any) {
       console.error('Error generating DPR:', error);
-      toast.error('Failed to generate DPR. Please try again.');
+      toast.error(
+        error.response?.data?.message || 
+        error.message || 
+        'Failed to generate DPR. Please try again.',
+        { id: 'generating-dpr' }
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -280,9 +305,26 @@ export const ClusterDPRCreation: React.FC = () => {
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent className="flex-1 overflow-y-auto p-0">
-                    <div id="dpr-preview" className="p-6">
-                      <ClusterDPRPreview data={data} />
+                  <CardContent className="flex-1 overflow-y-auto p-0 bg-gray-100">
+                    <div id="dpr-preview" className="bg-white" style={{ minHeight: '100%', width: '100%', padding: '2rem' }}>
+                      <ClusterDPRDocumentView 
+                        dpr={{
+                          content: {
+                            english: {
+                              clusterData: data,
+                              ...data.generatedDPR?.sections,
+                            },
+                          },
+                          metadata: {
+                            clusterData: data,
+                          },
+                        }}
+                        project={{
+                          projectName: data.step1?.clusterName,
+                          projectType: 'cluster',
+                        }}
+                        viewLanguage="english"
+                      />
                     </div>
                   </CardContent>
                 </Card>

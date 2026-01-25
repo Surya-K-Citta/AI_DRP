@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { downloadBlob } from '@/lib/utils';
 import { FormattedText } from '@/utils/textFormatter';
+import { ClusterDPRDocumentView } from '@/components/cluster-dpr/ClusterDPRDocumentView';
 
 export const DPRPreview: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -58,6 +59,8 @@ export const DPRPreview: React.FC = () => {
     }
   }, [dprId]);
 
+  const [isClusterDPR, setIsClusterDPR] = useState(false);
+
   const loadDPR = async () => {
     try {
       setLoading(true);
@@ -77,6 +80,14 @@ export const DPRPreview: React.FC = () => {
       
       setDpr(dprData);
       
+      // Check if this is a cluster DPR (will be updated when project loads)
+      const isCluster = dprData.content?.english?.isClusterDPR || 
+                       dprData.content?.telugu?.isClusterDPR ||
+                       dprData.metadata?.isClusterDPR ||
+                       dprData.content?.english?.clusterData ||
+                       dprData.metadata?.clusterData;
+      setIsClusterDPR(isCluster);
+      
       // Load project data
       if (dprData.projectId) {
         if (typeof dprData.projectId === 'string') {
@@ -84,15 +95,25 @@ export const DPRPreview: React.FC = () => {
             const projectResponse = await api.getProject(dprData.projectId);
             const projectData = projectResponse.data || projectResponse;
             setProject(projectData);
+            // Check if cluster DPR based on project type
+            if (projectData.projectType === 'cluster') {
+              setIsClusterDPR(true);
+            }
           } catch (projectError) {
             console.warn('Failed to load project, using projectId from DPR:', projectError);
             // Use the projectId object if available in dprData
             if (dprData.projectId && typeof dprData.projectId === 'object') {
               setProject(dprData.projectId);
+              if (dprData.projectId.projectType === 'cluster') {
+                setIsClusterDPR(true);
+              }
             }
           }
         } else {
           setProject(dprData.projectId);
+          if (dprData.projectId.projectType === 'cluster') {
+            setIsClusterDPR(true);
+          }
         }
       }
 
@@ -302,13 +323,28 @@ export const DPRPreview: React.FC = () => {
   };
 
   const sections = [
-    { key: 'executiveSummary', titleKey: 'dpr.sections.executiveSummary', icon: FileText },
-    { key: 'businessProfile', titleKey: 'dpr.sections.businessProfile', icon: FileText },
-    { key: 'marketAnalysis', titleKey: 'dpr.sections.marketAnalysis', icon: BarChart3 },
-    { key: 'technicalFeasibility', titleKey: 'dpr.sections.technicalFeasibility', icon: CheckCircle },
-    { key: 'financialProjections', titleKey: 'dpr.sections.financialProjections', icon: BarChart3 },
-    { key: 'eligibleSchemes', titleKey: 'dpr.sections.eligibleSchemes', icon: Award },
-    { key: 'conclusion', titleKey: 'dpr.sections.conclusion', icon: CheckCircle },
+    { key: 'executiveSummary', titleKey: 'dpr.sections.executiveSummary', title: 'Executive Summary', icon: FileText },
+    { key: 'businessProfile', titleKey: 'dpr.sections.businessProfile', title: 'Business Profile', icon: FileText },
+    { key: 'applicantInfo', titleKey: 'dpr.sections.applicantInfo', title: 'Applicant Information', icon: FileText },
+    { key: 'projectAtGlance', titleKey: 'dpr.sections.projectAtGlance', title: 'Project at a Glance', icon: FileText },
+    { key: 'buildingDetails', titleKey: 'dpr.sections.buildingDetails', title: 'Building Details', icon: FileText },
+    { key: 'machineryDetails', titleKey: 'dpr.sections.machineryDetails', title: 'Machinery Details', icon: FileText },
+    { key: 'otherCapitalCosts', titleKey: 'dpr.sections.otherCapitalCosts', title: 'Other Capital Costs', icon: FileText },
+    { key: 'rawMaterials', titleKey: 'dpr.sections.rawMaterials', title: 'Raw Materials', icon: FileText },
+    { key: 'wages', titleKey: 'dpr.sections.wages', title: 'Wages', icon: FileText },
+    { key: 'salaryDetails', titleKey: 'dpr.sections.salaryDetails', title: 'Salary Details', icon: FileText },
+    { key: 'workingCapitalEstimate', titleKey: 'dpr.sections.workingCapitalEstimate', title: 'Working Capital Estimate', icon: FileText },
+    { key: 'powerEstimate', titleKey: 'dpr.sections.powerEstimate', title: 'Power Estimate', icon: FileText },
+    { key: 'overheadExpenses', titleKey: 'dpr.sections.overheadExpenses', title: 'Overhead Expenses', icon: FileText },
+    { key: 'financing', titleKey: 'dpr.sections.financing', title: 'Financing', icon: FileText },
+    { key: 'salesDetails', titleKey: 'dpr.sections.salesDetails', title: 'Sales Details', icon: FileText },
+    { key: 'marketAnalysis', titleKey: 'dpr.sections.marketAnalysis', title: 'Market Analysis', icon: BarChart3 },
+    { key: 'technicalFeasibility', titleKey: 'dpr.sections.technicalFeasibility', title: 'Technical Feasibility', icon: CheckCircle },
+    { key: 'financialProjections', titleKey: 'dpr.sections.financialProjections', title: 'Financial Projections', icon: BarChart3 },
+    { key: 'financialParameters', titleKey: 'dpr.sections.financialParameters', title: 'Financial Parameters', icon: BarChart3 },
+    { key: 'beneficiaryInfo', titleKey: 'dpr.sections.beneficiaryInfo', title: 'Beneficiary Information', icon: FileText },
+    { key: 'eligibleSchemes', titleKey: 'dpr.sections.eligibleSchemes', title: 'Eligible Government Schemes', icon: Award },
+    { key: 'conclusion', titleKey: 'dpr.sections.conclusion', title: 'Conclusion', icon: CheckCircle },
   ];
 
   if (loading) {
@@ -340,13 +376,14 @@ export const DPRPreview: React.FC = () => {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto space-y-6 pb-8">
+      <div className={`${isClusterDPR ? 'w-full max-w-none' : 'max-w-6xl mx-auto'} space-y-6 pb-8`}>
         <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
           {t('dpr.preview.backToDashboard')}
         </Button>
 
-        {/* Header Section */}
+        {/* Header Section - Only show for non-cluster DPRs */}
+        {!isClusterDPR && (
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-secondary p-8 text-white mb-6">
           <div className="relative z-10">
             <div className="flex items-start justify-between mb-4">
@@ -373,8 +410,10 @@ export const DPRPreview: React.FC = () => {
           </div>
           <div className="absolute top-0 right-0 -mt-4 -mr-4 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
         </div>
+        )}
 
-        {/* Action Bar */}
+        {/* Action Bar - Only show for non-cluster DPRs or show simplified for cluster */}
+        {!isClusterDPR && (
         <Card className="border-2 shadow-lg">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between flex-wrap gap-4">
@@ -460,9 +499,54 @@ export const DPRPreview: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+        )}
+        
+        {/* Simplified action bar for cluster DPRs */}
+        {isClusterDPR && (
+          <Card className="border-2 shadow-lg mb-6">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <select
+                    className="h-11 rounded-lg border-2 border-primary/20 bg-background px-4 py-2 text-sm font-medium"
+                    value={viewLanguage}
+                    onChange={(e) => {
+                      const newLang = e.target.value as 'english' | 'telugu';
+                      setViewLanguage(newLang);
+                      i18n.changeLanguage(newLang === 'telugu' ? 'te' : 'en');
+                    }}
+                  >
+                    <option value="english">{t('dpr.english')}</option>
+                    <option value="telugu" disabled={!hasTelugu}>
+                      {t('dpr.telugu')} {!hasTelugu && `(${t('dpr.notAvailable')})`}
+                    </option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDownload('pdf')}
+                    className="border-2 hover:bg-primary/5 hover:border-primary"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    PDF
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDownload('docx')}
+                    className="border-2 hover:bg-secondary/5 hover:border-secondary"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    DOCX
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Quality Score Card */}
-        {qualityFeedback && (
+        {/* Quality Score Card - Only for non-cluster DPRs */}
+        {qualityFeedback && !isClusterDPR && (
           <Card className={`border-2 shadow-lg ${
             qualityScore && qualityScore >= 80 
               ? 'bg-success/5 border-success/30' 
@@ -662,8 +746,15 @@ export const DPRPreview: React.FC = () => {
         )}
 
         {/* DPR Sections */}
-        <div className="space-y-6">
-          {sections.map((section) => {
+        {isClusterDPR ? (
+          <div className="w-full bg-gray-100 p-4">
+            <div className="bg-white shadow-2xl" style={{ minHeight: '100vh' }}>
+              <ClusterDPRDocumentView dpr={dpr} project={project} viewLanguage={viewLanguage} />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {sections.map((section) => {
             const content = dpr.content[viewLanguage]?.[section.key] || '';
             const isEditing = editingSection === section.key;
             const sectionTitle = section.title || t(section.titleKey || '');
@@ -755,7 +846,8 @@ export const DPRPreview: React.FC = () => {
               </Card>
             );
           })}
-        </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

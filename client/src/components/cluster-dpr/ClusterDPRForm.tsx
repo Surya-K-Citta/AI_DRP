@@ -1259,14 +1259,24 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Year of Incorporation</label>
-          <Input
-            type="number"
-            value={stepData.yearOfIncorporation || ''}
-            onChange={(e) => handleInputChange('yearOfIncorporation', parseInt(e.target.value) || 0)}
-            placeholder="YYYY"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Year of Incorporation</label>
+            <Input
+              type="number"
+              value={stepData.yearOfIncorporation || ''}
+              onChange={(e) => handleInputChange('yearOfIncorporation', parseInt(e.target.value) || 0)}
+              placeholder="YYYY"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Submitted To</label>
+            <Input
+              value={stepData.submittedTo || ''}
+              onChange={(e) => handleInputChange('submittedTo', e.target.value)}
+              placeholder="e.g., DIC, District"
+            />
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Objectives</label>

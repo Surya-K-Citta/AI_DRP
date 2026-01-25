@@ -51,7 +51,27 @@ export const DPRGeneration: React.FC = () => {
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      const response = await api.generateDPR(projectId!, selectedLanguage);
+      // Get stepData from project if available, or from local storage
+      let stepData = project?.stepData;
+      
+      // Try to get stepData from local storage if not in project
+      if (!stepData) {
+        try {
+          const savedProgress = localStorage.getItem('dpr-builder-progress');
+          if (savedProgress) {
+            const progress = JSON.parse(savedProgress);
+            if (progress.stepData) {
+              stepData = progress.stepData;
+              console.log('📊 Using stepData from local storage');
+            }
+          }
+        } catch (e) {
+          console.warn('Could not load stepData from local storage:', e);
+        }
+      }
+      
+      // Generate DPR with stepData if available
+      const response = await api.generateDPR(projectId!, selectedLanguage, stepData);
       const dpr = response.data || response;
       setDpr(dpr);
       toast.success(t('dpr.generationSuccess'));
