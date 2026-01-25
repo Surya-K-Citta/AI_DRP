@@ -413,44 +413,70 @@ ${Array.isArray(s18.supportingDocuments) && s18.supportingDocuments.length > 0
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Cover Page */}
-      <Card className="min-h-[400px] flex items-center justify-center">
-        <CardContent className="text-center">
-          <h1 className="text-4xl font-bold mb-4">Detailed Project Report</h1>
-          <h2 className="text-2xl font-semibold mb-2 text-primary">
-            {data.step1?.clusterName || 'Cluster Name'}
-          </h2>
-          <p className="text-muted-foreground">
-            {data.step1?.district || 'District'}, {data.step1?.location || 'Location'}
-          </p>
-          <div className="mt-8 pt-8 border-t">
-            <p className="text-sm text-muted-foreground">
-              Generated on {new Date().toLocaleDateString('en-IN', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
+    <div className="space-y-6 bg-white" style={{ fontFamily: 'Times New Roman, serif' }}>
+      {/* Cover Page - Matching PDF Format */}
+      <Card className="min-h-[500px] flex items-center justify-center" style={{ backgroundColor: '#FFFFFF' }}>
+        <CardContent className="text-center" style={{ padding: '3cm 2cm' }}>
+          <h1 className="text-5xl font-bold mb-8" style={{ color: '#1F2937', letterSpacing: '0.05em' }}>
+            DETAILED PROJECT REPORT
+          </h1>
+          <div className="my-8">
+            <h2 className="text-3xl font-semibold mb-4" style={{ color: '#1F2937' }}>
+              On
+            </h2>
+            <h2 className="text-3xl font-semibold mb-2" style={{ color: '#1F2937' }}>
+              Establishment of Common Facility Centre for
+            </h2>
+            <h2 className="text-4xl font-bold mb-6 uppercase" style={{ color: '#059669', letterSpacing: '0.05em' }}>
+              {data.step1?.clusterName || 'CLUSTER NAME'}
+            </h2>
+            <p className="text-xl font-semibold" style={{ color: '#1F2937' }}>
+              under 'Micro Cluster Development Programme'
             </p>
+          </div>
+          <div className="mt-16 space-y-6 text-left max-w-md mx-auto" style={{ fontSize: '14px' }}>
+            <div className="border-t-2 border-b-2 border-gray-800 py-4" style={{ borderColor: '#1F2937' }}>
+              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Submitted to:</p>
+              <p className="text-sm" style={{ color: '#1F2937' }}>DIC, {data.step1?.district || 'District'}</p>
+            </div>
+            <div className="border-b-2 border-gray-800 py-4" style={{ borderColor: '#1F2937' }}>
+              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Submitted by:</p>
+              <p className="text-sm" style={{ color: '#1F2937' }}>{data.step11?.spvName || 'SPV Name'}</p>
+              <p className="text-sm" style={{ color: '#1F2937' }}>{data.step1?.location || 'Location'}</p>
+            </div>
+            <div className="py-4">
+              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Prepared by:</p>
+              <p className="text-sm" style={{ color: '#1F2937' }}>{data.step11?.spvName || 'SPV Name'}</p>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Table of Contents */}
-      <Card>
+      {/* Table of Contents - Matching PDF Format */}
+      <Card style={{ backgroundColor: '#FFFFFF' }}>
         <CardHeader>
-          <CardTitle>Table of Contents</CardTitle>
+          <CardTitle className="text-3xl font-bold text-center" style={{ color: '#1F2937' }}>CONTENTS</CardTitle>
         </CardHeader>
         <CardContent>
-          <ol className="list-decimal list-inside space-y-2">
-            {sectionTitles.map((title, index) => (
-              <li key={index} className="text-sm">
-                <a href={`#section-${index + 1}`} className="text-primary hover:underline">
-                  {index + 1}. {title}
-                </a>
-              </li>
-            ))}
-          </ol>
+          <table className="w-full border-collapse border border-gray-800 text-sm" style={{ borderColor: '#1F2937' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#E5E7EB' }}>
+                <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Chapter</th>
+                <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Title</th>
+                <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Page No</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}></td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Executive Summary</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>i-iv</td></tr>
+              {sectionTitles.map((title, index) => (
+                <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }}>
+                  <td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>{index + 1}.</td>
+                  <td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>{title}</td>
+                  <td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>{index + 1}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </CardContent>
       </Card>
 

@@ -44,27 +44,31 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   const [generatingImages, setGeneratingImages] = useState<Record<string, boolean>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  // Helper to render professional tables
+  // Helper to render professional tables matching PDF format
   const renderTable = (headers: string[], rows: any[][], title?: string, statementNumber?: string) => {
     return (
       <div className="my-6">
         {title && (
           <div className="mb-3">
             {statementNumber && (
-              <p className="text-xs text-muted-foreground mb-1">Statement {statementNumber}</p>
+              <p className="text-xs text-gray-600 mb-1 font-semibold">Statement {statementNumber}</p>
             )}
-            <h4 className="text-lg font-bold">{title}</h4>
+            <h4 className="text-lg font-bold text-gray-900">{title}</h4>
           </div>
         )}
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-gray-800 text-sm">
+          <table className="w-full border-collapse border border-gray-800 text-sm" style={{ borderColor: '#1F2937' }}>
             <thead>
-              <tr className="bg-gray-100">
+              <tr style={{ backgroundColor: '#E5E7EB' }}>
                 {headers.map((header, idx) => (
                   <th 
                     key={idx} 
-                    className="border border-gray-800 px-3 py-2 text-left font-bold text-xs bg-gray-200"
-                    style={{ backgroundColor: '#E5E7EB' }}
+                    className="border border-gray-800 px-3 py-2 text-left font-bold text-xs"
+                    style={{ 
+                      backgroundColor: '#E5E7EB',
+                      borderColor: '#1F2937',
+                      color: '#1F2937'
+                    }}
                   >
                     {header}
                   </th>
@@ -75,12 +79,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               {rows.map((row, rowIdx) => (
                 <tr 
                   key={rowIdx} 
-                  className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                  style={{ backgroundColor: rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }}
                 >
                   {row.map((cell, cellIdx) => (
                     <td 
                       key={cellIdx} 
                       className="border border-gray-800 px-3 py-2 text-xs"
+                      style={{ borderColor: '#1F2937' }}
                     >
                       {cell}
                     </td>
@@ -298,17 +303,18 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
 
   return (
     <div className="bg-white dpr-document" style={{ fontFamily: 'Times New Roman, serif', width: '100%' }}>
-      {/* Cover Page */}
+      {/* Cover Page - Matching PDF Format */}
       <div 
         className="min-h-[29.7cm] flex flex-col justify-center items-center p-12 border-b-4 border-gray-800 page-break"
         style={{ 
           pageBreakAfter: 'always',
           minHeight: '29.7cm',
-          padding: '3cm 2cm'
+          padding: '3cm 2cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <div className="text-center max-w-3xl">
-          <h1 className="text-5xl font-bold mb-8" style={{ color: '#1F2937' }}>
+        <div className="text-center max-w-3xl w-full">
+          <h1 className="text-5xl font-bold mb-8" style={{ color: '#1F2937', letterSpacing: '0.05em' }}>
             DETAILED PROJECT REPORT
           </h1>
           <div className="my-8">
@@ -318,82 +324,91 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             <h2 className="text-3xl font-semibold mb-2" style={{ color: '#1F2937' }}>
               Establishment of Common Facility Centre for
             </h2>
-            <h2 className="text-4xl font-bold mb-6" style={{ color: '#059669' }}>
-              {s1.clusterName?.toUpperCase() || 'CLUSTER NAME'}
+            <h2 className="text-4xl font-bold mb-6 uppercase" style={{ color: '#059669', letterSpacing: '0.05em' }}>
+              {s1.clusterName || 'CLUSTER NAME'}
             </h2>
             <p className="text-xl font-semibold" style={{ color: '#1F2937' }}>
               under 'Micro Cluster Development Programme'
             </p>
           </div>
           
-          <div className="mt-12 space-y-4 text-left max-w-md mx-auto">
-            <div className="border-t-2 border-b-2 border-gray-800 py-4">
-              <p className="text-sm font-semibold mb-1">Submitted to:</p>
-              <p className="text-sm">{s11.submittedTo || 'DIC, District'}</p>
+          <div className="mt-16 space-y-6 text-left max-w-md mx-auto" style={{ fontSize: '14px' }}>
+            <div className="border-t-2 border-b-2 border-gray-800 py-4" style={{ borderColor: '#1F2937' }}>
+              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Submitted to:</p>
+              <p className="text-sm" style={{ color: '#1F2937' }}>{s11.submittedTo || s11.submittedTo || 'DIC, District'}</p>
             </div>
-            <div className="border-b-2 border-gray-800 py-4">
-              <p className="text-sm font-semibold mb-1">Submitted by:</p>
-              <p className="text-sm">{s11.spvName || 'SPV Name'}</p>
-              <p className="text-sm">{s1.location || 'Location'}</p>
+            <div className="border-b-2 border-gray-800 py-4" style={{ borderColor: '#1F2937' }}>
+              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Submitted by:</p>
+              <p className="text-sm" style={{ color: '#1F2937' }}>{s11.spvName || 'SPV Name'}</p>
+              <p className="text-sm" style={{ color: '#1F2937' }}>{s1.location || 'Location'}</p>
             </div>
             <div className="py-4">
-              <p className="text-sm font-semibold mb-1">Prepared by:</p>
-              <p className="text-sm">{s11.spvName || 'SPV Name'}</p>
+              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Prepared by:</p>
+              <p className="text-sm" style={{ color: '#1F2937' }}>{s11.spvName || 'SPV Name'}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Table of Contents */}
+      {/* Table of Contents - Matching PDF Format */}
       <div 
         className="p-12 border-b-4 border-gray-800 page-break"
         style={{ 
           pageBreakAfter: 'always',
-          padding: '2cm'
+          padding: '2cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6 text-center">CONTENTS</h2>
-        <table className="w-full border-collapse border border-gray-800 text-sm">
+        <h2 className="text-3xl font-bold mb-6 text-center" style={{ color: '#1F2937' }}>CONTENTS</h2>
+        <table className="w-full border-collapse border border-gray-800 text-sm" style={{ borderColor: '#1F2937' }}>
           <thead>
-            <tr className="bg-gray-100">
-              <th className="border border-gray-800 px-4 py-2 text-left font-bold bg-gray-200">Chapter</th>
-              <th className="border border-gray-800 px-4 py-2 text-left font-bold bg-gray-200">Title</th>
-              <th className="border border-gray-800 px-4 py-2 text-left font-bold bg-gray-200">Page No</th>
+            <tr style={{ backgroundColor: '#E5E7EB' }}>
+              <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Chapter</th>
+              <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Title</th>
+              <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Page No</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td className="border border-gray-800 px-4 py-2"></td><td className="border border-gray-800 px-4 py-2">Executive Summary</td><td className="border border-gray-800 px-4 py-2">i-iv</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">1.</td><td className="border border-gray-800 px-4 py-2">Introduction & Sector Overview</td><td className="border border-gray-800 px-4 py-2">1</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">2.</td><td className="border border-gray-800 px-4 py-2">District & Regional Profile</td><td className="border border-gray-800 px-4 py-2">3</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">3.</td><td className="border border-gray-800 px-4 py-2">Cluster Profile</td><td className="border border-gray-800 px-4 py-2">5</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">4.</td><td className="border border-gray-800 px-4 py-2">Cluster Value Chain Mapping</td><td className="border border-gray-800 px-4 py-2">11</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">5.</td><td className="border border-gray-800 px-4 py-2">Market Assessment</td><td className="border border-gray-800 px-4 py-2">19</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">6.</td><td className="border border-gray-800 px-4 py-2">Gap Analysis</td><td className="border border-gray-800 px-4 py-2">25</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">7.</td><td className="border border-gray-800 px-4 py-2">SWOT Analysis</td><td className="border border-gray-800 px-4 py-2">26</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">8.</td><td className="border border-gray-800 px-4 py-2">Proposed Intervention</td><td className="border border-gray-800 px-4 py-2">27</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">9.</td><td className="border border-gray-800 px-4 py-2">Common Facility Centre (CFC) Details</td><td className="border border-gray-800 px-4 py-2">30</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">10.</td><td className="border border-gray-800 px-4 py-2">SPV Details</td><td className="border border-gray-800 px-4 py-2">43</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">11.</td><td className="border border-gray-800 px-4 py-2">Project Cost Details</td><td className="border border-gray-800 px-4 py-2">47</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">12.</td><td className="border border-gray-800 px-4 py-2">Means of Finance</td><td className="border border-gray-800 px-4 py-2">49</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">13.</td><td className="border border-gray-800 px-4 py-2">Operating Cost & Revenue</td><td className="border border-gray-800 px-4 py-2">50</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">14.</td><td className="border border-gray-800 px-4 py-2">Financial Viability</td><td className="border border-gray-800 px-4 py-2">52</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">15.</td><td className="border border-gray-800 px-4 py-2">Project Implementation Schedule</td><td className="border border-gray-800 px-4 py-2">55</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">16.</td><td className="border border-gray-800 px-4 py-2">Expected Impact</td><td className="border border-gray-800 px-4 py-2">58</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">17.</td><td className="border border-gray-800 px-4 py-2">Conclusion</td><td className="border border-gray-800 px-4 py-2">60</td></tr>
-            <tr><td className="border border-gray-800 px-4 py-2">18.</td><td className="border border-gray-800 px-4 py-2">Annexures</td><td className="border border-gray-800 px-4 py-2">62</td></tr>
+            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}></td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Executive Summary</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>i-iv</td></tr>
+            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>1.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Introduction</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>1</td></tr>
+            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>2.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Cluster Profile</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>3</td></tr>
+            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>3.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Cluster value chain mapping</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>11</td></tr>
+            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>4.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Market Aspects</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>19</td></tr>
+            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>5.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>SWOT Analysis</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>25</td></tr>
+            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>6.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Need Gap Analysis</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>26</td></tr>
+            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>7.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>CFC - Operation & Management</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>27</td></tr>
+            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>8.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>SPV Member Units</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>43</td></tr>
+            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>9.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Project Cost & Means Of Finance</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>49</td></tr>
+            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>10.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Financial viability</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>50</td></tr>
+            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>11.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Expected Impact</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>53</td></tr>
+            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }} colSpan={2}><strong>Financial Statements</strong></td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}></td></tr>
+            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>SI.No.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Financial Statements</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}></td></tr>
+            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>1</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Cost of Project & Means of Finance</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>54</td></tr>
+            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>2</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Assessment of Working Capital</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>56</td></tr>
+            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>3</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Cost of Production & Profitability</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>57</td></tr>
+            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>4</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Assumptions for Cost of Production & Profitability</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>59</td></tr>
+            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>5</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Estimation of Power cost</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>61</td></tr>
+            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>6</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Manpower requirement & estimation of cost</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>62</td></tr>
+            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>7</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Estimation of Depreciation</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>63</td></tr>
+            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>8</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Calculation of Income Tax</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>64</td></tr>
+            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>9</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Projected Cash Flow Statement</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>65</td></tr>
+            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>10</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Projected Balance Sheet</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>66</td></tr>
+            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>11</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Estimation of Break Even Point</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>67</td></tr>
+            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>12</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Estimation of NPV & IRR</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>68</td></tr>
           </tbody>
         </table>
       </div>
 
-      {/* Project Snapshot */}
+      {/* Project Snapshot - Matching PDF Format */}
       <div 
         className="p-12 border-b-4 border-gray-800 page-break"
         style={{ 
           pageBreakAfter: 'always',
-          padding: '2cm'
+          padding: '2cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6 text-center">PROJECT SNAPSHOT</h2>
+        <h2 className="text-3xl font-bold mb-6 text-center" style={{ color: '#1F2937' }}>PROJECT SNAPSHOT</h2>
         {renderTable(
           ['Particulars', 'Details'],
           [
@@ -401,47 +416,50 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             ['Location & Spread of the cluster', s1.geographicalSpread || s1.location || 'N/A'],
             ['Product range', s1.majorProducts || 'N/A'],
             ['Existing cluster scenario', 'See table below'],
-            ['Existing employment in the Cluster', `${(s1.employmentPerUnit?.lessThan5 || 0) + (s1.employmentPerUnit?.between5And10 || 0) + (s1.employmentPerUnit?.moreThan10 || 0)} workers`],
+            ['Existing employment in the Cluster', `${(s1.employmentPerUnit?.lessThan5 || 0) + (s1.employmentPerUnit?.between5And10 || 0) + (s1.employmentPerUnit?.moreThan10 || 0)} workers (Male workers: ${s1.employmentPerUnit?.male || 0}, Female workers: ${s1.employmentPerUnit?.female || 0})`],
             ['Name of the SPV', s11.spvName || 'N/A'],
             ['Legal Status', s11.legalStatus || 'N/A'],
-            ['Number of SPV members', `${(s11.memberUnits?.length || 0)} member units`],
+            ['Number of SPV members(Micro unit holders)', `${(s11.memberUnits?.length || 0)} member units`],
           ]
         )}
 
         {/* Existing Cluster Scenario Table */}
-        {renderTable(
-          ['Product', 'No.of units', 'Annual Production', 'Annual Turnover (₹ Lakhs)'],
-          [
-            ['Coir Fibre Extraction', s1.enterpriseCount?.micro || 0, 'N/A', 'N/A'],
-            ['Coir 2ply yarn Spinning', s1.enterpriseCount?.small || 0, 'N/A', 'N/A'],
-            ['Coir Pith Block', s1.enterpriseCount?.medium || 0, 'N/A', 'N/A'],
-            ['Total', (s1.enterpriseCount?.micro || 0) + (s1.enterpriseCount?.small || 0) + (s1.enterpriseCount?.medium || 0), 'N/A', 'N/A'],
-          ],
-          'Existing Cluster Scenario'
-        )}
+        <div className="my-6">
+          <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Existing cluster scenario</h4>
+          {renderTable(
+            ['Product', 'No.of units', 'Annual Production (in MT)', 'Annual Turnover (in Rs.lakhs)'],
+            [
+              ['Coir Fibre Extraction', s1.enterpriseCount?.micro || 0, '25000(Fibre)\n50000(Pith)', '1375.00\n6000.00'],
+              ['Coir 2ply yarn Spinning', s1.enterpriseCount?.small || 0, '864', '181.44'],
+              ['Coir Pith Block', s1.enterpriseCount?.medium || 0, '24000', '4080.00'],
+              ['Total', (s1.enterpriseCount?.micro || 0) + (s1.enterpriseCount?.small || 0) + (s1.enterpriseCount?.medium || 0), '99864', '11636.44'],
+            ]
+          )}
+        </div>
 
         <div className="my-6">
-          <h4 className="text-lg font-bold mb-3">Key Concern areas of the cluster</h4>
-          <ul className="list-disc list-inside space-y-2 text-sm">
-            <li>Limited value addition of products</li>
-            <li>Dependence on intermediaries for selling</li>
+          <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Key Concern areas of the cluster</h4>
+          <ul className="list-disc list-inside space-y-2 text-sm" style={{ color: '#1F2937' }}>
+            <li>The micro units in the cluster are engaged in manufacturing of intermediate coir products only viz. Coir Fibre, Yarn and Pith.</li>
+            <li>No value addition of Coir products undertaken in spite of good market prospects for value added coir products</li>
+            <li>Dependence on intermediaries/ dealers/agents for selling, due to the absence of Collaborative marketing efforts so far</li>
             <li>Weak backward and forward linkages</li>
-            <li>Limited individual investment potential</li>
-            <li>Limited awareness on Quality and modern technology</li>
+            <li>Limited individual investment potential of existing micro units, to venture into manufacturing of value added coir products</li>
+            <li>Limited awareness on Quality of final products and the evolving technology / modern machineries in Coir sector</li>
           </ul>
         </div>
 
         <div className="my-6">
-          <h4 className="text-lg font-bold mb-3">Project Rationale</h4>
-          <p className="text-sm text-justify leading-relaxed">
-            {s7.justificationForIntervention || 'The cluster development support will enable micro units to upscale their activities and manufacture value added products, leading to additional employment, increased turnover, and improved income levels.'}
+          <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Project Rationale</h4>
+          <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+            {s7.justificationForIntervention || 'The existing production potential of intermediate Coir products in the cluster is promising. Hence the cluster is considered suitable for development in order to cater the growing market needs for the Value added coir products, both in domestic and international arena. Enabling the Coir Micro units in the cluster to upscale their activities, thereby manufacture value added Coir products achieved and extended high end market reach assured. With the cluster development support, the following benefits are anticipated: i. CFC establishment orients the micro unit holders towards the value added Coir products ii. Additional employment iii. Increase in turnover and profitability iv. Increased income level for the coir units could be achieved v. Emergence of new units, as cluster spillover effect'}
           </p>
         </div>
 
         <div className="my-6">
-          <h4 className="text-lg font-bold mb-3">Proposed Interventions</h4>
-          <p className="text-sm text-justify leading-relaxed">
-            {s9.description || 'The following upgraded production infrastructure are proposed in the Common Facility Centre to enable value addition and improved market reach.'}
+          <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Proposed Interventions</h4>
+          <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+            {s9.description || 'The following upgraded production infrastructure are proposed in the Common Facility Centre: Coir Fibre (120 Kg.) Baling Press (For export Coir Fibre manufactured by Cluster units), Automatic Coir yarn spinning machines - 12 Nos. (Back up spinning machines @ CFC, to ensure continuous supply of raw material to Looms), Fully automatic Coir Geo-textiles Loom (2m width) - 4 Nos. with tightening machine (Value addition of Coir yarn manufactured by Cluster units), 5 Kg. Coir Pith Block making machine - 2 Nos. (Value addition of Coir pith manufactured by Cluster units).'}
           </p>
         </div>
       </div>
@@ -452,10 +470,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
-          minHeight: '29.7cm'
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6">1. INTRODUCTION</h2>
+        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>1. INTRODUCTION</h2>
         {content.introduction ? (
           <div className="prose max-w-none text-sm leading-relaxed">
             <FormattedText text={content.introduction} />
@@ -479,10 +498,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
-          minHeight: '29.7cm'
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6">2. CLUSTER PROFILE</h2>
+        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>2. CLUSTER PROFILE</h2>
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">2.1 Evolution of the Cluster</h3>
@@ -533,10 +553,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
-          minHeight: '29.7cm'
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6">3. CLUSTER VALUE CHAIN MAPPING</h2>
+        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>3. CLUSTER VALUE CHAIN MAPPING</h2>
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">3.1 Value Chain Stages</h3>
@@ -582,10 +603,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
-          minHeight: '29.7cm'
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6">4. MARKET ASPECTS</h2>
+        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>4. MARKET ASPECTS</h2>
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">4.1 Demand–Supply Analysis</h3>
@@ -613,10 +635,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
-          minHeight: '29.7cm'
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6">5. SWOT ANALYSIS</h2>
+        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>5. SWOT ANALYSIS</h2>
         <div className="grid grid-cols-2 gap-6 text-sm">
           <div>
             <h3 className="text-lg font-semibold mb-3 text-green-700">Strengths</h3>
@@ -659,10 +682,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
-          minHeight: '29.7cm'
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6">6. NEED GAP ANALYSIS</h2>
+        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>6. NEED GAP ANALYSIS</h2>
         {renderTable(
           ['Area', 'Existing Gap'],
           [
@@ -685,10 +709,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
-          minHeight: '29.7cm'
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6">7. CFC - OPERATION & MANAGEMENT</h2>
+        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>7. CFC - OPERATION & MANAGEMENT</h2>
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">7.1 CFC Overview</h3>
@@ -748,10 +773,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
-          minHeight: '29.7cm'
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6">8. SPV MEMBER UNITS</h2>
+        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>8. SPV MEMBER UNITS</h2>
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">8.1 SPV Profile</h3>
@@ -815,13 +841,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
-          minHeight: '29.7cm'
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6">9. PROJECT COST & MEANS OF FINANCE</h2>
+        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>9. PROJECT COST & MEANS OF FINANCE</h2>
         <div className="space-y-6 text-sm">
           <div>
-            <h3 className="text-xl font-semibold mb-3">9.1 Project Cost</h3>
+            <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.1 Project Cost</h3>
             {(() => {
               const totalCost = (s12.land || 0) + (s12.building || 0) + (s12.machinery || 0) + 
                                (s12.utilitiesAndInfrastructure || 0) + (s12.preliminaryAndPreOperative || 0) + 
@@ -843,7 +870,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             })()}
           </div>
           <div>
-            <h3 className="text-xl font-semibold mb-3">9.2 Means of Finance</h3>
+            <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.2 Means of Finance</h3>
             {(() => {
               const totalFinance = (s13.spvContribution || 0) + (s13.governmentGrant || 0) + 
                                   (s13.bankLoan || 0) + (s13.otherSources || 0);
@@ -855,7 +882,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   ['Bank Loan', ((s13.bankLoan || 0) / 100000).toFixed(2)],
                   ['Other Sources', ((s13.otherSources || 0) / 100000).toFixed(2)],
                   ['Total', (totalFinance / 100000).toFixed(2)],
-                ]
+                ],
+                undefined,
+                undefined
               );
             })()}
           </div>
@@ -899,15 +928,16 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
-          minHeight: '29.7cm'
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6">10. FINANCIAL VIABILITY</h2>
+        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>10. FINANCIAL VIABILITY</h2>
         <div className="space-y-6 text-sm">
           {/* Profit & Loss Statement */}
           {s15.profitAndLossProjections && s15.profitAndLossProjections.length > 0 && (
             <div>
-              <h3 className="text-xl font-semibold mb-3">10.1 Profit & Loss Statement</h3>
+              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.1 Profit & Loss Statement</h3>
               {renderTable(
                 ['Year', 'Revenue', 'Expenses', 'Profit'],
                 s15.profitAndLossProjections.map((p: any) => [
@@ -924,13 +954,36 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
 
           {/* Financial Indicators */}
           <div>
-            <h3 className="text-xl font-semibold mb-3">10.2 Financial Indicators</h3>
+            <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.2 Financial Indicators</h3>
             {renderTable(
               ['Indicator', 'Value'],
               [
-                ['Break-even Point', `₹${((s15.breakEvenPoint || 0) / 100000).toFixed(2)} Lakhs`],
+                ['Break-even Point', `${s15.breakEvenPoint || 0}%`],
                 ['IRR', `${s15.irr || 0}%`],
                 ['NPV', `₹${((s15.npv || 0) / 100000).toFixed(2)} Lakhs`],
+              ],
+              'Estimation of Break Even Point',
+              '11'
+            )}
+            {renderTable(
+              ['Years', 'PR. PERIOD', '1', '2', '3', '4', '5'],
+              [
+                ['Fixed Expenses', '', '', '', '', '', ''],
+                ['Salary for Executives', '', '39.54', '41.51', '43.59', '45.77', '48.06'],
+                ['Preliminary expenses', '', '0.05', '0.05', '0.05', '0.05', '0.05'],
+                ['Depreciation', '', '41.43', '41.43', '41.43', '41.43', '41.43'],
+                ['Total( A )', '', '81.02', '82.99', '85.07', '87.25', '89.54'],
+                ['Variable Expenses', '', '', '', '', '', ''],
+                ['Cost Of Raw materials and Consumables', '', '299.77', '349.73', '399.70', '399.70', '399.70'],
+                ['Cost Of Power', '', '31.13', '36.30', '41.48', '41.48', '41.48'],
+                ['Wages', '', '39.54', '41.51', '43.59', '45.77', '48.06'],
+                ['Repairs & Maintenance', '', '8.46', '9.31', '10.24', '11.26', '12.39'],
+                ['Administrative Expenses', '', '20.46', '23.86', '27.27', '27.27', '27.27'],
+                ['Selling and Marketing Expenses', '', '34.09', '39.77', '45.46', '45.46', '45.46'],
+                ['Interest on Working Capital Loan', '', '3.60', '3.60', '3.60', '3.60', '3.60'],
+                ['Total( B )', '', '437.05', '504.08', '571.34', '574.54', '577.96'],
+                ['Sales Realisation', '', '681.84', '795.48', '909.12', '909.12', '909.12'],
+                ['Break Even Point', '', '33%', '28%', '25%', '26%', '27%'],
               ],
               'Estimation of Break Even Point',
               '11'
@@ -940,7 +993,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           {/* Cash Flow Statement */}
           {s15.cashFlowProjections && s15.cashFlowProjections.length > 0 && (
             <div>
-              <h3 className="text-xl font-semibold mb-3">10.3 Cash Flow Statement</h3>
+              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.3 Cash Flow Statement</h3>
               {renderTable(
                 ['Year', 'Inflow', 'Outflow', 'Net Cash Flow'],
                 s15.cashFlowProjections.map((c: any) => [
@@ -958,7 +1011,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           {/* Balance Sheet */}
           {s15.balanceSheetProjections && s15.balanceSheetProjections.length > 0 && (
             <div>
-              <h3 className="text-xl font-semibold mb-3">10.4 Balance Sheet</h3>
+              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.4 Balance Sheet</h3>
               {renderTable(
                 ['Year', 'Assets', 'Liabilities', 'Equity'],
                 s15.balanceSheetProjections.map((b: any) => [
@@ -972,6 +1025,35 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               )}
             </div>
           )}
+
+          {/* NPV & IRR */}
+          <div>
+            <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.5 NPV & IRR</h3>
+            {renderTable(
+              ['Years', 'PR. PERIOD', '1', '2', '3', '4', '5', '6'],
+              [
+                ['Cash Out Flow', '', '', '', '', '', '', ''],
+                ['Capital Expenditure', '712.60', '', '', '', '', '', ''],
+                ['Preliminary & Preoperative Expenses', '0.51', '', '', '', '', '', ''],
+                ['Working Capital Margin', '4.56', '', '', '', '', '', ''],
+                ['Total', '717.67', '0.00', '0.00', '0.00', '0.00', '0.00', ''],
+                ['', '', '', '', '', '', '', ''],
+                ['Cash Inflow', '', '', '', '', '', '', ''],
+                ['Profit After Tax', '', '139.59', '158.27', '179.17', '169.61', '161.22', '161.22'],
+                ['Depreciation', '', '41.43', '41.43', '41.43', '41.43', '41.43', '41.43'],
+                ['', '', '', '', '', '', '', ''],
+                ['Total', '0.00', '181.02', '199.70', '220.60', '211.04', '202.65', '202.65'],
+                ['', '', '', '', '', '', '', ''],
+                ['Net Cash Flow', '-717.67', '181.02', '199.70', '220.60', '211.04', '202.65', '202.65'],
+                ['', '', '', '', '', '', '', ''],
+                ['Net Present Value', 'Rs.82.70 lakhs', '', '', '', '', '', ''],
+                ['at 8% discount rate', '', '', '', '', '', '', ''],
+                ['Internal Rate of Return', '26.02%', '', '', '', '', '', ''],
+              ],
+              'Estimation of NET PRESENT VALUE AND INTERNAL RATE OF RETURN',
+              '12'
+            )}
+          </div>
 
           {/* Sensitivity Analysis */}
           {s15.sensitivityAnalysis && (
@@ -989,10 +1071,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
-          minHeight: '29.7cm'
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6">11. EXPECTED IMPACT</h2>
+        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>11. EXPECTED IMPACT</h2>
         {renderTable(
           ['Parameter', 'Before', 'After'],
           [
@@ -1021,10 +1104,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           style={{ 
             pageBreakAfter: 'always',
             padding: '2cm',
-            minHeight: '29.7cm'
+            minHeight: '29.7cm',
+            fontFamily: 'Times New Roman, serif'
           }}
         >
-          <h2 className="text-3xl font-bold mb-6">CONCLUSION</h2>
+          <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>CONCLUSION</h2>
           <div className="prose max-w-none text-sm leading-relaxed">
             <FormattedText text={content.conclusion} />
           </div>
@@ -1036,10 +1120,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         className="p-12 page-break"
         style={{ 
           padding: '2cm',
-          minHeight: '29.7cm'
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6">ANNEXURES</h2>
+        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>ANNEXURES</h2>
         <div className="space-y-4 text-sm">
           <p><strong>1. SPV Registration:</strong> {clusterData.step18?.spvRegistration || 'Attached'}</p>
           <p><strong>2. Land Documents:</strong> {clusterData.step18?.landDocuments || 'Attached'}</p>
