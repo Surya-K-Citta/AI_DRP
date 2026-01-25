@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import path from 'path';
 import { connectDatabase } from './config/database';
 import routes from './routes';
 import { errorHandler, notFound } from './middleware/errorHandler.middleware';
@@ -26,7 +27,9 @@ const app: Application = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(helmet()); // Security headers
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+})); // Security headers
 app.use(compression()); // Compress responses
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
@@ -35,6 +38,19 @@ app.use(cors({
 app.use(morgan('dev')); // Logging
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Serve uploaded files statically with explicit CORS headers
+app.use('/uploads', (req, res, next) => {
+  const origin = process.env.CORS_ORIGIN || 'http://localhost:5173';
+  res.header('Access-Control-Allow-Origin', origin);
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+}, express.static(path.join(process.cwd(), 'uploads')));
 
 // Rate limiting
 const limiter = rateLimit({

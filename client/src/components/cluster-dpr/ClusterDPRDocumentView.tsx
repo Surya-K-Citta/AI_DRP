@@ -1,7 +1,11 @@
 // @ts-nocheck
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { FormattedText } from '@/utils/textFormatter';
 import { DPRVisualizations } from './DPRVisualizations';
+import { api } from '@/lib/api';
+import { Button } from '@/components/ui/Button';
+import { Upload, Sparkles, Loader2, X } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { 
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   LineChart, Line
@@ -17,6 +21,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   // Extract cluster data
   const clusterData = dpr.content?.[viewLanguage]?.clusterData || dpr.metadata?.clusterData || {};
   const content = dpr.content?.[viewLanguage] || {};
+
+  // Image state management
+  const [images, setImages] = useState<Record<string, string>>({});
+  const [generatingImages, setGeneratingImages] = useState<Record<string, boolean>>({});
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Helper to render professional tables
   const renderTable = (headers: string[], rows: any[][], title?: string, statementNumber?: string) => {
@@ -68,21 +77,182 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     );
   };
 
-  // Render image placeholder
-  const renderImage = (src: string, alt: string, caption?: string) => {
+  // Handle image generation
+  const handleGenerateImage = async (imageId: string, prompt: string, sectionType: string, sectionInfo: any) => {
+    setGeneratingImages({ ...generatingImages, [imageId]: true });
+    try {
+      const result = await api.generateClusterDPRImage(prompt, sectionType, sectionInfo);
+      if (result.success && result.data?.imageUrl) {
+        setImages({ ...images, [imageId]: result.data.imageUrl });
+        toast.success('Image generated successfully!');
+      } else {
+        toast.error(result.message || 'Failed to generate image');
+      }
+    } catch (error: any) {
+      console.error('Error generating image:', error);
+      toast.error(error.message || 'Failed to generate image');
+    } finally {
+      setGeneratingImages({ ...generatingImages, [imageId]: false });
+    }
+  };
+
+  // Handle image upload
+  const handleUploadImage = async (imageId: string, file: File) => {
+    try {
+      const result = await api.uploadClusterDPRImage(file);
+      if (result.success && result.data?.imageUrl) {
+        // Construct full URL for uploaded images
+        // The API returns /uploads/images/filename.png, we need to prepend the server base URL
+        const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        const serverBaseUrl = apiBaseUrl.replace('/api', ''); // Remove /api to get server base
+        const imageUrl = result.data.imageUrl.startsWith('http') 
+          ? result.data.imageUrl 
+          : `${serverBaseUrl}${result.data.imageUrl}`;
+        setImages({ ...images, [imageId]: imageUrl });
+        toast.success('Image uploaded successfully!');
+      } else {
+        toast.error(result.message || 'Failed to upload image');
+      }
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      toast.error(error.message || 'Failed to upload image');
+    }
+  };
+
+  // Handle image removal
+  const handleRemoveImage = (imageId: string) => {
+    const newImages = { ...images };
+    delete newImages[imageId];
+    setImages(newImages);
+    toast.success('Image removed');
+  };
+
+  // Render image with upload/generate options
+  const renderImage = (
+    imageId: string, 
+    src: string, 
+    alt: string, 
+    caption?: string, 
+    sectionType?: string,
+    sectionInfo?: any,
+    defaultPrompt?: string
+  ) => {
+    const currentImage = images[imageId] || src;
+    const isGenerating = generatingImages[imageId];
+    const hasImage = currentImage && currentImage !== '';
+
     return (
       <div className="my-6 text-center">
-        <div className="inline-block border-2 border-gray-300 p-2 bg-white">
-          <img 
-            src={src} 
-            alt={alt} 
-            className="max-w-full h-auto"
-            style={{ maxHeight: '400px' }}
-            onError={(e) => {
-              // Fallback to placeholder
-              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBQbGFjZWhvbGRlcjwvdGV4dD48L3N2Zz4=';
-            }}
-          />
+        <div className="relative inline-block w-full max-w-2xl">
+          {/* Image Preview Area */}
+          <div 
+            className={`relative border-2 border-dashed rounded-lg overflow-hidden transition-all ${
+              hasImage 
+                ? 'border-gray-300 bg-white' 
+                : 'border-blue-300 bg-blue-50/30'
+            }`}
+            style={{ minHeight: '300px' }}
+          >
+            {hasImage ? (
+              <>
+                <img 
+                  src={currentImage} 
+                  alt={alt} 
+                  className="w-full h-auto object-contain"
+                  style={{ maxHeight: '400px', minHeight: '300px' }}
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    // Fallback to placeholder
+                    e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiM5Y2EzYWYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBQbGFjZWhvbGRlcjwvdGV4dD48L3N2Zz4=';
+                  }}
+                />
+                {/* Remove button - shown when image is uploaded */}
+                <button
+                  onClick={() => handleRemoveImage(imageId)}
+                  className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md hover:bg-red-50 hover:text-red-600 transition-colors z-10"
+                  title="Remove image"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full min-h-[300px] p-8">
+                {isGenerating ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+                    <p className="text-sm font-medium text-gray-600">Generating image...</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Image Icon */}
+                    <div className="mb-4">
+                      <svg 
+                        className="w-16 h-16 text-blue-400" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeWidth="2" fill="none"/>
+                        <circle cx="8.5" cy="8.5" r="1.5" strokeWidth="2" fill="none"/>
+                        <polyline points="21 15 16 10 5 21" strokeWidth="2" fill="none"/>
+                      </svg>
+                    </div>
+                    <p className="text-base font-medium text-gray-700 mb-1">
+                      No image
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Action buttons - always visible at the top */}
+          <div className="flex gap-2 justify-center mt-3">
+            <input
+              ref={(el) => (fileInputRefs.current[imageId] = el)}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp,image/jpeg2000"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  handleUploadImage(imageId, file);
+                }
+                // Reset input to allow selecting the same file again
+                e.target.value = '';
+              }}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRefs.current[imageId]?.click()}
+              className="bg-white border-gray-300 hover:bg-gray-50"
+            >
+              <Upload className="h-4 w-4 mr-1.5" />
+              Upload
+            </Button>
+            {sectionType && defaultPrompt && (
+              <Button
+                variant={hasImage ? "outline" : "primary"}
+                size="sm"
+                onClick={() => handleGenerateImage(imageId, defaultPrompt, sectionType, sectionInfo || {})}
+                disabled={isGenerating}
+                className={hasImage ? "bg-white border-gray-300 hover:bg-gray-50 text-gray-700" : ""}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-1.5" />
+                    Generate
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
         {caption && (
           <p className="text-xs text-muted-foreground mt-2 italic">{caption}</p>
@@ -317,8 +487,24 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           <div className="my-6">
             <h4 className="text-lg font-semibold mb-3">📸 Cluster Photos</h4>
             <div className="grid grid-cols-2 gap-4">
-              {renderImage('', 'Cluster Unit Photo 1', 'Sample cluster unit')}
-              {renderImage('', 'Cluster Unit Photo 2', 'Production process')}
+              {renderImage(
+                'cluster-photo-1',
+                '',
+                'Cluster Unit Photo 1',
+                'Sample cluster unit',
+                'clusterProfile',
+                { clusterName: s1.clusterName, location: s1.location, majorProducts: s1.majorProducts },
+                `Professional photograph of ${s1.clusterName || 'a cluster'} unit showing ${s1.majorProducts || 'production facilities'} in ${s1.location || 'the cluster location'}. Realistic, documentary style, business document quality.`
+              )}
+              {renderImage(
+                'cluster-photo-2',
+                '',
+                'Cluster Unit Photo 2',
+                'Production process',
+                'clusterProfile',
+                { clusterName: s1.clusterName, productionProcess: s4.productionProcess },
+                `Professional photograph showing production process at ${s1.clusterName || 'the cluster'} unit. Workers engaged in manufacturing ${s1.majorProducts || 'products'}. Realistic, documentary style, business document quality.`
+              )}
             </div>
           </div>
         </div>
@@ -360,7 +546,15 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           {/* Value chain diagram placeholder */}
           <div className="my-6">
             <h4 className="text-lg font-semibold mb-3">📊 Value Chain Flow Diagram</h4>
-            {renderImage('', 'Value Chain Diagram', 'Value chain flow from raw material to end customer')}
+            {renderImage(
+              'value-chain-diagram',
+              '',
+              'Value Chain Diagram',
+              'Value chain flow from raw material to end customer',
+              'valueChain',
+              { rawMaterials: s5.rawMaterials, valueAdditionStages: s5.valueAdditionStages, clusterName: s1.clusterName },
+              `Professional diagram showing value chain flow for ${s1.clusterName || 'the cluster'} from raw materials through processing and value addition to end customer. Clean, professional business diagram style.`
+            )}
           </div>
         </div>
       </div>
@@ -506,11 +700,27 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           {/* Process flow diagram and machinery images */}
           <div className="my-6">
             <h4 className="text-lg font-semibold mb-3">📊 Process Flow Diagram</h4>
-            {renderImage('', 'Process Flow', 'Manufacturing process flow')}
+            {renderImage(
+              'process-flow-diagram',
+              '',
+              'Process Flow',
+              'Manufacturing process flow',
+              'cfcDetails',
+              { manufacturingProcess: s10.manufacturingProcess, cfcName: s10.name, clusterName: s1.clusterName },
+              `Professional diagram showing manufacturing process flow for ${s10.name || 'the CFC'} at ${s1.clusterName || 'the cluster'}. Clean, professional business diagram style showing process steps.`
+            )}
           </div>
           <div className="my-6">
             <h4 className="text-lg font-semibold mb-3">📸 Machinery Layout</h4>
-            {renderImage('', 'Machinery Layout', 'CFC machinery layout and reference images')}
+            {renderImage(
+              'machinery-layout',
+              '',
+              'Machinery Layout',
+              'CFC machinery layout and reference images',
+              'cfcDetails',
+              { plantAndMachinery: s10.plantAndMachinery, cfcName: s10.name, clusterName: s1.clusterName },
+              `Professional photograph or diagram showing machinery layout at ${s10.name || 'the CFC'} for ${s1.clusterName || 'the cluster'}. Modern industrial equipment arranged in a facility. Realistic, documentary style, business document quality.`
+            )}
           </div>
         </div>
       </div>

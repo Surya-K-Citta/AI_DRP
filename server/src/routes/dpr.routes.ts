@@ -56,6 +56,21 @@ router.get('/project/:projectId', DPRController.getProjectDPRs);
 router.post('/cluster/generate', ClusterDPRController.generateClusterDPR);
 router.get('/cluster/:dprId', ClusterDPRController.getClusterDPR);
 
+// Image generation and upload for Cluster DPR
+router.post('/cluster/images/generate', ClusterDPRController.generateImage);
+router.post('/cluster/images/upload', (req, res, next) => {
+  const upload = ClusterDPRController.getImageUploadMiddleware();
+  upload.single('image')(req, res, (err: any) => {
+    if (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'File upload error',
+      });
+    }
+    next();
+  });
+}, ClusterDPRController.uploadImage);
+
 // DPR retrieval and download
 router.get('/:dprId', DPRController.getDPR);
 router.get('/:dprId/download/pdf', DPRController.downloadPDF);

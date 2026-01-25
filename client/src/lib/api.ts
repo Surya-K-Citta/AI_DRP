@@ -466,7 +466,56 @@ class APIClient {
         const response = await this.client.get(`/dpr/cluster/${dprId}`);
         return response.data;
       },
-      () => MockDataService.getUserDPRs()
+      () => {
+        return Promise.resolve({
+          success: true,
+          data: {
+            content: {},
+            metadata: {},
+          },
+        });
+      }
+    );
+  }
+
+  // Image generation and upload for Cluster DPR
+  async generateClusterDPRImage(prompt: string, sectionType: string, sectionInfo: any) {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/dpr/cluster/images/generate', {
+          prompt,
+          sectionType,
+          sectionInfo,
+        });
+        return response.data;
+      },
+      () => {
+        return Promise.resolve({
+          success: false,
+          message: 'Image generation failed',
+        });
+      }
+    );
+  }
+
+  async uploadClusterDPRImage(file: File) {
+    return this.handleRequest(
+      async () => {
+        const formData = new FormData();
+        formData.append('image', file);
+        const response = await this.client.post('/dpr/cluster/images/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        return response.data;
+      },
+      () => {
+        return Promise.resolve({
+          success: false,
+          message: 'Image upload failed',
+        });
+      }
     );
   }
 
