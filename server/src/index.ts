@@ -28,7 +28,14 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "frame-ancestors": ["'self'", "http://localhost:5000", "http://localhost:5173", "http://localhost:3000"],
+      "frame-src": ["'self'", "http://localhost:5000", "blob:", "data:"],
+    },
+  },
 })); // Security headers
 app.use(compression()); // Compress responses
 app.use(cors({
@@ -46,6 +53,9 @@ app.use('/uploads', (req, res, next) => {
   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   res.header('Access-Control-Allow-Credentials', 'true');
+  // Allow embedding for PDFs and images
+  res.removeHeader('X-Frame-Options');
+  res.removeHeader('Content-Security-Policy');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }

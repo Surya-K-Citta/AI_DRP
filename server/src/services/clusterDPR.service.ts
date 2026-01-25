@@ -115,11 +115,12 @@ For each section, you MUST:
 7. **Include detailed analysis** - Go beyond listing data - analyze, compare, and justify
 8. **Use professional, formal language** - Suitable for government submissions
 9. **Ensure completeness** - No data should be left out
+10. **Avoid redundant subsections** - Do NOT add extra subsection headings like "Sectoral Context", "Strategic Importance", "Additional Analysis" etc. Integrate all content naturally within the main section narrative. Only use subsections when they are part of the standard DPR structure.
 
 SPECIFIC SECTION REQUIREMENTS:
 
 - **Executive Summary**: 600-800 words, comprehensive overview covering all key aspects
-- **Introduction**: 800-1000 words with sector overview, national and state importance, historical context
+- **Introduction**: 800-1000 words with sector overview, national and state importance, historical context. Write as a cohesive narrative without unnecessary subsection headings.
 - **Cluster Profile**: 1000-1200 words with detailed evolution, present status, unit-by-unit analysis, employment details, investment patterns
 - **Value Chain**: 1000-1200 words with complete mapping, all stages detailed, raw materials, value addition at each stage
 - **Market Assessment**: 1000-1200 words with comprehensive demand-supply analysis, competition details, price trends, export potential, market size
@@ -143,7 +144,7 @@ Return a JSON object with this structure:
   "tableOfContents": "Complete table of contents with page numbers",
   "sections": {
     "executiveSummary": "Comprehensive executive summary (600-800 words) covering all key aspects. MUST include actual cluster name: ${clusterName}, location: ${location}, district: ${district}, SPV: ${spvName}, and all key metrics from step1",
-    "introduction": "Extensive introduction section (800-1000 words) with sector overview, national and state importance, historical context, and industry background",
+    "introduction": "Extensive introduction section (800-1000 words) with sector overview, national and state importance, historical context, and industry background. DO NOT add extra subsection headings like 'Sectoral Context' or 'Strategic Importance' - integrate all content naturally within the main introduction narrative.",
     "clusterProfile": "Detailed cluster profile (1000-1200 words) with evolution, present status, unit-by-unit analysis, employment details, investment patterns, and comprehensive cluster characteristics",
     "valueChain": "Complete value chain mapping (1000-1200 words) with all stages detailed, raw materials, value addition at each stage, supply chain analysis, and value chain optimization opportunities",
     "marketAssessment": "Comprehensive market aspects (1000-1200 words) including detailed demand-supply analysis, competition details, price trends, export potential, market size, growth projections, and market entry strategy",
@@ -172,7 +173,7 @@ Return only valid JSON without markdown code blocks.`;
         messages: [
           {
             role: 'system',
-            content: 'You are an expert DPR writer specializing in Cluster Development Projects for government submissions. Generate comprehensive, professional, and detailed project reports with minimum 30 pages. You must use ALL provided data and expand extensively on every section.',
+            content: 'You are an expert DPR writer specializing in Cluster Development Projects for government submissions. Generate comprehensive, professional, and detailed project reports with minimum 30 pages. You must use ALL provided data and expand extensively on every section. IMPORTANT: Do NOT add redundant subsection headings like "Sectoral Context", "Strategic Importance", or "Additional Analysis" - integrate all content naturally within the main section narrative.',
           },
           {
             role: 'user',

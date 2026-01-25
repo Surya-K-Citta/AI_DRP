@@ -360,43 +360,253 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         }}
       >
         <h2 className="text-3xl font-bold mb-6 text-center" style={{ color: '#1F2937' }}>CONTENTS</h2>
-        <table className="w-full border-collapse border border-gray-800 text-sm" style={{ borderColor: '#1F2937' }}>
-          <thead>
-            <tr style={{ backgroundColor: '#E5E7EB' }}>
-              <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Chapter</th>
-              <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Title</th>
-              <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Page No</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}></td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Executive Summary</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>i-iv</td></tr>
-            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>1.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Introduction</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>1</td></tr>
-            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>2.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Cluster Profile</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>3</td></tr>
-            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>3.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Cluster value chain mapping</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>11</td></tr>
-            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>4.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Market Aspects</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>19</td></tr>
-            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>5.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>SWOT Analysis</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>25</td></tr>
-            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>6.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Need Gap Analysis</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>26</td></tr>
-            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>7.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>CFC - Operation & Management</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>27</td></tr>
-            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>8.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>SPV Member Units</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>43</td></tr>
-            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>9.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Project Cost & Means Of Finance</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>49</td></tr>
-            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>10.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Financial viability</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>50</td></tr>
-            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>11.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Expected Impact</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>53</td></tr>
-            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }} colSpan={2}><strong>Financial Statements</strong></td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}></td></tr>
-            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>SI.No.</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Financial Statements</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}></td></tr>
-            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>1</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Cost of Project & Means of Finance</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>54</td></tr>
-            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>2</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Assessment of Working Capital</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>56</td></tr>
-            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>3</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Cost of Production & Profitability</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>57</td></tr>
-            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>4</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Assumptions for Cost of Production & Profitability</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>59</td></tr>
-            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>5</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Estimation of Power cost</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>61</td></tr>
-            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>6</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Manpower requirement & estimation of cost</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>62</td></tr>
-            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>7</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Estimation of Depreciation</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>63</td></tr>
-            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>8</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Calculation of Income Tax</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>64</td></tr>
-            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>9</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Projected Cash Flow Statement</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>65</td></tr>
-            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>10</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Projected Balance Sheet</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>66</td></tr>
-            <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>11</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Estimation of Break Even Point</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>67</td></tr>
-            <tr style={{ backgroundColor: '#F9FAFB' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>12</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Estimation of NPV & IRR</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>68</td></tr>
-          </tbody>
-        </table>
+        {(() => {
+          // Check which sections have data
+          const hasExecutiveSummary = content.executiveSummary || (s1.clusterName || s1.district || s1.location);
+          const hasIntroduction = content.introduction || (s2.sectorType || s2.sectorDescription || s2.nationalImportance);
+          const hasDistrictProfile = s3.geography || s3.climate || s3.infrastructure || s3.keyEconomicActivities || s3.rawMaterialAvailability || s3.industrialInfrastructure || s3.connectivity;
+          const hasClusterProfile = s4.clusterEvolution || s4.productionCapacity || s4.technologyLevel;
+          const hasValueChain = s5.rawMaterials?.length > 0 || s5.valueAdditionStages?.length > 0;
+          const hasMarketAspects = s6.existingDemand || s6.demandSupplyGap || s6.competitorAnalysis || s6.priceTrends || s6.exportPotential;
+          const hasSWOT = s8.strengths?.length > 0 || s8.weaknesses?.length > 0 || s8.opportunities?.length > 0 || s8.threats?.length > 0;
+          const hasGapAnalysis = s7.technologyGaps || s7.infrastructureGaps || s7.skillGaps || s7.marketingGaps || s7.financialGaps || s7.justificationForIntervention;
+          const hasCFCDetails = s10.name || s10.location || s10.plantAndMachinery || s10.manufacturingProcess || s10.capacity;
+          const hasSPVDetails = s11.spvName || s11.legalStatus || s11.memberUnits?.length > 0;
+          const hasProjectCost = (s12.land && s12.land > 0) || (s12.building && s12.building > 0) || (s12.machinery && s12.machinery > 0);
+          const hasOperatingCostRevenue = s14.rawMaterialCost || s14.powerCost || s14.wages || s14.maintenance || s14.administrativeExpenses || s14.marketingExpenses || s14.annualProductionVolume || s14.annualSalesRealization;
+          const hasFinancialViability = s15.profitAndLossProjections?.length > 0 || s15.cashFlowProjections?.length > 0 || s15.balanceSheetProjections?.length > 0 || s15.breakEvenPoint || s15.irr || s15.npv;
+          const hasImplementationSchedule = s16.startDate || (s16.milestones && s16.milestones.length > 0) || s16.totalImplementationPeriod;
+          const hasExpectedImpact = s17.employmentGeneration || s17.turnoverGrowth || s17.exportGrowth || s17.incomeEnhancement || s17.sustainabilityOutcomes?.length > 0;
+          const hasFinancialStatements = (s12.workingCapitalMargin && s12.workingCapitalMargin > 0) || 
+                                        (s14.capacityUtilization || s14.rawMaterialCostPercentage || s14.powerCost) ||
+                                        (s14.manpowerRequirement?.length > 0) ||
+                                        ((s12.building && s12.building > 0) || (s12.machinery && s12.machinery > 0)) ||
+                                        (s15.profitAndLossProjections?.length > 0);
+          const hasConclusion = content.conclusion || true; // Always show conclusion section
+          const hasAnnexures = clusterData.step18?.spvRegistration || clusterData.step18?.landDocuments || 
+                              clusterData.step18?.buildingEstimates || clusterData.step18?.machineryQuotations || 
+                              clusterData.step18?.memberRegistrations || 
+                              (clusterData.step18?.supportingDocuments && clusterData.step18.supportingDocuments.length > 0);
+
+          // Build sections array with page numbers
+          const sections: Array<{chapter: string, title: string, page: string, isHeader?: boolean}> = [];
+          let currentPage = 1; // Start from page 1 after cover page and TOC
+
+          // Executive Summary
+          if (hasExecutiveSummary) {
+            sections.push({ chapter: '', title: 'Executive Summary', page: 'i-iv' });
+          }
+
+          // Main sections
+          if (hasIntroduction) {
+            sections.push({ chapter: '1.', title: 'Introduction', page: currentPage.toString() });
+            currentPage++;
+          }
+          if (hasDistrictProfile) {
+            sections.push({ chapter: '1.5', title: 'District & Regional Profile', page: currentPage.toString() });
+            currentPage++;
+          }
+          if (hasClusterProfile) {
+            sections.push({ chapter: '2.', title: 'Cluster Profile', page: currentPage.toString() });
+            currentPage++;
+          }
+          if (hasValueChain) {
+            sections.push({ chapter: '3.', title: 'Cluster value chain mapping', page: currentPage.toString() });
+            currentPage++;
+          }
+          if (hasMarketAspects) {
+            sections.push({ chapter: '4.', title: 'Market Aspects', page: currentPage.toString() });
+            currentPage++;
+          }
+          if (hasSWOT) {
+            sections.push({ chapter: '5.', title: 'SWOT Analysis', page: currentPage.toString() });
+            currentPage++;
+          }
+          if (hasGapAnalysis) {
+            sections.push({ chapter: '6.', title: 'Need Gap Analysis', page: currentPage.toString() });
+            currentPage++;
+          }
+          if (hasCFCDetails) {
+            sections.push({ chapter: '7.', title: 'CFC - Operation & Management', page: currentPage.toString() });
+            currentPage++;
+          }
+          if (hasSPVDetails) {
+            sections.push({ chapter: '8.', title: 'SPV Member Units', page: currentPage.toString() });
+            currentPage++;
+          }
+          if (hasProjectCost) {
+            sections.push({ chapter: '9.', title: 'Project Cost & Means Of Finance', page: currentPage.toString() });
+            currentPage++;
+          }
+          if (hasOperatingCostRevenue) {
+            sections.push({ chapter: '9.5', title: 'Operating Cost & Revenue', page: currentPage.toString() });
+            currentPage++;
+          }
+          if (hasFinancialViability) {
+            sections.push({ chapter: '10.', title: 'Financial viability', page: currentPage.toString() });
+            currentPage++;
+          }
+          if (hasImplementationSchedule) {
+            sections.push({ chapter: '10.5', title: 'Project Implementation Schedule', page: currentPage.toString() });
+            currentPage++;
+          }
+          if (hasExpectedImpact) {
+            sections.push({ chapter: '11.', title: 'Expected Impact', page: currentPage.toString() });
+            currentPage++;
+          }
+
+          // Financial Statements
+          if (hasFinancialStatements) {
+            sections.push({ chapter: '', title: 'Financial Statements', page: '', isHeader: true });
+            sections.push({ chapter: 'SI.No.', title: 'Financial Statements', page: '' });
+            
+            let statementNum = 1;
+            let statementPage = currentPage;
+            
+            // Cost of Project & Means of Finance (always shown if project cost exists)
+            if (hasProjectCost) {
+              sections.push({ chapter: statementNum.toString(), title: 'Cost of Project & Means of Finance', page: statementPage.toString() });
+              statementNum++;
+              statementPage++;
+            }
+            
+            // Assessment of Working Capital
+            if (s12.workingCapitalMargin && s12.workingCapitalMargin > 0) {
+              sections.push({ chapter: statementNum.toString(), title: 'Assessment of Working Capital', page: statementPage.toString() });
+              statementNum++;
+              statementPage++;
+            }
+            
+            // Cost of Production & Profitability
+            if (s15.profitAndLossProjections?.length > 0) {
+              sections.push({ chapter: statementNum.toString(), title: 'Cost of Production & Profitability', page: statementPage.toString() });
+              statementNum++;
+              statementPage++;
+            }
+            
+            // Assumptions
+            if (s14.capacityUtilization || s14.rawMaterialCostPercentage || s14.powerCost || s14.depreciationRate || s14.interestRate) {
+              sections.push({ chapter: statementNum.toString(), title: 'Assumptions for Cost of Production & Profitability', page: statementPage.toString() });
+              statementNum++;
+              statementPage++;
+            }
+            
+            // Power Cost
+            if (s14.powerCost) {
+              sections.push({ chapter: statementNum.toString(), title: 'Estimation of Power cost', page: statementPage.toString() });
+              statementNum++;
+              statementPage++;
+            }
+            
+            // Manpower
+            if (s14.manpowerRequirement?.length > 0 || (s17.employmentGeneration && s17.employmentGeneration > 0)) {
+              sections.push({ chapter: statementNum.toString(), title: 'Manpower requirement & estimation of cost', page: statementPage.toString() });
+              statementNum++;
+              statementPage++;
+            }
+            
+            // Depreciation
+            if ((s12.building && s12.building > 0) || (s12.machinery && s12.machinery > 0) || s14.depreciationDetails) {
+              sections.push({ chapter: statementNum.toString(), title: 'Estimation of Depreciation', page: statementPage.toString() });
+              statementNum++;
+              statementPage++;
+            }
+            
+            // Income Tax
+            if (s15.profitAndLossProjections?.length > 0) {
+              sections.push({ chapter: statementNum.toString(), title: 'Calculation of Income Tax', page: statementPage.toString() });
+              statementNum++;
+              statementPage++;
+            }
+            
+            // Cash Flow
+            if (s15.cashFlowProjections?.length > 0) {
+              sections.push({ chapter: statementNum.toString(), title: 'Projected Cash Flow Statement', page: statementPage.toString() });
+              statementNum++;
+              statementPage++;
+            }
+            
+            // Balance Sheet
+            if (s15.balanceSheetProjections?.length > 0) {
+              sections.push({ chapter: statementNum.toString(), title: 'Projected Balance Sheet', page: statementPage.toString() });
+              statementNum++;
+              statementPage++;
+            }
+            
+            // Break Even Point
+            if (s15.breakEvenPoint) {
+              sections.push({ chapter: statementNum.toString(), title: 'Estimation of Break Even Point', page: statementPage.toString() });
+              statementNum++;
+              statementPage++;
+            }
+            
+            // NPV & IRR
+            if (s15.npv || s15.irr) {
+              sections.push({ chapter: statementNum.toString(), title: 'Estimation of NPV & IRR', page: statementPage.toString() });
+              statementNum++;
+              statementPage++;
+            }
+            
+            currentPage = statementPage;
+          }
+
+          // Conclusion
+          if (hasConclusion) {
+            sections.push({ chapter: '', title: 'Conclusion', page: currentPage.toString() });
+            currentPage++;
+          }
+
+          // Annexures
+          if (hasAnnexures) {
+            // Count annexure files to calculate pages
+            let annexureFileCount = 0;
+            if (clusterData.step18?.spvRegistration) annexureFileCount++;
+            if (clusterData.step18?.landDocuments) annexureFileCount++;
+            if (clusterData.step18?.buildingEstimates) annexureFileCount++;
+            if (clusterData.step18?.machineryQuotations) annexureFileCount++;
+            if (clusterData.step18?.memberRegistrations) annexureFileCount++;
+            if (clusterData.step18?.supportingDocuments && Array.isArray(clusterData.step18.supportingDocuments)) {
+              annexureFileCount += clusterData.step18.supportingDocuments.length;
+            }
+            
+            // Annexures cover page (1 page) + each file page
+            const annexureStartPage = currentPage;
+            const annexureEndPage = annexureFileCount > 0 ? currentPage + annexureFileCount : currentPage;
+            // If only cover page, show single page number, otherwise show range
+            const annexurePageNumber = annexureFileCount > 0 ? `${annexureStartPage}-${annexureEndPage}` : annexureStartPage.toString();
+            sections.push({ chapter: '', title: 'Annexures', page: annexurePageNumber });
+          }
+
+          return (
+            <table className="w-full border-collapse border border-gray-800 text-sm" style={{ borderColor: '#1F2937' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#E5E7EB' }}>
+                  <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Chapter</th>
+                  <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Title</th>
+                  <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Page No</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sections.map((section, idx) => (
+                  <tr 
+                    key={idx} 
+                    style={{ backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }}
+                  >
+                    <td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>
+                      {section.isHeader ? <strong>{section.chapter}</strong> : section.chapter}
+                    </td>
+                    <td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>
+                      {section.isHeader ? <strong>{section.title}</strong> : section.title}
+                    </td>
+                    <td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>
+                      {section.page}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          );
+        })()}
       </div>
 
       {/* Project Snapshot - Matching PDF Format */}
@@ -499,13 +709,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               );
             }
             return (
-              <ul className="list-disc list-inside space-y-2 text-sm" style={{ color: '#1F2937' }}>
-                <li>Limited value addition of products</li>
-                <li>Dependence on intermediaries/ dealers/agents for selling, due to the absence of collaborative marketing efforts</li>
-                <li>Weak backward and forward linkages</li>
-                <li>Limited individual investment potential of existing micro units</li>
-                <li>Limited awareness on quality of final products and evolving technology / modern machineries</li>
-              </ul>
+              <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>
             );
           })()}
         </div>
@@ -513,23 +717,117 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         <div className="my-6">
           <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Project Rationale</h4>
           <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
-            {s7.justificationForIntervention || 'The existing production potential in the cluster is promising. Hence the cluster is considered suitable for development in order to cater the growing market needs for value added products, both in domestic and international arena. Enabling the micro units in the cluster to upscale their activities, thereby manufacture value added products and extended high end market reach assured. With the cluster development support, the following benefits are anticipated: i. CFC establishment orients the micro unit holders towards value added products ii. Additional employment iii. Increase in turnover and profitability iv. Increased income level for the units could be achieved v. Emergence of new units, as cluster spillover effect'}
+            {s7.justificationForIntervention || 'N/A'}
           </p>
         </div>
 
         <div className="my-6">
           <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Proposed Interventions</h4>
-          <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
-            {s9.description || 'The following upgraded production infrastructure are proposed in the Common Facility Centre to enable value addition and improved market reach for cluster units.'}
-          </p>
+          {s9.interventionType && (
+            <p className="text-sm mb-2" style={{ color: '#1F2937' }}>
+              <strong>Intervention Type:</strong> {s9.interventionType}
+            </p>
+          )}
+          {s9.description ? (
+            <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+              {s9.description}
+            </p>
+          ) : (
+            <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>
+          )}
           {s9.objectives && s9.objectives.length > 0 && (
-            <ul className="list-disc list-inside space-y-2 text-sm mt-3" style={{ color: '#1F2937' }}>
-              {s9.objectives.map((objective: string, idx: number) => (
-                <li key={idx}>{objective}</li>
-              ))}
-            </ul>
+            <div className="mt-3">
+              <p className="text-sm font-semibold mb-2" style={{ color: '#1F2937' }}>Objectives:</p>
+              <ul className="list-disc list-inside space-y-2 text-sm" style={{ color: '#1F2937' }}>
+                {s9.objectives.map((objective: string, idx: number) => (
+                  <li key={idx}>{objective}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {s9.expectedBenefits && s9.expectedBenefits.length > 0 && (
+            <div className="mt-3">
+              <p className="text-sm font-semibold mb-2" style={{ color: '#1F2937' }}>Expected Benefits:</p>
+              <ul className="list-disc list-inside space-y-2 text-sm" style={{ color: '#1F2937' }}>
+                {s9.expectedBenefits.map((benefit: string, idx: number) => (
+                  <li key={idx}>{benefit}</li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
+      </div>
+
+      {/* Executive Summary */}
+      <div 
+        className="p-12 border-b-4 border-gray-800 page-break"
+        style={{ 
+          pageBreakAfter: 'always',
+          padding: '2cm',
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
+        }}
+      >
+        <h2 className="text-3xl font-bold mb-6 text-center" style={{ color: '#1F2937' }}>EXECUTIVE SUMMARY</h2>
+        {content.executiveSummary ? (
+          <div className="prose max-w-none text-sm leading-relaxed">
+            <FormattedText text={content.executiveSummary} />
+          </div>
+        ) : (
+          <div className="space-y-6 text-sm">
+            <div>
+              <h3 className="text-xl font-semibold mb-3">1.1 Basic Cluster Details</h3>
+              {renderTable(
+                ['Parameter', 'Details'],
+                [
+                  ['Cluster Name', s1.clusterName || 'N/A'],
+                  ['District', s1.district || 'N/A'],
+                  ['Location', s1.location || 'N/A'],
+                  ['Geographical Spread', s1.geographicalSpread || 'N/A'],
+                  ['Nature of Business', s1.natureOfBusiness || 'N/A'],
+                  ['Major Products', s1.majorProducts || 'N/A'],
+                ]
+              )}
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-3">1.2 Enterprise Profile</h3>
+              {renderTable(
+                ['Category', 'Count'],
+                [
+                  ['Micro Enterprises', s1.enterpriseCount?.micro || 0],
+                  ['Small Enterprises', s1.enterpriseCount?.small || 0],
+                  ['Medium Enterprises', s1.enterpriseCount?.medium || 0],
+                  ['Total Enterprises', (s1.enterpriseCount?.micro || 0) + (s1.enterpriseCount?.small || 0) + (s1.enterpriseCount?.medium || 0)],
+                ]
+              )}
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-3">1.3 Employment Profile</h3>
+              {renderTable(
+                ['Category', 'Count'],
+                [
+                  ['Units with < 5 employees', s1.employmentPerUnit?.lessThan5 || 0],
+                  ['Units with 5-10 employees', s1.employmentPerUnit?.between5And10 || 0],
+                  ['Units with > 10 employees', s1.employmentPerUnit?.moreThan10 || 0],
+                  ['Male Workers', s1.employmentPerUnit?.male || 0],
+                  ['Female Workers', s1.employmentPerUnit?.female || 0],
+                ]
+              )}
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-3">1.4 Financial Indicators</h3>
+              {renderTable(
+                ['Indicator', 'Value'],
+                [
+                  ['Average Investment per Unit', s1.investmentPerUnit ? `₹${(s1.investmentPerUnit / 100000).toFixed(2)} Lakhs` : 'N/A'],
+                  ['Average Turnover per Unit', s1.turnoverPerUnit ? `₹${(s1.turnoverPerUnit / 100000).toFixed(2)} Lakhs` : 'N/A'],
+                  ['Market Served - Domestic', s1.marketServed?.domestic ? `${s1.marketServed.domestic}%` : 'N/A'],
+                  ['Market Served - Export', s1.marketServed?.export ? `${s1.marketServed.export}%` : 'N/A'],
+                ]
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Section 1: Introduction */}
@@ -560,6 +858,78 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         )}
       </div>
 
+      {/* Section 1.5: District & Regional Profile */}
+      {(s3.geography || s3.climate || s3.infrastructure || s3.keyEconomicActivities || s3.rawMaterialAvailability || s3.industrialInfrastructure || s3.connectivity) && (
+        <div 
+          className="p-12 border-b-4 border-gray-800 page-break"
+          style={{ 
+            pageBreakAfter: 'always',
+            padding: '2cm',
+            minHeight: '29.7cm',
+            fontFamily: 'Times New Roman, serif'
+          }}
+        >
+          <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>1.5 DISTRICT & REGIONAL PROFILE</h2>
+          <div className="space-y-6 text-sm">
+            {s3.geography && (
+              <div>
+                <h3 className="text-xl font-semibold mb-3">1.5.1 Geography</h3>
+                <p className="text-justify leading-relaxed">{s3.geography}</p>
+              </div>
+            )}
+            {s3.climate && (
+              <div>
+                <h3 className="text-xl font-semibold mb-3">1.5.2 Climate</h3>
+                <p className="text-justify leading-relaxed">{s3.climate}</p>
+              </div>
+            )}
+            {s3.infrastructure && (
+              <div>
+                <h3 className="text-xl font-semibold mb-3">1.5.3 Infrastructure</h3>
+                <p className="text-justify leading-relaxed">{s3.infrastructure}</p>
+              </div>
+            )}
+            {s3.keyEconomicActivities && (
+              <div>
+                <h3 className="text-xl font-semibold mb-3">1.5.4 Key Economic Activities</h3>
+                <p className="text-justify leading-relaxed">{s3.keyEconomicActivities}</p>
+              </div>
+            )}
+            {(s3.rawMaterialAvailability || s3.rawMaterialQuantity) && (
+              <div>
+                <h3 className="text-xl font-semibold mb-3">1.5.5 Raw Material Availability</h3>
+                {renderTable(
+                  ['Parameter', 'Details'],
+                  [
+                    ['Availability', s3.rawMaterialAvailability || 'N/A'],
+                    ['Quantity', s3.rawMaterialQuantity || 'N/A'],
+                  ]
+                )}
+              </div>
+            )}
+            {s3.industrialInfrastructure && (
+              <div>
+                <h3 className="text-xl font-semibold mb-3">1.5.6 Industrial Infrastructure</h3>
+                <p className="text-justify leading-relaxed">{s3.industrialInfrastructure}</p>
+              </div>
+            )}
+            {(s3.connectivity?.road || s3.connectivity?.rail || s3.connectivity?.port) && (
+              <div>
+                <h3 className="text-xl font-semibold mb-3">1.5.7 Connectivity</h3>
+                {renderTable(
+                  ['Mode', 'Details'],
+                  [
+                    ['Road', s3.connectivity?.road || 'N/A'],
+                    ['Rail', s3.connectivity?.rail || 'N/A'],
+                    ['Port', s3.connectivity?.port || 'N/A'],
+                  ]
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Section 2: Cluster Profile */}
       <div 
         className="p-12 border-b-4 border-gray-800 page-break"
@@ -585,9 +955,21 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 ['Production Capacity', s4.productionCapacity || 'N/A'],
                 ['Technology Level', s4.technologyLevel || 'N/A'],
                 ['Year of Establishment', s4.yearOfEstablishment || 'N/A'],
+                ['Type of Units', s4.typeOfUnits || 'N/A'],
+                ['Present Activities', s4.presentActivities || 'N/A'],
               ]
             )}
           </div>
+          {s4.stakeholders && s4.stakeholders.length > 0 && (
+            <div>
+              <h3 className="text-xl font-semibold mb-3">2.3 Key Stakeholders</h3>
+              <ul className="list-disc list-inside space-y-2 text-sm">
+                {s4.stakeholders.map((stakeholder: string, idx: number) => (
+                  <li key={idx}>{stakeholder}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           {/* Image placeholder for cluster photos */}
           <div className="my-6">
             <h4 className="text-lg font-semibold mb-3">📸 Cluster Photos</h4>
@@ -648,6 +1030,36 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 )}
               </div>
             )}
+            {s5.intermediateProducts && s5.intermediateProducts.length > 0 && (
+              <div className="my-4">
+                <h4 className="font-semibold mb-2">Intermediate Products:</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  {s5.intermediateProducts.map((product: string, idx: number) => (
+                    <li key={idx}>{product}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {s5.finalProducts && s5.finalProducts.length > 0 && (
+              <div className="my-4">
+                <h4 className="font-semibold mb-2">Final Products:</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  {s5.finalProducts.map((product: string, idx: number) => (
+                    <li key={idx}>{product}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {s5.majorBuyers && s5.majorBuyers.length > 0 && (
+              <div className="my-4">
+                <h4 className="font-semibold mb-2">Major Buyers:</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  {s5.majorBuyers.map((buyer: string, idx: number) => (
+                    <li key={idx}>{buyer}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
           {/* Value chain diagram placeholder */}
           <div className="my-6">
@@ -694,6 +1106,12 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             <h3 className="text-xl font-semibold mb-3">4.4 Export Potential</h3>
             <p className="text-justify leading-relaxed">{s6.exportPotential || 'N/A'}</p>
           </div>
+          {s6.targetMarket && (
+            <div>
+              <h3 className="text-xl font-semibold mb-3">4.5 Target Market</h3>
+              <p className="text-justify leading-relaxed">{s6.targetMarket}</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -791,7 +1209,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 ['CFC Name', s10.name || 'N/A'],
                 ['Location', s10.location || 'N/A'],
                 ['Land Area', s10.landDetails || 'N/A'],
-                ['Built-up Area', 'N/A'],
+                ['Civil Works / Built-up Area', s10.civilWorks || 'N/A'],
               ]
             )}
           </div>
@@ -806,6 +1224,20 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           <div>
             <h3 className="text-xl font-semibold mb-3">7.4 Capacity</h3>
             <p>{s10.capacity || 'N/A'}</p>
+          </div>
+          <div className='flex gap-12 items-center justify-space-between w-full'>
+            <div>
+                  <h4>Power Requirements</h4>
+                  <p>{s10.powerRequirements}</p>
+              </div>
+              <div>
+                  <h4>Water Requirements</h4>
+                  <p>{s10.waterRequirements}</p>
+              </div>
+              <div>
+                  <h4>Manpower Requirements</h4>
+                  <p>{s10.manpowerRequirements}</p>
+              </div>
           </div>
           {/* Process flow diagram and machinery images */}
           <div className="my-6">
@@ -900,6 +1332,45 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               )}
             </div>
           )}
+          {s11.objectives && s11.objectives.length > 0 && (
+            <div>
+              <h3 className="text-xl font-semibold mb-3">8.4 SPV Objectives</h3>
+              <ul className="list-disc list-inside space-y-2 text-sm">
+                {s11.objectives.map((objective: string, idx: number) => (
+                  <li key={idx}>{objective}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {s11.rolesAndResponsibilities && s11.rolesAndResponsibilities.length > 0 && (
+            <div>
+              <h3 className="text-xl font-semibold mb-3">8.5 Roles and Responsibilities</h3>
+              <ul className="list-disc list-inside space-y-2 text-sm">
+                {s11.rolesAndResponsibilities.map((role: string, idx: number) => (
+                  <li key={idx}>{role}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {s11.boardOfDirectors && s11.boardOfDirectors.length > 0 && (
+            <div>
+              <h3 className="text-xl font-semibold mb-3">8.6 Board of Directors</h3>
+              {renderTable(
+                ['Name', 'Designation'],
+                s11.boardOfDirectors.map((director: any) => [director.name || 'N/A', director.designation || 'N/A'])
+              )}
+            </div>
+          )}
+          {s11.statutoryRegistrations && s11.statutoryRegistrations.length > 0 && (
+            <div>
+              <h3 className="text-xl font-semibold mb-3">8.7 Statutory Registrations</h3>
+              <ul className="list-disc list-inside space-y-2 text-sm">
+                {s11.statutoryRegistrations.map((registration: string, idx: number) => (
+                  <li key={idx}>{registration}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
 
@@ -989,6 +1460,53 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           </div>
         </div>
       </div>
+
+      {/* Section 9.5: Operating Cost & Revenue */}
+      {(s14.rawMaterialCost || s14.powerCost || s14.wages || s14.maintenance || s14.administrativeExpenses || s14.marketingExpenses || s14.annualProductionVolume || s14.annualSalesRealization) && (
+        <div 
+          className="p-12 border-b-4 border-gray-800 page-break"
+          style={{ 
+            pageBreakAfter: 'always',
+            padding: '2cm',
+            minHeight: '29.7cm',
+            fontFamily: 'Times New Roman, serif'
+          }}
+        >
+          <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>9.5 OPERATING COST & REVENUE</h2>
+          <div className="space-y-6 text-sm">
+            <div>
+              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.5.1 Operating Costs</h3>
+              {renderTable(
+                ['Cost Component', 'Amount (₹ Lakhs)'],
+                [
+                  ['Raw Material Cost', s14.rawMaterialCost ? ((s14.rawMaterialCost / 100000).toFixed(2)) : 'N/A'],
+                  ['Power Cost', s14.powerCost ? ((s14.powerCost / 100000).toFixed(2)) : 'N/A'],
+                  ['Wages', s14.wages ? ((s14.wages / 100000).toFixed(2)) : 'N/A'],
+                  ['Maintenance', s14.maintenance ? ((s14.maintenance / 100000).toFixed(2)) : 'N/A'],
+                  ['Administrative Expenses', s14.administrativeExpenses ? ((s14.administrativeExpenses / 100000).toFixed(2)) : 'N/A'],
+                  ['Marketing Expenses', s14.marketingExpenses ? ((s14.marketingExpenses / 100000).toFixed(2)) : 'N/A'],
+                  ['Total Operating Cost', 
+                   ((s14.rawMaterialCost || 0) + (s14.powerCost || 0) + (s14.wages || 0) + 
+                    (s14.maintenance || 0) + (s14.administrativeExpenses || 0) + (s14.marketingExpenses || 0)) > 0
+                    ? (((s14.rawMaterialCost || 0) + (s14.powerCost || 0) + (s14.wages || 0) + 
+                        (s14.maintenance || 0) + (s14.administrativeExpenses || 0) + (s14.marketingExpenses || 0)) / 100000).toFixed(2)
+                    : 'N/A'],
+                ]
+              )}
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.5.2 Revenue Projections</h3>
+              {renderTable(
+                ['Parameter', 'Value'],
+                [
+                  ['Annual Production Volume', s14.annualProductionVolume ? `${s14.annualProductionVolume.toLocaleString('en-IN')} units` : 'N/A'],
+                  ['Annual Sales Realization', s14.annualSalesRealization ? `₹${((s14.annualSalesRealization) / 100000).toFixed(2)} Lakhs` : 'N/A'],
+                ]
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Section 10: Financial Viability */}
       <div 
@@ -1138,6 +1656,49 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         </div>
       </div>
 
+      {/* Section 10.5: Project Implementation Schedule */}
+      {(s16.startDate || (s16.milestones && s16.milestones.length > 0) || s16.totalImplementationPeriod) && (
+        <div 
+          className="p-12 border-b-4 border-gray-800 page-break"
+          style={{ 
+            pageBreakAfter: 'always',
+            padding: '2cm',
+            minHeight: '29.7cm',
+            fontFamily: 'Times New Roman, serif'
+          }}
+        >
+          <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>10.5 PROJECT IMPLEMENTATION SCHEDULE</h2>
+          <div className="space-y-6 text-sm">
+            {s16.startDate && (
+              <div>
+                <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.5.1 Project Start Date</h3>
+                <p className="text-justify leading-relaxed">{s16.startDate}</p>
+              </div>
+            )}
+            {s16.milestones && s16.milestones.length > 0 && (
+              <div>
+                <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.5.2 Implementation Milestones</h3>
+                {renderTable(
+                  ['Activity', 'Time Required', 'Start Date', 'End Date'],
+                  s16.milestones.map((m: any) => [
+                    m.activity || 'N/A',
+                    m.timeRequired || 'N/A',
+                    m.startDate || 'N/A',
+                    m.endDate || 'N/A',
+                  ])
+                )}
+              </div>
+            )}
+            {s16.totalImplementationPeriod && (
+              <div>
+                <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.5.3 Total Implementation Period</h3>
+                <p className="text-justify leading-relaxed">{s16.totalImplementationPeriod}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Section 11: Expected Impact */}
       <div 
         className="p-12 border-b-4 border-gray-800 page-break"
@@ -1170,52 +1731,393 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         )}
       </div>
 
-      {/* Conclusion */}
-      {content.conclusion && (
-        <div 
-          className="p-12 border-b-4 border-gray-800 page-break"
-          style={{ 
-            pageBreakAfter: 'always',
-            padding: '2cm',
-            minHeight: '29.7cm',
-            fontFamily: 'Times New Roman, serif'
-          }}
-        >
-          <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>CONCLUSION</h2>
-          <div className="prose max-w-none text-sm leading-relaxed">
-            <FormattedText text={content.conclusion} />
-          </div>
-        </div>
-      )}
-
-      {/* Annexures */}
+      {/* Financial Statements - Detailed Section */}
       <div 
-        className="p-12 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break"
         style={{ 
+          pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
           fontFamily: 'Times New Roman, serif'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>ANNEXURES</h2>
-        <div className="space-y-4 text-sm">
-          <p><strong>1. SPV Registration:</strong> {clusterData.step18?.spvRegistration || 'Attached'}</p>
-          <p><strong>2. Land Documents:</strong> {clusterData.step18?.landDocuments || 'Attached'}</p>
-          <p><strong>3. Building Estimates:</strong> {clusterData.step18?.buildingEstimates || 'Attached'}</p>
-          <p><strong>4. Machinery Quotations:</strong> {clusterData.step18?.machineryQuotations || 'Attached'}</p>
-          <p><strong>5. Member Registrations:</strong> {clusterData.step18?.memberRegistrations || 'Attached'}</p>
-          {clusterData.step18?.supportingDocuments && Array.isArray(clusterData.step18.supportingDocuments) && (
-            <div>
-              <p><strong>6. Supporting Documents:</strong></p>
-              <ul className="list-disc list-inside ml-4">
-                {clusterData.step18.supportingDocuments.map((doc: string, idx: number) => (
-                  <li key={idx}>{doc}</li>
-                ))}
-              </ul>
-            </div>
+        <h2 className="text-3xl font-bold mb-6 text-center" style={{ color: '#1F2937' }}>FINANCIAL STATEMENTS</h2>
+        
+        {/* Working Capital Assessment */}
+        {s12.workingCapitalMargin && s12.workingCapitalMargin > 0 && (
+          <div className="my-6">
+            <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Assessment of Working Capital</h3>
+            {(() => {
+              const workingCapital = s12.workingCapitalMargin;
+              return renderTable(
+                ['Particulars', 'Amount (₹ Lakhs)'],
+                [
+                  ['Raw Materials', ((workingCapital * 0.4) / 100000).toFixed(2)],
+                  ['Work in Progress', ((workingCapital * 0.2) / 100000).toFixed(2)],
+                  ['Finished Goods', ((workingCapital * 0.2) / 100000).toFixed(2)],
+                  ['Debtors', ((workingCapital * 0.15) / 100000).toFixed(2)],
+                  ['Cash & Bank Balance', ((workingCapital * 0.05) / 100000).toFixed(2)],
+                  ['Total Current Assets', (workingCapital / 100000).toFixed(2)],
+                  ['Creditors', ((workingCapital * 0.3) / 100000).toFixed(2)],
+                  ['Net Working Capital', ((workingCapital * 0.7) / 100000).toFixed(2)],
+                ],
+                'Assessment of Working Capital',
+                '2'
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Assumptions for Cost of Production */}
+        {(s14.capacityUtilization || s14.rawMaterialCostPercentage || s14.powerCost || s14.depreciationRate || s14.interestRate) && (
+          <div className="my-6">
+            <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Assumptions for Cost of Production & Profitability</h3>
+            {(() => {
+              const assumptions: any[][] = [];
+              if (s14.capacityUtilization) {
+                if (s14.capacityUtilization.year1) assumptions.push(['Capacity Utilization (Year 1)', `${s14.capacityUtilization.year1}%`]);
+                if (s14.capacityUtilization.year2) assumptions.push(['Capacity Utilization (Year 2)', `${s14.capacityUtilization.year2}%`]);
+                if (s14.capacityUtilization.year3Onwards) assumptions.push(['Capacity Utilization (Year 3 onwards)', `${s14.capacityUtilization.year3Onwards}%`]);
+              }
+              if (s14.rawMaterialCostPercentage) assumptions.push(['Raw Material Cost (% of Revenue)', `${s14.rawMaterialCostPercentage}%`]);
+              if (s14.powerCost) assumptions.push(['Power Cost per Unit', `₹${s14.powerCost}`]);
+              if (s14.manpowerCost) assumptions.push(['Manpower Cost', s14.manpowerCost]);
+              if (s14.depreciationRate) assumptions.push(['Depreciation Rate', s14.depreciationRate]);
+              if (s14.interestRate) assumptions.push(['Interest Rate on Loan', `${s14.interestRate}% per annum`]);
+              
+              if (assumptions.length > 0) {
+                return renderTable(
+                  ['Assumption', 'Value'],
+                  assumptions,
+                  'Assumptions for Cost of Production & Profitability',
+                  '4'
+                );
+              }
+              return null;
+            })()}
+          </div>
+        )}
+
+        {/* Power Cost Estimation */}
+        {s14.powerCost && (
+          <div className="my-6">
+            <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Estimation of Power Cost</h3>
+            {renderTable(
+              ['Particulars', 'Units', 'Rate (₹)', 'Amount (₹ Lakhs)'],
+              [
+                ['Connected Load', s14.connectedLoad || 'N/A', s14.powerCost?.toString() || 'N/A', 
+                 s14.connectedLoad && s14.powerCost ? ((s14.connectedLoad * s14.powerCost) / 100000).toFixed(2) : 'N/A'],
+                ['Monthly Consumption', s14.monthlyConsumption || 'N/A', s14.powerCost?.toString() || 'N/A',
+                 s14.monthlyConsumption && s14.powerCost ? ((s14.monthlyConsumption * s14.powerCost) / 100000).toFixed(2) : 'N/A'],
+                ['Annual Power Cost', 'N/A', 'N/A',
+                 s14.monthlyConsumption && s14.powerCost ? ((s14.monthlyConsumption * s14.powerCost * 12) / 100000).toFixed(2) : 'N/A'],
+              ],
+              'Estimation of Power cost',
+              '5'
+            )}
+          </div>
+        )}
+
+        {/* Manpower Requirement */}
+        {(s14.manpowerRequirement || (s17.employmentGeneration && s17.employmentGeneration > 0)) && (
+          <div className="my-6">
+            <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Manpower Requirement & Estimation of Cost</h3>
+            {s14.manpowerRequirement && Array.isArray(s14.manpowerRequirement) && s14.manpowerRequirement.length > 0 ? (
+              renderTable(
+                ['Category', 'No. of Employees', 'Annual Salary (₹)', 'Total Cost (₹ Lakhs)'],
+                s14.manpowerRequirement.map((mp: any) => [
+                  mp.category || 'N/A',
+                  mp.count || 0,
+                  mp.annualSalary ? mp.annualSalary.toLocaleString('en-IN') : 'N/A',
+                  mp.totalCost ? (mp.totalCost / 100000).toFixed(2) : 'N/A',
+                ]),
+                'Manpower requirement & estimation of cost',
+                '6'
+              )
+            ) : (
+              <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>
+            )}
+          </div>
+        )}
+
+        {/* Depreciation Estimation */}
+        {((s12.building && s12.building > 0) || (s12.machinery && s12.machinery > 0) || s14.depreciationDetails) && (
+          <div className="my-6">
+            <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Estimation of Depreciation</h3>
+            {s14.depreciationDetails && Array.isArray(s14.depreciationDetails) && s14.depreciationDetails.length > 0 ? (
+              renderTable(
+                ['Asset', 'Cost (₹ Lakhs)', 'Depreciation Rate (%)', 'Annual Depreciation (₹ Lakhs)'],
+                s14.depreciationDetails.map((dep: any) => [
+                  dep.asset || 'N/A',
+                  dep.cost ? (dep.cost / 100000).toFixed(2) : 'N/A',
+                  dep.rate ? `${dep.rate}%` : 'N/A',
+                  dep.annualDepreciation ? (dep.annualDepreciation / 100000).toFixed(2) : 'N/A',
+                ]),
+                'Estimation of Depreciation',
+                '7'
+              )
+            ) : (s12.building && s12.building > 0) || (s12.machinery && s12.machinery > 0) ? (
+              (() => {
+                const buildingCost = s12.building || 0;
+                const machineryCost = s12.machinery || 0;
+                const buildingDepRate = s14.buildingDepreciationRate || 10;
+                const machineryDepRate = s14.machineryDepreciationRate || 15;
+                return renderTable(
+                  ['Asset', 'Cost (₹ Lakhs)', 'Depreciation Rate (%)', 'Annual Depreciation (₹ Lakhs)'],
+                  [
+                    buildingCost > 0 ? ['Building', (buildingCost / 100000).toFixed(2), `${buildingDepRate}%`, ((buildingCost * buildingDepRate / 100) / 100000).toFixed(2)] : null,
+                    machineryCost > 0 ? ['Machinery', (machineryCost / 100000).toFixed(2), `${machineryDepRate}%`, ((machineryCost * machineryDepRate / 100) / 100000).toFixed(2)] : null,
+                    ['Total', ((buildingCost + machineryCost) / 100000).toFixed(2), 'N/A', 
+                     (((buildingCost * buildingDepRate / 100) + (machineryCost * machineryDepRate / 100)) / 100000).toFixed(2)],
+                  ].filter(row => row !== null) as any[][],
+                  'Estimation of Depreciation',
+                  '7'
+                );
+              })()
+            ) : (
+              <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>
+            )}
+          </div>
+        )}
+
+        {/* Income Tax Calculation */}
+        <div className="my-6">
+          <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Calculation of Income Tax</h3>
+          {s15.profitAndLossProjections && s15.profitAndLossProjections.length > 0 && (
+            renderTable(
+              ['Year', 'Profit Before Tax (₹ Lakhs)', 'Tax Rate (%)', 'Tax Amount (₹ Lakhs)', 'Profit After Tax (₹ Lakhs)'],
+              s15.profitAndLossProjections.map((p: any, idx: number) => {
+                const profitBeforeTax = p.profit || 0;
+                const taxRate = profitBeforeTax > 1000000 ? 30 : profitBeforeTax > 500000 ? 25 : 20; // Simplified tax calculation
+                const taxAmount = (profitBeforeTax * taxRate) / 100;
+                const profitAfterTax = profitBeforeTax - taxAmount;
+                return [
+                  p.year || `Year ${idx + 1}`,
+                  (profitBeforeTax / 100000).toFixed(2),
+                  `${taxRate}%`,
+                  (taxAmount / 100000).toFixed(2),
+                  (profitAfterTax / 100000).toFixed(2),
+                ];
+              }),
+              'Calculation of Income Tax',
+              '8'
+            )
           )}
         </div>
       </div>
+
+      {/* Conclusion */}
+      <div 
+        className="p-12 border-b-4 border-gray-800 page-break"
+        style={{ 
+          pageBreakAfter: 'always',
+          padding: '2cm',
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
+        }}
+      >
+        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>CONCLUSION</h2>
+        {content.conclusion ? (
+          <div className="prose max-w-none text-sm leading-relaxed">
+            <FormattedText text={content.conclusion} />
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>
+        )}
+      </div>
+
+      {/* Annexures Cover Page */}
+      {(clusterData.step18?.spvRegistration || clusterData.step18?.landDocuments || clusterData.step18?.buildingEstimates || 
+        clusterData.step18?.machineryQuotations || clusterData.step18?.memberRegistrations || 
+        (clusterData.step18?.supportingDocuments && clusterData.step18.supportingDocuments.length > 0)) && (
+        <>
+          {/* Annexures Cover Page */}
+          <div 
+            className="min-h-[29.7cm] flex flex-col justify-center items-center p-12 border-b-4 border-gray-800 page-break"
+            style={{ 
+              pageBreakAfter: 'always',
+              minHeight: '29.7cm',
+              padding: '3cm 2cm',
+              fontFamily: 'Times New Roman, serif',
+              border: '4px solid #1F2937'
+            }}
+          >
+            <div className="text-center max-w-3xl w-full">
+              <h1 className="text-5xl font-bold mb-8" style={{ color: '#1F2937', letterSpacing: '0.05em' }}>
+                ANNEXURES
+              </h1>
+              {s1.clusterName && (
+                <h2 className="text-3xl font-semibold mb-4" style={{ color: '#059669', letterSpacing: '0.05em' }}>
+                  - {s1.clusterName.toUpperCase()} -
+                </h2>
+              )}
+            </div>
+          </div>
+
+          {/* Helper function to get file URL */}
+          {(() => {
+            const getFileUrl = (file: any): string | null => {
+              if (!file) return null;
+              
+              // If it's already a URL string
+              if (typeof file === 'string') {
+                // Check if it's a full URL
+                if (file.startsWith('http://') || file.startsWith('https://')) {
+                  return file;
+                }
+                // Check if it's a relative path
+                if (file.startsWith('/uploads/') || file.startsWith('/')) {
+                  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                  const serverBaseUrl = apiBaseUrl.replace('/api', '');
+                  return `${serverBaseUrl}${file}`;
+                }
+                // If it's just a filename, construct the path
+                if (file.includes('.') && !file.includes('/')) {
+                  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                  const serverBaseUrl = apiBaseUrl.replace('/api', '');
+                  return `${serverBaseUrl}/uploads/documents/${file}`;
+                }
+                return null;
+              }
+              
+              // If it's a File object, create object URL
+              if (file instanceof File) {
+                return URL.createObjectURL(file);
+              }
+              
+              return null;
+            };
+
+            const isImageFile = (filename: string): boolean => {
+              const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+              return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+            };
+
+            const isPdfFile = (filename: string): boolean => {
+              return filename.toLowerCase().endsWith('.pdf');
+            };
+
+            // Collect all annexure files
+            const annexureFiles: Array<{title: string, file: any, index: number}> = [];
+            
+            if (clusterData.step18?.spvRegistration) {
+              annexureFiles.push({ title: 'SPV Registration', file: clusterData.step18.spvRegistration, index: 1 });
+            }
+            if (clusterData.step18?.landDocuments) {
+              annexureFiles.push({ title: 'Land Documents', file: clusterData.step18.landDocuments, index: 2 });
+            }
+            if (clusterData.step18?.buildingEstimates) {
+              annexureFiles.push({ title: 'Building Estimates', file: clusterData.step18.buildingEstimates, index: 3 });
+            }
+            if (clusterData.step18?.machineryQuotations) {
+              annexureFiles.push({ title: 'Machinery Quotations', file: clusterData.step18.machineryQuotations, index: 4 });
+            }
+            if (clusterData.step18?.memberRegistrations) {
+              annexureFiles.push({ title: 'Member Registrations', file: clusterData.step18.memberRegistrations, index: 5 });
+            }
+            if (clusterData.step18?.supportingDocuments && Array.isArray(clusterData.step18.supportingDocuments)) {
+              clusterData.step18.supportingDocuments.forEach((doc: any, idx: number) => {
+                annexureFiles.push({ title: `Supporting Document ${idx + 1}`, file: doc, index: 6 + idx });
+              });
+            }
+
+            return annexureFiles.map((annexure, idx) => {
+              const fileUrl = getFileUrl(annexure.file);
+              const fileName = typeof annexure.file === 'string' ? annexure.file : annexure.file?.name || `Document ${annexure.index}`;
+              const isImage = isImageFile(fileName);
+              const isPdf = isPdfFile(fileName);
+
+              return (
+                <div 
+                  key={idx}
+                  className="p-12 border-b-4 border-gray-800 page-break"
+                  style={{ 
+                    pageBreakAfter: idx < annexureFiles.length - 1 ? 'always' : 'auto',
+                    padding: '2cm',
+                    minHeight: '29.7cm',
+                    fontFamily: 'Times New Roman, serif'
+                  }}
+                >
+                  <div className="mb-4">
+                    <h3 className="text-2xl font-bold mb-2" style={{ color: '#1F2937' }}>
+                      Annexure {annexure.index}: {annexure.title}
+                    </h3>
+                    <p className="text-sm text-gray-600">{fileName}</p>
+                  </div>
+                  
+                  {fileUrl ? (
+                    <div className="w-full h-full flex items-center justify-center" style={{ minHeight: 'calc(29.7cm - 8cm)' }}>
+                      {isImage ? (
+                        <img 
+                          src={fileUrl} 
+                          alt={annexure.title}
+                          className="max-w-full max-h-full object-contain"
+                          style={{ maxHeight: 'calc(29.7cm - 8cm)' }}
+                          onError={(e) => {
+                            console.error('Failed to load image:', fileUrl);
+                            e.currentTarget.style.display = 'none';
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'text-center text-gray-500';
+                            errorDiv.textContent = 'File could not be loaded. Please check the file path.';
+                            e.currentTarget.parentElement?.appendChild(errorDiv);
+                          }}
+                        />
+                      ) : isPdf ? (
+                        <div className="w-full flex flex-col items-center justify-center" style={{ minHeight: 'calc(29.7cm - 8cm)' }}>
+                          <div className="mb-4 text-center">
+                            <p className="text-sm text-gray-600 mb-2">PDF Document: {fileName}</p>
+                            <a 
+                              href={fileUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-block px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                            >
+                              Open PDF in New Tab
+                            </a>
+                          </div>
+                          <div className="w-full flex-1 border border-gray-300 rounded overflow-hidden">
+                            <embed
+                              src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                              type="application/pdf"
+                              className="w-full h-full"
+                              style={{ 
+                                minHeight: 'calc(29.7cm - 12cm)',
+                              }}
+                              onError={(e) => {
+                                console.error('Failed to load PDF embed:', fileUrl);
+                                // Hide embed and show link only
+                                const embedElement = e.currentTarget;
+                                embedElement.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                          <p className="text-gray-500 mb-2">Document Preview</p>
+                          <a 
+                            href={fileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            Click to view: {fileName}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg" style={{ minHeight: 'calc(29.7cm - 8cm)' }}>
+                      <p className="text-gray-500">File not available or path not found</p>
+                      <p className="text-sm text-gray-400 mt-2">{fileName}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            });
+          })()}
+        </>
+      )}
     </div>
   );
 };
