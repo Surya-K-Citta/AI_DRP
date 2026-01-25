@@ -124,6 +124,25 @@ export class DPRService {
     const project = await Project.findById(dpr.projectId).select('projectName industrySector projectType totalCost loanAmount ownContribution location inputs eligibleSchemes stepData');
     if (project) {
       dpr.projectId = project as any;
+      
+      // For cluster DPRs, ensure clusterData is available in content if missing
+      const isClusterDPR = (dpr.content?.english?.isClusterDPR || dpr.content?.telugu?.isClusterDPR) || project.projectType === 'cluster';
+      if (isClusterDPR && project.stepData) {
+        // If clusterData is missing from content, add it from project.stepData
+        if (!dpr.content?.english?.clusterData && project.stepData) {
+          if (!dpr.content) dpr.content = {};
+          if (!dpr.content.english) dpr.content.english = {};
+          dpr.content.english.clusterData = project.stepData;
+        }
+        if (!dpr.content?.telugu?.clusterData && project.stepData) {
+          if (!dpr.content) dpr.content = {};
+          if (!dpr.content.telugu) dpr.content.telugu = {};
+          dpr.content.telugu.clusterData = project.stepData;
+        }
+        // Also add to metadata as fallback
+        if (!dpr.metadata) dpr.metadata = {};
+        dpr.metadata.clusterData = project.stepData;
+      }
     }
     return dpr;
   }

@@ -530,9 +530,26 @@ export class DPRController {
       // This ensures locally stored stepData is used for DPR generation
       if (stepData && Object.keys(stepData).length > 0) {
         console.log('📊 StepData provided in request, updating project...');
+        const stepKeys = Object.keys(stepData).filter(key => key.startsWith('step') || key !== 'stepData');
+        console.log(`📊 Complete stepData received:`, {
+          totalSteps: stepKeys.length,
+          steps: stepKeys,
+          totalKeys: Object.keys(stepData).length,
+        });
         project.stepData = stepData;
         await project.save();
         console.log('✅ Project updated with stepData from request');
+      } else {
+        // Log existing stepData if any
+        if (project.stepData) {
+          const existingStepKeys = Object.keys(project.stepData).filter(key => key.startsWith('step') || key !== 'stepData');
+          console.log(`📊 Using existing stepData from project:`, {
+            totalSteps: existingStepKeys.length,
+            steps: existingStepKeys,
+          });
+        } else {
+          console.log('⚠️ No stepData provided in request and none found in project');
+        }
       }
 
       console.log(`📝 Generating DPR for project ${projectId} in ${language}...`);

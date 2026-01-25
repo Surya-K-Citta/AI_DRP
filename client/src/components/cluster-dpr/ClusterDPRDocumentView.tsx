@@ -18,9 +18,26 @@ interface ClusterDPRDocumentViewProps {
 }
 
 export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ dpr, project, viewLanguage }) => {
-  // Extract cluster data
-  const clusterData = dpr.content?.[viewLanguage]?.clusterData || dpr.metadata?.clusterData || {};
-  const content = dpr.content?.[viewLanguage] || {};
+  // Extract cluster data from multiple possible locations
+  const clusterData = 
+    dpr.content?.[viewLanguage]?.clusterData || 
+    dpr.content?.english?.clusterData || 
+    dpr.content?.telugu?.clusterData ||
+    dpr.metadata?.clusterData ||
+    project?.stepData ||
+    {};
+  
+  const content = dpr.content?.[viewLanguage] || dpr.content?.english || {};
+  
+  // Debug logging
+  console.log('📊 ClusterDPRDocumentView - Data extraction:', {
+    hasClusterData: !!clusterData && Object.keys(clusterData).length > 0,
+    clusterDataKeys: Object.keys(clusterData),
+    hasContent: !!content && Object.keys(content).length > 0,
+    contentKeys: Object.keys(content),
+    hasProjectStepData: !!project?.stepData,
+    viewLanguage,
+  });
 
   // Image state management
   const [images, setImages] = useState<Record<string, string>>({});

@@ -42,6 +42,18 @@ export class ClusterDPRController {
       }
 
       console.log(`📝 Generating Cluster DPR for user ${userId}...`);
+      
+      // Log complete data being sent for generation
+      const stepKeys = Object.keys(clusterData).filter(key => key.startsWith('step'));
+      console.log(`📊 Complete cluster data received:`, {
+        totalSteps: stepKeys.length,
+        steps: stepKeys,
+        hasStep1: !!clusterData.step1,
+        hasStep12: !!clusterData.step12,
+        hasStep13: !!clusterData.step13,
+        hasStep15: !!clusterData.step15,
+        totalKeys: Object.keys(clusterData).length,
+      });
 
       // Generate DPR with OpenAI enhancement
       const result = await ClusterDPRService.generateClusterDPR(

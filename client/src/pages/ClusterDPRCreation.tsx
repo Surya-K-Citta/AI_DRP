@@ -66,10 +66,30 @@ export const ClusterDPRCreation: React.FC = () => {
         return;
       }
 
+      // Prepare complete data - ensure all step data is included
+      const completeData = {
+        ...data,
+        // Remove metadata fields that shouldn't be sent
+        currentStep: undefined,
+        isDraft: undefined,
+        lastSaved: undefined,
+        generatedDPR: undefined,
+      };
+
+      // Log what we're sending
+      const stepKeys = Object.keys(completeData).filter(key => key.startsWith('step'));
+      console.log('📤 Sending cluster data to backend:', {
+        totalSteps: stepKeys.length,
+        steps: stepKeys,
+        step1Data: completeData.step1,
+        step11Data: completeData.step11,
+        step12Data: completeData.step12,
+      });
+
       toast.loading('Generating DPR with AI enhancement...', { id: 'generating-dpr' });
       
       // Call backend API to generate DPR with OpenAI enhancement
-      const response = await api.generateClusterDPR(data, 'bilingual');
+      const response = await api.generateClusterDPR(completeData, 'bilingual');
       
       if (response.success && response.data) {
         // Store the generated DPR in the store

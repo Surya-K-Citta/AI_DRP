@@ -594,7 +594,7 @@ Return only valid JSON without markdown formatting.`;
           ${languageInstruction}
           
           TONE: Professional, confident, persuasive, and investor-friendly. Use formal business language suitable for bank loan applications and investor presentations.
-          LENGTH: 300-400 words, comprehensive yet concise.
+          LENGTH: 600-800 words minimum. Be comprehensive and detailed. Expand on all aspects of the project to ensure thorough coverage.
           FORMAT: Well-structured paragraphs with clear sections. Use **bold** for key metrics and important points.
         `,
         businessProfile: `
@@ -630,7 +630,7 @@ Return only valid JSON without markdown formatting.`;
           ${languageInstruction}
           
           TONE: Professional, detailed, and confidence-inspiring. Use specific details and concrete information.
-          LENGTH: 400-500 words with comprehensive coverage.
+          LENGTH: 800-1000 words minimum. Be comprehensive and detailed. Expand extensively on all business aspects, products, services, and entrepreneur profile.
           FORMAT: Well-organized with clear subheadings using ###. Use **bold** for key terms and important points.
         `,
         marketAnalysis: `
@@ -667,7 +667,7 @@ Return only valid JSON without markdown formatting.`;
           Base analysis on Indian MSME context and specific regional market (${projectData.location || 'India'}).
           
           TONE: Analytical, data-driven, and professional. Use specific numbers, percentages, and market data.
-          LENGTH: 500-600 words with comprehensive market insights.
+          LENGTH: 1000-1200 words minimum. Be comprehensive and detailed. Expand extensively on market size, competition, trends, and strategies.
           FORMAT: Use ### for subheadings. Use **bold** for key metrics, percentages, and important findings.
         `,
         technicalFeasibility: `
@@ -781,7 +781,7 @@ Return only valid JSON without markdown formatting.`;
           ${languageInstruction}
           
           TONE: Technical, detailed, and professional. Use specific technical terms, numbers, and specifications.
-          LENGTH: 500-600 words with comprehensive technical coverage.
+          LENGTH: 1000-1200 words minimum. Be comprehensive and detailed. Expand extensively on all technical aspects, processes, equipment, and infrastructure.
           FORMAT: 
           - Use ### for subheadings
           - Use **bold** for key technical specifications and important points
@@ -939,7 +939,7 @@ Return only valid JSON without markdown formatting.`;
           ${languageInstruction}
           
           TONE: Professional, confident, and data-driven. Use financial terminology appropriately.
-          LENGTH: 600-700 words with comprehensive financial analysis.
+          LENGTH: 1200-1500 words minimum. Be comprehensive and detailed. Expand extensively on all financial aspects, projections, analysis, and viability.
           FORMAT: Use ### for subheadings. Use **bold** for key financial metrics, percentages, and important numbers.
           Note: Financial tables will be generated separately, but include narrative explaining the numbers.
         `,
