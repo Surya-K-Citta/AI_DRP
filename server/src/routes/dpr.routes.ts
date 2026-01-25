@@ -71,6 +71,9 @@ router.post('/cluster/images/upload', (req, res, next) => {
   });
 }, ClusterDPRController.uploadImage);
 
+// Section enhancement for Cluster DPR
+router.post('/cluster/sections/enhance', ClusterDPRController.enhanceSection);
+
 // DPR retrieval and download
 router.get('/:dprId', DPRController.getDPR);
 router.get('/:dprId/download/pdf', DPRController.downloadPDF);

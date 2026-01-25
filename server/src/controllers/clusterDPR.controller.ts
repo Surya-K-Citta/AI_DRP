@@ -247,4 +247,54 @@ export class ClusterDPRController {
       });
     }
   }
+
+  /**
+   * Enhance a specific section of the DPR
+   */
+  static async enhanceSection(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const { sectionName, sectionData, clusterData } = req.body;
+
+      if (!sectionName || !sectionData) {
+        res.status(400).json({
+          success: false,
+          message: 'Section name and section data are required',
+        });
+        return;
+      }
+
+      console.log(`✨ Enhancing section: ${sectionName} for user ${userId}`);
+
+      const enhancedParagraph = await ClusterDPRService.enhanceSection(
+        sectionName,
+        sectionData,
+        clusterData || {}
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Section enhanced successfully',
+        data: {
+          sectionName,
+          enhancedParagraph,
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ Error enhancing section:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to enhance section',
+        error: error.message,
+      });
+    }
+  }
 }

@@ -519,6 +519,25 @@ class APIClient {
     );
   }
 
+  async enhanceClusterDPRSection(sectionName: string, sectionData: any, clusterData: any) {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/dpr/cluster/sections/enhance', {
+          sectionName,
+          sectionData,
+          clusterData,
+        });
+        return response.data;
+      },
+      () => {
+        return Promise.resolve({
+          success: false,
+          message: 'Section enhancement failed',
+        });
+      }
+    );
+  }
+
   async getUserDPRs() {
     const cacheKey = this.getCacheKey('GET', '/dpr/user/list');
     return this.handleRequest(

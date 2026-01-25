@@ -472,4 +472,88 @@ Return only valid JSON without markdown code blocks.`;
       throw new Error(`Failed to generate cluster DPR: ${error.message}`);
     }
   }
+
+  /**
+   * Enhance a specific section of the DPR with contextual paragraph
+   */
+  static async enhanceSection(sectionName: string, sectionData: any, clusterData: any): Promise<string> {
+    try {
+      const clusterName = clusterData.step1?.clusterName || 'the cluster';
+      const location = clusterData.step1?.location || '';
+      const district = clusterData.step1?.district || '';
+
+      // Create section-specific prompts
+      const sectionPrompts: Record<string, string> = {
+        'projectSnapshot': `Generate a comprehensive paragraph (150-200 words) for the Project Snapshot section. Use the following data: Cluster Name: ${clusterName}, Location: ${location}, District: ${district}, Enterprise Count: ${JSON.stringify(clusterData.step1?.enterpriseCount || {})}, SPV Name: ${clusterData.step11?.spvName || 'N/A'}, Major Products: ${clusterData.step1?.majorProducts || 'N/A'}. Write a professional, government-ready paragraph summarizing the project overview, cluster characteristics, and key highlights.`,
+        
+        'operatingCostRevenue': `Generate a comprehensive paragraph (150-200 words) for the Operating Cost & Revenue section. Use the following data: ${JSON.stringify(sectionData)}. Calculate and mention: Total annual operating cost, breakdown of major cost components (raw material, power, wages, etc.), annual production volume, annual sales realization, and operating surplus. Write a professional paragraph explaining the operational viability and financial sustainability of the project.`,
+        
+        'projectCost': `Generate a comprehensive paragraph (150-200 words) for the Project Cost & Means of Finance section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Total project cost, cost breakdown (land, building, machinery, etc.), means of finance (SPV contribution, government grant, bank loan, etc.), and financial structure. Write a professional paragraph explaining the project investment and financing plan.`,
+        
+        'financialViability': `Generate a comprehensive paragraph (150-200 words) for the Financial Viability section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Profit & Loss projections, cash flow, balance sheet, break-even point, IRR, NPV, and overall financial viability. Write a professional paragraph explaining the financial sustainability and profitability of the project.`,
+        
+        'expectedImpact': `Generate a comprehensive paragraph (150-200 words) for the Expected Impact section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Employment generation, turnover growth, export growth, income enhancement, and sustainability outcomes. Write a professional paragraph explaining the socio-economic impact and benefits of the project.`,
+        
+        'clusterProfile': `Generate a comprehensive paragraph (150-200 words) for the Cluster Profile section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Cluster evolution, present status, number of units, production capacity, technology level, and key stakeholders. Write a professional paragraph describing the cluster's current state and characteristics.`,
+        
+        'valueChain': `Generate a comprehensive paragraph (150-200 words) for the Value Chain Mapping section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Raw materials, value addition stages, intermediate products, final products, and major buyers. Write a professional paragraph explaining the complete value chain structure.`,
+        
+        'marketAspects': `Generate a comprehensive paragraph (150-200 words) for the Market Aspects section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Existing demand, demand-supply gap, competition analysis, price trends, export potential, and target market. Write a professional paragraph analyzing the market scenario and opportunities.`,
+        
+        'swotAnalysis': `Generate a comprehensive paragraph (150-200 words) for the SWOT Analysis section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Key strengths, weaknesses, opportunities, and threats. Write a professional paragraph summarizing the SWOT analysis and strategic implications.`,
+        
+        'gapAnalysis': `Generate a comprehensive paragraph (150-200 words) for the Gap Analysis section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Technology gaps, infrastructure gaps, skill gaps, marketing gaps, financial gaps, and justification for intervention. Write a professional paragraph explaining the identified gaps and need for intervention.`,
+        
+        'cfcDetails': `Generate a comprehensive paragraph (150-200 words) for the CFC Operation & Management section. Use the following data: ${JSON.stringify(sectionData)}. Mention: CFC name, location, plant & machinery, manufacturing process, capacity, and requirements (power, water, manpower). Write a professional paragraph describing the CFC setup and operations.`,
+        
+        'spvDetails': `Generate a comprehensive paragraph (150-200 words) for the SPV Member Units section. Use the following data: ${JSON.stringify(sectionData)}. Mention: SPV name, legal status, member units, shareholding pattern, objectives, and roles. Write a professional paragraph describing the SPV structure and governance.`,
+        
+        'implementationSchedule': `Generate a comprehensive paragraph (150-200 words) for the Project Implementation Schedule section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Project start date, key milestones, timeline, and total implementation period. Write a professional paragraph explaining the project timeline and implementation plan.`,
+        
+        'conclusion': `Generate a comprehensive conclusion paragraph (200-250 words) for the DPR. Summarize: Project rationale, key highlights, expected benefits, financial viability, expected impact, and recommendation. Use data from the entire cluster DPR. Write a professional, government-ready conclusion that ties together all aspects of the project.`,
+        
+        'introduction': `Generate a comprehensive paragraph (150-200 words) for the Introduction section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Sector/Industry type, sector description, national importance, and state-level importance. Write a professional paragraph explaining the sector context and significance.`,
+        
+        'districtProfile': `Generate a comprehensive paragraph (150-200 words) for the District & Regional Profile section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Geography, climate, infrastructure, key economic activities, raw material availability, industrial infrastructure, and connectivity. Write a professional paragraph describing the district's characteristics and advantages.`,
+        
+        'tableExplanation': `Generate a comprehensive explanation paragraph (100-150 words) for the following table data: ${JSON.stringify(sectionData)}. Explain what the table shows, key findings, trends, and implications. Write a professional paragraph that provides context and analysis for the table.`,
+        
+        'graphExplanation': `Generate a comprehensive explanation paragraph (100-150 words) for the following graph/chart data: ${JSON.stringify(sectionData)}. Explain what the graph shows, key trends, patterns, and insights. Write a professional paragraph that provides context and analysis for the visualization.`
+      };
+
+      // Handle table and graph explanations
+      let prompt: string;
+      if (sectionName.startsWith('tableExplanation-')) {
+        prompt = sectionPrompts['tableExplanation'] || `Generate a comprehensive explanation paragraph (100-150 words) for a table. Table data: ${JSON.stringify(sectionData)}. Explain what the table shows, key findings, trends, patterns, and implications. Write a professional paragraph that provides context and analysis for the table data.`;
+      } else if (sectionName.startsWith('graphExplanation-')) {
+        prompt = sectionPrompts['graphExplanation'] || `Generate a comprehensive explanation paragraph (100-150 words) for a graph/chart. Chart data: ${JSON.stringify(sectionData)}. Explain what the graph shows, key trends, patterns, insights, and what it means for the project. Write a professional paragraph that provides context and analysis for the visualization.`;
+      } else {
+        prompt = sectionPrompts[sectionName] || `Generate a comprehensive paragraph (150-200 words) for the ${sectionName} section based on the following data: ${JSON.stringify(sectionData)}. Write a professional, government-ready paragraph that explains the key aspects and significance of this section.`;
+      }
+
+      const systemMessage = `You are an expert DPR writer specializing in Cluster Development Projects for government submissions. Generate professional, detailed, and contextual paragraphs based on the provided data. Use exact values from the data. Write in a formal, government-ready style suitable for official project reports.`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: systemMessage,
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      });
+
+      const enhancedParagraph = response.choices[0]?.message?.content || '';
+      return enhancedParagraph.trim();
+    } catch (error: any) {
+      console.error(`Error enhancing section ${sectionName}:`, error);
+      throw new Error(`Failed to enhance section: ${error.message}`);
+    }
+  }
 }

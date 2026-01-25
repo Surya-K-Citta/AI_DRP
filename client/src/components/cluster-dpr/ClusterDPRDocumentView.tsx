@@ -1,10 +1,10 @@
 // @ts-nocheck
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FormattedText } from '@/utils/textFormatter';
 import { DPRVisualizations } from './DPRVisualizations';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
-import { Upload, Sparkles, Loader2, X } from 'lucide-react';
+import { Upload, Sparkles, Loader2, X, Wand2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { 
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -44,6 +44,60 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   const [generatingImages, setGeneratingImages] = useState<Record<string, boolean>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  // Enhanced content state management with localStorage persistence
+  const getStorageKey = () => {
+    const dprId = dpr?._id || dpr?.id || 'default';
+    return `cluster-dpr-enhanced-${dprId}-${viewLanguage}`;
+  };
+
+  const [enhancedContent, setEnhancedContent] = useState<Record<string, string>>(() => {
+    // Load from localStorage on mount
+    try {
+      const storageKey = getStorageKey();
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        console.log('📥 Loaded enhanced content from localStorage:', parsed);
+        return parsed;
+      }
+    } catch (error) {
+      console.error('Error loading enhanced content from localStorage:', error);
+    }
+    return {};
+  });
+  const [enhancingSections, setEnhancingSections] = useState<Record<string, boolean>>({});
+
+  // Reload enhanced content when DPR ID or language changes
+  useEffect(() => {
+    try {
+      const storageKey = getStorageKey();
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        console.log('📥 Reloaded enhanced content from localStorage:', parsed);
+        setEnhancedContent(parsed);
+      } else {
+        setEnhancedContent({});
+      }
+    } catch (error) {
+      console.error('Error loading enhanced content from localStorage:', error);
+      setEnhancedContent({});
+    }
+  }, [dpr?._id || dpr?.id, viewLanguage]);
+
+  // Save to localStorage whenever enhancedContent changes
+  useEffect(() => {
+    try {
+      const storageKey = getStorageKey();
+      if (Object.keys(enhancedContent).length > 0) {
+        localStorage.setItem(storageKey, JSON.stringify(enhancedContent));
+        console.log('💾 Saved enhanced content to localStorage:', enhancedContent);
+      }
+    } catch (error) {
+      console.error('Error saving enhanced content to localStorage:', error);
+    }
+  }, [enhancedContent]);
+
   // Helper to render section title with grey box template
   const renderSectionTitle = (title: string) => {
     return (
@@ -65,8 +119,10 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     );
   };
 
-  // Helper to render professional tables matching PDF format
-  const renderTable = (headers: string[], rows: any[][], title?: string, statementNumber?: string) => {
+  // Helper to render professional tables matching PDF format with explanation
+  const renderTable = (headers: string[], rows: any[][], title?: string, statementNumber?: string, tableId?: string) => {
+    const explanationKey = tableId || `table-${title || 'default'}`;
+    
     return (
       <div className="my-6">
         {title && (
@@ -75,6 +131,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               <p className="text-xs text-gray-600 mb-1 font-semibold">Statement {statementNumber}</p>
             )}
             <h4 className="text-lg font-bold text-gray-900">{title}</h4>
+            {enhancedContent[`tableExplanation-${explanationKey}`] && (
+              <div className="mt-2 p-3">
+                <p className="text-xs text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+                  {enhancedContent[`tableExplanation-${explanationKey}`]}
+                </p>
+              </div>
+            )}
           </div>
         )}
         <div className="overflow-x-auto">
@@ -168,6 +231,61 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     delete newImages[imageId];
     setImages(newImages);
     toast.success('Image removed');
+  };
+
+  // Handle section enhancement (silent mode for batch operations)
+  const handleEnhanceSection = async (sectionName: string, sectionData: any, silent: boolean = false) => {
+    setEnhancingSections((prev) => ({ ...prev, [sectionName]: true }));
+    try {
+      const result = await api.enhanceClusterDPRSection(sectionName, sectionData, clusterData);
+      if (result.success && result.data?.enhancedParagraph) {
+        setEnhancedContent((prev) => {
+          const updated = {
+            ...prev,
+            [sectionName]: result.data.enhancedParagraph,
+          };
+          // Save to localStorage immediately
+          try {
+            const storageKey = getStorageKey();
+            localStorage.setItem(storageKey, JSON.stringify(updated));
+            console.log('💾 Saved enhanced content to localStorage after enhancement');
+          } catch (error) {
+            console.error('Error saving to localStorage:', error);
+          }
+          return updated;
+        });
+        if (!silent) {
+          toast.success('Section enhanced successfully!');
+        }
+      } else {
+        if (!silent) {
+          toast.error(result.message || 'Failed to enhance section');
+        }
+        throw new Error(result.message || 'Failed to enhance section');
+      }
+    } catch (error: any) {
+      console.error('Error enhancing section:', error);
+      if (!silent) {
+        toast.error(error.message || 'Failed to enhance section');
+      }
+      throw error;
+    } finally {
+      setEnhancingSections((prev) => ({ ...prev, [sectionName]: false }));
+    }
+  };
+
+  // Helper to render enhanced content (no button, just display)
+  const renderEnhancedContent = (sectionName: string) => {
+    const hasEnhancedContent = enhancedContent[sectionName];
+    if (!hasEnhancedContent) return null;
+    
+    return (
+      <div className="mb-4 p-4">
+        <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+          {hasEnhancedContent}
+        </p>
+      </div>
+    );
   };
 
   // Render image with upload/generate options
@@ -955,6 +1073,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('1. INTRODUCTION')}
+          {renderEnhancedContent('introduction')}
           {content.introduction ? (
             <div className="prose max-w-none text-sm leading-relaxed">
               <FormattedText text={content.introduction} />
@@ -1258,6 +1377,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('4. MARKET ASPECTS')}
+          {renderEnhancedContent('marketAspects')}
           <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">4.1 Demand–Supply Analysis</h3>
@@ -1310,6 +1430,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('5. SWOT ANALYSIS')}
+          {renderEnhancedContent('swotAnalysis')}
           <div className="grid grid-cols-2 gap-6 text-sm">
             <div>
               <h3 className="text-lg font-semibold mb-3 text-green-700">Strengths</h3>
@@ -1371,6 +1492,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('6. NEED GAP ANALYSIS')}
+          {renderEnhancedContent('gapAnalysis')}
         {renderTable(
           ['Area', 'Existing Gap'],
           [
@@ -1412,7 +1534,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT')}
-        <div className="space-y-6 text-sm">
+          {renderEnhancedContent('cfcDetails')}
+          <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">7.1 CFC Overview</h3>
             {renderTable(
@@ -1504,6 +1627,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('8. SPV MEMBER UNITS')}
+          {renderEnhancedContent('spvDetails')}
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">8.1 SPV Profile</h3>
@@ -1527,6 +1651,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               {/* Pie chart for shareholding */}
               <div className="my-6">
                 <h4 className="text-lg font-semibold mb-3">📊 Shareholding Pattern</h4>
+                {enhancedContent[`graphExplanation-shareholding`] && (
+                  <div className="mb-3 p-3">
+                    <p className="text-xs text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+                      {enhancedContent[`graphExplanation-shareholding`]}
+                    </p>
+                  </div>
+                )}
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie
@@ -1625,7 +1756,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('9. PROJECT COST & MEANS OF FINANCE')}
-        <div className="space-y-6 text-sm">
+          {renderEnhancedContent('projectCost')}
+          <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.1 Project Cost</h3>
             {(() => {
@@ -1727,6 +1859,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           />
           <div className="relative z-10">
             {renderSectionTitle('9.5 OPERATING COST & REVENUE')}
+            {renderEnhancedContent('operatingCostRevenue')}
           <div className="space-y-6 text-sm">
             <div>
               <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.5.1 Operating Costs</h3>
@@ -1787,6 +1920,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('10. FINANCIAL VIABILITY')}
+          {renderEnhancedContent('financialViability')}
         <div className="space-y-6 text-sm">
           {/* Profit & Loss Statement */}
           {s15.profitAndLossProjections && s15.profitAndLossProjections.length > 0 && (
@@ -2006,6 +2140,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('11. EXPECTED IMPACT')}
+          {renderEnhancedContent('expectedImpact')}
           {renderTable(
           ['Parameter', 'Before', 'After'],
           [
@@ -2241,7 +2376,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('CONCLUSION')}
-          {content.conclusion ? (
+          {renderEnhancedContent('conclusion')}
+          {!enhancedContent['conclusion'] && content.conclusion ? (
             <div className="prose max-w-none text-sm leading-relaxed">
               <FormattedText text={content.conclusion} />
             </div>
@@ -2452,6 +2588,107 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           })()}
         </>
       )}
+
+      {/* Enhance DPR Button - Fixed at bottom */}
+      <div 
+        className="sticky bottom-0 bg-white border-t-4 border-blue-500 p-6 shadow-lg z-50"
+        style={{ 
+          borderTop: '4px solid #2563EB',
+          boxShadow: '0 -4px 6px rgba(0, 0, 0, 0.1)'
+        }}
+      >
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold mb-1" style={{ color: '#1F2937' }}>
+              Enhance Complete DPR
+            </h3>
+            <p className="text-sm text-gray-600">
+              Generate comprehensive paragraphs for all sections and conclusion
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={async () => {
+              const sectionsToEnhance = [
+                { name: 'projectSnapshot', data: { step1: s1, step11: s11 } },
+                { name: 'introduction', data: s2 },
+                { name: 'districtProfile', data: s3 },
+                { name: 'clusterProfile', data: s4 },
+                { name: 'valueChain', data: s5 },
+                { name: 'marketAspects', data: s6 },
+                { name: 'swotAnalysis', data: s8 },
+                { name: 'gapAnalysis', data: s7 },
+                { name: 'cfcDetails', data: s10 },
+                { name: 'spvDetails', data: s11 },
+                { name: 'projectCost', data: { step12: s12, step13: s13 } },
+                { name: 'operatingCostRevenue', data: s14 },
+                { name: 'financialViability', data: s15 },
+                { name: 'implementationSchedule', data: s16 },
+                { name: 'expectedImpact', data: s17 },
+                { name: 'conclusion', data: clusterData },
+              ];
+
+              // Filter out sections that don't have data
+              const validSections = sectionsToEnhance.filter(section => {
+                if (section.name === 'projectSnapshot') return s1.clusterName || s11.spvName;
+                if (section.name === 'introduction') return s2.sectorType || s2.sectorDescription;
+                if (section.name === 'districtProfile') return s3.geography || s3.climate || s3.infrastructure;
+                if (section.name === 'clusterProfile') return s4.clusterEvolution || s4.productionCapacity;
+                if (section.name === 'valueChain') return s5.rawMaterials?.length > 0 || s5.valueAdditionStages?.length > 0;
+                if (section.name === 'marketAspects') return s6.existingDemand || s6.competitorAnalysis;
+                if (section.name === 'swotAnalysis') return s8.strengths?.length > 0 || s8.weaknesses?.length > 0;
+                if (section.name === 'gapAnalysis') return s7.technologyGaps || s7.infrastructureGaps;
+                if (section.name === 'cfcDetails') return s10.name || s10.location;
+                if (section.name === 'spvDetails') return s11.spvName || s11.legalStatus;
+                if (section.name === 'operatingCostRevenue') return s14.rawMaterialCost || s14.powerCost || s14.wages;
+                if (section.name === 'projectCost') return s12.land || s12.building || s12.machinery;
+                if (section.name === 'financialViability') return s15.profitAndLossProjections || s15.irr || s15.npv;
+                if (section.name === 'implementationSchedule') return s16.startDate || s16.milestones?.length > 0;
+                if (section.name === 'expectedImpact') return s17.employmentGeneration || s17.turnoverGrowth;
+                if (section.name === 'conclusion') return true; // Always enhance conclusion
+                return false;
+              });
+
+              const totalSections = validSections.length;
+              let enhancedCount = 0;
+              
+              toast.loading(`Enhancing sections: 0/${totalSections}`, { id: 'enhance-all', duration: Infinity });
+              
+              try {
+                // Enhance all sections sequentially to show progress
+                for (const section of validSections) {
+                  try {
+                    await handleEnhanceSection(section.name, section.data, true); // Silent mode
+                    enhancedCount++;
+                    toast.loading(`Enhancing sections: ${enhancedCount}/${totalSections}`, { id: 'enhance-all', duration: Infinity });
+                  } catch (error: any) {
+                    console.error(`Failed to enhance ${section.name}:`, error);
+                    // Continue with next section even if one fails
+                  }
+                }
+                toast.success(`Successfully enhanced ${enhancedCount}/${totalSections} sections!`, { id: 'enhance-all' });
+              } catch (error: any) {
+                toast.error(`Enhanced ${enhancedCount}/${totalSections} sections. Some failed.`, { id: 'enhance-all' });
+              }
+            }}
+            disabled={Object.values(enhancingSections).some(v => v)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-base font-semibold"
+          >
+            {Object.values(enhancingSections).some(v => v) ? (
+              <>
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                Enhancing DPR...
+              </>
+            ) : (
+              <>
+                <Wand2 className="h-5 w-5 mr-2" />
+                Enhance Complete DPR
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
