@@ -44,6 +44,27 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   const [generatingImages, setGeneratingImages] = useState<Record<string, boolean>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  // Helper to render section title with grey box template
+  const renderSectionTitle = (title: string) => {
+    return (
+      <div className="mb-6">
+        <div 
+          className="rounded-lg p-4 mx-auto max-w-2xl"
+          style={{
+            backgroundColor: '#F3F4F6',
+            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.02) 10px, rgba(0,0,0,0.02) 20px)',
+            border: '1px solid #D1D5DB',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          }}
+        >
+          <h2 className="text-3xl font-bold text-center" style={{ color: '#1F2937' }}>
+            {title}
+          </h2>
+        </div>
+      </div>
+    );
+  };
+
   // Helper to render professional tables matching PDF format
   const renderTable = (headers: string[], rows: any[][], title?: string, statementNumber?: string) => {
     return (
@@ -303,48 +324,86 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
 
   return (
     <div className="bg-white dpr-document" style={{ fontFamily: 'Times New Roman, serif', width: '100%' }}>
-      {/* Cover Page - Matching PDF Format */}
+      {/* Cover Page - Matching Template Design */}
       <div 
-        className="min-h-[29.7cm] flex flex-col justify-center items-center p-12 border-b-4 border-gray-800 page-break"
+        className="min-h-[29.7cm] flex flex-col p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           minHeight: '29.7cm',
-          padding: '3cm 2cm',
-          fontFamily: 'Times New Roman, serif'
+          padding: '2.5cm',
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <div className="text-center max-w-3xl w-full">
-          <h1 className="text-5xl font-bold mb-8" style={{ color: '#1F2937', letterSpacing: '0.05em' }}>
-            DETAILED PROJECT REPORT
-          </h1>
-          <div className="my-8">
-            <h2 className="text-3xl font-semibold mb-4" style={{ color: '#1F2937' }}>
-              On
-            </h2>
-            <h2 className="text-3xl font-semibold mb-2" style={{ color: '#1F2937' }}>
-              Establishment of Common Facility Centre for
-            </h2>
-            <h2 className="text-4xl font-bold mb-6 uppercase" style={{ color: '#059669', letterSpacing: '0.05em' }}>
-              {s1.clusterName || 'CLUSTER NAME'}
-            </h2>
-            <p className="text-xl font-semibold" style={{ color: '#1F2937' }}>
-              under 'Micro Cluster Development Programme'
-            </p>
-          </div>
-          
-          <div className="mt-16 space-y-6 text-left max-w-md mx-auto" style={{ fontSize: '14px' }}>
-            <div className="border-t-2 border-b-2 border-gray-800 py-4" style={{ borderColor: '#1F2937' }}>
-              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Submitted to:</p>
-              <p className="text-sm" style={{ color: '#1F2937' }}>{s11.submittedTo || s11.submittedTo || 'DIC, District'}</p>
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        
+        <div className="flex flex-col h-full relative z-10">
+          {/* Title Section with Grey Box */}
+          <div className="mb-6">
+            <div 
+              className="rounded-lg p-6 mx-auto max-w-2xl"
+              style={{
+                backgroundColor: '#F3F4F6',
+                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.02) 10px, rgba(0,0,0,0.02) 20px)',
+                border: '1px solid #D1D5DB',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}
+            >
+              <h1 className="text-4xl font-bold text-center mb-2" style={{ color: '#1F2937', letterSpacing: '0.05em' }}>
+                DETAILED PROJECT REPORT
+              </h1>
+              <h2 className="text-2xl font-semibold text-center mb-3" style={{ color: '#1F2937' }}>
+                On
+              </h2>
+              <h2 className="text-2xl font-semibold text-center mb-2" style={{ color: '#1F2937' }}>
+                Establishment of Common Facility Centre for
+              </h2>
+              <h2 className="text-3xl font-bold text-center mb-3 uppercase" style={{ color: '#059669', letterSpacing: '0.05em' }}>
+                {s1.clusterName || 'CLUSTER NAME'}
+              </h2>
+              <p className="text-lg font-semibold text-center" style={{ color: '#1F2937' }}>
+                under 'Micro Cluster Development Programme'
+              </p>
             </div>
-            <div className="border-b-2 border-gray-800 py-4" style={{ borderColor: '#1F2937' }}>
+          </div>
+
+          {/* Image Holder Section - Using renderImage with upload/generate */}
+          <div className="flex-1 flex items-center justify-center my-8" style={{ minHeight: '400px' }}>
+            {renderImage(
+              'cover-image',
+              '',
+              'Cluster Cover Image',
+              '',
+              'coverPage',
+              { clusterName: s1.clusterName, location: s1.location, district: s1.district },
+              `Professional cover image for ${s1.clusterName || 'the cluster'} showing the cluster's main activity, products, or facilities. High quality, professional business photography style.`
+            )}
+          </div>
+
+          {/* Submission Details Section */}
+          <div className="mt-auto space-y-4 text-left max-w-lg mx-auto w-full" style={{ fontSize: '14px' }}>
+            <div className="border-t-2 border-b-2 border-gray-800 py-3" style={{ borderColor: '#1F2937' }}>
+              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Submitted to:</p>
+              <p className="text-sm" style={{ color: '#1F2937' }}>{s11.submittedTo || 'TANSIDCO, Tirunelveli'}</p>
+            </div>
+            <div className="border-b-2 border-gray-800 py-3" style={{ borderColor: '#1F2937' }}>
               <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Submitted by:</p>
               <p className="text-sm" style={{ color: '#1F2937' }}>{s11.spvName || 'SPV Name'}</p>
               <p className="text-sm" style={{ color: '#1F2937' }}>{s1.location || 'Location'}</p>
             </div>
-            <div className="py-4">
+            <div className="py-3">
               <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Prepared by:</p>
-              <p className="text-sm" style={{ color: '#1F2937' }}>{s11.spvName || 'SPV Name'}</p>
+              <p className="text-sm" style={{ color: '#1F2937' }}>M/s.ITCOT Limited, 50A Greams Road, Chennai.</p>
             </div>
           </div>
         </div>
@@ -352,14 +411,27 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
 
       {/* Table of Contents - Matching PDF Format */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6 text-center" style={{ color: '#1F2937' }}>CONTENTS</h2>
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('CONTENTS')}
         {(() => {
           // Check which sections have data
           const hasExecutiveSummary = content.executiveSummary || (s1.clusterName || s1.district || s1.location);
@@ -607,18 +679,32 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             </table>
           );
         })()}
+        </div>
       </div>
 
       {/* Project Snapshot - Matching PDF Format */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6 text-center" style={{ color: '#1F2937' }}>PROJECT SNAPSHOT</h2>
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('PROJECT SNAPSHOT')}
         {renderTable(
           ['Particulars', 'Details'],
           [
@@ -756,19 +842,33 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             </div>
           )}
         </div>
+        </div>
       </div>
 
       {/* Executive Summary */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6 text-center" style={{ color: '#1F2937' }}>EXECUTIVE SUMMARY</h2>
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('EXECUTIVE SUMMARY')}
         {content.executiveSummary ? (
           <div className="prose max-w-none text-sm leading-relaxed">
             <FormattedText text={content.executiveSummary} />
@@ -828,48 +928,76 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Section 1: Introduction */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>1. INTRODUCTION</h2>
-        {content.introduction ? (
-          <div className="prose max-w-none text-sm leading-relaxed">
-            <FormattedText text={content.introduction} />
-          </div>
-        ) : (
-          <div className="text-sm leading-relaxed space-y-4">
-            <p><strong>1.1 Sector/Industry Type:</strong> {s2.sectorType || 'N/A'}</p>
-            <p><strong>1.2 Sector Description:</strong></p>
-            <p className="text-justify">{s2.sectorDescription || 'N/A'}</p>
-            <p><strong>1.3 National Importance:</strong></p>
-            <p className="text-justify">{s2.nationalImportance || 'N/A'}</p>
-            <p><strong>1.4 State-level Importance:</strong></p>
-            <p className="text-justify">{s2.stateLevelImportance || 'N/A'}</p>
-          </div>
-        )}
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('1. INTRODUCTION')}
+          {content.introduction ? (
+            <div className="prose max-w-none text-sm leading-relaxed">
+              <FormattedText text={content.introduction} />
+            </div>
+          ) : (
+            <div className="text-sm leading-relaxed space-y-4">
+              <p><strong>1.1 Sector/Industry Type:</strong> {s2.sectorType || 'N/A'}</p>
+              <p><strong>1.2 Sector Description:</strong></p>
+              <p className="text-justify">{s2.sectorDescription || 'N/A'}</p>
+              <p><strong>1.3 National Importance:</strong></p>
+              <p className="text-justify">{s2.nationalImportance || 'N/A'}</p>
+              <p><strong>1.4 State-level Importance:</strong></p>
+              <p className="text-justify">{s2.stateLevelImportance || 'N/A'}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Section 1.5: District & Regional Profile */}
       {(s3.geography || s3.climate || s3.infrastructure || s3.keyEconomicActivities || s3.rawMaterialAvailability || s3.industrialInfrastructure || s3.connectivity) && (
         <div 
-          className="p-12 border-b-4 border-gray-800 page-break"
+          className="p-12 border-b-4 border-gray-800 page-break relative"
           style={{ 
             pageBreakAfter: 'always',
             padding: '2cm',
             minHeight: '29.7cm',
-            fontFamily: 'Times New Roman, serif'
+            fontFamily: 'Times New Roman, serif',
+            border: '8px solid #2563EB',
+            borderStyle: 'double',
+            position: 'relative'
           }}
         >
-          <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>1.5 DISTRICT & REGIONAL PROFILE</h2>
+          {/* Decorative border effect */}
+          <div 
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              border: '2px solid #3B82F6',
+              margin: '8px',
+              borderRadius: '4px'
+            }}
+          />
+          <div className="relative z-10">
+            {renderSectionTitle('1.5 DISTRICT & REGIONAL PROFILE')}
           <div className="space-y-6 text-sm">
             {s3.geography && (
               <div>
@@ -927,21 +1055,35 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               </div>
             )}
           </div>
+          </div>
         </div>
       )}
 
       {/* Section 2: Cluster Profile */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>2. CLUSTER PROFILE</h2>
-        <div className="space-y-6 text-sm">
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('2. CLUSTER PROFILE')}
+          <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">2.1 Evolution of the Cluster</h3>
             <p className="text-justify leading-relaxed">{s4.clusterEvolution || 'N/A'}</p>
@@ -994,20 +1136,34 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               )}
             </div>
           </div>
+          </div>
         </div>
       </div>
 
       {/* Section 3: Value Chain */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>3. CLUSTER VALUE CHAIN MAPPING</h2>
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('3. CLUSTER VALUE CHAIN MAPPING')}
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">3.1 Value Chain Stages</h3>
@@ -1075,20 +1231,34 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             )}
           </div>
         </div>
+        </div>
       </div>
 
       {/* Section 4: Market Aspects */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>4. MARKET ASPECTS</h2>
-        <div className="space-y-6 text-sm">
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('4. MARKET ASPECTS')}
+          <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">4.1 Demand–Supply Analysis</h3>
             <p className="text-justify leading-relaxed">{s6.existingDemand || 'N/A'}</p>
@@ -1113,66 +1283,94 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             </div>
           )}
         </div>
+        </div>
       </div>
 
       {/* Section 5: SWOT Analysis */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>5. SWOT ANALYSIS</h2>
-        <div className="grid grid-cols-2 gap-6 text-sm">
-          <div>
-            <h3 className="text-lg font-semibold mb-3 text-green-700">Strengths</h3>
-            <ul className="list-disc list-inside space-y-1">
-              {(s8.strengths || []).map((s: string, idx: number) => (
-                <li key={idx}>{s}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-3 text-orange-700">Weaknesses</h3>
-            <ul className="list-disc list-inside space-y-1">
-              {(s8.weaknesses || []).map((w: string, idx: number) => (
-                <li key={idx}>{w}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-3 text-blue-700">Opportunities</h3>
-            <ul className="list-disc list-inside space-y-1">
-              {(s8.opportunities || []).map((o: string, idx: number) => (
-                <li key={idx}>{o}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-3 text-red-700">Threats</h3>
-            <ul className="list-disc list-inside space-y-1">
-              {(s8.threats || []).map((t: string, idx: number) => (
-                <li key={idx}>{t}</li>
-              ))}
-            </ul>
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('5. SWOT ANALYSIS')}
+          <div className="grid grid-cols-2 gap-6 text-sm">
+            <div>
+              <h3 className="text-lg font-semibold mb-3 text-green-700">Strengths</h3>
+              <ul className="list-disc list-inside space-y-1">
+                {(s8.strengths || []).map((s: string, idx: number) => (
+                  <li key={idx}>{s}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-3 text-orange-700">Weaknesses</h3>
+              <ul className="list-disc list-inside space-y-1">
+                {(s8.weaknesses || []).map((w: string, idx: number) => (
+                  <li key={idx}>{w}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-3 text-blue-700">Opportunities</h3>
+              <ul className="list-disc list-inside space-y-1">
+                {(s8.opportunities || []).map((o: string, idx: number) => (
+                  <li key={idx}>{o}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-3 text-red-700">Threats</h3>
+              <ul className="list-disc list-inside space-y-1">
+                {(s8.threats || []).map((t: string, idx: number) => (
+                  <li key={idx}>{t}</li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Section 6: Gap Analysis */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>6. NEED GAP ANALYSIS</h2>
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('6. NEED GAP ANALYSIS')}
         {renderTable(
           ['Area', 'Existing Gap'],
           [
@@ -1187,19 +1385,33 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           <h3 className="text-xl font-semibold mb-3">Justification for Intervention</h3>
           <p className="text-sm text-justify leading-relaxed">{s7.justificationForIntervention || 'N/A'}</p>
         </div>
+        </div>
       </div>
 
       {/* Section 7: CFC Details */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>7. CFC - OPERATION & MANAGEMENT</h2>
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT')}
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">7.1 CFC Overview</h3>
@@ -1265,19 +1477,33 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             )}
           </div>
         </div>
+        </div>
       </div>
 
       {/* Section 8: SPV Details */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>8. SPV MEMBER UNITS</h2>
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('8. SPV MEMBER UNITS')}
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">8.1 SPV Profile</h3>
@@ -1372,19 +1598,33 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             </div>
           )}
         </div>
+        </div>
       </div>
 
       {/* Section 9: Project Cost & Means of Finance */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>9. PROJECT COST & MEANS OF FINANCE</h2>
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('9. PROJECT COST & MEANS OF FINANCE')}
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.1 Project Cost</h3>
@@ -1459,20 +1699,34 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             </ResponsiveContainer>
           </div>
         </div>
+        </div>
       </div>
 
       {/* Section 9.5: Operating Cost & Revenue */}
       {(s14.rawMaterialCost || s14.powerCost || s14.wages || s14.maintenance || s14.administrativeExpenses || s14.marketingExpenses || s14.annualProductionVolume || s14.annualSalesRealization) && (
         <div 
-          className="p-12 border-b-4 border-gray-800 page-break"
+          className="p-12 border-b-4 border-gray-800 page-break relative"
           style={{ 
             pageBreakAfter: 'always',
             padding: '2cm',
             minHeight: '29.7cm',
-            fontFamily: 'Times New Roman, serif'
+            fontFamily: 'Times New Roman, serif',
+            border: '8px solid #2563EB',
+            borderStyle: 'double',
+            position: 'relative'
           }}
         >
-          <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>9.5 OPERATING COST & REVENUE</h2>
+          {/* Decorative border effect */}
+          <div 
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              border: '2px solid #3B82F6',
+              margin: '8px',
+              borderRadius: '4px'
+            }}
+          />
+          <div className="relative z-10">
+            {renderSectionTitle('9.5 OPERATING COST & REVENUE')}
           <div className="space-y-6 text-sm">
             <div>
               <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.5.1 Operating Costs</h3>
@@ -1505,20 +1759,34 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               )}
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {/* Section 10: Financial Viability */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>10. FINANCIAL VIABILITY</h2>
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('10. FINANCIAL VIABILITY')}
         <div className="space-y-6 text-sm">
           {/* Profit & Loss Statement */}
           {s15.profitAndLossProjections && s15.profitAndLossProjections.length > 0 && (
@@ -1654,21 +1922,35 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             </div>
           )}
         </div>
+        </div>
       </div>
 
       {/* Section 10.5: Project Implementation Schedule */}
       {(s16.startDate || (s16.milestones && s16.milestones.length > 0) || s16.totalImplementationPeriod) && (
         <div 
-          className="p-12 border-b-4 border-gray-800 page-break"
+          className="p-12 border-b-4 border-gray-800 page-break relative"
           style={{ 
             pageBreakAfter: 'always',
             padding: '2cm',
             minHeight: '29.7cm',
-            fontFamily: 'Times New Roman, serif'
+            fontFamily: 'Times New Roman, serif',
+            border: '8px solid #2563EB',
+            borderStyle: 'double',
+            position: 'relative'
           }}
         >
-          <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>10.5 PROJECT IMPLEMENTATION SCHEDULE</h2>
-          <div className="space-y-6 text-sm">
+          {/* Decorative border effect */}
+          <div 
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              border: '2px solid #3B82F6',
+              margin: '8px',
+              borderRadius: '4px'
+            }}
+          />
+          <div className="relative z-10">
+            {renderSectionTitle('10.5 PROJECT IMPLEMENTATION SCHEDULE')}
+            <div className="space-y-6 text-sm">
             {s16.startDate && (
               <div>
                 <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.5.1 Project Start Date</h3>
@@ -1696,21 +1978,35 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               </div>
             )}
           </div>
+          </div>
         </div>
       )}
 
       {/* Section 11: Expected Impact */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>11. EXPECTED IMPACT</h2>
-        {renderTable(
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('11. EXPECTED IMPACT')}
+          {renderTable(
           ['Parameter', 'Before', 'After'],
           [
             ['Employment', 'N/A', s17.employmentGeneration || 0],
@@ -1729,19 +2025,33 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             </ul>
           </div>
         )}
+        </div>
       </div>
 
       {/* Financial Statements - Detailed Section */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6 text-center" style={{ color: '#1F2937' }}>FINANCIAL STATEMENTS</h2>
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('FINANCIAL STATEMENTS')}
         
         {/* Working Capital Assessment */}
         {s12.workingCapitalMargin && s12.workingCapitalMargin > 0 && (
@@ -1904,26 +2214,41 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             )
           )}
         </div>
+        </div>
       </div>
 
       {/* Conclusion */}
       <div 
-        className="p-12 border-b-4 border-gray-800 page-break"
+        className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{ 
           pageBreakAfter: 'always',
           padding: '2cm',
           minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif'
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
         }}
       >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: '#1F2937' }}>CONCLUSION</h2>
-        {content.conclusion ? (
-          <div className="prose max-w-none text-sm leading-relaxed">
-            <FormattedText text={content.conclusion} />
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>
-        )}
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {renderSectionTitle('CONCLUSION')}
+          {content.conclusion ? (
+            <div className="prose max-w-none text-sm leading-relaxed">
+              <FormattedText text={content.conclusion} />
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>
+          )}
+        </div>
       </div>
 
       {/* Annexures Cover Page */}
@@ -1933,21 +2258,30 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         <>
           {/* Annexures Cover Page */}
           <div 
-            className="min-h-[29.7cm] flex flex-col justify-center items-center p-12 border-b-4 border-gray-800 page-break"
+            className="min-h-[29.7cm] flex flex-col justify-center items-center p-12 border-b-4 border-gray-800 page-break relative"
             style={{ 
               pageBreakAfter: 'always',
               minHeight: '29.7cm',
               padding: '3cm 2cm',
               fontFamily: 'Times New Roman, serif',
-              border: '4px solid #1F2937'
+              border: '8px solid #2563EB',
+              borderStyle: 'double',
+              position: 'relative'
             }}
           >
-            <div className="text-center max-w-3xl w-full">
-              <h1 className="text-5xl font-bold mb-8" style={{ color: '#1F2937', letterSpacing: '0.05em' }}>
-                ANNEXURES
-              </h1>
+            {/* Decorative border effect */}
+            <div 
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                border: '2px solid #3B82F6',
+                margin: '8px',
+                borderRadius: '4px'
+              }}
+            />
+            <div className="relative z-10 w-full flex flex-col items-center justify-center">
+              {renderSectionTitle('ANNEXURES')}
               {s1.clusterName && (
-                <h2 className="text-3xl font-semibold mb-4" style={{ color: '#059669', letterSpacing: '0.05em' }}>
+                <h2 className="text-3xl font-semibold mb-4 mt-4" style={{ color: '#059669', letterSpacing: '0.05em' }}>
                   - {s1.clusterName.toUpperCase()} -
                 </h2>
               )}
