@@ -423,44 +423,112 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           ]
         )}
 
-        {/* Existing Cluster Scenario Table */}
-        <div className="my-6">
-          <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Existing cluster scenario</h4>
-          {renderTable(
-            ['Product', 'No.of units', 'Annual Production (in MT)', 'Annual Turnover (in Rs.lakhs)'],
-            [
-              ['Coir Fibre Extraction', s1.enterpriseCount?.micro || 0, '25000(Fibre)\n50000(Pith)', '1375.00\n6000.00'],
-              ['Coir 2ply yarn Spinning', s1.enterpriseCount?.small || 0, '864', '181.44'],
-              ['Coir Pith Block', s1.enterpriseCount?.medium || 0, '24000', '4080.00'],
-              ['Total', (s1.enterpriseCount?.micro || 0) + (s1.enterpriseCount?.small || 0) + (s1.enterpriseCount?.medium || 0), '99864', '11636.44'],
-            ]
-          )}
-        </div>
+        {/* Existing Cluster Scenario Table - Only show if data is available */}
+        {(s1.enterpriseCount || s4.productionCapacity || s14.annualProductionVolume) && (
+          <div className="my-6">
+            <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Existing cluster scenario</h4>
+            {(() => {
+              // Build table rows dynamically from available data
+              const rows: any[][] = [];
+              const totalUnits = (s1.enterpriseCount?.micro || 0) + (s1.enterpriseCount?.small || 0) + (s1.enterpriseCount?.medium || 0);
+              
+              // Add rows based on enterprise categories if they exist
+              if (s1.enterpriseCount?.micro && s1.enterpriseCount.micro > 0) {
+                rows.push([
+                  'Micro Enterprises',
+                  s1.enterpriseCount.micro.toString(),
+                  s4.productionCapacity || s14.annualProductionVolume ? `${s14.annualProductionVolume || 'N/A'}` : 'N/A',
+                  s1.turnoverPerUnit ? `₹${((s1.turnoverPerUnit * s1.enterpriseCount.micro) / 100000).toFixed(2)}` : 'N/A'
+                ]);
+              }
+              if (s1.enterpriseCount?.small && s1.enterpriseCount.small > 0) {
+                rows.push([
+                  'Small Enterprises',
+                  s1.enterpriseCount.small.toString(),
+                  'N/A',
+                  s1.turnoverPerUnit ? `₹${((s1.turnoverPerUnit * s1.enterpriseCount.small) / 100000).toFixed(2)}` : 'N/A'
+                ]);
+              }
+              if (s1.enterpriseCount?.medium && s1.enterpriseCount.medium > 0) {
+                rows.push([
+                  'Medium Enterprises',
+                  s1.enterpriseCount.medium.toString(),
+                  'N/A',
+                  s1.turnoverPerUnit ? `₹${((s1.turnoverPerUnit * s1.enterpriseCount.medium) / 100000).toFixed(2)}` : 'N/A'
+                ]);
+              }
+              
+              // Add total row if we have any data
+              if (rows.length > 0) {
+                const totalProduction = s14.annualProductionVolume ? s14.annualProductionVolume.toString() : 'N/A';
+                const totalTurnover = s1.turnoverPerUnit && totalUnits > 0 
+                  ? `₹${((s1.turnoverPerUnit * totalUnits) / 100000).toFixed(2)}` 
+                  : 'N/A';
+                rows.push(['Total', totalUnits.toString(), totalProduction, totalTurnover]);
+              }
+              
+              // Only render table if we have data
+              if (rows.length > 0) {
+                return renderTable(
+                  ['Product', 'No.of units', 'Annual Production (in MT)', 'Annual Turnover (in Rs.lakhs)'],
+                  rows
+                );
+              }
+              return null;
+            })()}
+          </div>
+        )}
 
         <div className="my-6">
           <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Key Concern areas of the cluster</h4>
-          <ul className="list-disc list-inside space-y-2 text-sm" style={{ color: '#1F2937' }}>
-            <li>The micro units in the cluster are engaged in manufacturing of intermediate coir products only viz. Coir Fibre, Yarn and Pith.</li>
-            <li>No value addition of Coir products undertaken in spite of good market prospects for value added coir products</li>
-            <li>Dependence on intermediaries/ dealers/agents for selling, due to the absence of Collaborative marketing efforts so far</li>
-            <li>Weak backward and forward linkages</li>
-            <li>Limited individual investment potential of existing micro units, to venture into manufacturing of value added coir products</li>
-            <li>Limited awareness on Quality of final products and the evolving technology / modern machineries in Coir sector</li>
-          </ul>
+          {(() => {
+            const concerns: string[] = [];
+            if (s7.technologyGaps) concerns.push(`Technology: ${s7.technologyGaps}`);
+            if (s7.infrastructureGaps) concerns.push(`Infrastructure: ${s7.infrastructureGaps}`);
+            if (s7.skillGaps) concerns.push(`Skill: ${s7.skillGaps}`);
+            if (s7.marketingGaps) concerns.push(`Marketing: ${s7.marketingGaps}`);
+            if (s7.financialGaps) concerns.push(`Finance: ${s7.financialGaps}`);
+            
+            if (concerns.length > 0) {
+              return (
+                <ul className="list-disc list-inside space-y-2 text-sm" style={{ color: '#1F2937' }}>
+                  {concerns.map((concern, idx) => (
+                    <li key={idx}>{concern}</li>
+                  ))}
+                </ul>
+              );
+            }
+            return (
+              <ul className="list-disc list-inside space-y-2 text-sm" style={{ color: '#1F2937' }}>
+                <li>Limited value addition of products</li>
+                <li>Dependence on intermediaries/ dealers/agents for selling, due to the absence of collaborative marketing efforts</li>
+                <li>Weak backward and forward linkages</li>
+                <li>Limited individual investment potential of existing micro units</li>
+                <li>Limited awareness on quality of final products and evolving technology / modern machineries</li>
+              </ul>
+            );
+          })()}
         </div>
 
         <div className="my-6">
           <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Project Rationale</h4>
           <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
-            {s7.justificationForIntervention || 'The existing production potential of intermediate Coir products in the cluster is promising. Hence the cluster is considered suitable for development in order to cater the growing market needs for the Value added coir products, both in domestic and international arena. Enabling the Coir Micro units in the cluster to upscale their activities, thereby manufacture value added Coir products achieved and extended high end market reach assured. With the cluster development support, the following benefits are anticipated: i. CFC establishment orients the micro unit holders towards the value added Coir products ii. Additional employment iii. Increase in turnover and profitability iv. Increased income level for the coir units could be achieved v. Emergence of new units, as cluster spillover effect'}
+            {s7.justificationForIntervention || 'The existing production potential in the cluster is promising. Hence the cluster is considered suitable for development in order to cater the growing market needs for value added products, both in domestic and international arena. Enabling the micro units in the cluster to upscale their activities, thereby manufacture value added products and extended high end market reach assured. With the cluster development support, the following benefits are anticipated: i. CFC establishment orients the micro unit holders towards value added products ii. Additional employment iii. Increase in turnover and profitability iv. Increased income level for the units could be achieved v. Emergence of new units, as cluster spillover effect'}
           </p>
         </div>
 
         <div className="my-6">
           <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Proposed Interventions</h4>
           <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
-            {s9.description || 'The following upgraded production infrastructure are proposed in the Common Facility Centre: Coir Fibre (120 Kg.) Baling Press (For export Coir Fibre manufactured by Cluster units), Automatic Coir yarn spinning machines - 12 Nos. (Back up spinning machines @ CFC, to ensure continuous supply of raw material to Looms), Fully automatic Coir Geo-textiles Loom (2m width) - 4 Nos. with tightening machine (Value addition of Coir yarn manufactured by Cluster units), 5 Kg. Coir Pith Block making machine - 2 Nos. (Value addition of Coir pith manufactured by Cluster units).'}
+            {s9.description || 'The following upgraded production infrastructure are proposed in the Common Facility Centre to enable value addition and improved market reach for cluster units.'}
           </p>
+          {s9.objectives && s9.objectives.length > 0 && (
+            <ul className="list-disc list-inside space-y-2 text-sm mt-3" style={{ color: '#1F2937' }}>
+              {s9.objectives.map((objective: string, idx: number) => (
+                <li key={idx}>{objective}</li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 
@@ -958,32 +1026,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             {renderTable(
               ['Indicator', 'Value'],
               [
-                ['Break-even Point', `${s15.breakEvenPoint || 0}%`],
-                ['IRR', `${s15.irr || 0}%`],
-                ['NPV', `₹${((s15.npv || 0) / 100000).toFixed(2)} Lakhs`],
-              ],
-              'Estimation of Break Even Point',
-              '11'
-            )}
-            {renderTable(
-              ['Years', 'PR. PERIOD', '1', '2', '3', '4', '5'],
-              [
-                ['Fixed Expenses', '', '', '', '', '', ''],
-                ['Salary for Executives', '', '39.54', '41.51', '43.59', '45.77', '48.06'],
-                ['Preliminary expenses', '', '0.05', '0.05', '0.05', '0.05', '0.05'],
-                ['Depreciation', '', '41.43', '41.43', '41.43', '41.43', '41.43'],
-                ['Total( A )', '', '81.02', '82.99', '85.07', '87.25', '89.54'],
-                ['Variable Expenses', '', '', '', '', '', ''],
-                ['Cost Of Raw materials and Consumables', '', '299.77', '349.73', '399.70', '399.70', '399.70'],
-                ['Cost Of Power', '', '31.13', '36.30', '41.48', '41.48', '41.48'],
-                ['Wages', '', '39.54', '41.51', '43.59', '45.77', '48.06'],
-                ['Repairs & Maintenance', '', '8.46', '9.31', '10.24', '11.26', '12.39'],
-                ['Administrative Expenses', '', '20.46', '23.86', '27.27', '27.27', '27.27'],
-                ['Selling and Marketing Expenses', '', '34.09', '39.77', '45.46', '45.46', '45.46'],
-                ['Interest on Working Capital Loan', '', '3.60', '3.60', '3.60', '3.60', '3.60'],
-                ['Total( B )', '', '437.05', '504.08', '571.34', '574.54', '577.96'],
-                ['Sales Realisation', '', '681.84', '795.48', '909.12', '909.12', '909.12'],
-                ['Break Even Point', '', '33%', '28%', '25%', '26%', '27%'],
+                ['Break-even Point', s15.breakEvenPoint ? `${s15.breakEvenPoint}%` : 'N/A'],
+                ['IRR', s15.irr ? `${s15.irr}%` : 'N/A'],
+                ['NPV', s15.npv ? `₹${((s15.npv) / 100000).toFixed(2)} Lakhs` : 'N/A'],
               ],
               'Estimation of Break Even Point',
               '11'
@@ -1026,34 +1071,62 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             </div>
           )}
 
-          {/* NPV & IRR */}
-          <div>
-            <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.5 NPV & IRR</h3>
-            {renderTable(
-              ['Years', 'PR. PERIOD', '1', '2', '3', '4', '5', '6'],
-              [
-                ['Cash Out Flow', '', '', '', '', '', '', ''],
-                ['Capital Expenditure', '712.60', '', '', '', '', '', ''],
-                ['Preliminary & Preoperative Expenses', '0.51', '', '', '', '', '', ''],
-                ['Working Capital Margin', '4.56', '', '', '', '', '', ''],
-                ['Total', '717.67', '0.00', '0.00', '0.00', '0.00', '0.00', ''],
-                ['', '', '', '', '', '', '', ''],
-                ['Cash Inflow', '', '', '', '', '', '', ''],
-                ['Profit After Tax', '', '139.59', '158.27', '179.17', '169.61', '161.22', '161.22'],
-                ['Depreciation', '', '41.43', '41.43', '41.43', '41.43', '41.43', '41.43'],
-                ['', '', '', '', '', '', '', ''],
-                ['Total', '0.00', '181.02', '199.70', '220.60', '211.04', '202.65', '202.65'],
-                ['', '', '', '', '', '', '', ''],
-                ['Net Cash Flow', '-717.67', '181.02', '199.70', '220.60', '211.04', '202.65', '202.65'],
-                ['', '', '', '', '', '', '', ''],
-                ['Net Present Value', 'Rs.82.70 lakhs', '', '', '', '', '', ''],
-                ['at 8% discount rate', '', '', '', '', '', '', ''],
-                ['Internal Rate of Return', '26.02%', '', '', '', '', '', ''],
-              ],
-              'Estimation of NET PRESENT VALUE AND INTERNAL RATE OF RETURN',
-              '12'
-            )}
-          </div>
+          {/* NPV & IRR - Only show if data is available */}
+          {(s15.npv !== undefined || s15.irr !== undefined || (s15.cashFlowProjections && s15.cashFlowProjections.length > 0)) && (
+            <div>
+              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.5 NPV & IRR</h3>
+              {(() => {
+                const totalProjectCost = (s12.land || 0) + (s12.building || 0) + (s12.machinery || 0) + 
+                                       (s12.utilitiesAndInfrastructure || 0) + (s12.preliminaryAndPreOperative || 0) + 
+                                       (s12.workingCapitalMargin || 0);
+                const rows: any[][] = [];
+                
+                // Cash Out Flow
+                rows.push(['Cash Out Flow', '', '', '', '', '', '', '']);
+                rows.push(['Capital Expenditure', (totalProjectCost / 100000).toFixed(2), '', '', '', '', '', '']);
+                rows.push(['Preliminary & Preoperative Expenses', ((s12.preliminaryAndPreOperative || 0) / 100000).toFixed(2), '', '', '', '', '', '']);
+                rows.push(['Working Capital Margin', ((s12.workingCapitalMargin || 0) / 100000).toFixed(2), '', '', '', '', '', '']);
+                rows.push(['Total', ((totalProjectCost + (s12.preliminaryAndPreOperative || 0) + (s12.workingCapitalMargin || 0)) / 100000).toFixed(2), '0.00', '0.00', '0.00', '0.00', '0.00', '']);
+                rows.push(['', '', '', '', '', '', '', '']);
+                
+                // Cash Inflow - use cash flow projections if available
+                rows.push(['Cash Inflow', '', '', '', '', '', '', '']);
+                if (s15.cashFlowProjections && s15.cashFlowProjections.length > 0) {
+                  const projections = s15.cashFlowProjections.slice(0, 6);
+                  const profitRow = ['Profit After Tax', ''];
+                  const depRow = ['Depreciation', ''];
+                  projections.forEach((p: any, idx: number) => {
+                    profitRow.push(p.profitAfterTax ? ((p.profitAfterTax / 100000).toFixed(2)) : '');
+                    depRow.push(p.depreciation ? ((p.depreciation / 100000).toFixed(2)) : '');
+                  });
+                  rows.push(profitRow);
+                  rows.push(depRow);
+                } else {
+                  rows.push(['Profit After Tax', '', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A']);
+                  rows.push(['Depreciation', '', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A']);
+                }
+                rows.push(['', '', '', '', '', '', '', '']);
+                
+                // Total and Net Cash Flow
+                rows.push(['Total', '0.00', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A']);
+                rows.push(['', '', '', '', '', '', '', '']);
+                rows.push(['Net Cash Flow', `-${((totalProjectCost + (s12.preliminaryAndPreOperative || 0) + (s12.workingCapitalMargin || 0)) / 100000).toFixed(2)}`, 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A']);
+                rows.push(['', '', '', '', '', '', '', '']);
+                
+                // NPV and IRR
+                rows.push(['Net Present Value', s15.npv ? `Rs.${(s15.npv / 100000).toFixed(2)} lakhs` : 'N/A', '', '', '', '', '', '']);
+                rows.push(['at 8% discount rate', '', '', '', '', '', '', '']);
+                rows.push(['Internal Rate of Return', s15.irr ? `${s15.irr}%` : 'N/A', '', '', '', '', '', '']);
+                
+                return renderTable(
+                  ['Years', 'PR. PERIOD', '1', '2', '3', '4', '5', '6'],
+                  rows,
+                  'Estimation of NET PRESENT VALUE AND INTERNAL RATE OF RETURN',
+                  '12'
+                );
+              })()}
+            </div>
+          )}
 
           {/* Sensitivity Analysis */}
           {s15.sensitivityAnalysis && (
