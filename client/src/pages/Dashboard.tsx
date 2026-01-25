@@ -316,13 +316,33 @@ export const Dashboard: React.FC = () => {
     <Layout>
       <div className="space-y-8 pb-8">
         {/* Hero Section */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            {t('dashboard.welcomeBack', { name: user?.name })}
-          </h1>
-          <p className="text-muted-foreground">
-            {t('dashboard.manageDPRsAndTrack')}
-          </p>
+        <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">
+              {t('dashboard.welcomeBack', { name: user?.name })}
+            </h1>
+            <p className="text-muted-foreground">
+              {t('dashboard.manageDPRsAndTrack')}
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <Button
+              variant="primary"
+              onClick={() => navigate('/cluster-dpr/create')}
+              className="gap-2 whitespace-nowrap"
+            >
+              <Building className="h-4 w-4" />
+              Create Cluster DPR
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => navigate('/dpr/builder')}
+              className="gap-2 whitespace-nowrap"
+            >
+              <FolderPlus className="h-4 w-4" />
+              Create DPR
+            </Button>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -623,7 +643,18 @@ export const Dashboard: React.FC = () => {
             <CardDescription>{t('dashboard.accessFrequentlyUsed')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Button
+                variant="primary"
+                onClick={() => navigate('/cluster-dpr/create')}
+                className="h-28 flex-col gap-3 bg-gradient-to-br from-primary to-primary/80"
+              >
+                <div className="h-12 w-12 rounded-lg bg-white/20 flex items-center justify-center">
+                  <Building className="h-6 w-6" />
+                </div>
+                <span className="font-semibold">Create Cluster DPR</span>
+                <span className="text-sm opacity-90">Cluster Development Projects</span>
+              </Button>
               <Button
                 variant="secondary"
                 onClick={() => navigate('/dpr/builder')}

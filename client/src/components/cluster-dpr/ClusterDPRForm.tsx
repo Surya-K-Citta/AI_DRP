@@ -1,0 +1,2035 @@
+// @ts-nocheck
+import React from 'react';
+import { useClusterDPRStore } from '@/store/clusterDPRStore';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Plus, Trash2 } from 'lucide-react';
+
+interface ClusterDPRFormProps {
+  currentStep: number;
+  onNext: () => void;
+  onPrevious: () => void;
+}
+
+export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
+  currentStep,
+  onNext,
+  onPrevious,
+}) => {
+  const { data, setStepData, getStepData } = useClusterDPRStore();
+  const stepData = getStepData(currentStep) || {};
+
+  const handleInputChange = (field: string, value: any) => {
+    setStepData(currentStep, {
+      ...stepData,
+      [field]: value,
+    });
+  };
+
+  const handleArrayAdd = (field: string, newItem: any) => {
+    const currentArray = stepData[field] || [];
+    setStepData(currentStep, {
+      ...stepData,
+      [field]: [...currentArray, newItem],
+    });
+  };
+
+  const handleArrayRemove = (field: string, index: number) => {
+    const currentArray = stepData[field] || [];
+    setStepData(currentStep, {
+      ...stepData,
+      [field]: currentArray.filter((_: any, i: number) => i !== index),
+    });
+  };
+
+  const handleArrayUpdate = (field: string, index: number, updatedItem: any) => {
+    const currentArray = stepData[field] || [];
+    setStepData(currentStep, {
+      ...stepData,
+      [field]: currentArray.map((item: any, i: number) => 
+        i === index ? { ...item, ...updatedItem } : item
+      ),
+    });
+  };
+
+  // Step 1: Executive Summary
+  if (currentStep === 1) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Cluster Name *</label>
+            <Input
+              value={stepData.clusterName || ''}
+              onChange={(e) => handleInputChange('clusterName', e.target.value)}
+              placeholder="Enter cluster name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">District *</label>
+            <Input
+              value={stepData.district || ''}
+              onChange={(e) => handleInputChange('district', e.target.value)}
+              placeholder="Enter district"
+            />
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">Location *</label>
+          <Input
+            value={stepData.location || ''}
+            onChange={(e) => handleInputChange('location', e.target.value)}
+            placeholder="Enter location"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">Geographical Spread</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.geographicalSpread || ''}
+            onChange={(e) => handleInputChange('geographicalSpread', e.target.value)}
+            placeholder="Describe geographical spread"
+          />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Nature of Business</label>
+            <Input
+              value={stepData.natureOfBusiness || ''}
+              onChange={(e) => handleInputChange('natureOfBusiness', e.target.value)}
+              placeholder="Enter nature of business"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Major Products</label>
+            <Input
+              value={stepData.majorProducts || ''}
+              onChange={(e) => handleInputChange('majorProducts', e.target.value)}
+              placeholder="Enter major products"
+            />
+          </div>
+        </div>
+
+        <div className="border-t pt-4">
+          <h3 className="text-lg font-semibold mb-4">Enterprise Count</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Micro</label>
+              <Input
+                type="number"
+                value={stepData.enterpriseCount?.micro || ''}
+                onChange={(e) => handleInputChange('enterpriseCount', {
+                  ...stepData.enterpriseCount,
+                  micro: parseInt(e.target.value) || 0,
+                })}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Small</label>
+              <Input
+                type="number"
+                value={stepData.enterpriseCount?.small || ''}
+                onChange={(e) => handleInputChange('enterpriseCount', {
+                  ...stepData.enterpriseCount,
+                  small: parseInt(e.target.value) || 0,
+                })}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Medium</label>
+              <Input
+                type="number"
+                value={stepData.enterpriseCount?.medium || ''}
+                onChange={(e) => handleInputChange('enterpriseCount', {
+                  ...stepData.enterpriseCount,
+                  medium: parseInt(e.target.value) || 0,
+                })}
+                placeholder="0"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t pt-4">
+          <h3 className="text-lg font-semibold mb-4">Age of Enterprises</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">&lt; 5 years</label>
+              <Input
+                type="number"
+                value={stepData.ageOfEnterprises?.lessThan5 || ''}
+                onChange={(e) => handleInputChange('ageOfEnterprises', {
+                  ...stepData.ageOfEnterprises,
+                  lessThan5: parseInt(e.target.value) || 0,
+                })}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">5-10 years</label>
+              <Input
+                type="number"
+                value={stepData.ageOfEnterprises?.between5And10 || ''}
+                onChange={(e) => handleInputChange('ageOfEnterprises', {
+                  ...stepData.ageOfEnterprises,
+                  between5And10: parseInt(e.target.value) || 0,
+                })}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">&gt; 10 years</label>
+              <Input
+                type="number"
+                value={stepData.ageOfEnterprises?.moreThan10 || ''}
+                onChange={(e) => handleInputChange('ageOfEnterprises', {
+                  ...stepData.ageOfEnterprises,
+                  moreThan10: parseInt(e.target.value) || 0,
+                })}
+                placeholder="0"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t pt-4">
+          <h3 className="text-lg font-semibold mb-4">Employment per Unit</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">&lt; 5 employees</label>
+              <Input
+                type="number"
+                value={stepData.employmentPerUnit?.lessThan5 || ''}
+                onChange={(e) => handleInputChange('employmentPerUnit', {
+                  ...stepData.employmentPerUnit,
+                  lessThan5: parseInt(e.target.value) || 0,
+                })}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">5-10 employees</label>
+              <Input
+                type="number"
+                value={stepData.employmentPerUnit?.between5And10 || ''}
+                onChange={(e) => handleInputChange('employmentPerUnit', {
+                  ...stepData.employmentPerUnit,
+                  between5And10: parseInt(e.target.value) || 0,
+                })}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">&gt; 10 employees</label>
+              <Input
+                type="number"
+                value={stepData.employmentPerUnit?.moreThan10 || ''}
+                onChange={(e) => handleInputChange('employmentPerUnit', {
+                  ...stepData.employmentPerUnit,
+                  moreThan10: parseInt(e.target.value) || 0,
+                })}
+                placeholder="0"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Investment per Unit (₹)</label>
+            <Input
+              type="number"
+              value={stepData.investmentPerUnit || ''}
+              onChange={(e) => handleInputChange('investmentPerUnit', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Turnover per Unit (₹)</label>
+            <Input
+              type="number"
+              value={stepData.turnoverPerUnit || ''}
+              onChange={(e) => handleInputChange('turnoverPerUnit', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+        </div>
+
+        <div className="border-t pt-4">
+          <h3 className="text-lg font-semibold mb-4">Market Served (%)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Domestic</label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={stepData.marketServed?.domestic || ''}
+                onChange={(e) => handleInputChange('marketServed', {
+                  ...stepData.marketServed,
+                  domestic: parseFloat(e.target.value) || 0,
+                })}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Export</label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={stepData.marketServed?.export || ''}
+                onChange={(e) => handleInputChange('marketServed', {
+                  ...stepData.marketServed,
+                  export: parseFloat(e.target.value) || 0,
+                })}
+                placeholder="0"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2: Introduction & Sector Overview
+  if (currentStep === 2) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Sector / Industry Type *</label>
+          <Input
+            value={stepData.sectorType || ''}
+            onChange={(e) => handleInputChange('sectorType', e.target.value)}
+            placeholder="Enter sector type"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">Sector Description *</label>
+          <textarea
+            className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.sectorDescription || ''}
+            onChange={(e) => handleInputChange('sectorDescription', e.target.value)}
+            placeholder="Describe the sector in detail"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">National Importance</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.nationalImportance || ''}
+            onChange={(e) => handleInputChange('nationalImportance', e.target.value)}
+            placeholder="Describe national importance"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">State-level Importance</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.stateLevelImportance || ''}
+            onChange={(e) => handleInputChange('stateLevelImportance', e.target.value)}
+            placeholder="Describe state-level importance"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">Key Products</label>
+          <div className="space-y-2">
+            {(stepData.keyProducts || []).map((product: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={product}
+                  onChange={(e) => {
+                    const updated = [...(stepData.keyProducts || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('keyProducts', updated);
+                  }}
+                  placeholder="Enter product name"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('keyProducts', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('keyProducts', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Product
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 3: District & Regional Profile
+  if (currentStep === 3) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Geography</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.geography || ''}
+            onChange={(e) => handleInputChange('geography', e.target.value)}
+            placeholder="Describe geography"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Climate</label>
+          <Input
+            value={stepData.climate || ''}
+            onChange={(e) => handleInputChange('climate', e.target.value)}
+            placeholder="Enter climate details"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Infrastructure</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.infrastructure || ''}
+            onChange={(e) => handleInputChange('infrastructure', e.target.value)}
+            placeholder="Describe infrastructure"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Key Economic Activities</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.keyEconomicActivities || ''}
+            onChange={(e) => handleInputChange('keyEconomicActivities', e.target.value)}
+            placeholder="Describe key economic activities"
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Raw Material Availability</label>
+            <textarea
+              className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={stepData.rawMaterialAvailability || ''}
+              onChange={(e) => handleInputChange('rawMaterialAvailability', e.target.value)}
+              placeholder="Describe raw material availability"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Raw Material Quantity</label>
+            <Input
+              value={stepData.rawMaterialQuantity || ''}
+              onChange={(e) => handleInputChange('rawMaterialQuantity', e.target.value)}
+              placeholder="Enter quantity"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Industrial Infrastructure</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.industrialInfrastructure || ''}
+            onChange={(e) => handleInputChange('industrialInfrastructure', e.target.value)}
+            placeholder="Describe industrial infrastructure"
+          />
+        </div>
+        <div className="border-t pt-4">
+          <h3 className="text-lg font-semibold mb-4">Connectivity</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Road</label>
+              <Input
+                value={stepData.connectivity?.road || ''}
+                onChange={(e) => handleInputChange('connectivity', {
+                  ...stepData.connectivity,
+                  road: e.target.value,
+                })}
+                placeholder="Enter road connectivity details"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Rail</label>
+              <Input
+                value={stepData.connectivity?.rail || ''}
+                onChange={(e) => handleInputChange('connectivity', {
+                  ...stepData.connectivity,
+                  rail: e.target.value,
+                })}
+                placeholder="Enter rail connectivity details"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Port</label>
+              <Input
+                value={stepData.connectivity?.port || ''}
+                onChange={(e) => handleInputChange('connectivity', {
+                  ...stepData.connectivity,
+                  port: e.target.value,
+                })}
+                placeholder="Enter port connectivity details"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 4: Cluster Profile
+  if (currentStep === 4) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Year of Establishment</label>
+          <Input
+            type="number"
+            value={stepData.yearOfEstablishment || ''}
+            onChange={(e) => handleInputChange('yearOfEstablishment', parseInt(e.target.value) || 0)}
+            placeholder="YYYY"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Cluster Evolution</label>
+          <textarea
+            className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.clusterEvolution || ''}
+            onChange={(e) => handleInputChange('clusterEvolution', e.target.value)}
+            placeholder="Describe cluster evolution"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Present Activities</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.presentActivities || ''}
+            onChange={(e) => handleInputChange('presentActivities', e.target.value)}
+            placeholder="Describe present activities"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Type of Units</label>
+          <Input
+            value={stepData.typeOfUnits || ''}
+            onChange={(e) => handleInputChange('typeOfUnits', e.target.value)}
+            placeholder="Enter type of units"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Production Capacity</label>
+          <Input
+            value={stepData.productionCapacity || ''}
+            onChange={(e) => handleInputChange('productionCapacity', e.target.value)}
+            placeholder="Enter production capacity"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Technology Level</label>
+          <Input
+            value={stepData.technologyLevel || ''}
+            onChange={(e) => handleInputChange('technologyLevel', e.target.value)}
+            placeholder="Enter technology level"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Stakeholders</label>
+          <div className="space-y-2">
+            {(stepData.stakeholders || []).map((stakeholder: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={stakeholder}
+                  onChange={(e) => {
+                    const updated = [...(stepData.stakeholders || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('stakeholders', updated);
+                  }}
+                  placeholder="Enter stakeholder name"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('stakeholders', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('stakeholders', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Stakeholder
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 5: Value Chain Details
+  if (currentStep === 5) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Raw Materials</label>
+          <div className="space-y-4">
+            {(stepData.rawMaterials || []).map((material: any, index: number) => (
+              <div key={index} className="p-4 border rounded-lg space-y-2">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Raw Material {index + 1}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleArrayRemove('rawMaterials', index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <Input
+                    value={material.name || ''}
+                    onChange={(e) => handleArrayUpdate('rawMaterials', index, { name: e.target.value })}
+                    placeholder="Material name"
+                  />
+                  <Input
+                    value={material.source || ''}
+                    onChange={(e) => handleArrayUpdate('rawMaterials', index, { source: e.target.value })}
+                    placeholder="Source"
+                  />
+                </div>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('rawMaterials', { name: '', source: '' })}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Raw Material
+            </Button>
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">Intermediate Products</label>
+          <div className="space-y-2">
+            {(stepData.intermediateProducts || []).map((product: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={product}
+                  onChange={(e) => {
+                    const updated = [...(stepData.intermediateProducts || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('intermediateProducts', updated);
+                  }}
+                  placeholder="Enter intermediate product"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('intermediateProducts', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('intermediateProducts', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Intermediate Product
+            </Button>
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">Final Products</label>
+          <div className="space-y-2">
+            {(stepData.finalProducts || []).map((product: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={product}
+                  onChange={(e) => {
+                    const updated = [...(stepData.finalProducts || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('finalProducts', updated);
+                  }}
+                  placeholder="Enter final product"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('finalProducts', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('finalProducts', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Final Product
+            </Button>
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">Value Addition Stages</label>
+          <div className="space-y-4">
+            {(stepData.valueAdditionStages || []).map((stage: any, index: number) => (
+              <div key={index} className="p-4 border rounded-lg space-y-2">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Stage {index + 1}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleArrayRemove('valueAdditionStages', index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <Input
+                    value={stage.stage || ''}
+                    onChange={(e) => handleArrayUpdate('valueAdditionStages', index, { stage: e.target.value })}
+                    placeholder="Stage name"
+                  />
+                  <Input
+                    type="number"
+                    value={stage.sellingPrice || ''}
+                    onChange={(e) => handleArrayUpdate('valueAdditionStages', index, { sellingPrice: parseFloat(e.target.value) || 0 })}
+                    placeholder="Selling price (₹)"
+                  />
+                </div>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('valueAdditionStages', { stage: '', sellingPrice: 0 })}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Value Addition Stage
+            </Button>
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">Major Buyers</label>
+          <div className="space-y-2">
+            {(stepData.majorBuyers || []).map((buyer: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={buyer}
+                  onChange={(e) => {
+                    const updated = [...(stepData.majorBuyers || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('majorBuyers', updated);
+                  }}
+                  placeholder="Enter buyer name"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('majorBuyers', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('majorBuyers', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Buyer
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 6: Market Assessment
+  if (currentStep === 6) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Existing Demand</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.existingDemand || ''}
+            onChange={(e) => handleInputChange('existingDemand', e.target.value)}
+            placeholder="Describe existing demand"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Demand-Supply Gap</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.demandSupplyGap || ''}
+            onChange={(e) => handleInputChange('demandSupplyGap', e.target.value)}
+            placeholder="Describe demand-supply gap"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Target Market</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.targetMarket || ''}
+            onChange={(e) => handleInputChange('targetMarket', e.target.value)}
+            placeholder="Describe target market"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Competitor Analysis</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.competitorAnalysis || ''}
+            onChange={(e) => handleInputChange('competitorAnalysis', e.target.value)}
+            placeholder="Describe competitor analysis"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Price Trends</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.priceTrends || ''}
+            onChange={(e) => handleInputChange('priceTrends', e.target.value)}
+            placeholder="Describe price trends"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Export Potential</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.exportPotential || ''}
+            onChange={(e) => handleInputChange('exportPotential', e.target.value)}
+            placeholder="Describe export potential"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Step 7: Gap Analysis
+  if (currentStep === 7) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Technology Gaps</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.technologyGaps || ''}
+            onChange={(e) => handleInputChange('technologyGaps', e.target.value)}
+            placeholder="Describe technology gaps"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Infrastructure Gaps</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.infrastructureGaps || ''}
+            onChange={(e) => handleInputChange('infrastructureGaps', e.target.value)}
+            placeholder="Describe infrastructure gaps"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Skill Gaps</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.skillGaps || ''}
+            onChange={(e) => handleInputChange('skillGaps', e.target.value)}
+            placeholder="Describe skill gaps"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Marketing Gaps</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.marketingGaps || ''}
+            onChange={(e) => handleInputChange('marketingGaps', e.target.value)}
+            placeholder="Describe marketing gaps"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Financial Gaps</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.financialGaps || ''}
+            onChange={(e) => handleInputChange('financialGaps', e.target.value)}
+            placeholder="Describe financial gaps"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Justification for Intervention</label>
+          <textarea
+            className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.justificationForIntervention || ''}
+            onChange={(e) => handleInputChange('justificationForIntervention', e.target.value)}
+            placeholder="Provide justification for intervention"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Step 8: SWOT Analysis
+  if (currentStep === 8) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Strengths</label>
+          <div className="space-y-2">
+            {(stepData.strengths || []).map((strength: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={strength}
+                  onChange={(e) => {
+                    const updated = [...(stepData.strengths || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('strengths', updated);
+                  }}
+                  placeholder="Enter strength"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('strengths', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('strengths', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Strength
+            </Button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Weaknesses</label>
+          <div className="space-y-2">
+            {(stepData.weaknesses || []).map((weakness: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={weakness}
+                  onChange={(e) => {
+                    const updated = [...(stepData.weaknesses || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('weaknesses', updated);
+                  }}
+                  placeholder="Enter weakness"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('weaknesses', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('weaknesses', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Weakness
+            </Button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Opportunities</label>
+          <div className="space-y-2">
+            {(stepData.opportunities || []).map((opportunity: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={opportunity}
+                  onChange={(e) => {
+                    const updated = [...(stepData.opportunities || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('opportunities', updated);
+                  }}
+                  placeholder="Enter opportunity"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('opportunities', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('opportunities', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Opportunity
+            </Button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Threats</label>
+          <div className="space-y-2">
+            {(stepData.threats || []).map((threat: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={threat}
+                  onChange={(e) => {
+                    const updated = [...(stepData.threats || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('threats', updated);
+                  }}
+                  placeholder="Enter threat"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('threats', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('threats', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Threat
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 9: Proposed Interventions
+  if (currentStep === 9) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Intervention Type *</label>
+          <select
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.interventionType || ''}
+            onChange={(e) => handleInputChange('interventionType', e.target.value)}
+          >
+            <option value="">Select type</option>
+            <option value="Hard">Hard</option>
+            <option value="Soft">Soft</option>
+            <option value="Both">Both</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Description</label>
+          <textarea
+            className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.description || ''}
+            onChange={(e) => handleInputChange('description', e.target.value)}
+            placeholder="Describe the intervention"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Objectives</label>
+          <div className="space-y-2">
+            {(stepData.objectives || []).map((objective: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={objective}
+                  onChange={(e) => {
+                    const updated = [...(stepData.objectives || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('objectives', updated);
+                  }}
+                  placeholder="Enter objective"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('objectives', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('objectives', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Objective
+            </Button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Expected Benefits</label>
+          <div className="space-y-2">
+            {(stepData.expectedBenefits || []).map((benefit: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={benefit}
+                  onChange={(e) => {
+                    const updated = [...(stepData.expectedBenefits || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('expectedBenefits', updated);
+                  }}
+                  placeholder="Enter expected benefit"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('expectedBenefits', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('expectedBenefits', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Benefit
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 10: Common Facility Centre (CFC) Details
+  if (currentStep === 10) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">CFC Name *</label>
+            <Input
+              value={stepData.name || ''}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              placeholder="Enter CFC name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Location *</label>
+            <Input
+              value={stepData.location || ''}
+              onChange={(e) => handleInputChange('location', e.target.value)}
+              placeholder="Enter location"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Land Details</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.landDetails || ''}
+            onChange={(e) => handleInputChange('landDetails', e.target.value)}
+            placeholder="Enter land details"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Civil Works</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.civilWorks || ''}
+            onChange={(e) => handleInputChange('civilWorks', e.target.value)}
+            placeholder="Describe civil works"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Manufacturing Process</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.manufacturingProcess || ''}
+            onChange={(e) => handleInputChange('manufacturingProcess', e.target.value)}
+            placeholder="Describe manufacturing process"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Plant & Machinery</label>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.plantAndMachinery || ''}
+            onChange={(e) => handleInputChange('plantAndMachinery', e.target.value)}
+            placeholder="Describe plant & machinery"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Capacity</label>
+          <Input
+            value={stepData.capacity || ''}
+            onChange={(e) => handleInputChange('capacity', e.target.value)}
+            placeholder="Enter capacity"
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Power Requirements</label>
+            <Input
+              value={stepData.powerRequirements || ''}
+              onChange={(e) => handleInputChange('powerRequirements', e.target.value)}
+              placeholder="Enter power requirements"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Water Requirements</label>
+            <Input
+              value={stepData.waterRequirements || ''}
+              onChange={(e) => handleInputChange('waterRequirements', e.target.value)}
+              placeholder="Enter water requirements"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Manpower Requirements</label>
+            <Input
+              value={stepData.manpowerRequirements || ''}
+              onChange={(e) => handleInputChange('manpowerRequirements', e.target.value)}
+              placeholder="Enter manpower requirements"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 11: SPV Details
+  if (currentStep === 11) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">SPV Name *</label>
+            <Input
+              value={stepData.spvName || ''}
+              onChange={(e) => handleInputChange('spvName', e.target.value)}
+              placeholder="Enter SPV name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Legal Status</label>
+            <Input
+              value={stepData.legalStatus || ''}
+              onChange={(e) => handleInputChange('legalStatus', e.target.value)}
+              placeholder="Enter legal status"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Year of Incorporation</label>
+          <Input
+            type="number"
+            value={stepData.yearOfIncorporation || ''}
+            onChange={(e) => handleInputChange('yearOfIncorporation', parseInt(e.target.value) || 0)}
+            placeholder="YYYY"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Objectives</label>
+          <div className="space-y-2">
+            {(stepData.objectives || []).map((objective: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={objective}
+                  onChange={(e) => {
+                    const updated = [...(stepData.objectives || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('objectives', updated);
+                  }}
+                  placeholder="Enter objective"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('objectives', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('objectives', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Objective
+            </Button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Roles & Responsibilities</label>
+          <div className="space-y-2">
+            {(stepData.rolesAndResponsibilities || []).map((role: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={role}
+                  onChange={(e) => {
+                    const updated = [...(stepData.rolesAndResponsibilities || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('rolesAndResponsibilities', updated);
+                  }}
+                  placeholder="Enter role/responsibility"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('rolesAndResponsibilities', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('rolesAndResponsibilities', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Role/Responsibility
+            </Button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Board of Directors</label>
+          <div className="space-y-4">
+            {(stepData.boardOfDirectors || []).map((director: any, index: number) => (
+              <div key={index} className="p-4 border rounded-lg space-y-2">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Director {index + 1}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleArrayRemove('boardOfDirectors', index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <Input
+                    value={director.name || ''}
+                    onChange={(e) => handleArrayUpdate('boardOfDirectors', index, { name: e.target.value })}
+                    placeholder="Name"
+                  />
+                  <Input
+                    value={director.designation || ''}
+                    onChange={(e) => handleArrayUpdate('boardOfDirectors', index, { designation: e.target.value })}
+                    placeholder="Designation"
+                  />
+                </div>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('boardOfDirectors', { name: '', designation: '' })}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Director
+            </Button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Shareholding Pattern</label>
+          <div className="space-y-4">
+            {(stepData.shareholdingPattern || []).map((share: any, index: number) => (
+              <div key={index} className="p-4 border rounded-lg space-y-2">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Shareholder {index + 1}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleArrayRemove('shareholdingPattern', index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <Input
+                    value={share.stakeholder || ''}
+                    onChange={(e) => handleArrayUpdate('shareholdingPattern', index, { stakeholder: e.target.value })}
+                    placeholder="Stakeholder name"
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={share.percentage || ''}
+                    onChange={(e) => handleArrayUpdate('shareholdingPattern', index, { percentage: parseFloat(e.target.value) || 0 })}
+                    placeholder="Percentage (%)"
+                  />
+                </div>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('shareholdingPattern', { stakeholder: '', percentage: 0 })}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Shareholder
+            </Button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Member Units</label>
+          <div className="space-y-4">
+            {(stepData.memberUnits || []).map((unit: any, index: number) => (
+              <div key={index} className="p-4 border rounded-lg space-y-2">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Unit {index + 1}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleArrayRemove('memberUnits', index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <Input
+                    value={unit.name || ''}
+                    onChange={(e) => handleArrayUpdate('memberUnits', index, { name: e.target.value })}
+                    placeholder="Unit name"
+                  />
+                  <Input
+                    value={unit.registration || ''}
+                    onChange={(e) => handleArrayUpdate('memberUnits', index, { registration: e.target.value })}
+                    placeholder="Registration number"
+                  />
+                </div>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('memberUnits', { name: '', registration: '' })}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Member Unit
+            </Button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Statutory Registrations</label>
+          <div className="space-y-2">
+            {(stepData.statutoryRegistrations || []).map((registration: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={registration}
+                  onChange={(e) => {
+                    const updated = [...(stepData.statutoryRegistrations || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('statutoryRegistrations', updated);
+                  }}
+                  placeholder="Enter registration"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('statutoryRegistrations', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('statutoryRegistrations', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Registration
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 12: Project Cost Details
+  if (currentStep === 12) {
+    const totalCost = (stepData.land || 0) + 
+                     (stepData.building || 0) + 
+                     (stepData.machinery || 0) + 
+                     (stepData.utilitiesAndInfrastructure || 0) + 
+                     (stepData.preliminaryAndPreOperative || 0) + 
+                     (stepData.workingCapitalMargin || 0);
+    
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Land (₹)</label>
+            <Input
+              type="number"
+              value={stepData.land || ''}
+              onChange={(e) => handleInputChange('land', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Building (₹)</label>
+            <Input
+              type="number"
+              value={stepData.building || ''}
+              onChange={(e) => handleInputChange('building', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Machinery (₹)</label>
+            <Input
+              type="number"
+              value={stepData.machinery || ''}
+              onChange={(e) => handleInputChange('machinery', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Utilities & Infrastructure (₹)</label>
+            <Input
+              type="number"
+              value={stepData.utilitiesAndInfrastructure || ''}
+              onChange={(e) => handleInputChange('utilitiesAndInfrastructure', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Preliminary & Pre-operative (₹)</label>
+            <Input
+              type="number"
+              value={stepData.preliminaryAndPreOperative || ''}
+              onChange={(e) => handleInputChange('preliminaryAndPreOperative', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Working Capital Margin (₹)</label>
+            <Input
+              type="number"
+              value={stepData.workingCapitalMargin || ''}
+              onChange={(e) => handleInputChange('workingCapitalMargin', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+        </div>
+        <div className="border-t pt-4">
+          <div className="bg-primary/10 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-semibold">Total Project Cost</span>
+              <span className="text-2xl font-bold text-primary">₹ {totalCost.toLocaleString('en-IN')}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 13: Means of Finance
+  if (currentStep === 13) {
+    const total = (stepData.spvContribution || 0) + 
+                 (stepData.governmentGrant || 0) + 
+                 (stepData.bankLoan || 0) + 
+                 (stepData.otherSources || 0);
+    
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">SPV Contribution (₹)</label>
+            <Input
+              type="number"
+              value={stepData.spvContribution || ''}
+              onChange={(e) => handleInputChange('spvContribution', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Government Grant (₹)</label>
+            <Input
+              type="number"
+              value={stepData.governmentGrant || ''}
+              onChange={(e) => handleInputChange('governmentGrant', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Bank Loan (₹)</label>
+            <Input
+              type="number"
+              value={stepData.bankLoan || ''}
+              onChange={(e) => handleInputChange('bankLoan', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Other Sources (₹)</label>
+            <Input
+              type="number"
+              value={stepData.otherSources || ''}
+              onChange={(e) => handleInputChange('otherSources', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+        </div>
+        <div className="border-t pt-4">
+          <div className="bg-primary/10 p-4 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-semibold">Total Finance</span>
+              <span className="text-2xl font-bold text-primary">₹ {total.toLocaleString('en-IN')}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 14: Operating Cost & Revenue
+  if (currentStep === 14) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Raw Material Cost (₹)</label>
+            <Input
+              type="number"
+              value={stepData.rawMaterialCost || ''}
+              onChange={(e) => handleInputChange('rawMaterialCost', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Power Cost (₹)</label>
+            <Input
+              type="number"
+              value={stepData.powerCost || ''}
+              onChange={(e) => handleInputChange('powerCost', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Wages (₹)</label>
+            <Input
+              type="number"
+              value={stepData.wages || ''}
+              onChange={(e) => handleInputChange('wages', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Maintenance (₹)</label>
+            <Input
+              type="number"
+              value={stepData.maintenance || ''}
+              onChange={(e) => handleInputChange('maintenance', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Administrative Expenses (₹)</label>
+            <Input
+              type="number"
+              value={stepData.administrativeExpenses || ''}
+              onChange={(e) => handleInputChange('administrativeExpenses', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Marketing Expenses (₹)</label>
+            <Input
+              type="number"
+              value={stepData.marketingExpenses || ''}
+              onChange={(e) => handleInputChange('marketingExpenses', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Annual Production Volume</label>
+            <Input
+              type="number"
+              value={stepData.annualProductionVolume || ''}
+              onChange={(e) => handleInputChange('annualProductionVolume', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Annual Sales Realization (₹)</label>
+            <Input
+              type="number"
+              value={stepData.annualSalesRealization || ''}
+              onChange={(e) => handleInputChange('annualSalesRealization', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 15: Financial Viability
+  if (currentStep === 15) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Break-even Point (₹)</label>
+          <Input
+            type="number"
+            value={stepData.breakEvenPoint || ''}
+            onChange={(e) => handleInputChange('breakEvenPoint', parseFloat(e.target.value) || 0)}
+            placeholder="0"
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">IRR (%)</label>
+            <Input
+              type="number"
+              value={stepData.irr || ''}
+              onChange={(e) => handleInputChange('irr', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">NPV (₹)</label>
+            <Input
+              type="number"
+              value={stepData.npv || ''}
+              onChange={(e) => handleInputChange('npv', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Sensitivity Analysis</label>
+          <textarea
+            className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={stepData.sensitivityAnalysis || ''}
+            onChange={(e) => handleInputChange('sensitivityAnalysis', e.target.value)}
+            placeholder="Describe sensitivity analysis"
+          />
+        </div>
+        <div className="border-t pt-4">
+          <p className="text-sm text-muted-foreground mb-4">
+            Note: Detailed Profit & Loss, Cash Flow, and Balance Sheet projections can be added in the generated DPR.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 16: Project Implementation Schedule
+  if (currentStep === 16) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Start Date</label>
+          <Input
+            type="date"
+            value={stepData.startDate || ''}
+            onChange={(e) => handleInputChange('startDate', e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Milestones</label>
+          <div className="space-y-4">
+            {(stepData.milestones || []).map((milestone: any, index: number) => (
+              <div key={index} className="p-4 border rounded-lg space-y-2">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Milestone {index + 1}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleArrayRemove('milestones', index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <Input
+                    value={milestone.activity || ''}
+                    onChange={(e) => handleArrayUpdate('milestones', index, { activity: e.target.value })}
+                    placeholder="Activity name"
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <Input
+                      value={milestone.timeRequired || ''}
+                      onChange={(e) => handleArrayUpdate('milestones', index, { timeRequired: e.target.value })}
+                      placeholder="Time required"
+                    />
+                    <Input
+                      type="date"
+                      value={milestone.startDate || ''}
+                      onChange={(e) => handleArrayUpdate('milestones', index, { startDate: e.target.value })}
+                      placeholder="Start date"
+                    />
+                    <Input
+                      type="date"
+                      value={milestone.endDate || ''}
+                      onChange={(e) => handleArrayUpdate('milestones', index, { endDate: e.target.value })}
+                      placeholder="End date"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('milestones', { activity: '', timeRequired: '', startDate: '', endDate: '' })}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Milestone
+            </Button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Total Implementation Period</label>
+          <Input
+            value={stepData.totalImplementationPeriod || ''}
+            onChange={(e) => handleInputChange('totalImplementationPeriod', e.target.value)}
+            placeholder="e.g., 18 months"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Step 17: Expected Impact
+  if (currentStep === 17) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Increase in Units</label>
+            <Input
+              type="number"
+              value={stepData.increaseInUnits || ''}
+              onChange={(e) => handleInputChange('increaseInUnits', parseInt(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Employment Generation</label>
+            <Input
+              type="number"
+              value={stepData.employmentGeneration || ''}
+              onChange={(e) => handleInputChange('employmentGeneration', parseInt(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Turnover Growth (%)</label>
+            <Input
+              type="number"
+              value={stepData.turnoverGrowth || ''}
+              onChange={(e) => handleInputChange('turnoverGrowth', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Export Growth (%)</label>
+            <Input
+              type="number"
+              value={stepData.exportGrowth || ''}
+              onChange={(e) => handleInputChange('exportGrowth', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Income Enhancement (%)</label>
+            <Input
+              type="number"
+              value={stepData.incomeEnhancement || ''}
+              onChange={(e) => handleInputChange('incomeEnhancement', parseFloat(e.target.value) || 0)}
+              placeholder="0"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Sustainability Outcomes</label>
+          <div className="space-y-2">
+            {(stepData.sustainabilityOutcomes || []).map((outcome: string, index: number) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  value={outcome}
+                  onChange={(e) => {
+                    const updated = [...(stepData.sustainabilityOutcomes || [])];
+                    updated[index] = e.target.value;
+                    handleInputChange('sustainabilityOutcomes', updated);
+                  }}
+                  placeholder="Enter sustainability outcome"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleArrayRemove('sustainabilityOutcomes', index)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleArrayAdd('sustainabilityOutcomes', '')}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Outcome
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 18: Annexures & Document Uploads
+  if (currentStep === 18) {
+    const handleFileChange = (field: string, file: File | null) => {
+      if (file) {
+        // Store file name for now (in production, upload to server)
+        handleInputChange(field, file.name);
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">SPV Registration</label>
+          <Input
+            type="file"
+            accept=".pdf,.doc,.docx"
+            onChange={(e) => handleFileChange('spvRegistration', e.target.files?.[0] || null)}
+          />
+          {stepData.spvRegistration && (
+            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.spvRegistration}</p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Land Documents</label>
+          <Input
+            type="file"
+            accept=".pdf,.doc,.docx"
+            onChange={(e) => handleFileChange('landDocuments', e.target.files?.[0] || null)}
+          />
+          {stepData.landDocuments && (
+            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.landDocuments}</p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Building Estimates</label>
+          <Input
+            type="file"
+            accept=".pdf,.doc,.docx"
+            onChange={(e) => handleFileChange('buildingEstimates', e.target.files?.[0] || null)}
+          />
+          {stepData.buildingEstimates && (
+            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.buildingEstimates}</p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Machinery Quotations</label>
+          <Input
+            type="file"
+            accept=".pdf,.doc,.docx"
+            onChange={(e) => handleFileChange('machineryQuotations', e.target.files?.[0] || null)}
+          />
+          {stepData.machineryQuotations && (
+            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.machineryQuotations}</p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Member Registrations</label>
+          <Input
+            type="file"
+            accept=".pdf,.doc,.docx"
+            onChange={(e) => handleFileChange('memberRegistrations', e.target.files?.[0] || null)}
+          />
+          {stepData.memberRegistrations && (
+            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.memberRegistrations}</p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Supporting Documents</label>
+          <Input
+            type="file"
+            accept=".pdf,.doc,.docx"
+            multiple
+            onChange={(e) => {
+              const files = Array.from(e.target.files || []);
+              const fileNames = files.map(f => f.name);
+              handleInputChange('supportingDocuments', fileNames);
+            }}
+          />
+          {stepData.supportingDocuments && Array.isArray(stepData.supportingDocuments) && stepData.supportingDocuments.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {stepData.supportingDocuments.map((doc: string, index: number) => (
+                <p key={index} className="text-sm text-muted-foreground">• {doc}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <p className="text-muted-foreground">
+        Step {currentStep} form implementation in progress. Please check back soon.
+      </p>
+    </div>
+  );
+};

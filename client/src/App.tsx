@@ -17,6 +17,7 @@ import { AllDPRs } from './pages/AllDPRs';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminDocuments } from './pages/AdminDocuments';
 import { Profile } from './pages/Profile';
+import { ClusterDPRCreation } from './pages/ClusterDPRCreation';
 import './i18n/config';
 
 function App() {
@@ -142,6 +143,15 @@ function App() {
           element={
             <ProtectedRoute>
               <AllDPRs />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/cluster-dpr/create"
+          element={
+            <ProtectedRoute>
+              <ClusterDPRCreation />
             </ProtectedRoute>
           }
         />
