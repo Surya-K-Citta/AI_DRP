@@ -35,6 +35,11 @@
       background: white;
       margin: 0;
       padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      box-sizing: border-box;
     }
     
     .page {
@@ -44,7 +49,7 @@
       max-height: none;
       padding: 2cm;
       margin: 0 auto;
-      margin-bottom: 1cm;
+      margin-bottom: 0;
       page-break-after: always;
       page-break-inside: avoid;
       position: relative;
@@ -82,26 +87,40 @@
       position: relative;
       z-index: 10;
       width: 100%;
-      min-height: 100%;
+      min-height: calc(100% - 0.5cm);
       height: auto;
       overflow: visible;
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 0;
+      align-items: stretch;
+      justify-content: flex-start;
     }
     
     /* Cover Page Styles */
     .cover-page {
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: flex-start;
       align-items: center;
+      min-height: 100%;
+    }
+    
+    .cover-page .page-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 100%;
+      width: 100%;
     }
     
     .title-box {
       width: 100%;
-      max-width: 17cm;
-      padding: 1.5cm;
+      max-width: 100%;
+      padding: 1.2cm 1.5cm;
       background-color: #F3F4F6 !important;
       background-image: repeating-linear-gradient(
         45deg,
@@ -114,60 +133,71 @@
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
       border-radius: 8px;
       text-align: center;
-      margin: 0 auto 2cm auto;
+      margin: 0.5cm 0 1.5cm 0;
+      margin-left: 0;
+      margin-right: 0;
+      box-sizing: border-box;
+      display: block;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
     
     .title-box h1 {
-      font-size: 36pt;
+      font-size: 32pt;
       font-weight: bold;
       color: #1F2937;
       letter-spacing: 0.05em;
-      margin-bottom: 0.5cm;
+      margin-bottom: 0.4cm;
+      line-height: 1.3;
       font-family: 'Times New Roman', serif;
     }
     
     .title-box h2 {
-      font-size: 18pt;
+      font-size: 16pt;
       font-weight: 600;
       color: #1F2937;
-      margin-bottom: 0.3cm;
+      margin-bottom: 0.25cm;
+      line-height: 1.4;
       font-family: 'Times New Roman', serif;
     }
     
     .title-box .cluster-name {
-      font-size: 24pt;
+      font-size: 22pt;
       font-weight: bold;
       color: #059669;
       letter-spacing: 0.05em;
-      margin: 0.5cm 0;
+      margin: 0.4cm 0;
       text-transform: uppercase;
+      line-height: 1.3;
       font-family: 'Times New Roman', serif;
     }
     
     .title-box .programme {
-      font-size: 18pt;
+      font-size: 15pt;
       font-weight: 600;
       color: #1F2937;
       margin-top: 0.3cm;
+      line-height: 1.4;
       font-family: 'Times New Roman', serif;
     }
     
     .cover-image-placeholder {
       width: 100%;
-      max-width: 12cm;
-      min-height: 8cm;
+      max-width: 100%;
+      min-height: 6cm;
       height: auto;
-      border: 2px dashed #9CA3AF;
+      border: 2px dashed #D1D5DB;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      margin: 2cm auto;
+      margin: 1.5cm 0;
+      margin-left: 0;
+      margin-right: 0;
       background-color: #F9FAFB;
-      padding: 1cm;
+      padding: 0.8cm;
+      box-sizing: border-box;
     }
     
     .cover-image-placeholder img {
@@ -179,9 +209,10 @@
     
     .cover-image-placeholder .placeholder-text {
       color: #9CA3AF;
-      font-size: 10pt;
-      margin-top: 0.5cm;
+      font-size: 9pt;
+      margin-top: 0.3cm;
       text-align: center;
+      font-style: italic;
     }
     
     .cover-image-placeholder .placeholder-icon {
@@ -193,18 +224,21 @@
     
     .submission-details {
       width: 100%;
-      max-width: 17cm;
+      max-width: 100%;
       margin-top: auto;
+      margin-left: 0;
+      margin-right: 0;
       font-size: 11pt;
+      box-sizing: border-box;
     }
     
     .submission-row {
       display: flex;
       border-top: 2px solid #1F2937;
       border-bottom: 2px solid #1F2937;
-      padding: 0.5cm 0;
-      margin-bottom: 0.5cm;
-      align-items: flex-start;
+      padding: 0.4cm 0;
+      margin-bottom: 0.4cm;
+      align-items: center;
     }
     
     .submission-label {
@@ -213,18 +247,21 @@
       flex-shrink: 0;
       font-size: 11pt;
       color: #1F2937;
+      line-height: 1.4;
     }
     
     .submission-value {
       flex: 1;
       font-size: 11pt;
       color: #1F2937;
-      min-height: 1.2cm;
+      min-height: 1cm;
+      line-height: 1.4;
+      padding-left: 0.3cm;
     }
     
     .submission-row-simple {
       display: flex;
-      padding: 0.3cm 0;
+      padding: 0.4cm 0;
       border-bottom: 2px solid #1F2937;
       align-items: flex-start;
     }
@@ -239,12 +276,23 @@
       flex-shrink: 0;
       font-size: 11pt;
       color: #1F2937;
+      line-height: 1.4;
     }
     
     .submission-row-simple .submission-content {
       flex: 1;
       font-size: 11pt;
       color: #1F2937;
+      line-height: 1.6;
+      padding-left: 0.3cm;
+    }
+    
+    .submission-row-simple .submission-content div {
+      margin-bottom: 0.2cm;
+    }
+    
+    .submission-row-simple .submission-content div:last-child {
+      margin-bottom: 0;
     }
     
     /* Table of Contents */
@@ -282,8 +330,15 @@
     
     /* Section Title Box (like CONTENTS, EXECUTIVE SUMMARY) */
     .section-title-box {
-      margin-bottom: 1.5cm;
+      margin-bottom: 1.2cm;
+      margin-top: 0.3cm;
       text-align: center;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      margin-left: 0;
+      margin-right: 0;
+      padding: 0;
     }
     
     .section-title-box-inner {
@@ -298,20 +353,26 @@
       border: 1px solid #D1D5DB !important;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
       border-radius: 8px;
-      padding: 1cm;
-      max-width: 17cm;
-      margin: 0 auto;
+      padding: 0.8cm 1cm;
+      max-width: 100%;
+      width: 100%;
+      margin: 0;
+      box-sizing: border-box;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
     
     .section-title-box-inner h2 {
-      font-size: 24pt;
+      font-size: 22pt;
       font-weight: bold;
       color: #1F2937;
       margin: 0;
+      line-height: 1.3;
+      letter-spacing: 0.02em;
       font-family: 'Times New Roman', serif;
+      text-align: center;
+      width: 100%;
     }
     
     /* Content Styles */
@@ -319,14 +380,67 @@
       font-size: 11pt;
       line-height: 1.8;
       text-align: justify;
+      margin: 0;
       margin-bottom: 0.5cm;
       color: #1F2937;
+      word-spacing: 0.05em;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 0;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      display: block;
+    }
+    
+    /* Table wrapper for centering */
+    .content > div[style*="display: flex"] {
+      width: 100%;
+      max-width: 100%;
+      margin: 0.6cm 0;
+      box-sizing: border-box;
+      padding: 0;
+      display: flex;
+      justify-content: flex-start;
+      align-items: flex-start;
+    }
+    
+    .content > div[style*="display: flex"] > table {
+      width: 100%;
+      max-width: 100%;
+      margin: 0;
+      display: table;
+    }
+    
+    /* Direct table in content */
+    .content > table {
+      width: 100%;
+      max-width: 100%;
+      margin: 0.6cm 0;
+      display: table;
     }
     
     .content p {
       margin-bottom: 0.5cm;
+      margin-top: 0;
       text-indent: 0;
       color: #1F2937;
+      text-align: justify;
+      hyphens: auto;
+      line-height: 1.8;
+      padding: 0;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    
+    .content p:first-child {
+      margin-top: 0;
+    }
+    
+    .content p:last-child {
+      margin-bottom: 0;
     }
     
     .content strong {
@@ -334,52 +448,126 @@
       color: #1F2937;
     }
     
+    .content em {
+      font-style: italic;
+      color: #1F2937;
+    }
+    
     .content h3 {
       font-size: 14pt;
       font-weight: bold;
-      margin-top: 0.5cm;
-      margin-bottom: 0.3cm;
+      margin-top: 0.8cm;
+      margin-bottom: 0.5cm;
+      margin-left: 0;
+      margin-right: 0;
       color: #1F2937;
+      line-height: 1.4;
+      text-align: left;
+      page-break-after: avoid;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     
     .content h4 {
       font-size: 12pt;
       font-weight: bold;
-      margin-top: 0.5cm;
-      margin-bottom: 0.3cm;
+      margin-top: 0.6cm;
+      margin-bottom: 0.4cm;
+      margin-left: 0;
+      margin-right: 0;
       color: #1F2937;
+      line-height: 1.4;
+      text-align: left;
+      page-break-after: avoid;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     
     .content ul {
       list-style-type: disc;
       padding-left: 1.5cm;
-      margin-bottom: 0.5cm;
+      margin-bottom: 0.6cm;
+      margin-top: 0.3cm;
+      margin-left: 0;
+      margin-right: 0;
       color: #1F2937;
+      page-break-inside: avoid;
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+    }
+    
+    .content ol {
+      list-style-type: decimal;
+      padding-left: 1.5cm;
+      margin-bottom: 0.6cm;
+      margin-top: 0.3cm;
+      margin-left: 0;
+      margin-right: 0;
+      color: #1F2937;
+      page-break-inside: avoid;
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
     }
     
     .content li {
       margin-bottom: 0.3cm;
+      margin-top: 0;
       color: #1F2937;
       line-height: 1.8;
+      text-align: justify;
+      padding-left: 0.2cm;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    
+    .content li:first-child {
+      margin-top: 0;
+    }
+    
+    .content li:last-child {
+      margin-bottom: 0;
     }
     
     /* Tables - Matching preview styling */
     table {
       width: 100%;
+      max-width: 100%;
       border-collapse: collapse;
-      margin: 0.5cm 0;
+      margin: 0.6cm 0;
+      margin-left: 0;
+      margin-right: 0;
       font-size: 10pt;
       border: 1px solid #1F2937 !important;
+      table-layout: fixed;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      page-break-inside: avoid;
+      box-sizing: border-box;
+      display: table;
     }
     
     table th {
       background-color: #E5E7EB !important;
       border: 1px solid #1F2937 !important;
-      padding: 0.3cm;
+      padding: 0.35cm 0.3cm;
       font-weight: bold;
       text-align: left;
       color: #1F2937 !important;
       font-size: 10pt;
+      line-height: 1.4;
+      vertical-align: middle;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
@@ -390,6 +578,13 @@
       padding: 0.3cm;
       color: #1F2937;
       font-size: 10pt;
+      line-height: 1.5;
+      vertical-align: top;
+      text-align: left;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     
     table tr:nth-child(even) {
@@ -418,10 +613,12 @@
     .toc-table th {
       background-color: #E5E7EB !important;
       border: 1px solid #1F2937 !important;
-      padding: 0.3cm;
+      padding: 0.35cm 0.3cm;
       font-weight: bold;
       text-align: left;
       color: #1F2937 !important;
+      line-height: 1.4;
+      vertical-align: middle;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
@@ -431,6 +628,8 @@
       border: 1px solid #1F2937 !important;
       padding: 0.3cm;
       color: #1F2937;
+      line-height: 1.5;
+      vertical-align: middle;
     }
     
     .toc-table tr:nth-child(even) {
@@ -449,10 +648,115 @@
     
     /* Print styles */
     @media print {
-      .page {
+      body {
         margin: 0;
-        padding: 2cm;
+        padding: 0;
       }
+      
+      .page {
+        margin: 0 auto;
+        padding: 2cm;
+        page-break-after: always;
+        page-break-inside: avoid;
+        max-height: 29.7cm;
+        overflow: hidden;
+      }
+      
+      .page:first-of-type {
+        page-break-before: auto;
+      }
+      
+      .page:not(:first-of-type) {
+        page-break-before: always;
+      }
+      
+      .page-content {
+        page-break-inside: avoid;
+        overflow: visible;
+      }
+      
+      .section-title-box {
+        page-break-after: avoid;
+        page-break-inside: avoid;
+      }
+      
+      .content {
+        orphans: 3;
+        widows: 3;
+        overflow: visible;
+      }
+      
+      .content p {
+        orphans: 3;
+        widows: 3;
+        page-break-inside: avoid;
+      }
+      
+      table {
+        page-break-inside: avoid;
+      }
+      
+      tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+      }
+      
+      h1, h2, h3, h4 {
+        page-break-after: avoid;
+        page-break-inside: avoid;
+      }
+      
+      .title-box,
+      .section-title-box {
+        page-break-inside: avoid;
+      }
+      
+      ul, ol {
+        page-break-inside: avoid;
+      }
+    }
+    
+    /* Additional overflow prevention */
+    * {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    
+    /* Ensure content doesn't overflow */
+    .content > * {
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+    }
+    
+    /* Ensure all content elements use full width */
+    .content > div,
+    .content > table,
+    .content > ul,
+    .content > ol {
+      margin-left: 0;
+      margin-right: 0;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    
+    /* All direct children of page-content use full width */
+    .page-content > * {
+      margin-left: 0;
+      margin-right: 0;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    
+    /* Table wrapper centering */
+    .content > div[style*="display: flex"] {
+      margin-left: 0;
+      margin-right: 0;
+      width: 100%;
+      max-width: 100%;
     }
   </style>
 </head>

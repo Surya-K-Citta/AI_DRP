@@ -1658,27 +1658,38 @@ export class DPRService {
       // Use enhanced content if available, otherwise use original text
       const finalText = enhancedText || text;
       
+      // Check if content is already HTML (contains HTML tags)
+      const isHTML = /<[a-z][\s\S]*>/i.test(finalText);
+      
+      if (isHTML) {
+        // Content is already HTML - return as-is (it's already properly formatted)
+        // Only escape any unescaped ampersands that might be in user content
+        return finalText.replace(/&(?![a-zA-Z]{2,6};|#\d{1,6};)/g, '&amp;');
+      }
+      
       // Process markdown text to handle tables and formatting
       const processedParas = processMarkdownText(finalText);
       let html = '';
       
       processedParas.forEach((para) => {
         if (para.type === 'table' && para.tableData) {
-          // Render table with proper styling
-          html += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0;">';
+          // Render table with proper styling and centering
+          html += '<div style="width: 100%; max-width: 100%; margin: 0.6cm 0; display: flex; justify-content: flex-start; align-items: flex-start; box-sizing: border-box;">';
+          html += '<table style="width: 100%; max-width: 100%; border-collapse: collapse; margin: 0; box-sizing: border-box;">';
           para.tableData.forEach((row, rowIndex) => {
             const bgColor = rowIndex === 0 ? '#E5E7EB' : (rowIndex % 2 === 0 ? '#F9FAFB' : '#FFFFFF');
             html += `<tr style="background-color: ${bgColor};">`;
             row.forEach((cell) => {
               const tag = rowIndex === 0 ? 'th' : 'td';
               const style = rowIndex === 0 
-                ? 'border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;'
-                : 'border: 1px solid #1F2937; padding: 0.3cm;';
+                ? 'border: 1px solid #1F2937; padding: 0.35cm 0.3cm; font-weight: bold; text-align: left; vertical-align: middle;'
+                : 'border: 1px solid #1F2937; padding: 0.3cm; text-align: left; vertical-align: top;';
               html += `<${tag} style="${style}">${(cell || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</${tag}>`;
             });
             html += '</tr>';
           });
           html += '</table>';
+          html += '</div>';
         } else if (para.type === 'heading') {
           const level = para.headingLevel || 2;
           const tag = `h${Math.min(level + 1, 4)}`;
@@ -1743,23 +1754,26 @@ export class DPRService {
       const totalUnits = (s1.enterpriseCount?.micro || 0) + (s1.enterpriseCount?.small || 0) + (s1.enterpriseCount?.medium || 0);
       const totalEmployment = (s1.employmentPerUnit?.lessThan5 || 0) + (s1.employmentPerUnit?.between5And10 || 0) + (s1.employmentPerUnit?.moreThan10 || 0);
       
-      let snapshotHTML = '<table>';
-      snapshotHTML += '<tr><th>Particulars</th><th>Details</th></tr>';
-      snapshotHTML += `<tr><td>Name of the cluster</td><td>${s1.clusterName || 'N/A'}, ${s1.district || 'N/A'} District</td></tr>`;
-      snapshotHTML += `<tr><td>Location & Spread of the cluster</td><td>${s1.geographicalSpread || s1.location || 'N/A'}</td></tr>`;
-      snapshotHTML += `<tr><td>Product range</td><td>${s1.majorProducts || 'N/A'}</td></tr>`;
-      snapshotHTML += `<tr><td>Existing cluster scenario</td><td>See table below</td></tr>`;
-      snapshotHTML += `<tr><td>Existing employment in the Cluster</td><td>${totalEmployment} workers (Male workers: ${s1.employmentPerUnit?.male || 0}, Female workers: ${s1.employmentPerUnit?.female || 0})</td></tr>`;
-      snapshotHTML += `<tr><td>Name of the SPV</td><td>${s11.spvName || 'N/A'}</td></tr>`;
-      snapshotHTML += `<tr><td>Legal Status</td><td>${s11.legalStatus || 'N/A'}</td></tr>`;
-      snapshotHTML += `<tr><td>Number of SPV members (Micro unit holders)</td><td>${s11.memberUnits?.length || 0} member units</td></tr>`;
+      let snapshotHTML = '<div style="width: 100%; max-width: 100%; margin: 0.6cm 0; display: flex; justify-content: flex-start; align-items: flex-start; box-sizing: border-box;">';
+      snapshotHTML += '<table style="width: 100%; max-width: 100%; border-collapse: collapse; margin: 0; border: 1px solid #1F2937; box-sizing: border-box;">';
+      snapshotHTML += '<tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.35cm 0.3cm; font-weight: bold; text-align: left; vertical-align: middle;">Particulars</th><th style="border: 1px solid #1F2937; padding: 0.35cm 0.3cm; font-weight: bold; text-align: left; vertical-align: middle;">Details</th></tr>';
+      snapshotHTML += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">Name of the cluster</td><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">${(s1.clusterName || 'N/A')}, ${(s1.district || 'N/A')} District</td></tr>`;
+      snapshotHTML += `<tr style="background-color: #F9FAFB;"><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">Location & Spread of the cluster</td><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">${(s1.geographicalSpread || s1.location || 'N/A')}</td></tr>`;
+      snapshotHTML += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">Product range</td><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">${(s1.majorProducts || 'N/A')}</td></tr>`;
+      snapshotHTML += `<tr style="background-color: #F9FAFB;"><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">Existing cluster scenario</td><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">See table below</td></tr>`;
+      snapshotHTML += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">Existing employment in the Cluster</td><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">${totalEmployment} workers (Male workers: ${(s1.employmentPerUnit?.male || 0)}, Female workers: ${(s1.employmentPerUnit?.female || 0)})</td></tr>`;
+      snapshotHTML += `<tr style="background-color: #F9FAFB;"><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">Name of the SPV</td><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">${(s11.spvName || 'N/A')}</td></tr>`;
+      snapshotHTML += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">Legal Status</td><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">${(s11.legalStatus || 'N/A')}</td></tr>`;
+      snapshotHTML += `<tr style="background-color: #F9FAFB;"><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">Number of SPV members (Micro unit holders)</td><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">${(s11.memberUnits?.length || 0)} member units</td></tr>`;
       snapshotHTML += '</table>';
+      snapshotHTML += '</div>';
       
       // Add existing cluster scenario table if data exists
       if (s1.enterpriseCount || s4.productionCapacity || s14.annualProductionVolume) {
         snapshotHTML += '<h4 style="margin-top: 1cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937;">Existing cluster scenario</h4>';
-        snapshotHTML += '<table>';
-        snapshotHTML += '<tr><th>Product Type</th><th>No. of units</th><th>Annual Production (in MT)</th><th>Annual Turnover (in Rs.lakhs)</th></tr>';
+        snapshotHTML += '<div style="width: 100%; max-width: 100%; margin: 0.6cm 0; display: flex; justify-content: flex-start; align-items: flex-start; box-sizing: border-box;">';
+        snapshotHTML += '<table style="width: 100%; max-width: 100%; border-collapse: collapse; margin: 0; border: 1px solid #1F2937; box-sizing: border-box;">';
+        snapshotHTML += '<tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.35cm 0.3cm; font-weight: bold; text-align: left; vertical-align: middle;">Product Type</th><th style="border: 1px solid #1F2937; padding: 0.35cm 0.3cm; font-weight: bold; text-align: left; vertical-align: middle;">No. of units</th><th style="border: 1px solid #1F2937; padding: 0.35cm 0.3cm; font-weight: bold; text-align: left; vertical-align: middle;">Annual Production (in MT)</th><th style="border: 1px solid #1F2937; padding: 0.35cm 0.3cm; font-weight: bold; text-align: left; vertical-align: middle;">Annual Turnover (in Rs.lakhs)</th></tr>';
         
         const rows: Array<{type: string, units: number, production: string, turnover: string}> = [];
         
@@ -1792,7 +1806,8 @@ export class DPRService {
         }
         
         rows.forEach((row, idx) => {
-          snapshotHTML += `<tr><td>${row.type}</td><td>${row.units}</td><td>${row.production}</td><td>${row.turnover}</td></tr>`;
+          const bgColor = idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+          snapshotHTML += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">${row.type}</td><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">${row.units}</td><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">${row.production}</td><td style="border: 1px solid #1F2937; padding: 0.3cm; vertical-align: top;">${row.turnover}</td></tr>`;
         });
         
         // Add total row
@@ -1801,10 +1816,11 @@ export class DPRService {
           const totalTurnover = s1.turnoverPerUnit && totalUnits > 0 
             ? ((s1.turnoverPerUnit * totalUnits) / 100000).toFixed(2)
             : 'N/A';
-          snapshotHTML += `<tr style="font-weight: bold;"><td>Total</td><td>${totalUnits}</td><td>${totalProduction}</td><td>${totalTurnover}</td></tr>`;
+          snapshotHTML += `<tr style="background-color: #E5E7EB; font-weight: bold;"><td style="border: 1px solid #1F2937; padding: 0.35cm 0.3cm; font-weight: bold; vertical-align: middle;">Total</td><td style="border: 1px solid #1F2937; padding: 0.35cm 0.3cm; font-weight: bold; vertical-align: middle;">${totalUnits}</td><td style="border: 1px solid #1F2937; padding: 0.35cm 0.3cm; font-weight: bold; vertical-align: middle;">${totalProduction}</td><td style="border: 1px solid #1F2937; padding: 0.35cm 0.3cm; font-weight: bold; vertical-align: middle;">${totalTurnover}</td></tr>`;
         }
         
         snapshotHTML += '</table>';
+        snapshotHTML += '</div>';
       }
       
       // Key Concern areas
@@ -2762,19 +2778,23 @@ export class DPRService {
         doc.font('Helvetica-Bold').text('Submitted to:', 50, submittedToY);
         doc.moveTo(150, submittedToY + 5).lineTo(550, submittedToY + 5).stroke('#1F2937');
         doc.font('Helvetica').text(s11.submittedTo || 'DIC, District', 155, submittedToY);
-        doc.moveDown(1.5);
+        doc.moveDown(2);
         
         // Submitted by
         const submittedByY = doc.y;
         doc.font('Helvetica-Bold').text('Submitted by:', 50, submittedByY);
         doc.moveDown(0.5);
-        doc.font('Helvetica').text(s11.spvName || 'SPV Name', 50, doc.y);
-        doc.text(s1.location || 'Location', 50, doc.y + 15);
-        doc.moveDown(1);
+        const spvNameY = doc.y;
+        doc.font('Helvetica').text(s11.spvName || 'SPV Name', 50, spvNameY);
+        doc.moveDown(0.3);
+        doc.text(s1.location || 'Location', 50, doc.y);
+        doc.moveDown(1.5);
         
         // Prepared by
-        doc.font('Helvetica-Bold').text('Prepared by:', 50, doc.y);
-        doc.font('Helvetica').text('M/s.ITCOT Limited, 50A Greams Road, Chennai.', 50, doc.y + 15);
+        const preparedByY = doc.y;
+        doc.font('Helvetica-Bold').text('Prepared by:', 50, preparedByY);
+        doc.moveDown(0.5);
+        doc.font('Helvetica').text('M/s.ITCOT Limited, 50A Greams Road, Chennai.', 50, doc.y);
         
         // Reset color
         doc.fillColor('#000000');
