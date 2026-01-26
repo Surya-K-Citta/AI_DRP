@@ -15,9 +15,10 @@ interface ClusterDPRDocumentViewProps {
   dpr: any;
   project: any;
   viewLanguage: 'english' | 'telugu';
+  onSectionClick?: (stepNumber: number) => void;
 }
 
-export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ dpr, project, viewLanguage }) => {
+export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ dpr, project, viewLanguage, onSectionClick }) => {
   // Extract cluster data from multiple possible locations
   const clusterData = 
     dpr.content?.[viewLanguage]?.clusterData || 
@@ -151,21 +152,53 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     );
   };
 
-  // Helper to render section title with grey box template
-  const renderSectionTitle = (title: string) => {
+  // Map section titles to step numbers for navigation
+  const getStepFromSection = (title: string): number | null => {
+    const titleLower = title.toLowerCase();
+    if (titleLower.includes('executive summary') || titleLower.includes('basic cluster')) return 1;
+    if (titleLower.includes('introduction') || titleLower.includes('sector overview')) return 2;
+    if (titleLower.includes('district') || titleLower.includes('regional profile')) return 3;
+    if (titleLower.includes('cluster profile')) return 4;
+    if (titleLower.includes('value chain')) return 5;
+    if (titleLower.includes('market')) return 6;
+    if (titleLower.includes('gap analysis')) return 7;
+    if (titleLower.includes('swot')) return 8;
+    if (titleLower.includes('proposed intervention')) return 9;
+    if (titleLower.includes('cfc') || titleLower.includes('common facility')) return 10;
+    if (titleLower.includes('spv')) return 11;
+    if (titleLower.includes('project cost')) return 12;
+    if (titleLower.includes('means of finance')) return 13;
+    if (titleLower.includes('operating cost') || titleLower.includes('revenue')) return 14;
+    if (titleLower.includes('financial viability') || titleLower.includes('financial analysis')) return 15;
+    if (titleLower.includes('implementation schedule')) return 16;
+    if (titleLower.includes('expected impact')) return 17;
+    if (titleLower.includes('annexure') || titleLower.includes('document')) return 18;
+    return null;
+  };
+
+  // Helper to render section title with grey box template (clickable if onSectionClick provided)
+  const renderSectionTitle = (title: string, stepNumber?: number) => {
+    const step = stepNumber || getStepFromSection(title);
+    const isClickable = onSectionClick && step !== null;
+    
     return (
       <div className="mb-6">
         <div 
-          className="rounded-lg p-4 mx-auto max-w-2xl"
+          className={`rounded-lg p-4 mx-auto max-w-2xl ${isClickable ? 'cursor-pointer hover:shadow-lg transition-all duration-200' : ''}`}
           style={{
-            backgroundColor: '#F3F4F6',
+            backgroundColor: isClickable ? '#EFF6FF' : '#F3F4F6',
             backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.02) 10px, rgba(0,0,0,0.02) 20px)',
-            border: '1px solid #D1D5DB',
+            border: `1px solid ${isClickable ? '#3B82F6' : '#D1D5DB'}`,
             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
           }}
+          onClick={isClickable ? () => onSectionClick!(step!) : undefined}
+          title={isClickable ? `Click to edit Step ${step}` : undefined}
         >
           <h2 className="text-3xl font-bold text-center" style={{ color: '#1F2937' }}>
             {title}
+            {isClickable && (
+              <span className="ml-2 text-sm text-blue-600 opacity-70">(Click to edit)</span>
+            )}
           </h2>
         </div>
       </div>
@@ -1022,7 +1055,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       {/* Executive Summary */}
       {renderPageWrapper(
         <div>
-          {renderSectionTitle('EXECUTIVE SUMMARY')}
+          {renderSectionTitle('EXECUTIVE SUMMARY', 1)}
         {content.executiveSummary ? (
           <div className="prose max-w-none text-sm leading-relaxed">
             <FormattedText text={content.executiveSummary} />
@@ -1088,7 +1121,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       {/* Section 1: Introduction */}
       {renderPageWrapper(
         <div>
-          {renderSectionTitle('1. INTRODUCTION')}
+          {renderSectionTitle('1. INTRODUCTION', 2)}
           {renderEnhancedContent('introduction')}
         {content.introduction ? (
           <div className="prose max-w-none text-sm leading-relaxed">
@@ -1132,7 +1165,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             }}
           />
           <div className="relative z-10">
-            {renderSectionTitle('1.5 DISTRICT & REGIONAL PROFILE')}
+            {renderSectionTitle('1.5 DISTRICT & REGIONAL PROFILE', 3)}
           <div className="space-y-6 text-sm">
             {s3.geography && (
               <div>
@@ -1217,7 +1250,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           }}
         />
         <div className="relative z-10">
-          {renderSectionTitle('2. CLUSTER PROFILE')}
+          {renderSectionTitle('2. CLUSTER PROFILE', 4)}
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">2.1 Evolution of the Cluster</h3>
@@ -1298,7 +1331,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           }}
         />
         <div className="relative z-10">
-          {renderSectionTitle('3. CLUSTER VALUE CHAIN MAPPING')}
+          {renderSectionTitle('3. CLUSTER VALUE CHAIN MAPPING', 5)}
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">3.1 Value Chain Stages</h3>
@@ -1393,7 +1426,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           }}
         />
         <div className="relative z-10">
-          {renderSectionTitle('4. MARKET ASPECTS')}
+          {renderSectionTitle('4. MARKET ASPECTS', 6)}
           {renderEnhancedContent('marketAspects')}
         <div className="space-y-6 text-sm">
           <div>
@@ -1450,7 +1483,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           }}
         />
         <div className="relative z-10">
-          {renderSectionTitle('5. SWOT ANALYSIS')}
+          {renderSectionTitle('5. SWOT ANALYSIS', 8)}
           {renderEnhancedContent('swotAnalysis')}
         <div className="grid grid-cols-2 gap-6 text-sm">
           <div>
@@ -1512,7 +1545,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           }}
         />
         <div className="relative z-10">
-          {renderSectionTitle('6. NEED GAP ANALYSIS')}
+          {renderSectionTitle('6. NEED GAP ANALYSIS', 7)}
           {renderEnhancedContent('gapAnalysis')}
         {renderTable(
           ['Area', 'Existing Gap'],
@@ -1537,7 +1570,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           {/* Page 1: CFC Overview, Plant & Machinery, Process, Capacity, Requirements */}
           {renderPageWrapper(
             <div>
-              {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT')}
+              {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT', 10)}
               {renderEnhancedContent('cfcDetails')}
               <div className="space-y-6 text-sm">
                 <div>
@@ -1624,7 +1657,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           {/* Page 1: SPV Profile and Shareholding Pattern */}
           {renderPageWrapper(
             <div>
-              {renderSectionTitle('8. SPV MEMBER UNITS')}
+              {renderSectionTitle('8. SPV MEMBER UNITS', 11)}
               {renderEnhancedContent('spvDetails')}
               <div className="space-y-6 text-sm">
           <div>
@@ -1764,7 +1797,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           }}
         />
         <div className="relative z-10">
-          {renderSectionTitle('9. PROJECT COST & MEANS OF FINANCE')}
+          {renderSectionTitle('9. PROJECT COST & MEANS OF FINANCE', 12)}
           {renderEnhancedContent('projectCost')}
         <div className="space-y-6 text-sm">
           <div>
@@ -1867,7 +1900,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             }}
           />
           <div className="relative z-10">
-            {renderSectionTitle('9.5 OPERATING COST & REVENUE')}
+            {renderSectionTitle('9.5 OPERATING COST & REVENUE', 14)}
             {renderEnhancedContent('operatingCostRevenue')}
           <div className="space-y-6 text-sm">
             <div>
@@ -1928,7 +1961,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           }}
         />
         <div className="relative z-10">
-          {renderSectionTitle('10. FINANCIAL VIABILITY')}
+          {renderSectionTitle('10. FINANCIAL VIABILITY', 15)}
           {renderEnhancedContent('financialViability')}
         <div className="space-y-6 text-sm">
           {/* Profit & Loss Statement */}
@@ -2092,7 +2125,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             }}
           />
           <div className="relative z-10">
-            {renderSectionTitle('10.5 PROJECT IMPLEMENTATION SCHEDULE')}
+            {renderSectionTitle('10.5 PROJECT IMPLEMENTATION SCHEDULE', 16)}
             <div className="space-y-6 text-sm">
             {s16.startDate && (
               <div>
@@ -2148,7 +2181,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           }}
         />
         <div className="relative z-10">
-          {renderSectionTitle('11. EXPECTED IMPACT')}
+          {renderSectionTitle('11. EXPECTED IMPACT', 17)}
           {renderEnhancedContent('expectedImpact')}
         {renderTable(
           ['Parameter', 'Before', 'After'],
@@ -2425,7 +2458,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               }}
             />
             <div className="relative z-10 w-full flex flex-col items-center justify-center">
-              {renderSectionTitle('ANNEXURES')}
+              {renderSectionTitle('ANNEXURES', 18)}
               {s1.clusterName && (
                 <h2 className="text-3xl font-semibold mb-4 mt-4" style={{ color: '#059669', letterSpacing: '0.05em' }}>
                   - {s1.clusterName.toUpperCase()} -
@@ -2445,17 +2478,23 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 if (file.startsWith('http://') || file.startsWith('https://')) {
                   return file;
                 }
-                // Check if it's a relative path
-                if (file.startsWith('/uploads/') || file.startsWith('/')) {
+                // Check if it's a relative path starting with /uploads/
+                if (file.startsWith('/uploads/')) {
                   const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
                   const serverBaseUrl = apiBaseUrl.replace('/api', '');
                   return `${serverBaseUrl}${file}`;
                 }
-                // If it's just a filename, construct the path
+                // If it's just a filename, use the API endpoint
                 if (file.includes('.') && !file.includes('/')) {
                   const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                  // Use the API route to serve files
+                  return `${apiBaseUrl}/documents/file/${encodeURIComponent(file)}`;
+                }
+                // If it's a path starting with /, try to serve it directly
+                if (file.startsWith('/')) {
+                  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
                   const serverBaseUrl = apiBaseUrl.replace('/api', '');
-                  return `${serverBaseUrl}/uploads/documents/${file}`;
+                  return `${serverBaseUrl}${file}`;
                 }
                 return null;
               }

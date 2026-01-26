@@ -402,6 +402,14 @@ export class DPRService {
         throw new Error('Project not found for DPR');
       }
 
+      // Check if this is a cluster DPR
+      const isClusterDPR = (dpr.content?.english?.isClusterDPR || dpr.content?.telugu?.isClusterDPR) || project.projectType === 'cluster';
+      
+      // If it's a cluster DPR, use the cluster-specific PDF generation
+      if (isClusterDPR) {
+        return await this.generateClusterDPRPDF(dpr, project, language);
+      }
+
       // Safely access content with fallback - use correct language content
       const content = dpr.content || {};
       const contentLang = language === 'telugu' 
@@ -1334,6 +1342,1123 @@ export class DPRService {
       console.error('Error in generatePDF:', error);
       throw new Error(`Failed to generate PDF: ${error.message}`);
     }
+  }
+
+  /**
+   * Generate HTML content for Cluster DPR PDF
+   */
+  private static generateClusterDPRHTML(dpr: any, project: any, language: 'english' | 'telugu'): string {
+    const content = dpr.content || {};
+    const contentLang = language === 'telugu' 
+      ? (content.telugu || content.english || {}) 
+      : (content.english || {});
+    
+    // Get cluster data from multiple sources - prioritize actual data
+    const clusterData = contentLang.clusterData || dpr.metadata?.clusterData || project.stepData || {};
+    const s1 = clusterData.step1 || {};
+    const s2 = clusterData.step2 || {};
+    const s3 = clusterData.step3 || {};
+    const s4 = clusterData.step4 || {};
+    const s5 = clusterData.step5 || {};
+    const s6 = clusterData.step6 || {};
+    const s7 = clusterData.step7 || {};
+    const s8 = clusterData.step8 || {};
+    const s9 = clusterData.step9 || {};
+    const s10 = clusterData.step10 || {};
+    const s11 = clusterData.step11 || {};
+    const s12 = clusterData.step12 || {};
+    const s13 = clusterData.step13 || {};
+    const s14 = clusterData.step14 || {};
+    const s15 = clusterData.step15 || {};
+    const s16 = clusterData.step16 || {};
+    const s17 = clusterData.step17 || {};
+    const s18 = clusterData.step18 || {};
+    const sections = contentLang.sections || {};
+    
+    // Read HTML template - handle both development and production paths
+    const possiblePaths = [
+      path.join(__dirname, '../templates/cluster-dpr-pdf.html'), // Development
+      path.join(process.cwd(), 'server/src/templates/cluster-dpr-pdf.html'), // Production
+      path.join(process.cwd(), 'src/templates/cluster-dpr-pdf.html'), // Alternative
+    ];
+    
+    let templatePath = '';
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        templatePath = p;
+        break;
+      }
+    }
+    
+    if (!templatePath) {
+      throw new Error('Cluster DPR HTML template not found. Tried paths: ' + possiblePaths.join(', '));
+    }
+    
+    let html = fs.readFileSync(templatePath, 'utf-8');
+    
+    // Replace cover page variables
+    html = html.replace('{{CLUSTER_NAME}}', (s1.clusterName || project.projectName || 'CLUSTER NAME').toUpperCase());
+    html = html.replace('{{SUBMITTED_TO}}', s11.submittedTo || 'DIC, District');
+    html = html.replace('{{SPV_NAME}}', s11.spvName || 'SPV Name');
+    html = html.replace('{{LOCATION}}', s1.location || project.location || 'Location');
+    
+    // Cover image
+    const coverImage = contentLang.coverImage || '';
+    if (coverImage) {
+      html = html.replace('{{COVER_IMAGE}}', `<img src="${coverImage}" alt="Cover Image" />`);
+    } else {
+      html = html.replace('{{COVER_IMAGE}}', '');
+    }
+    
+    // Build Table of Contents - include all sections
+    let toc = '<table style="width: 100%; border-collapse: collapse; margin-top: 0.5cm;">';
+    toc += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; text-align: left;">Chapter</th><th style="border: 1px solid #1F2937; padding: 0.3cm; text-align: left;">Title</th><th style="border: 1px solid #1F2937; padding: 0.3cm; text-align: left;">Page No.</th></tr></thead>';
+    toc += '<tbody>';
+    
+    const tocSections: Array<{chapter: string, title: string, page: string}> = [];
+    let pageNum = 1;
+    
+    // Executive Summary
+    if (contentLang.executiveSummary || sections.executiveSummary || s1.clusterName) {
+      tocSections.push({ chapter: '', title: 'Executive Summary', page: 'i-iv' });
+    }
+    
+    // Introduction
+    if (contentLang.introduction || sections.introduction || s2.sectorType) {
+      tocSections.push({ chapter: '1.', title: 'Introduction', page: String(pageNum++) });
+    }
+    
+    // Project Snapshot (always include if we have cluster data)
+    if (s1.clusterName || s11.spvName) {
+      tocSections.push({ chapter: '', title: 'Project Snapshot', page: String(pageNum++) });
+    }
+    
+    // District Profile
+    if (contentLang.districtProfile || sections.districtProfile || s3.geography) {
+      tocSections.push({ chapter: '1.5', title: 'District & Regional Profile', page: String(pageNum++) });
+    }
+    
+    // Cluster Profile
+    if (contentLang.clusterProfile || sections.clusterProfile || s4.clusterEvolution) {
+      tocSections.push({ chapter: '2.', title: 'Cluster Profile', page: String(pageNum++) });
+    }
+    
+    // Value Chain
+    if (contentLang.valueChain || sections.valueChain || s5.rawMaterials) {
+      tocSections.push({ chapter: '3.', title: 'Cluster Value Chain Mapping', page: String(pageNum++) });
+    }
+    
+    // Market Aspects
+    if (contentLang.marketAnalysis || sections.marketAssessment || s6.existingDemand) {
+      tocSections.push({ chapter: '4.', title: 'Market Aspects', page: String(pageNum++) });
+    }
+    
+    // SWOT Analysis
+    if (contentLang.swotAnalysis || sections.swotAnalysis || s8.strengths) {
+      tocSections.push({ chapter: '5.', title: 'SWOT Analysis', page: String(pageNum++) });
+    }
+    
+    // Gap Analysis
+    if (contentLang.gapAnalysis || sections.gapAnalysis || s7.technologyGaps) {
+      tocSections.push({ chapter: '6.', title: 'Need Gap Analysis', page: String(pageNum++) });
+    }
+    
+    // Proposed Intervention
+    if (contentLang.proposedIntervention || sections.proposedIntervention || s9.interventionType) {
+      tocSections.push({ chapter: '7.', title: 'Proposed Intervention', page: String(pageNum++) });
+    }
+    
+    // CFC Details
+    if (contentLang.cfcDetails || sections.cfcDetails || s10.name) {
+      tocSections.push({ chapter: '8.', title: 'CFC - Operation & Management', page: String(pageNum++) });
+    }
+    
+    // SPV Details
+    if (contentLang.spvDetails || sections.spvDetails || s11.spvName) {
+      tocSections.push({ chapter: '9.', title: 'SPV Member Units', page: String(pageNum++) });
+    }
+    
+    // Project Cost
+    if (contentLang.projectCost || sections.projectCost || s12.land || s12.building || s12.machinery) {
+      tocSections.push({ chapter: '10.', title: 'Project Cost & Means Of Finance', page: String(pageNum++) });
+    }
+    
+    // Operating Cost & Revenue
+    if (contentLang.operatingCostRevenue || sections.operatingCostRevenue || s14.rawMaterialCost) {
+      tocSections.push({ chapter: '10.5', title: 'Operating Cost & Revenue', page: String(pageNum++) });
+    }
+    
+    // Financial Viability
+    if (contentLang.financialProjections || sections.financialViability || s15.irr || s15.npv) {
+      tocSections.push({ chapter: '11.', title: 'Financial Viability', page: String(pageNum++) });
+    }
+    
+    // Implementation Schedule
+    if (contentLang.implementationSchedule || sections.implementationSchedule || s16.startDate) {
+      tocSections.push({ chapter: '11.5', title: 'Project Implementation Schedule', page: String(pageNum++) });
+    }
+    
+    // Expected Impact
+    if (contentLang.conclusion || sections.expectedImpact || s17.employmentGeneration) {
+      tocSections.push({ chapter: '12.', title: 'Expected Impact', page: String(pageNum++) });
+    }
+    
+    // Financial Statements
+    if (s12.land || s12.building || s12.machinery || s15.profitAndLossProjections) {
+      tocSections.push({ chapter: '', title: 'Financial Statements', page: String(pageNum++) });
+    }
+    
+    // Conclusion
+    if (contentLang.conclusion || true) {
+      tocSections.push({ chapter: '', title: 'Conclusion', page: String(pageNum++) });
+    }
+    
+    // Annexures
+    if (s18.spvRegistration || s18.landDocuments || s18.buildingEstimates || s18.machineryQuotations) {
+      tocSections.push({ chapter: '', title: 'Annexures', page: String(pageNum++) });
+    }
+    
+    // Render TOC as table
+    tocSections.forEach((section, idx) => {
+      const bgColor = idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+      toc += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">${section.chapter}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${section.title}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${section.page}</td></tr>`;
+    });
+    
+    toc += '</tbody></table>';
+    html = html.replace('{{TABLE_OF_CONTENTS}}', toc);
+    
+    // Replace section content - handle markdown and tables
+    const formatContent = (text: string): string => {
+      if (!text) return '';
+      
+      // Process markdown text to handle tables and formatting
+      const processedParas = processMarkdownText(text);
+      let html = '';
+      
+      processedParas.forEach((para) => {
+        if (para.type === 'table' && para.tableData) {
+          // Render table
+          html += '<table>';
+          para.tableData.forEach((row, rowIndex) => {
+            html += '<tr>';
+            row.forEach((cell) => {
+              const tag = rowIndex === 0 ? 'th' : 'td';
+              html += `<${tag}>${cell || ''}</${tag}>`;
+            });
+            html += '</tr>';
+          });
+          html += '</table>';
+        } else if (para.type === 'heading') {
+          const level = para.headingLevel || 2;
+          const tag = `h${Math.min(level + 1, 4)}`;
+          const content = para.content.map(seg => seg.text).join('');
+          html += `<${tag} style="font-weight: bold; margin-top: 0.5cm; margin-bottom: 0.3cm;">${content}</${tag}>`;
+        } else if (para.originalText.trim().length > 0) {
+          html += '<p>';
+          para.content.forEach((segment) => {
+            const text = segment.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            if (segment.bold) {
+              html += `<strong>${text}</strong>`;
+            } else {
+              html += text;
+            }
+          });
+          html += '</p>';
+        }
+      });
+      
+      return html || text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+    };
+    
+    // Ensure we have at least some content
+    const execSummary = formatContent(contentLang.executiveSummary || sections.executiveSummary || '');
+    html = html.replace('{{EXECUTIVE_SUMMARY}}', execSummary || '<p>The cluster development project aims to enhance the processing capabilities and market reach of the cluster through the establishment of a Common Facility Centre.</p>');
+    
+    const intro = formatContent(contentLang.introduction || sections.introduction || '');
+    html = html.replace('{{INTRODUCTION}}', intro || '<p>The sector plays a crucial role in the economy, and this cluster has significant potential for growth and development.</p>');
+    
+    // Generate Project Snapshot from clusterData
+    const generateProjectSnapshot = (): string => {
+      const totalUnits = (s1.enterpriseCount?.micro || 0) + (s1.enterpriseCount?.small || 0) + (s1.enterpriseCount?.medium || 0);
+      const totalEmployment = (s1.employmentPerUnit?.lessThan5 || 0) + (s1.employmentPerUnit?.between5And10 || 0) + (s1.employmentPerUnit?.moreThan10 || 0);
+      
+      let snapshotHTML = '<table>';
+      snapshotHTML += '<tr><th>Particulars</th><th>Details</th></tr>';
+      snapshotHTML += `<tr><td>Name of the cluster</td><td>${s1.clusterName || 'N/A'}, ${s1.district || 'N/A'} District</td></tr>`;
+      snapshotHTML += `<tr><td>Location & Spread of the cluster</td><td>${s1.geographicalSpread || s1.location || 'N/A'}</td></tr>`;
+      snapshotHTML += `<tr><td>Product range</td><td>${s1.majorProducts || 'N/A'}</td></tr>`;
+      snapshotHTML += `<tr><td>Existing employment in the Cluster</td><td>${totalEmployment} workers (Male: ${s1.employmentPerUnit?.male || 0}, Female: ${s1.employmentPerUnit?.female || 0})</td></tr>`;
+      snapshotHTML += `<tr><td>Name of the SPV</td><td>${s11.spvName || 'N/A'}</td></tr>`;
+      snapshotHTML += `<tr><td>Legal Status</td><td>${s11.legalStatus || 'N/A'}</td></tr>`;
+      snapshotHTML += `<tr><td>Number of SPV members</td><td>${s11.memberUnits?.length || 0} member units</td></tr>`;
+      snapshotHTML += '</table>';
+      
+      // Add existing cluster scenario table if data exists
+      if (s1.enterpriseCount || s4.productionCapacity || s14.annualProductionVolume) {
+        snapshotHTML += '<h3 style="margin-top: 1cm; margin-bottom: 0.5cm;">Existing cluster scenario</h3>';
+        snapshotHTML += '<table>';
+        snapshotHTML += '<tr><th>Product</th><th>Pro forma</th><th>Annual Production (in MT)</th><th>Annual Pro forma (in ₹ lakhs)</th></tr>';
+        
+        if (s1.enterpriseCount?.micro && s1.enterpriseCount.micro > 0) {
+          snapshotHTML += `<tr><td>Micro Enterprises</td><td>${s1.enterpriseCount.micro}</td><td>${s14.annualProductionVolume || 'N/A'}</td><td>${s1.turnoverPerUnit ? ((s1.turnoverPerUnit * s1.enterpriseCount.micro) / 100000).toFixed(2) : 'N/A'}</td></tr>`;
+        }
+        if (s1.enterpriseCount?.small && s1.enterpriseCount.small > 0) {
+          snapshotHTML += `<tr><td>Small Enterprises</td><td>${s1.enterpriseCount.small}</td><td>${s14.annualProductionVolume || 'N/A'}</td><td>${s1.turnoverPerUnit ? ((s1.turnoverPerUnit * s1.enterpriseCount.small) / 100000).toFixed(2) : 'N/A'}</td></tr>`;
+        }
+        if (s1.enterpriseCount?.medium && s1.enterpriseCount.medium > 0) {
+          snapshotHTML += `<tr><td>Medium Enterprises</td><td>${s1.enterpriseCount.medium}</td><td>${s14.annualProductionVolume || 'N/A'}</td><td>${s1.turnoverPerUnit ? ((s1.turnoverPerUnit * s1.enterpriseCount.medium) / 100000).toFixed(2) : 'N/A'}</td></tr>`;
+        }
+        
+        snapshotHTML += '</table>';
+      }
+      
+      return snapshotHTML;
+    };
+    
+    const projectSnapshotHTML = `<div class="page">
+      <div class="page-content">
+        <div class="section-title-box">
+          <div class="section-title-box-inner">
+            <h2>PROJECT SNAPSHOT</h2>
+          </div>
+        </div>
+        <div class="content">${generateProjectSnapshot()}</div>
+      </div>
+    </div>`;
+    html = html.replace('{{PROJECT_SNAPSHOT}}', projectSnapshotHTML);
+    
+    // Replace optional sections with proper headers
+    const sectionHeaders: Record<string, string> = {
+      '{{DISTRICT_PROFILE}}': '1.5 DISTRICT & REGIONAL PROFILE',
+      '{{CLUSTER_PROFILE}}': '2. CLUSTER PROFILE',
+      '{{VALUE_CHAIN}}': '3. CLUSTER VALUE CHAIN MAPPING',
+      '{{MARKET_ASPECTS}}': '4. MARKET ASPECTS',
+      '{{SWOT_ANALYSIS}}': '5. SWOT ANALYSIS',
+      '{{GAP_ANALYSIS}}': '6. NEED GAP ANALYSIS',
+      '{{CFC_DETAILS}}': '7. CFC - OPERATION & MANAGEMENT',
+      '{{SPV_DETAILS}}': '8. SPV MEMBER UNITS',
+      '{{PROJECT_COST}}': '9. PROJECT COST & MEANS OF FINANCE',
+      '{{OPERATING_COST_REVENUE}}': '9.5 OPERATING COST & REVENUE',
+      '{{FINANCIAL_VIABILITY}}': '10. FINANCIAL VIABILITY',
+      '{{IMPLEMENTATION_SCHEDULE}}': '10.5 PROJECT IMPLEMENTATION SCHEDULE',
+      '{{EXPECTED_IMPACT}}': '11. EXPECTED IMPACT',
+      '{{CONCLUSION}}': 'CONCLUSION'
+    };
+    
+    // Helper to generate section content from clusterData
+    const generateSectionFromData = (stepData: any, sectionType: string): string => {
+      if (!stepData || Object.keys(stepData).length === 0) return '';
+      
+      let content = '';
+      // Generate content from step data
+      Object.entries(stepData).forEach(([key, value]) => {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          // Nested object - recurse
+          const nested = generateSectionFromData(value, sectionType);
+          if (nested) content += nested;
+        } else if (value && Array.isArray(value)) {
+          // Array - create list or table
+          if (value.length > 0) {
+            content += `<p><strong>${key}:</strong></p><ul>`;
+            value.forEach((item: any) => {
+              if (typeof item === 'string') {
+                content += `<li>${item}</li>`;
+              } else if (typeof item === 'object') {
+                content += `<li>${JSON.stringify(item)}</li>`;
+              }
+            });
+            content += '</ul>';
+          }
+        } else if (value && typeof value !== 'object') {
+          // Simple value
+          content += `<p><strong>${key}:</strong> ${value}</p>`;
+        }
+      });
+      return content;
+    };
+    
+    const replaceSection = (placeholder: string, content: string, header: string, stepData?: any) => {
+      // Try to get content from multiple sources
+      let finalContent = content;
+      if (!finalContent || !finalContent.trim()) {
+        // Try to generate from stepData
+        if (stepData) {
+          finalContent = generateSectionFromData(stepData, header);
+        }
+      }
+      
+      // Always include section if we have any content or if it's a required section
+      const requiredSections = ['DISTRICT_PROFILE', 'CLUSTER_PROFILE', 'VALUE_CHAIN', 'MARKET_ASPECTS', 'SWOT_ANALYSIS', 'GAP_ANALYSIS', 'CFC_DETAILS', 'SPV_DETAILS', 'PROJECT_COST'];
+      const isRequired = requiredSections.some(req => header.toUpperCase().includes(req));
+      
+      if (finalContent && finalContent.trim()) {
+        const formattedContent = formatContent(finalContent);
+        const sectionHTML = `<div class="page">
+          <div class="page-content">
+            <div class="section-title-box">
+              <div class="section-title-box-inner">
+                <h2>${header}</h2>
+              </div>
+            </div>
+            <div class="content">${formattedContent}</div>
+          </div>
+        </div>`;
+        html = html.replace(placeholder, sectionHTML);
+      } else if (isRequired) {
+        // Include section even with minimal content
+        const sectionHTML = `<div class="page">
+          <div class="page-content">
+            <div class="section-title-box">
+              <div class="section-title-box-inner">
+                <h2>${header}</h2>
+              </div>
+            </div>
+            <div class="content"><p>Section content will be populated from cluster data.</p></div>
+          </div>
+        </div>`;
+        html = html.replace(placeholder, sectionHTML);
+      } else {
+        html = html.replace(placeholder, '');
+      }
+    };
+    
+    replaceSection('{{DISTRICT_PROFILE}}', contentLang.districtProfile || sections.districtProfile || '', sectionHeaders['{{DISTRICT_PROFILE}}'], s3);
+    replaceSection('{{CLUSTER_PROFILE}}', contentLang.clusterProfile || sections.clusterProfile || '', sectionHeaders['{{CLUSTER_PROFILE}}'], s4);
+    replaceSection('{{VALUE_CHAIN}}', contentLang.valueChain || sections.valueChain || '', sectionHeaders['{{VALUE_CHAIN}}'], s5);
+    replaceSection('{{MARKET_ASPECTS}}', contentLang.marketAnalysis || sections.marketAssessment || '', sectionHeaders['{{MARKET_ASPECTS}}'], s6);
+    replaceSection('{{SWOT_ANALYSIS}}', contentLang.swotAnalysis || sections.swotAnalysis || '', sectionHeaders['{{SWOT_ANALYSIS}}'], s8);
+    replaceSection('{{GAP_ANALYSIS}}', contentLang.gapAnalysis || sections.gapAnalysis || '', sectionHeaders['{{GAP_ANALYSIS}}'], s7);
+    replaceSection('{{CFC_DETAILS}}', contentLang.cfcDetails || sections.cfcDetails || '', sectionHeaders['{{CFC_DETAILS}}'], s10);
+    replaceSection('{{SPV_DETAILS}}', contentLang.spvDetails || sections.spvDetails || '', sectionHeaders['{{SPV_DETAILS}}'], s11);
+    replaceSection('{{PROJECT_COST}}', contentLang.projectCost || sections.projectCost || '', sectionHeaders['{{PROJECT_COST}}'], s12);
+    replaceSection('{{OPERATING_COST_REVENUE}}', contentLang.operatingCostRevenue || sections.operatingCostRevenue || '', sectionHeaders['{{OPERATING_COST_REVENUE}}'], s14);
+    replaceSection('{{FINANCIAL_VIABILITY}}', contentLang.financialProjections || sections.financialViability || '', sectionHeaders['{{FINANCIAL_VIABILITY}}'], s15);
+    replaceSection('{{IMPLEMENTATION_SCHEDULE}}', contentLang.implementationSchedule || sections.implementationSchedule || '', sectionHeaders['{{IMPLEMENTATION_SCHEDULE}}'], s16);
+    replaceSection('{{EXPECTED_IMPACT}}', contentLang.conclusion || sections.expectedImpact || '', sectionHeaders['{{EXPECTED_IMPACT}}']);
+    replaceSection('{{CONCLUSION}}', contentLang.conclusion && !sections.expectedImpact ? contentLang.conclusion : '', sectionHeaders['{{CONCLUSION}}']);
+    
+    // Add Proposed Intervention section
+    const proposedIntervention = contentLang.proposedIntervention || sections.proposedIntervention || s9.interventionType || '';
+    if (proposedIntervention) {
+      replaceSection('{{PROPOSED_INTERVENTION}}', proposedIntervention, '9. PROPOSED INTERVENTION');
+    } else {
+      html = html.replace('{{PROPOSED_INTERVENTION}}', '');
+    }
+    
+    // Generate Financial Statements section
+    const generateFinancialStatements = (): string => {
+      let statementsHTML = '';
+      
+      if (s12.land || s12.building || s12.machinery) {
+        statementsHTML += '<h3 style="margin-top: 0.5cm; margin-bottom: 0.3cm;">1. Cost of Project & Means of Finance</h3>';
+        statementsHTML += '<table>';
+        statementsHTML += '<tr><th>Particulars</th><th>Amount (₹)</th></tr>';
+        if (s12.land) statementsHTML += `<tr><td>Land</td><td>${s12.land.toLocaleString('en-IN')}</td></tr>`;
+        if (s12.building) statementsHTML += `<tr><td>Building</td><td>${s12.building.toLocaleString('en-IN')}</td></tr>`;
+        if (s12.machinery) statementsHTML += `<tr><td>Machinery</td><td>${s12.machinery.toLocaleString('en-IN')}</td></tr>`;
+        statementsHTML += '</table>';
+      }
+      
+      if (s15.profitAndLossProjections && s15.profitAndLossProjections.length > 0) {
+        statementsHTML += '<h3 style="margin-top: 0.5cm; margin-bottom: 0.3cm;">2. Cost of Production & Profitability</h3>';
+        statementsHTML += '<table>';
+        statementsHTML += '<tr><th>Year</th><th>Revenue</th><th>Cost</th><th>Profit</th></tr>';
+        s15.profitAndLossProjections.forEach((proj: any, idx: number) => {
+          statementsHTML += `<tr><td>Year ${idx + 1}</td><td>${proj.revenue || 0}</td><td>${proj.cost || 0}</td><td>${proj.profit || 0}</td></tr>`;
+        });
+        statementsHTML += '</table>';
+      }
+      
+      if (s15.breakEvenPoint || s15.irr || s15.npv) {
+        statementsHTML += '<h3 style="margin-top: 0.5cm; margin-bottom: 0.3cm;">3. Financial Indicators</h3>';
+        statementsHTML += '<table>';
+        statementsHTML += '<tr><th>Indicator</th><th>Value</th></tr>';
+        if (s15.breakEvenPoint) statementsHTML += `<tr><td>Break Even Point</td><td>${s15.breakEvenPoint} years</td></tr>`;
+        if (s15.irr) statementsHTML += `<tr><td>IRR</td><td>${s15.irr}%</td></tr>`;
+        if (s15.npv) statementsHTML += `<tr><td>NPV</td><td>₹${s15.npv.toLocaleString('en-IN')}</td></tr>`;
+        statementsHTML += '</table>';
+      }
+      
+      return statementsHTML || '<p>Financial statements data not available.</p>';
+    };
+    
+    const financialStatementsHTML = `<div class="page">
+      <div class="page-content">
+        <div class="section-title-box">
+          <div class="section-title-box-inner">
+            <h2>FINANCIAL STATEMENTS</h2>
+          </div>
+        </div>
+        <div class="content">${generateFinancialStatements()}</div>
+      </div>
+    </div>`;
+    html = html.replace('{{FINANCIAL_STATEMENTS}}', financialStatementsHTML);
+    
+    // Generate Annexures section
+    const generateAnnexures = (): string => {
+      let annexuresHTML = '<ul style="list-style-type: none; padding-left: 0;">';
+      let annexureNum = 1;
+      
+      if (s18.spvRegistration) {
+        annexuresHTML += `<li style="margin-bottom: 0.5cm;"><strong>Annexure ${annexureNum}:</strong> SPV Registration</li>`;
+        annexureNum++;
+      }
+      if (s18.landDocuments) {
+        annexuresHTML += `<li style="margin-bottom: 0.5cm;"><strong>Annexure ${annexureNum}:</strong> Land Documents</li>`;
+        annexureNum++;
+      }
+      if (s18.buildingEstimates) {
+        annexuresHTML += `<li style="margin-bottom: 0.5cm;"><strong>Annexure ${annexureNum}:</strong> Building Estimates</li>`;
+        annexureNum++;
+      }
+      if (s18.machineryQuotations) {
+        annexuresHTML += `<li style="margin-bottom: 0.5cm;"><strong>Annexure ${annexureNum}:</strong> Machinery Quotations</li>`;
+        annexureNum++;
+      }
+      if (s18.memberRegistrations) {
+        annexuresHTML += `<li style="margin-bottom: 0.5cm;"><strong>Annexure ${annexureNum}:</strong> Member Registrations</li>`;
+        annexureNum++;
+      }
+      if (s18.supportingDocuments && Array.isArray(s18.supportingDocuments) && s18.supportingDocuments.length > 0) {
+        s18.supportingDocuments.forEach((doc: any, idx: number) => {
+          annexuresHTML += `<li style="margin-bottom: 0.5cm;"><strong>Annexure ${annexureNum}:</strong> Supporting Document ${idx + 1}</li>`;
+          annexureNum++;
+        });
+      }
+      
+      annexuresHTML += '</ul>';
+      return annexuresHTML || '<p>No annexures available.</p>';
+    };
+    
+    const annexuresHTML = `<div class="page">
+      <div class="page-content">
+        <div class="section-title-box">
+          <div class="section-title-box-inner">
+            <h2>ANNEXURES</h2>
+          </div>
+        </div>
+        <div class="content">${generateAnnexures()}</div>
+      </div>
+    </div>`;
+    html = html.replace('{{ANNEXURES}}', annexuresHTML);
+    
+    return html;
+  }
+
+  /**
+   * Generate PDF for Cluster DPR matching the preview template exactly using HTML-to-PDF
+   */
+  static async generateClusterDPRPDF(dpr: any, project: any, language: 'english' | 'telugu'): Promise<Buffer> {
+    try {
+      console.log('📄 Starting Cluster DPR PDF generation...');
+      
+      // Generate HTML from template
+      let html: string;
+      try {
+        html = this.generateClusterDPRHTML(dpr, project, language);
+      } catch (htmlError: any) {
+        console.error('❌ Error generating HTML:', htmlError);
+        throw new Error(`Failed to generate HTML template: ${htmlError.message}`);
+      }
+      
+      // Validate HTML was generated
+      if (!html || html.length === 0) {
+        throw new Error('Generated HTML template is empty');
+      }
+      
+      // Validate HTML structure
+      if (!html.includes('<!DOCTYPE html>') || !html.includes('</html>')) {
+        console.warn('⚠️  HTML template may be malformed');
+      }
+      
+      // Check if styles are present
+      if (!html.includes('<style') || !html.includes('border: 8px solid #2563EB')) {
+        console.error('❌ HTML template missing critical styles!');
+        throw new Error('HTML template is missing required CSS styles');
+      }
+      
+      console.log(`✅ HTML generated: ${html.length} characters`);
+      console.log(`✅ HTML contains styles: ${html.includes('<style')}`);
+      console.log(`✅ HTML contains page borders: ${html.includes('border: 8px solid #2563EB')}`);
+      
+      // Try to use Puppeteer for HTML-to-PDF conversion
+      try {
+        const puppeteer = require('puppeteer');
+        console.log('🔄 Launching Puppeteer browser...');
+        
+        const browser = await puppeteer.launch({
+          headless: true,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--disable-gpu'
+          ],
+          timeout: 30000
+        });
+        
+        try {
+          const page = await browser.newPage();
+          
+          // Set viewport for A4
+          await page.setViewport({
+            width: 794, // A4 width in pixels at 96 DPI
+            height: 1123, // A4 height in pixels at 96 DPI
+          });
+          
+          console.log('🔄 Setting HTML content...');
+          // Set content with longer timeout and error handling
+          // Use base64 encoding for images if needed
+          try {
+            await page.setContent(html, {
+              waitUntil: ['load', 'networkidle0'],
+              timeout: 60000 // Increased timeout
+            });
+            console.log('✅ HTML content set successfully');
+          } catch (contentError: any) {
+            console.warn('⚠️  networkidle0 failed, trying domcontentloaded:', contentError.message);
+            // Try with simpler wait condition
+            await page.setContent(html, {
+              waitUntil: 'domcontentloaded',
+              timeout: 60000
+            });
+            // Wait for stylesheets to load
+            await page.waitForTimeout(2000);
+            console.log('✅ HTML content set with fallback method');
+          }
+          
+          // Ensure all styles are applied
+          await page.evaluateHandle(() => document.fonts.ready);
+          
+          // Wait for styles to load and render
+          await page.waitForTimeout(2000);
+          
+          // Verify styles are applied
+          const stylesApplied = await page.evaluate(() => {
+            const firstPage = document.querySelector('.page');
+            if (!firstPage) return false;
+            const computedStyle = window.getComputedStyle(firstPage);
+            const borderWidth = computedStyle.borderWidth;
+            return borderWidth && parseFloat(borderWidth) > 0;
+          });
+          
+          if (!stylesApplied) {
+            console.warn('⚠️  Styles may not be fully applied, but continuing...');
+          } else {
+            console.log('✅ Styles verified and applied');
+          }
+          
+          // Ensure CSS is loaded by checking for styled elements
+          await page.evaluate(() => {
+            // Force style recalculation
+            document.body.style.display = 'none';
+            document.body.offsetHeight; // Trigger reflow
+            document.body.style.display = '';
+          });
+          
+          // Wait a bit more for rendering
+          await page.waitForTimeout(1000);
+          
+          console.log('🔄 Generating PDF...');
+          // Generate PDF with proper settings - ensure styles are rendered
+          const pdfBuffer = await page.pdf({
+            format: 'A4',
+            printBackground: true,
+            displayHeaderFooter: false,
+            margin: {
+              top: '0',
+              right: '0',
+              bottom: '0',
+              left: '0'
+            },
+            preferCSSPageSize: true,
+            timeout: 60000,
+            scale: 1.0
+          });
+          
+          // Validate PDF buffer
+          if (!pdfBuffer || pdfBuffer.length === 0) {
+            await browser.close();
+            throw new Error('Generated PDF buffer is empty');
+          }
+          
+          // Validate PDF header (PDF files start with %PDF)
+          const pdfHeader = pdfBuffer.slice(0, 4).toString('ascii');
+          if (pdfHeader !== '%PDF') {
+            console.error('❌ Invalid PDF header:', pdfHeader);
+            console.error('First 20 bytes:', pdfBuffer.slice(0, 20).toString('hex'));
+            await browser.close();
+            throw new Error(`Generated buffer does not appear to be a valid PDF. Header: ${pdfHeader}`);
+          }
+          
+          console.log(`✅ PDF generated successfully: ${pdfBuffer.length} bytes`);
+          console.log(`✅ PDF header validated: ${pdfHeader}`);
+          
+          await browser.close();
+          return Buffer.from(pdfBuffer); // Ensure it's a proper Buffer
+        } catch (pageError: any) {
+          await browser.close().catch(() => {});
+          throw pageError;
+        }
+      } catch (puppeteerError: any) {
+        console.warn('⚠️  Puppeteer error:', puppeteerError.message);
+        console.warn('⚠️  Error stack:', puppeteerError.stack);
+        console.warn('⚠️  Falling back to PDFKit...');
+        // Fallback to PDFKit if Puppeteer is not available
+        try {
+          return await this.generateClusterDPRPDFWithPDFKit(dpr, project, language);
+        } catch (pdfKitError: any) {
+          console.error('❌ PDFKit fallback also failed:', pdfKitError.message);
+          throw new Error(`Both Puppeteer and PDFKit failed. Puppeteer: ${puppeteerError.message}, PDFKit: ${pdfKitError.message}`);
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Error generating Cluster DPR PDF:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
+      throw new Error(`Failed to generate Cluster DPR PDF: ${error.message}`);
+    }
+  }
+
+  /**
+   * Fallback: Generate PDF using PDFKit (if Puppeteer is not available)
+   */
+  private static async generateClusterDPRPDFWithPDFKit(dpr: any, project: any, language: 'english' | 'telugu'): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const content = dpr.content || {};
+        const contentLang = language === 'telugu' 
+          ? (content.telugu || content.english || {}) 
+          : (content.english || {});
+        
+        // Get cluster data from content or project stepData
+        const clusterData = contentLang.clusterData || dpr.metadata?.clusterData || project.stepData || {};
+        
+        // PDFKit configuration
+        const doc = new PDFDocument({ 
+          size: 'A4',
+          margin: 50,
+          autoFirstPage: true,
+          info: {
+            Title: 'Detailed Project Report - Cluster DPR',
+            Author: 'MSME DPR Tool',
+            Subject: 'Cluster DPR Document',
+            Creator: 'MSME AI DPR Generation Tool'
+          }
+        });
+        const chunks: Buffer[] = [];
+
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => {
+          const pdfBuffer = Buffer.concat(chunks);
+          
+          // Validate PDF buffer
+          if (!pdfBuffer || pdfBuffer.length === 0) {
+            reject(new Error('Generated PDF buffer is empty'));
+            return;
+          }
+          
+          // Validate PDF header
+          const pdfHeader = pdfBuffer.slice(0, 4).toString('ascii');
+          if (pdfHeader !== '%PDF') {
+            console.error('❌ Invalid PDF header from PDFKit:', pdfHeader);
+            reject(new Error(`Generated buffer is not a valid PDF. Header: ${pdfHeader}`));
+            return;
+          }
+          
+          console.log(`✅ PDFKit PDF generated successfully: ${pdfBuffer.length} bytes`);
+          resolve(pdfBuffer);
+        });
+        doc.on('error', (error) => {
+          console.error('Cluster DPR PDF generation error:', error);
+          reject(error);
+        });
+
+        // Helper to detect Telugu text
+        const isTeluguText = (text: string): boolean => {
+          return /[\u0C00-\u0C7F]/.test(text);
+        };
+
+        // Helper to add formatted text
+        const addFormattedText = (text: string, fontSize: number = 11) => {
+          if (!text) return;
+          const paragraphs = processMarkdownText(text);
+          
+          paragraphs.forEach((para) => {
+            if (para.type === 'table' && para.tableData) {
+              // Render table
+              doc.moveDown(0.5);
+              const tableData = para.tableData;
+              const tableWidth = 500;
+              const colCount = tableData[0]?.length || 0;
+              const colWidth = tableWidth / colCount;
+              const rowHeight = 20;
+              
+              let x = doc.x;
+              const startY = doc.y;
+              
+              // Header row with gray background
+              doc.rect(x, startY, tableWidth, rowHeight).fill('#D3D3D3');
+              tableData[0].forEach((cell, colIndex) => {
+                const cellX = x + (colIndex * colWidth);
+                doc.fontSize(fontSize - 1).font('Helvetica-Bold');
+                doc.fillColor('#000000');
+                doc.text(cell, cellX + 5, startY + 5, {
+                  width: colWidth - 10,
+                  height: rowHeight - 10,
+                  align: 'left',
+                });
+              });
+              
+              // Data rows
+              for (let rowIndex = 1; rowIndex < tableData.length; rowIndex++) {
+                const rowY = startY + (rowIndex * rowHeight);
+                doc.rect(x, rowY, tableWidth, rowHeight).fill(rowIndex % 2 === 0 ? '#F0F8FF' : '#FFFFFF');
+                doc.rect(x, rowY, tableWidth, rowHeight).stroke('#CCCCCC');
+                
+                tableData[rowIndex].forEach((cell, colIndex) => {
+                  const cellX = x + (colIndex * colWidth);
+                  doc.fontSize(fontSize - 1).font('Helvetica');
+                  doc.fillColor('#000000');
+                  doc.text(cell || '', cellX + 5, rowY + 5, {
+                    width: colWidth - 10,
+                    height: rowHeight - 10,
+                    align: 'left',
+                  });
+                });
+              }
+              
+              doc.rect(x, startY, tableWidth, tableData.length * rowHeight).stroke('#000000');
+              for (let i = 1; i < colCount; i++) {
+                const lineX = x + (i * colWidth);
+                doc.moveTo(lineX, startY).lineTo(lineX, startY + (tableData.length * rowHeight)).stroke('#000000');
+              }
+              
+              doc.fillColor('#000000');
+              doc.y = startY + (tableData.length * rowHeight);
+              doc.x = 50;
+              doc.moveDown(1);
+            } else if (para.type === 'heading') {
+              doc.moveDown(0.5);
+              doc.x = 50;
+              const headingFontSize = fontSize + (para.headingLevel === 1 ? 5 : para.headingLevel === 2 ? 3 : 1);
+              para.content.forEach((segment) => {
+                doc.fontSize(headingFontSize).font('Helvetica-Bold').text(segment.text, { 
+                  align: 'left',
+                  width: 500,
+                });
+              });
+              doc.moveDown(para.headingLevel === 1 ? 1.0 : para.headingLevel === 2 ? 0.8 : 0.5);
+            } else if (para.originalText.trim().length > 0) {
+              para.content.forEach((segment) => {
+                doc.x = 50;
+                if (segment.bold) {
+                  doc.fontSize(fontSize).font('Helvetica-Bold').text(segment.text, { 
+                    align: 'left', 
+                    width: 500,
+                  });
+                } else {
+                  doc.fontSize(fontSize).font('Helvetica').text(segment.text, { 
+                    align: 'left', 
+                    width: 500,
+                  });
+                }
+              });
+              doc.moveDown(0.3);
+            }
+          });
+        };
+
+        // Helper to render section header (blue, bold, underlined)
+        const renderSectionHeader = (text: string) => {
+          doc.fillColor('#1E40AF'); // Blue
+          doc.fontSize(16).font('Helvetica-Bold').text(text, { underline: true });
+          doc.fillColor('#000000'); // Reset to black
+          doc.moveDown(0.5);
+        };
+
+        // Cover Page - "DETAILED PROJECT REPORT" format matching preview
+        const s1 = clusterData.step1 || {};
+        const s11 = clusterData.step11 || {};
+        const clusterName = s1.clusterName || project.projectName || 'CLUSTER NAME';
+        
+        // Draw grey box background with diagonal stripes pattern
+        const boxX = 50;
+        const boxY = 100;
+        const boxWidth = 500;
+        const boxHeight = 200;
+        
+        // Grey background
+        doc.rect(boxX, boxY, boxWidth, boxHeight).fill('#F3F4F6');
+        // Border
+        doc.rect(boxX, boxY, boxWidth, boxHeight).stroke('#D1D5DB');
+        
+        // Title section inside grey box
+        doc.fillColor('#1F2937'); // Dark grey
+        doc.fontSize(28).font('Helvetica-Bold').text('DETAILED PROJECT REPORT', boxX + 25, boxY + 30, {
+          width: boxWidth - 50,
+          align: 'center'
+        });
+        
+        doc.fontSize(18).font('Helvetica').text('On', boxX + 25, boxY + 70, {
+          width: boxWidth - 50,
+          align: 'center'
+        });
+        
+        doc.fontSize(18).font('Helvetica').text('Establishment of Common Facility Centre for', boxX + 25, boxY + 95, {
+          width: boxWidth - 50,
+          align: 'center'
+        });
+        
+        // Cluster name in green
+        doc.fillColor('#059669'); // Green
+        doc.fontSize(24).font('Helvetica-Bold').text(clusterName.toUpperCase(), boxX + 25, boxY + 130, {
+          width: boxWidth - 50,
+          align: 'center'
+        });
+        
+        doc.fillColor('#1F2937'); // Back to dark grey
+        doc.fontSize(16).font('Helvetica').text("under 'Micro Cluster Development Programme'", boxX + 25, boxY + 165, {
+          width: boxWidth - 50,
+          align: 'center'
+        });
+        
+        // Reset position after grey box
+        doc.y = boxY + boxHeight + 50;
+        doc.x = 50;
+        
+        // Image placeholder area (skip for PDF, or add placeholder text)
+        doc.moveDown(3);
+        doc.fontSize(10).font('Helvetica').fillColor('#9CA3AF').text('[Cover Image Placeholder]', { align: 'center' });
+        doc.moveDown(2);
+        
+        // Submission Details Section at bottom
+        doc.fillColor('#1F2937'); // Dark grey
+        doc.fontSize(11).font('Helvetica');
+        
+        // Submitted to
+        const submittedToY = doc.y;
+        doc.font('Helvetica-Bold').text('Submitted to:', 50, submittedToY);
+        doc.moveTo(150, submittedToY + 5).lineTo(550, submittedToY + 5).stroke('#1F2937');
+        doc.font('Helvetica').text(s11.submittedTo || 'DIC, District', 155, submittedToY);
+        doc.moveDown(1.5);
+        
+        // Submitted by
+        const submittedByY = doc.y;
+        doc.font('Helvetica-Bold').text('Submitted by:', 50, submittedByY);
+        doc.moveDown(0.5);
+        doc.font('Helvetica').text(s11.spvName || 'SPV Name', 50, doc.y);
+        doc.text(s1.location || 'Location', 50, doc.y + 15);
+        doc.moveDown(1);
+        
+        // Prepared by
+        doc.font('Helvetica-Bold').text('Prepared by:', 50, doc.y);
+        doc.font('Helvetica').text('M/s.ITCOT Limited, 50A Greams Road, Chennai.', 50, doc.y + 15);
+        
+        // Reset color
+        doc.fillColor('#000000');
+
+        // Table of Contents Page
+        doc.addPage();
+        renderSectionHeader('CONTENTS');
+        doc.moveDown(1);
+        
+        // Build table of contents based on available sections
+        const tocSections: Array<{title: string, page: string}> = [];
+        let pageNum = 1;
+        
+        if (contentLang.executiveSummary || contentLang.sections?.executiveSummary) {
+          tocSections.push({ title: 'Executive Summary', page: 'i-iv' });
+        }
+        if (contentLang.introduction || contentLang.sections?.introduction) {
+          tocSections.push({ title: '1. Introduction', page: String(pageNum++) });
+        }
+        if (contentLang.districtProfile || contentLang.sections?.districtProfile) {
+          tocSections.push({ title: '1.5 District & Regional Profile', page: String(pageNum++) });
+        }
+        if (contentLang.clusterProfile || contentLang.sections?.clusterProfile) {
+          tocSections.push({ title: '2. Cluster Profile', page: String(pageNum++) });
+        }
+        if (contentLang.valueChain || contentLang.sections?.valueChain) {
+          tocSections.push({ title: '3. Cluster Value Chain Mapping', page: String(pageNum++) });
+        }
+        if (contentLang.marketAnalysis || contentLang.sections?.marketAssessment) {
+          tocSections.push({ title: '4. Market Aspects', page: String(pageNum++) });
+        }
+        if (contentLang.swotAnalysis || contentLang.sections?.swotAnalysis) {
+          tocSections.push({ title: '5. SWOT Analysis', page: String(pageNum++) });
+        }
+        if (contentLang.gapAnalysis || contentLang.sections?.gapAnalysis) {
+          tocSections.push({ title: '6. Need Gap Analysis', page: String(pageNum++) });
+        }
+        if (contentLang.cfcDetails || contentLang.sections?.cfcDetails) {
+          tocSections.push({ title: '7. CFC - Operation & Management', page: String(pageNum++) });
+        }
+        if (contentLang.spvDetails || contentLang.sections?.spvDetails) {
+          tocSections.push({ title: '8. SPV Member Units', page: String(pageNum++) });
+        }
+        if (contentLang.projectCost || contentLang.sections?.projectCost) {
+          tocSections.push({ title: '9. Project Cost & Means Of Finance', page: String(pageNum++) });
+        }
+        if (contentLang.operatingCostRevenue || contentLang.sections?.operatingCostRevenue) {
+          tocSections.push({ title: '9.5 Operating Cost & Revenue', page: String(pageNum++) });
+        }
+        if (contentLang.financialProjections || contentLang.sections?.financialViability) {
+          tocSections.push({ title: '10. Financial Viability', page: String(pageNum++) });
+        }
+        if (contentLang.implementationSchedule || contentLang.sections?.implementationSchedule) {
+          tocSections.push({ title: '10.5 Project Implementation Schedule', page: String(pageNum++) });
+        }
+        if (contentLang.conclusion || contentLang.sections?.expectedImpact) {
+          tocSections.push({ title: '11. Expected Impact', page: String(pageNum++) });
+        }
+        
+        // Render TOC
+        tocSections.forEach((section, index) => {
+          doc.fontSize(11).font('Helvetica');
+          doc.text(section.title, 50, doc.y, { width: 400 });
+          doc.text(section.page, 450, doc.y, { width: 100, align: 'right' });
+          doc.moveDown(0.8);
+        });
+
+        // Section 1: Executive Summary
+        doc.addPage();
+        renderSectionHeader('EXECUTIVE SUMMARY');
+        const executiveSummary = contentLang.executiveSummary || contentLang.sections?.executiveSummary || '';
+        if (executiveSummary) {
+          addFormattedText(executiveSummary);
+        } else {
+          // Fallback: Generate from cluster data
+          const s1 = clusterData.step1 || {};
+          doc.fontSize(11).font('Helvetica').text(
+            `The ${s1.clusterName || 'Cluster'} located in ${s1.district || 'District'}, ${s1.location || 'Location'} ` +
+            `comprises ${(s1.enterpriseCount?.micro || 0) + (s1.enterpriseCount?.small || 0) + (s1.enterpriseCount?.medium || 0)} enterprises ` +
+            `(${s1.enterpriseCount?.micro || 0} micro, ${s1.enterpriseCount?.small || 0} small, ${s1.enterpriseCount?.medium || 0} medium). ` +
+            `The cluster focuses on ${s1.majorProducts || 'product processing'} and serves both domestic and export markets.`,
+            { align: 'left', width: 500 }
+          );
+        }
+        doc.moveDown(1);
+
+        // Section 1: Introduction
+        doc.addPage();
+        renderSectionHeader('1. INTRODUCTION');
+        const introduction = contentLang.introduction || contentLang.sections?.introduction || contentLang.businessProfile || '';
+        if (introduction) {
+          addFormattedText(introduction);
+        } else {
+          const s2 = clusterData.step2 || {};
+          doc.fontSize(11).font('Helvetica').text(
+            `The ${s2.sectorType || 'sector'} industry plays a crucial role in the economy. ` +
+            `The cluster has evolved from basic operations to advanced processing, demonstrating significant growth potential.`,
+            { align: 'left', width: 500 }
+          );
+        }
+        doc.moveDown(1);
+
+        // Add more sections if content exists
+        const sections = contentLang.sections || {};
+        
+        if (sections.districtProfile || contentLang.districtProfile) {
+          doc.addPage();
+          renderSectionHeader('1.5 DISTRICT & REGIONAL PROFILE');
+          addFormattedText(sections.districtProfile || contentLang.districtProfile || '');
+        }
+
+        if (sections.clusterProfile || contentLang.clusterProfile) {
+          doc.addPage();
+          renderSectionHeader('2. CLUSTER PROFILE');
+          addFormattedText(sections.clusterProfile || contentLang.clusterProfile || '');
+        }
+
+        if (sections.valueChain || contentLang.valueChain) {
+          doc.addPage();
+          renderSectionHeader('3. CLUSTER VALUE CHAIN MAPPING');
+          addFormattedText(sections.valueChain || contentLang.valueChain || '');
+        }
+
+        if (sections.marketAssessment || contentLang.marketAnalysis) {
+          doc.addPage();
+          renderSectionHeader('4. MARKET ASPECTS');
+          addFormattedText(sections.marketAssessment || contentLang.marketAnalysis || '');
+        }
+
+        if (sections.swotAnalysis || contentLang.swotAnalysis) {
+          doc.addPage();
+          renderSectionHeader('5. SWOT ANALYSIS');
+          addFormattedText(sections.swotAnalysis || contentLang.swotAnalysis || '');
+        }
+
+        if (sections.gapAnalysis || contentLang.gapAnalysis) {
+          doc.addPage();
+          renderSectionHeader('6. NEED GAP ANALYSIS');
+          addFormattedText(sections.gapAnalysis || contentLang.gapAnalysis || '');
+        }
+
+        if (sections.cfcDetails || contentLang.cfcDetails) {
+          doc.addPage();
+          renderSectionHeader('7. CFC - OPERATION & MANAGEMENT');
+          addFormattedText(sections.cfcDetails || contentLang.cfcDetails || '');
+        }
+
+        if (sections.spvDetails || contentLang.spvDetails) {
+          doc.addPage();
+          renderSectionHeader('8. SPV MEMBER UNITS');
+          addFormattedText(sections.spvDetails || contentLang.spvDetails || '');
+        }
+
+        if (sections.projectCost || contentLang.projectCost) {
+          doc.addPage();
+          renderSectionHeader('9. PROJECT COST & MEANS OF FINANCE');
+          addFormattedText(sections.projectCost || contentLang.projectCost || '');
+        }
+
+        if (sections.operatingCostRevenue || contentLang.operatingCostRevenue) {
+          doc.addPage();
+          renderSectionHeader('9.5 OPERATING COST & REVENUE');
+          addFormattedText(sections.operatingCostRevenue || contentLang.operatingCostRevenue || '');
+        }
+
+        if (sections.financialViability || contentLang.financialProjections) {
+          doc.addPage();
+          renderSectionHeader('10. FINANCIAL VIABILITY');
+          addFormattedText(sections.financialViability || contentLang.financialProjections || '');
+        }
+
+        if (sections.implementationSchedule || contentLang.implementationSchedule) {
+          doc.addPage();
+          renderSectionHeader('10.5 PROJECT IMPLEMENTATION SCHEDULE');
+          addFormattedText(sections.implementationSchedule || contentLang.implementationSchedule || '');
+        }
+
+        if (sections.expectedImpact || contentLang.conclusion) {
+          doc.addPage();
+          renderSectionHeader('11. EXPECTED IMPACT');
+          addFormattedText(sections.expectedImpact || contentLang.conclusion || '');
+        }
+
+        // Conclusion
+        if (contentLang.conclusion && !sections.expectedImpact) {
+          doc.addPage();
+          renderSectionHeader('CONCLUSION');
+          addFormattedText(contentLang.conclusion);
+        }
+
+        doc.end();
+      } catch (error: any) {
+        console.error('Error generating Cluster DPR PDF with PDFKit:', error);
+        reject(error);
+      }
+    });
   }
 
   /**

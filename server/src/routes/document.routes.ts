@@ -13,6 +13,10 @@ router.get('/vector-stores/list', DocumentController.getVectorStores);
 router.post('/search', DocumentController.searchDocuments);
 router.post('/rag/query', DocumentController.queryWithRAG);
 
+// File serving route - accessible to all authenticated users
+router.get('/file/:filename', DocumentController.serveFile);
+router.get('/file-by-id/:documentId', DocumentController.serveFileById);
+
 // Admin-only routes (require admin role)
 router.use(authorize('admin'));
 

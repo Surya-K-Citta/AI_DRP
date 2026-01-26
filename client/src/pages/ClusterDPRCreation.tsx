@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { ArrowLeft, Save, Download, Eye, ChevronRight, ChevronLeft } from 'lucide-react';
+import { ArrowLeft, Save, Download, Eye, ChevronRight, ChevronLeft, ZoomIn, ZoomOut, Maximize2, RotateCcw } from 'lucide-react';
 import { useClusterDPRStore } from '@/store/clusterDPRStore';
 import { ClusterDPRForm } from '@/components/cluster-dpr/ClusterDPRForm';
 import { ClusterDPRDocumentView } from '@/components/cluster-dpr/ClusterDPRDocumentView';
@@ -17,6 +17,8 @@ export const ClusterDPRCreation: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewMode, setPreviewMode] = useState<'split' | 'form' | 'preview'>('split');
   const [viewLanguage, setViewLanguage] = useState<'english' | 'telugu'>('english');
+  const [previewZoom, setPreviewZoom] = useState(1);
+  const [previewScroll, setPreviewScroll] = useState(0);
 
   const currentStep = data.currentStep || 1;
   const totalSteps = 18;
@@ -309,42 +311,102 @@ export const ClusterDPRCreation: React.FC = () => {
                   <CardHeader className="flex-shrink-0 border-b border-border">
                     <div className="flex items-center justify-between">
                       <CardTitle>Live DPR Preview</CardTitle>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const previewElement = document.getElementById('dpr-preview');
-                          if (previewElement) {
-                            previewElement.requestFullscreen?.();
-                          }
-                        }}
-                        className="gap-2"
-                      >
-                        <Eye className="h-4 w-4" />
-                        Fullscreen
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        {/* Zoom Controls */}
+                        <div className="flex items-center gap-1 border rounded-lg p-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPreviewZoom(Math.max(0.5, previewZoom - 0.1))}
+                            className="h-7 w-7 p-0"
+                            title="Zoom Out"
+                          >
+                            <ZoomOut className="h-4 w-4" />
+                          </Button>
+                          <span className="text-xs px-2 min-w-[3rem] text-center">
+                            {Math.round(previewZoom * 100)}%
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPreviewZoom(Math.min(2, previewZoom + 0.1))}
+                            className="h-7 w-7 p-0"
+                            title="Zoom In"
+                          >
+                            <ZoomIn className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPreviewZoom(1)}
+                            className="h-7 w-7 p-0"
+                            title="Reset Zoom"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const previewElement = document.getElementById('dpr-preview-container');
+                            if (previewElement) {
+                              previewElement.requestFullscreen?.();
+                            }
+                          }}
+                          className="gap-2"
+                        >
+                          <Maximize2 className="h-4 w-4" />
+                          Fullscreen
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="flex-1 overflow-y-auto p-0 bg-gray-100">
-                    <div id="dpr-preview" className="bg-white" style={{ minHeight: '100%', width: '100%', padding: '2rem' }}>
-                      <ClusterDPRDocumentView 
-                        dpr={{
-                          content: {
-                            english: {
-                              clusterData: data,
-                              ...data.generatedDPR?.sections,
+                  <CardContent className="flex-1 overflow-hidden p-0 bg-gray-100 relative">
+                    <div 
+                      id="dpr-preview-container"
+                      className="w-full h-full overflow-auto"
+                      style={{ 
+                        transform: `scale(${previewZoom})`,
+                        transformOrigin: 'top left',
+                        width: `${100 / previewZoom}%`,
+                        height: `${100 / previewZoom}%`,
+                      }}
+                    >
+                      <div 
+                        id="dpr-preview" 
+                        className="bg-white mx-auto shadow-lg" 
+                        style={{ 
+                          minHeight: '100%', 
+                          width: '21cm',
+                          padding: '2rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <ClusterDPRDocumentView 
+                          dpr={{
+                            content: {
+                              english: {
+                                clusterData: data,
+                                ...data.generatedDPR?.sections,
+                              },
                             },
-                          },
-                          metadata: {
-                            clusterData: data,
-                          },
-                        }}
-                        project={{
-                          projectName: data.step1?.clusterName,
-                          projectType: 'cluster',
-                        }}
-                        viewLanguage="english"
-                      />
+                            metadata: {
+                              clusterData: data,
+                            },
+                          }}
+                          project={{
+                            projectName: data.step1?.clusterName,
+                            projectType: 'cluster',
+                            stepData: data,
+                          }}
+                          viewLanguage="english"
+                          onSectionClick={(stepNumber: number) => {
+                            setCurrentStep(stepNumber);
+                            document.getElementById('cluster-dpr-form')?.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                        />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

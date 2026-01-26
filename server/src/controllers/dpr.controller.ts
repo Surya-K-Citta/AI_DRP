@@ -713,19 +713,50 @@ export class DPRController {
       const { dprId } = req.params;
       const { language = 'english' } = req.query;
 
+      console.log(`📥 Downloading PDF for DPR ${dprId} in ${language}...`);
+
       const pdfBuffer = await DPRService.generatePDF(
         dprId,
         language as 'english' | 'telugu'
       );
 
+      // Validate PDF buffer
+      if (!pdfBuffer || !Buffer.isBuffer(pdfBuffer)) {
+        throw new Error('Invalid PDF buffer received');
+      }
+
+      if (pdfBuffer.length === 0) {
+        throw new Error('PDF buffer is empty');
+      }
+
+      // Validate PDF header (PDF files start with %PDF)
+      if (pdfBuffer[0] !== 0x25 || pdfBuffer[1] !== 0x50 || pdfBuffer[2] !== 0x44 || pdfBuffer[3] !== 0x46) {
+        console.error('❌ Invalid PDF header:', pdfBuffer.slice(0, 10).toString());
+        throw new Error('Generated file is not a valid PDF');
+      }
+
+      console.log(`✅ PDF validated: ${pdfBuffer.length} bytes`);
+
+      // Get project name for filename
+      const dpr = await DPRService.getDPR(dprId);
+      const project = dpr?.projectId;
+      const projectName = project?.projectName || dprId;
+      const safeProjectName = projectName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename="DPR_${dprId}.pdf"`
+        `attachment; filename="DPR_${safeProjectName}_${language}.pdf"`
       );
+      res.setHeader('Content-Length', pdfBuffer.length.toString());
+      res.setHeader('Cache-Control', 'no-cache');
+      
       res.send(pdfBuffer);
+      
+      console.log(`✅ PDF sent successfully: ${pdfBuffer.length} bytes`);
     } catch (error: any) {
-      console.error('Error downloading PDF:', error);
+      console.error('❌ Error downloading PDF:', error);
+      console.error('Error stack:', error.stack);
       res.status(500).json({
         success: false,
         message: 'Failed to download PDF',

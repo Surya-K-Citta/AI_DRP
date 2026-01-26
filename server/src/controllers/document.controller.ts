@@ -624,6 +624,133 @@ export class DocumentController {
   }
 
   /**
+   * Serve file by filename (accessible to all authenticated users)
+   */
+  static async serveFile(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { filename } = req.params;
+      
+      // Find document by filename or originalName
+      const document = await Document.findOne({
+        $or: [
+          { name: filename },
+          { originalName: filename },
+          { name: { $regex: filename, $options: 'i' } },
+          { originalName: { $regex: filename, $options: 'i' } }
+        ]
+      });
+
+      if (!document) {
+        // Try to serve file directly from uploads directory if document not found in DB
+        // Check in uploads root and common subdirectories
+        const possiblePaths = [
+          path.join(process.cwd(), 'uploads', filename),
+          path.join(process.cwd(), 'uploads', 'documents', filename),
+          path.join(process.cwd(), 'uploads', 'images', filename),
+        ];
+        
+        for (const filePath of possiblePaths) {
+          if (fs.existsSync(filePath)) {
+            // Determine MIME type from file extension
+            const ext = path.extname(filename).toLowerCase();
+            const mimeTypes: Record<string, string> = {
+              '.pdf': 'application/pdf',
+              '.doc': 'application/msword',
+              '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              '.jpg': 'image/jpeg',
+              '.jpeg': 'image/jpeg',
+              '.png': 'image/png',
+              '.gif': 'image/gif',
+              '.txt': 'text/plain',
+            };
+            const contentType = mimeTypes[ext] || 'application/octet-stream';
+            
+            const stats = fs.statSync(filePath);
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+            res.setHeader('Content-Length', stats.size);
+            res.sendFile(path.resolve(filePath));
+            return;
+          }
+        }
+        
+        res.status(404).json({
+          success: false,
+          message: 'File not found',
+        });
+        return;
+      }
+
+      // Check if file exists on disk
+      if (!fs.existsSync(document.filePath)) {
+        res.status(404).json({
+          success: false,
+          message: 'File not found on server',
+        });
+        return;
+      }
+
+      // Set appropriate headers
+      res.setHeader('Content-Type', document.mimeType || 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
+      res.setHeader('Content-Length', document.fileSize);
+
+      // Send file
+      res.sendFile(path.resolve(document.filePath));
+    } catch (error: any) {
+      console.error('Serve file error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to serve file',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Serve file by document ID (accessible to all authenticated users)
+   */
+  static async serveFileById(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { documentId } = req.params;
+
+      const document = await Document.findById(documentId);
+
+      if (!document) {
+        res.status(404).json({
+          success: false,
+          message: 'Document not found',
+        });
+        return;
+      }
+
+      // Check if file exists on disk
+      if (!fs.existsSync(document.filePath)) {
+        res.status(404).json({
+          success: false,
+          message: 'File not found on server',
+        });
+        return;
+      }
+
+      // Set appropriate headers
+      res.setHeader('Content-Type', document.mimeType || 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
+      res.setHeader('Content-Length', document.fileSize);
+
+      // Send file
+      res.sendFile(path.resolve(document.filePath));
+    } catch (error: any) {
+      console.error('Serve file by ID error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to serve file',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
    * Get multer middleware for file upload
    */
   static getUploadMiddleware() {
