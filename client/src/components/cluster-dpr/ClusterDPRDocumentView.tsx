@@ -98,6 +98,59 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     }
   }, [enhancedContent]);
 
+  // Helper to render A4 page wrapper (21 x 29.7 cm)
+  const renderPageWrapper = (children: React.ReactNode, additionalStyles?: React.CSSProperties) => {
+    return (
+      <div 
+        className="page-break relative"
+        style={{ 
+          width: '21cm',
+          minHeight: '29.7cm',
+          height: 'auto',
+          maxHeight: 'none',
+          padding: '2cm',
+          margin: '0 auto',
+          marginBottom: '1cm',
+          pageBreakAfter: 'always',
+          pageBreakInside: 'avoid',
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative',
+          overflow: 'visible',
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          ...additionalStyles
+        }}
+      >
+        {/* Decorative border effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div 
+          className="relative z-10" 
+          style={{ 
+            width: '100%',
+            minHeight: '100%',
+            height: 'auto',
+            overflow: 'visible',
+            display: 'flex',
+            flexDirection: 'column',
+            boxSizing: 'border-box'
+          }}
+        >
+          {children}
+        </div>
+      </div>
+    );
+  };
+
   // Helper to render section title with grey box template
   const renderSectionTitle = (title: string) => {
     return (
@@ -239,6 +292,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     try {
       const result = await api.enhanceClusterDPRSection(sectionName, sectionData, clusterData);
       if (result.success && result.data?.enhancedParagraph) {
+        console.log(`✨ Enhanced section ${sectionName}:`, result.data.enhancedParagraph.substring(0, 100) + '...');
         setEnhancedContent((prev) => {
           const updated = {
             ...prev,
@@ -248,7 +302,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           try {
             const storageKey = getStorageKey();
             localStorage.setItem(storageKey, JSON.stringify(updated));
-            console.log('💾 Saved enhanced content to localStorage after enhancement');
+            console.log(`💾 Saved enhanced content for ${sectionName} to localStorage. Total keys:`, Object.keys(updated).length);
           } catch (error) {
             console.error('Error saving to localStorage:', error);
           }
@@ -284,6 +338,18 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
           {hasEnhancedContent}
         </p>
+      </div>
+    );
+  };
+
+  // Helper to render enhanced content for subsections (shows enhanced paragraph if available, otherwise shows original text)
+  const renderEnhancedSubsection = (subsectionKey: string, originalText: string | null | undefined) => {
+    const hasEnhancedContent = enhancedContent[subsectionKey];
+    const displayText = hasEnhancedContent || originalText || 'N/A';
+    
+    return (
+      <div className="text-justify leading-relaxed">
+        {displayText}
       </div>
     );
   };
@@ -441,31 +507,16 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   const s17 = clusterData.step17 || {};
 
   return (
-    <div className="bg-white dpr-document" style={{ fontFamily: 'Times New Roman, serif', width: '100%' }}>
+    <div 
+      className="bg-white dpr-document" 
+      style={{ 
+        fontFamily: 'Times New Roman, serif', 
+        width: '100%'
+      }}
+    >
       {/* Cover Page - Matching Template Design */}
-      <div 
-        className="min-h-[29.7cm] flex flex-col p-12 border-b-4 border-gray-800 page-break relative"
-        style={{ 
-          pageBreakAfter: 'always',
-          minHeight: '29.7cm',
-          padding: '2.5cm',
-          fontFamily: 'Times New Roman, serif',
-          border: '8px solid #2563EB',
-          borderStyle: 'double',
-          position: 'relative'
-        }}
-      >
-        {/* Decorative border effect */}
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            border: '2px solid #3B82F6',
-            margin: '8px',
-            borderRadius: '4px'
-          }}
-        />
-        
-        <div className="flex flex-col h-full relative z-10">
+      {renderPageWrapper(
+        <div className="flex flex-col h-full">
           {/* Title Section with Grey Box */}
           <div className="mb-6">
             <div 
@@ -478,25 +529,25 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               }}
             >
               <h1 className="text-4xl font-bold text-center mb-2" style={{ color: '#1F2937', letterSpacing: '0.05em' }}>
-                DETAILED PROJECT REPORT
-              </h1>
+            DETAILED PROJECT REPORT
+          </h1>
               <h2 className="text-2xl font-semibold text-center mb-3" style={{ color: '#1F2937' }}>
-                On
-              </h2>
+              On
+            </h2>
               <h2 className="text-2xl font-semibold text-center mb-2" style={{ color: '#1F2937' }}>
-                Establishment of Common Facility Centre for
-              </h2>
+              Establishment of Common Facility Centre for
+            </h2>
               <h2 className="text-3xl font-bold text-center mb-3 uppercase" style={{ color: '#059669', letterSpacing: '0.05em' }}>
-                {s1.clusterName || 'CLUSTER NAME'}
-              </h2>
-              <p className="text-lg font-semibold text-center" style={{ color: '#1F2937' }}>
-                under 'Micro Cluster Development Programme'
-              </p>
+              {s1.clusterName || 'CLUSTER NAME'}
+            </h2>
+              <p className="text-lg font-semibold text-center justify-center" style={{ color: '#1F2937' }}>
+              under 'Micro Cluster Development Programme'
+            </p>
             </div>
           </div>
-
+          
           {/* Image Holder Section - Using renderImage with upload/generate */}
-          <div className="flex-1 flex items-center justify-center my-8" style={{ minHeight: '400px' }}>
+          <div className="flex items-center justify-center my-8">
             {renderImage(
               'cover-image',
               '',
@@ -504,51 +555,75 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               '',
               'coverPage',
               { clusterName: s1.clusterName, location: s1.location, district: s1.district },
-              `Professional cover image for ${s1.clusterName || 'the cluster'} showing the cluster's main activity, products, or facilities. High quality, professional business photography style.`
+              //add products and services list to the prompt
+              `Professional cover image showcasing the key products manufactured and developed by ${s1.clusterName || 'the cluster'} without text, labels, diagrams, or watermarks. The products and services list is: ${s1.majorProducts || 'N/A'}.`
             )}
           </div>
 
           {/* Submission Details Section */}
-          <div className="mt-auto space-y-4 text-left max-w-lg mx-auto w-full" style={{ fontSize: '14px' }}>
-            <div className="border-t-2 border-b-2 border-gray-800 py-3" style={{ borderColor: '#1F2937' }}>
-              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Submitted to:</p>
-              <p className="text-sm" style={{ color: '#1F2937' }}>{s11.submittedTo || 'TANSIDCO, Tirunelveli'}</p>
-            </div>
-            <div className="border-b-2 border-gray-800 py-3" style={{ borderColor: '#1F2937' }}>
-              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Submitted by:</p>
-              <p className="text-sm" style={{ color: '#1F2937' }}>{s11.spvName || 'SPV Name'}</p>
-              <p className="text-sm" style={{ color: '#1F2937' }}>{s1.location || 'Location'}</p>
-            </div>
-            <div className="py-3">
-              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Prepared by:</p>
-              <p className="text-sm" style={{ color: '#1F2937' }}>M/s.ITCOT Limited, 50A Greams Road, Chennai.</p>
-            </div>
-          </div>
-        </div>
+          <div
+  className="mt-auto space-y-4 text-left max-w-lg mx-auto w-full"
+  style={{ fontSize: '14px' }}
+>
+  {/* Submitted to */}
+  <div
+    className="border-t-2 border-b-2 border-gray-800 py-3 flex"
+    style={{ borderColor: '#1F2937' }}
+  >
+    <p
+      className="text-sm font-semibold w-32"
+      style={{ color: '#1F2937' }}
+    >
+      Submitted to:
+    </p>
+    <p className="text-sm" style={{ color: '#1F2937' }}>
+      {s11.submittedTo || ''}
+    </p>
+  </div>
+
+  {/* Submitted by */}
+  <div
+    className="border-b-2 border-gray-800 py-3"
+    style={{ borderColor: '#1F2937' }}
+  >
+    <div className="flex">
+      <p
+        className="text-sm font-semibold w-32"
+        style={{ color: '#1F2937' }}
+      >
+        Submitted by:
+      </p>
+      <div>
+        <p className="text-sm" style={{ color: '#1F2937' }}>
+          {s11.spvName || 'SPV Name'}
+        </p>
+        <p className="text-sm" style={{ color: '#1F2937' }}>
+          {s1.location || 'Location'}
+        </p>
       </div>
+    </div>
+  </div>
+
+  {/* Prepared by */}
+  <div className="py-3 flex">
+    <p
+      className="text-sm font-semibold w-32"
+      style={{ color: '#1F2937' }}
+    >
+      Prepared by:
+    </p>
+    <p className="text-sm" style={{ color: '#1F2937' }}>
+      M/s.ITCOT Limited, 50A Greams Road, Chennai.
+    </p>
+  </div>
+</div>
+
+        </div>
+      )}
 
       {/* Table of Contents - Matching PDF Format */}
-      <div 
-        className="p-12 border-b-4 border-gray-800 page-break relative"
-        style={{ 
-          pageBreakAfter: 'always',
-          padding: '2cm',
-          fontFamily: 'Times New Roman, serif',
-          border: '8px solid #2563EB',
-          borderStyle: 'double',
-          position: 'relative'
-        }}
-      >
-        {/* Decorative border effect */}
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            border: '2px solid #3B82F6',
-            margin: '8px',
-            borderRadius: '4px'
-          }}
-        />
-        <div className="relative z-10">
+      {renderPageWrapper(
+        <div>
           {renderSectionTitle('CONTENTS')}
         {(() => {
           // Check which sections have data
@@ -768,15 +843,15 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           }
 
           return (
-            <table className="w-full border-collapse border border-gray-800 text-sm" style={{ borderColor: '#1F2937' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#E5E7EB' }}>
-                  <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Chapter</th>
-                  <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Title</th>
-                  <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Page No</th>
-                </tr>
-              </thead>
-              <tbody>
+        <table className="w-full border-collapse border border-gray-800 text-sm" style={{ borderColor: '#1F2937' }}>
+          <thead>
+            <tr style={{ backgroundColor: '#E5E7EB' }}>
+              <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Chapter</th>
+              <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Title</th>
+              <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Page No</th>
+            </tr>
+          </thead>
+          <tbody>
                 {sections.map((section, idx) => (
                   <tr 
                     key={idx} 
@@ -793,35 +868,16 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
+          </tbody>
+        </table>
           );
         })()}
-        </div>
       </div>
+      )}
 
       {/* Project Snapshot - Matching PDF Format */}
-      <div 
-        className="p-12 border-b-4 border-gray-800 page-break relative"
-        style={{ 
-          pageBreakAfter: 'always',
-          padding: '2cm',
-          fontFamily: 'Times New Roman, serif',
-          border: '8px solid #2563EB',
-          borderStyle: 'double',
-          position: 'relative'
-        }}
-      >
-        {/* Decorative border effect */}
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            border: '2px solid #3B82F6',
-            margin: '8px',
-            borderRadius: '4px'
-          }}
-        />
-        <div className="relative z-10">
+      {renderPageWrapper(
+        <div>
           {renderSectionTitle('PROJECT SNAPSHOT')}
         {renderTable(
           ['Particulars', 'Details'],
@@ -933,9 +989,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             </p>
           )}
           {s9.description ? (
-            <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+          <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
               {s9.description}
-            </p>
+          </p>
           ) : (
             <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>
           )}
@@ -943,10 +999,10 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             <div className="mt-3">
               <p className="text-sm font-semibold mb-2" style={{ color: '#1F2937' }}>Objectives:</p>
               <ul className="list-disc list-inside space-y-2 text-sm" style={{ color: '#1F2937' }}>
-                {s9.objectives.map((objective: string, idx: number) => (
-                  <li key={idx}>{objective}</li>
-                ))}
-              </ul>
+              {s9.objectives.map((objective: string, idx: number) => (
+                <li key={idx}>{objective}</li>
+              ))}
+            </ul>
             </div>
           )}
           {s9.expectedBenefits && s9.expectedBenefits.length > 0 && (
@@ -961,31 +1017,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           )}
         </div>
         </div>
-      </div>
+      )}
 
       {/* Executive Summary */}
-      <div 
-        className="p-12 border-b-4 border-gray-800 page-break relative"
-        style={{ 
-          pageBreakAfter: 'always',
-          padding: '2cm',
-          minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif',
-          border: '8px solid #2563EB',
-          borderStyle: 'double',
-          position: 'relative'
-        }}
-      >
-        {/* Decorative border effect */}
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            border: '2px solid #3B82F6',
-            margin: '8px',
-            borderRadius: '4px'
-          }}
-        />
-        <div className="relative z-10">
+      {renderPageWrapper(
+        <div>
           {renderSectionTitle('EXECUTIVE SUMMARY')}
         {content.executiveSummary ? (
           <div className="prose max-w-none text-sm leading-relaxed">
@@ -1047,50 +1083,30 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           </div>
         )}
         </div>
-      </div>
+      )}
 
       {/* Section 1: Introduction */}
-      <div 
-        className="p-12 border-b-4 border-gray-800 page-break relative"
-        style={{ 
-          pageBreakAfter: 'always',
-          padding: '2cm',
-          minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif',
-          border: '8px solid #2563EB',
-          borderStyle: 'double',
-          position: 'relative'
-        }}
-      >
-        {/* Decorative border effect */}
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            border: '2px solid #3B82F6',
-            margin: '8px',
-            borderRadius: '4px'
-          }}
-        />
-        <div className="relative z-10">
+      {renderPageWrapper(
+        <div>
           {renderSectionTitle('1. INTRODUCTION')}
           {renderEnhancedContent('introduction')}
-          {content.introduction ? (
-            <div className="prose max-w-none text-sm leading-relaxed">
-              <FormattedText text={content.introduction} />
-            </div>
-          ) : (
-            <div className="text-sm leading-relaxed space-y-4">
-              <p><strong>1.1 Sector/Industry Type:</strong> {s2.sectorType || 'N/A'}</p>
-              <p><strong>1.2 Sector Description:</strong></p>
-              <p className="text-justify">{s2.sectorDescription || 'N/A'}</p>
-              <p><strong>1.3 National Importance:</strong></p>
-              <p className="text-justify">{s2.nationalImportance || 'N/A'}</p>
-              <p><strong>1.4 State-level Importance:</strong></p>
-              <p className="text-justify">{s2.stateLevelImportance || 'N/A'}</p>
-            </div>
-          )}
+        {content.introduction ? (
+          <div className="prose max-w-none text-sm leading-relaxed">
+            <FormattedText text={content.introduction} />
+          </div>
+        ) : (
+          <div className="text-sm leading-relaxed space-y-4">
+            <p><strong>1.1 Sector/Industry Type:</strong> {s2.sectorType || 'N/A'}</p>
+            <p><strong>1.2 Sector Description:</strong></p>
+            <p className="text-justify">{s2.sectorDescription || 'N/A'}</p>
+            <p><strong>1.3 National Importance:</strong></p>
+            <p className="text-justify">{s2.nationalImportance || 'N/A'}</p>
+            <p><strong>1.4 State-level Importance:</strong></p>
+            <p className="text-justify">{s2.stateLevelImportance || 'N/A'}</p>
+          </div>
+        )}
         </div>
-      </div>
+      )}
 
       {/* Section 1.5: District & Regional Profile */}
       {(s3.geography || s3.climate || s3.infrastructure || s3.keyEconomicActivities || s3.rawMaterialAvailability || s3.industrialInfrastructure || s3.connectivity) && (
@@ -1121,25 +1137,25 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             {s3.geography && (
               <div>
                 <h3 className="text-xl font-semibold mb-3">1.5.1 Geography</h3>
-                <p className="text-justify leading-relaxed">{s3.geography}</p>
+                {renderEnhancedSubsection('districtProfile-geography', s3.geography)}
               </div>
             )}
             {s3.climate && (
               <div>
                 <h3 className="text-xl font-semibold mb-3">1.5.2 Climate</h3>
-                <p className="text-justify leading-relaxed">{s3.climate}</p>
+                {renderEnhancedSubsection('districtProfile-climate', s3.climate)}
               </div>
             )}
             {s3.infrastructure && (
               <div>
                 <h3 className="text-xl font-semibold mb-3">1.5.3 Infrastructure</h3>
-                <p className="text-justify leading-relaxed">{s3.infrastructure}</p>
+                {renderEnhancedSubsection('districtProfile-infrastructure', s3.infrastructure)}
               </div>
             )}
             {s3.keyEconomicActivities && (
               <div>
                 <h3 className="text-xl font-semibold mb-3">1.5.4 Key Economic Activities</h3>
-                <p className="text-justify leading-relaxed">{s3.keyEconomicActivities}</p>
+                {renderEnhancedSubsection('districtProfile-keyEconomicActivities', s3.keyEconomicActivities)}
               </div>
             )}
             {(s3.rawMaterialAvailability || s3.rawMaterialQuantity) && (
@@ -1157,7 +1173,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             {s3.industrialInfrastructure && (
               <div>
                 <h3 className="text-xl font-semibold mb-3">1.5.6 Industrial Infrastructure</h3>
-                <p className="text-justify leading-relaxed">{s3.industrialInfrastructure}</p>
+                {renderEnhancedSubsection('districtProfile-industrialInfrastructure', s3.industrialInfrastructure)}
               </div>
             )}
             {(s3.connectivity?.road || s3.connectivity?.rail || s3.connectivity?.port) && (
@@ -1202,10 +1218,10 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('2. CLUSTER PROFILE')}
-          <div className="space-y-6 text-sm">
+        <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">2.1 Evolution of the Cluster</h3>
-            <p className="text-justify leading-relaxed">{s4.clusterEvolution || 'N/A'}</p>
+            {renderEnhancedSubsection('clusterProfile-evolution', s4.clusterEvolution)}
           </div>
           <div>
             <h3 className="text-xl font-semibold mb-3">2.2 Present Status of Cluster Units</h3>
@@ -1254,7 +1270,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 `Professional photograph showing production process at ${s1.clusterName || 'the cluster'} unit. Workers engaged in manufacturing ${s1.majorProducts || 'products'}. Realistic, documentary style, business document quality.`
               )}
             </div>
-          </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1346,10 +1362,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               'Value chain flow from raw material to end customer',
               'valueChain',
               { rawMaterials: s5.rawMaterials, valueAdditionStages: s5.valueAdditionStages, clusterName: s1.clusterName },
-              `Professional diagram showing value chain flow for ${s1.clusterName || 'the cluster'} from raw materials through processing and value addition to end customer. Clean, professional business diagram style.`
+              `Create a professional flow diagram illustrating the value chain for ${s1.clusterName || 'the cluster'}, showing the process from raw materials through processing and value addition to the end customer. Use the following manufacturing process as a guide: ${s10.manufacturingProcess || 'N/A'}. The diagram should be clean, realistic, and professional, with clear visual flow, but absolutely no text, labels, diagrams, or watermarks visible.`
+
             )}
           </div>
-        </div>
+          </div>
         </div>
       </div>
 
@@ -1378,28 +1395,32 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         <div className="relative z-10">
           {renderSectionTitle('4. MARKET ASPECTS')}
           {renderEnhancedContent('marketAspects')}
-          <div className="space-y-6 text-sm">
+        <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">4.1 Demand–Supply Analysis</h3>
-            <p className="text-justify leading-relaxed">{s6.existingDemand || 'N/A'}</p>
-            <p className="text-justify leading-relaxed mt-2"><strong>Demand-Supply Gap:</strong> {s6.demandSupplyGap || 'N/A'}</p>
+            {renderEnhancedSubsection('marketAspects-demandSupply', s6.existingDemand)}
+            {s6.demandSupplyGap && (
+              <div className="text-justify leading-relaxed mt-2">
+                <strong>Demand-Supply Gap:</strong> {enhancedContent['marketAspects-demandSupplyGap'] || s6.demandSupplyGap}
+              </div>
+            )}
           </div>
           <div>
             <h3 className="text-xl font-semibold mb-3">4.2 Competition Analysis</h3>
-            <p className="text-justify leading-relaxed">{s6.competitorAnalysis || 'N/A'}</p>
+            {renderEnhancedSubsection('marketAspects-competition', s6.competitorAnalysis)}
           </div>
           <div>
             <h3 className="text-xl font-semibold mb-3">4.3 Price Trends</h3>
-            <p className="text-justify leading-relaxed">{s6.priceTrends || 'N/A'}</p>
+            {renderEnhancedSubsection('marketAspects-priceTrends', s6.priceTrends)}
           </div>
           <div>
             <h3 className="text-xl font-semibold mb-3">4.4 Export Potential</h3>
-            <p className="text-justify leading-relaxed">{s6.exportPotential || 'N/A'}</p>
+            {renderEnhancedSubsection('marketAspects-exportPotential', s6.exportPotential)}
           </div>
           {s6.targetMarket && (
             <div>
               <h3 className="text-xl font-semibold mb-3">4.5 Target Market</h3>
-              <p className="text-justify leading-relaxed">{s6.targetMarket}</p>
+              {renderEnhancedSubsection('marketAspects-targetMarket', s6.targetMarket)}
             </div>
           )}
         </div>
@@ -1431,38 +1452,38 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         <div className="relative z-10">
           {renderSectionTitle('5. SWOT ANALYSIS')}
           {renderEnhancedContent('swotAnalysis')}
-          <div className="grid grid-cols-2 gap-6 text-sm">
-            <div>
-              <h3 className="text-lg font-semibold mb-3 text-green-700">Strengths</h3>
-              <ul className="list-disc list-inside space-y-1">
-                {(s8.strengths || []).map((s: string, idx: number) => (
-                  <li key={idx}>{s}</li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-3 text-orange-700">Weaknesses</h3>
-              <ul className="list-disc list-inside space-y-1">
-                {(s8.weaknesses || []).map((w: string, idx: number) => (
-                  <li key={idx}>{w}</li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-3 text-blue-700">Opportunities</h3>
-              <ul className="list-disc list-inside space-y-1">
-                {(s8.opportunities || []).map((o: string, idx: number) => (
-                  <li key={idx}>{o}</li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-3 text-red-700">Threats</h3>
-              <ul className="list-disc list-inside space-y-1">
-                {(s8.threats || []).map((t: string, idx: number) => (
-                  <li key={idx}>{t}</li>
-                ))}
-              </ul>
+        <div className="grid grid-cols-2 gap-6 text-sm">
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-green-700">Strengths</h3>
+            <ul className="list-disc list-inside space-y-1">
+              {(s8.strengths || []).map((s: string, idx: number) => (
+                <li key={idx}>{s}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-orange-700">Weaknesses</h3>
+            <ul className="list-disc list-inside space-y-1">
+              {(s8.weaknesses || []).map((w: string, idx: number) => (
+                <li key={idx}>{w}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-blue-700">Opportunities</h3>
+            <ul className="list-disc list-inside space-y-1">
+              {(s8.opportunities || []).map((o: string, idx: number) => (
+                <li key={idx}>{o}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-3 text-red-700">Threats</h3>
+            <ul className="list-disc list-inside space-y-1">
+              {(s8.threats || []).map((t: string, idx: number) => (
+                <li key={idx}>{t}</li>
+              ))}
+            </ul>
             </div>
           </div>
         </div>
@@ -1510,125 +1531,102 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         </div>
       </div>
 
-      {/* Section 7: CFC Details */}
-      <div 
-        className="p-12 border-b-4 border-gray-800 page-break relative"
-        style={{ 
-          pageBreakAfter: 'always',
-          padding: '2cm',
-          minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif',
-          border: '8px solid #2563EB',
-          borderStyle: 'double',
-          position: 'relative'
-        }}
-      >
-        {/* Decorative border effect */}
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            border: '2px solid #3B82F6',
-            margin: '8px',
-            borderRadius: '4px'
-          }}
-        />
-        <div className="relative z-10">
-          {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT')}
-          {renderEnhancedContent('cfcDetails')}
-          <div className="space-y-6 text-sm">
-          <div>
-            <h3 className="text-xl font-semibold mb-3">7.1 CFC Overview</h3>
-            {renderTable(
-              ['Parameter', 'Details'],
-              [
-                ['CFC Name', s10.name || 'N/A'],
-                ['Location', s10.location || 'N/A'],
-                ['Land Area', s10.landDetails || 'N/A'],
-                ['Civil Works / Built-up Area', s10.civilWorks || 'N/A'],
-              ]
-            )}
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold mb-3">7.2 Plant & Machinery</h3>
-            <p className="text-justify leading-relaxed">{s10.plantAndMachinery || 'N/A'}</p>
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold mb-3">7.3 Manufacturing Process</h3>
-            <p className="text-justify leading-relaxed">{s10.manufacturingProcess || 'N/A'}</p>
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold mb-3">7.4 Capacity</h3>
-            <p>{s10.capacity || 'N/A'}</p>
-          </div>
-          <div className='flex gap-12 items-center justify-space-between w-full'>
+      {/* Section 7: CFC Details - Split into 2 pages if needed */}
+      {(s10.name || s10.location || s10.plantAndMachinery || s10.manufacturingProcess || s10.capacity) && (
+        <>
+          {/* Page 1: CFC Overview, Plant & Machinery, Process, Capacity, Requirements */}
+          {renderPageWrapper(
             <div>
-                  <h4>Power Requirements</h4>
-                  <p>{s10.powerRequirements}</p>
+              {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT')}
+              {renderEnhancedContent('cfcDetails')}
+              <div className="space-y-6 text-sm">
+                <div>
+                  <h3 className="text-xl font-semibold mb-3">7.1 CFC Overview</h3>
+                  {renderTable(
+                    ['Parameter', 'Details'],
+                    [
+                      ['CFC Name', s10.name || 'N/A'],
+                      ['Location', s10.location || 'N/A'],
+                      ['Land Area', s10.landDetails || 'N/A'],
+                      ['Civil Works / Built-up Area', s10.civilWorks || 'N/A'],
+                    ]
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-3">7.2 Plant & Machinery</h3>
+                  <p className="text-justify leading-relaxed">{s10.plantAndMachinery || 'N/A'}</p>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-3">7.3 Manufacturing Process</h3>
+                  <p className="text-justify leading-relaxed">{s10.manufacturingProcess || 'N/A'}</p>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-3">7.4 Capacity</h3>
+                  <p>{s10.capacity || 'N/A'}</p>
+                </div>
+                <div className='flex gap-12 items-center justify-space-between w-full'>
+                  <div>
+                    <h4>Power Requirements</h4>
+                    <p>{s10.powerRequirements || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <h4>Water Requirements</h4>
+                    <p>{s10.waterRequirements || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <h4>Manpower Requirements</h4>
+                    <p>{s10.manpowerRequirements || 'N/A'}</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                  <h4>Water Requirements</h4>
-                  <p>{s10.waterRequirements}</p>
-              </div>
-              <div>
-                  <h4>Manpower Requirements</h4>
-                  <p>{s10.manpowerRequirements}</p>
-              </div>
-          </div>
-          {/* Process flow diagram and machinery images */}
-          <div className="my-6">
-            <h4 className="text-lg font-semibold mb-3">📊 Process Flow Diagram</h4>
-            {renderImage(
-              'process-flow-diagram',
-              '',
-              'Process Flow',
-              'Manufacturing process flow',
-              'cfcDetails',
-              { manufacturingProcess: s10.manufacturingProcess, cfcName: s10.name, clusterName: s1.clusterName },
-              `Professional diagram showing manufacturing process flow for ${s10.name || 'the CFC'} at ${s1.clusterName || 'the cluster'}. Clean, professional business diagram style showing process steps.`
-            )}
-          </div>
-          <div className="my-6">
-            <h4 className="text-lg font-semibold mb-3">📸 Machinery Layout</h4>
-            {renderImage(
-              'machinery-layout',
-              '',
-              'Machinery Layout',
-              'CFC machinery layout and reference images',
-              'cfcDetails',
-              { plantAndMachinery: s10.plantAndMachinery, cfcName: s10.name, clusterName: s1.clusterName },
-              `Professional photograph or diagram showing machinery layout at ${s10.name || 'the CFC'} for ${s1.clusterName || 'the cluster'}. Modern industrial equipment arranged in a facility. Realistic, documentary style, business document quality.`
-            )}
-          </div>
-        </div>
-        </div>
-      </div>
+            </div>
+          )}
 
-      {/* Section 8: SPV Details */}
-      <div 
-        className="p-12 border-b-4 border-gray-800 page-break relative"
-        style={{ 
-          pageBreakAfter: 'always',
-          padding: '2cm',
-          minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif',
-          border: '8px solid #2563EB',
-          borderStyle: 'double',
-          position: 'relative'
-        }}
-      >
-        {/* Decorative border effect */}
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            border: '2px solid #3B82F6',
-            margin: '8px',
-            borderRadius: '4px'
-          }}
-        />
-        <div className="relative z-10">
-          {renderSectionTitle('8. SPV MEMBER UNITS')}
-          {renderEnhancedContent('spvDetails')}
-        <div className="space-y-6 text-sm">
+          {/* Page 2: Process Flow Diagram and Machinery Layout */}
+          {renderPageWrapper(
+            <div>
+              {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT (Continued)')}
+              <div className="space-y-6 text-sm">
+                {/* Process flow diagram and machinery images */}
+                <div className="my-6">
+                  <h4 className="text-lg font-semibold mb-3">📊 Process Flow Diagram</h4>
+                  {renderImage(
+                    'process-flow-diagram',
+                    '',
+                    'Process Flow',
+                    'Manufacturing process flow',
+                    'cfcDetails',
+                    { manufacturingProcess: s10.manufacturingProcess, cfcName: s10.name, clusterName: s1.clusterName },
+                    `Professional diagram showing manufacturing process flow for ${s10.name || 'the CFC'} at ${s1.clusterName || 'the cluster'}. Clean, professional business diagram style showing process steps.`
+                  )}
+                </div>
+                <div className="my-6">
+                  <h4 className="text-lg font-semibold mb-3">📸 Machinery Layout</h4>
+                  {renderImage(
+                    'machinery-layout',
+                    '',
+                    'Machinery Layout',
+                    'CFC machinery layout and reference images',
+                    'cfcDetails',
+                    { plantAndMachinery: s10.plantAndMachinery, cfcName: s10.name, clusterName: s1.clusterName },
+                    `Professional photograph or diagram showing machinery layout at ${s10.name || 'the CFC'} for ${s1.clusterName || 'the cluster'}. Modern industrial equipment arranged in a facility. Realistic, documentary style, business document quality.`
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Section 8: SPV Details - Split into 2 pages */}
+      {(s11.spvName || s11.legalStatus || s11.memberUnits?.length > 0) && (
+        <>
+          {/* Page 1: SPV Profile and Shareholding Pattern */}
+          {renderPageWrapper(
+            <div>
+              {renderSectionTitle('8. SPV MEMBER UNITS')}
+              {renderEnhancedContent('spvDetails')}
+              <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">8.1 SPV Profile</h3>
             {renderTable(
@@ -1680,57 +1678,68 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               </div>
             </div>
           )}
-          {s11.memberUnits && s11.memberUnits.length > 0 && (
-            <div>
-              <h3 className="text-xl font-semibold mb-3">8.3 Member Units</h3>
-              {renderTable(
-                ['Sl. No', 'Unit Name', 'Registration'],
-                s11.memberUnits.map((u: any, idx: number) => [idx + 1, u.name || 'N/A', u.registration || 'N/A'])
-              )}
+              </div>
             </div>
           )}
-          {s11.objectives && s11.objectives.length > 0 && (
+
+          {/* Page 2: Member Units, Objectives, Roles, Board, Registrations */}
+          {renderPageWrapper(
             <div>
-              <h3 className="text-xl font-semibold mb-3">8.4 SPV Objectives</h3>
-              <ul className="list-disc list-inside space-y-2 text-sm">
-                {s11.objectives.map((objective: string, idx: number) => (
-                  <li key={idx}>{objective}</li>
-                ))}
-              </ul>
+              {renderSectionTitle('8. SPV MEMBER UNITS (Continued)')}
+              <div className="space-y-6 text-sm">
+                {s11.memberUnits && s11.memberUnits.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold mb-3">8.3 Member Units</h3>
+                    {renderTable(
+                      ['Sl. No', 'Unit Name', 'Registration'],
+                      s11.memberUnits.map((u: any, idx: number) => [idx + 1, u.name || 'N/A', u.registration || 'N/A'])
+                    )}
+                  </div>
+                )}
+                {s11.objectives && s11.objectives.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold mb-3">8.4 SPV Objectives</h3>
+                    <ul className="list-disc list-inside space-y-2 text-sm">
+                      {s11.objectives.map((objective: string, idx: number) => (
+                        <li key={idx}>{objective}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {s11.rolesAndResponsibilities && s11.rolesAndResponsibilities.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold mb-3">8.5 Roles and Responsibilities</h3>
+                    <ul className="list-disc list-inside space-y-2 text-sm">
+                      {s11.rolesAndResponsibilities.map((role: string, idx: number) => (
+                        <li key={idx}>{role}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {s11.boardOfDirectors && s11.boardOfDirectors.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold mb-3">8.6 Board of Directors</h3>
+                    {renderTable(
+                      ['Name', 'Designation'],
+                      s11.boardOfDirectors.map((director: any) => [director.name || 'N/A', director.designation || 'N/A'])
+                    )}
+                  </div>
+                )}
+                {s11.statutoryRegistrations && s11.statutoryRegistrations.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold mb-3">8.7 Statutory Registrations</h3>
+                    <ul className="list-disc list-inside space-y-2 text-sm">
+                      {s11.statutoryRegistrations.map((registration: string, idx: number) => (
+                        <li key={idx}>{registration}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
           )}
-          {s11.rolesAndResponsibilities && s11.rolesAndResponsibilities.length > 0 && (
-            <div>
-              <h3 className="text-xl font-semibold mb-3">8.5 Roles and Responsibilities</h3>
-              <ul className="list-disc list-inside space-y-2 text-sm">
-                {s11.rolesAndResponsibilities.map((role: string, idx: number) => (
-                  <li key={idx}>{role}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {s11.boardOfDirectors && s11.boardOfDirectors.length > 0 && (
-            <div>
-              <h3 className="text-xl font-semibold mb-3">8.6 Board of Directors</h3>
-              {renderTable(
-                ['Name', 'Designation'],
-                s11.boardOfDirectors.map((director: any) => [director.name || 'N/A', director.designation || 'N/A'])
-              )}
-            </div>
-          )}
-          {s11.statutoryRegistrations && s11.statutoryRegistrations.length > 0 && (
-            <div>
-              <h3 className="text-xl font-semibold mb-3">8.7 Statutory Registrations</h3>
-              <ul className="list-disc list-inside space-y-2 text-sm">
-                {s11.statutoryRegistrations.map((registration: string, idx: number) => (
-                  <li key={idx}>{registration}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* Section 9: Project Cost & Means of Finance */}
       <div 
@@ -1757,7 +1766,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         <div className="relative z-10">
           {renderSectionTitle('9. PROJECT COST & MEANS OF FINANCE')}
           {renderEnhancedContent('projectCost')}
-          <div className="space-y-6 text-sm">
+        <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.1 Project Cost</h3>
             {(() => {
@@ -1830,7 +1839,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </div>
+          </div>
         </div>
       </div>
 
@@ -2141,7 +2150,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         <div className="relative z-10">
           {renderSectionTitle('11. EXPECTED IMPACT')}
           {renderEnhancedContent('expectedImpact')}
-          {renderTable(
+        {renderTable(
           ['Parameter', 'Before', 'After'],
           [
             ['Employment', 'N/A', s17.employmentGeneration || 0],
@@ -2353,12 +2362,12 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       </div>
 
       {/* Conclusion */}
-      <div 
+        <div 
         className="p-12 border-b-4 border-gray-800 page-break relative"
-        style={{ 
-          pageBreakAfter: 'always',
-          padding: '2cm',
-          minHeight: '29.7cm',
+          style={{ 
+            pageBreakAfter: 'always',
+            padding: '2cm',
+            minHeight: '29.7cm',
           fontFamily: 'Times New Roman, serif',
           border: '8px solid #2563EB',
           borderStyle: 'double',
@@ -2378,11 +2387,12 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           {renderSectionTitle('CONCLUSION')}
           {renderEnhancedContent('conclusion')}
           {!enhancedContent['conclusion'] && content.conclusion ? (
-            <div className="prose max-w-none text-sm leading-relaxed">
-              <FormattedText text={content.conclusion} />
-            </div>
+          <div className="prose max-w-none text-sm leading-relaxed">
+            <FormattedText text={content.conclusion} />
+          </div>
           ) : (
-            <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>
+            // <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>
+            <span></span>
           )}
         </div>
       </div>
@@ -2501,13 +2511,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 <div 
                   key={idx}
                   className="p-12 border-b-4 border-gray-800 page-break"
-                  style={{ 
+        style={{ 
                     pageBreakAfter: idx < annexureFiles.length - 1 ? 'always' : 'auto',
-                    padding: '2cm',
-                    minHeight: '29.7cm',
-                    fontFamily: 'Times New Roman, serif'
-                  }}
-                >
+          padding: '2cm',
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif'
+        }}
+      >
                   <div className="mb-4">
                     <h3 className="text-2xl font-bold mb-2" style={{ color: '#1F2937' }}>
                       Annexure {annexure.index}: {annexure.title}
@@ -2598,14 +2608,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         }}
       >
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div>
+            <div>
             <h3 className="text-lg font-semibold mb-1" style={{ color: '#1F2937' }}>
               Enhance Complete DPR
             </h3>
             <p className="text-sm text-gray-600">
               Generate comprehensive paragraphs for all sections and conclusion
             </p>
-          </div>
+            </div>
           <Button
             variant="primary"
             size="lg"
@@ -2614,9 +2624,24 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 { name: 'projectSnapshot', data: { step1: s1, step11: s11 } },
                 { name: 'introduction', data: s2 },
                 { name: 'districtProfile', data: s3 },
+                // District Profile Subsections - pass with context
+                ...(s3.geography ? [{ name: 'districtProfile-geography', data: { text: s3.geography, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
+                ...(s3.climate ? [{ name: 'districtProfile-climate', data: { text: s3.climate, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
+                ...(s3.infrastructure ? [{ name: 'districtProfile-infrastructure', data: { text: s3.infrastructure, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
+                ...(s3.keyEconomicActivities ? [{ name: 'districtProfile-keyEconomicActivities', data: { text: s3.keyEconomicActivities, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
+                ...(s3.industrialInfrastructure ? [{ name: 'districtProfile-industrialInfrastructure', data: { text: s3.industrialInfrastructure, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
                 { name: 'clusterProfile', data: s4 },
+                // Cluster Profile Subsections - pass with context
+                ...(s4.clusterEvolution ? [{ name: 'clusterProfile-evolution', data: { text: s4.clusterEvolution, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s4 } }] : []),
                 { name: 'valueChain', data: s5 },
                 { name: 'marketAspects', data: s6 },
+                // Market Aspects Subsections - pass with context
+                ...(s6.existingDemand ? [{ name: 'marketAspects-demandSupply', data: { text: s6.existingDemand, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                ...(s6.demandSupplyGap ? [{ name: 'marketAspects-demandSupplyGap', data: { text: s6.demandSupplyGap, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                ...(s6.competitorAnalysis ? [{ name: 'marketAspects-competition', data: { text: s6.competitorAnalysis, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                ...(s6.priceTrends ? [{ name: 'marketAspects-priceTrends', data: { text: s6.priceTrends, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                ...(s6.exportPotential ? [{ name: 'marketAspects-exportPotential', data: { text: s6.exportPotential, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                ...(s6.targetMarket ? [{ name: 'marketAspects-targetMarket', data: { text: s6.targetMarket, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
                 { name: 'swotAnalysis', data: s8 },
                 { name: 'gapAnalysis', data: s7 },
                 { name: 'cfcDetails', data: s10 },

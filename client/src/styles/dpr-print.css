@@ -1,12 +1,14 @@
 /* Print styles for Cluster DPR documents */
 @media print {
   @page {
-    size: A4;
-    margin: 2cm;
+    size: 21cm 29.7cm; /* Exact A4 dimensions */
+    margin: 0;
   }
 
   body {
     background: white;
+    margin: 0;
+    padding: 0;
   }
 
   .no-print {
@@ -15,6 +17,14 @@
 
   .page-break {
     page-break-after: always;
+    page-break-inside: avoid;
+    width: 21cm !important;
+    height: 29.7cm !important;
+    min-height: 29.7cm !important;
+    max-height: 29.7cm !important;
+    margin: 0 !important;
+    padding: 2cm !important;
+    box-sizing: border-box;
   }
 
   .page-break-before {
@@ -121,4 +131,42 @@
   align-items: center;
   min-height: 29.7cm;
   text-align: center;
+}
+
+/* A4 Page Standard - Exact dimensions */
+.dpr-document .a4-page {
+  width: 21cm !important;
+  min-height: 29.7cm !important;
+  height: 29.7cm !important;
+  max-height: 29.7cm !important;
+  padding: 2cm !important;
+  margin: 0 auto 1cm auto !important;
+  page-break-after: always;
+  page-break-inside: avoid;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Ensure all page-break divs use A4 dimensions - content visible */
+.dpr-document .page-break {
+  width: 21cm !important;
+  min-height: 29.7cm !important;
+  height: auto !important;
+  max-height: none !important;
+  padding: 2cm !important;
+  margin: 0 auto 1cm auto !important;
+  box-sizing: border-box;
+  overflow: visible !important;
+}
+
+.dpr-document .page-break > * {
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+/* Allow content to be visible in page content */
+.dpr-document .page-break .relative.z-10 {
+  overflow: visible !important;
+  min-height: 100% !important;
+  height: auto !important;
 }
