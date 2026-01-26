@@ -32,9 +32,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   
   // Debug logging
   console.log('📊 ClusterDPRDocumentView - Data extraction:', {
+    clusterData,  
     hasClusterData: !!clusterData && Object.keys(clusterData).length > 0,
     clusterDataKeys: Object.keys(clusterData),
     hasContent: !!content && Object.keys(content).length > 0,
+    content,
     contentKeys: Object.keys(content),
     hasProjectStepData: !!project?.stepData,
     viewLanguage,

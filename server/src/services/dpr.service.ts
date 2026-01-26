@@ -402,13 +402,31 @@ export class DPRService {
         throw new Error('Project not found for DPR');
       }
 
-      // Check if this is a cluster DPR
-      const isClusterDPR = (dpr.content?.english?.isClusterDPR || dpr.content?.telugu?.isClusterDPR) || project.projectType === 'cluster';
+      // Check if this is a cluster DPR - multiple ways to detect
+      const isClusterDPRFromContent = dpr.content?.english?.isClusterDPR || dpr.content?.telugu?.isClusterDPR;
+      const isClusterDPRFromProject = project.projectType === 'cluster';
+      const hasClusterData = !!(dpr.content?.english?.clusterData || dpr.content?.telugu?.clusterData || dpr.metadata?.clusterData || project.stepData);
+      const hasClusterStepData = !!(project.stepData && (project.stepData.step1 || project.stepData.step2));
+      
+      // It's a cluster DPR if any of these conditions are true
+      const isClusterDPR = isClusterDPRFromContent || isClusterDPRFromProject || (hasClusterData && hasClusterStepData);
+      
+      console.log('🔍 Checking DPR type for PDF generation:');
+      console.log(`   DPR ID: ${dpr._id || dpr.id}`);
+      console.log(`   content.english.isClusterDPR: ${!!dpr.content?.english?.isClusterDPR}`);
+      console.log(`   content.telugu.isClusterDPR: ${!!dpr.content?.telugu?.isClusterDPR}`);
+      console.log(`   project.projectType: ${project.projectType}`);
+      console.log(`   hasClusterData: ${hasClusterData}`);
+      console.log(`   hasClusterStepData: ${hasClusterStepData}`);
+      console.log(`   Is Cluster DPR: ${isClusterDPR}`);
       
       // If it's a cluster DPR, use the cluster-specific PDF generation
       if (isClusterDPR) {
+        console.log('✅ Using Cluster DPR template (cluster-dpr-pdf.html)');
         return await this.generateClusterDPRPDF(dpr, project, language);
       }
+      
+      console.log('📄 Using regular DPR template (PDFKit)');
 
       // Safely access content with fallback - use correct language content
       const content = dpr.content || {};
@@ -1348,13 +1366,32 @@ export class DPRService {
    * Generate HTML content for Cluster DPR PDF
    */
   private static generateClusterDPRHTML(dpr: any, project: any, language: 'english' | 'telugu'): string {
+    console.log('📄 Starting Cluster DPR HTML generation...');
+    console.log('📊 DPR ID:', dpr._id || dpr.id);
+    console.log('📊 Language:', language);
+    
     const content = dpr.content || {};
     const contentLang = language === 'telugu' 
       ? (content.telugu || content.english || {}) 
       : (content.english || {});
     
+    console.log('📊 ContentLang keys:', Object.keys(contentLang));
+    console.log('📊 Has executiveSummary:', !!contentLang.executiveSummary);
+    console.log('📊 Has districtProfile:', !!contentLang.districtProfile);
+    console.log('📊 Has clusterProfile:', !!contentLang.clusterProfile);
+    console.log('📊 Has valueChain:', !!contentLang.valueChain);
+    console.log('📊 Has marketAnalysis:', !!contentLang.marketAnalysis);
+    console.log('📊 Has swotAnalysis:', !!contentLang.swotAnalysis);
+    console.log('📊 Has gapAnalysis:', !!contentLang.gapAnalysis);
+    console.log('📊 Has cfcDetails:', !!contentLang.cfcDetails);
+    console.log('📊 Has spvDetails:', !!contentLang.spvDetails);
+    console.log('📊 Has projectCost:', !!contentLang.projectCost);
+    
     // Get cluster data from multiple sources - prioritize actual data
     const clusterData = contentLang.clusterData || dpr.metadata?.clusterData || project.stepData || {};
+    console.log('📊 ClusterData source:', contentLang.clusterData ? 'contentLang' : dpr.metadata?.clusterData ? 'metadata' : 'project.stepData');
+    console.log('📊 ClusterData step keys:', Object.keys(clusterData).filter(k => k.startsWith('step')));
+    
     const s1 = clusterData.step1 || {};
     const s2 = clusterData.step2 || {};
     const s3 = clusterData.step3 || {};
@@ -1375,12 +1412,38 @@ export class DPRService {
     const s18 = clusterData.step18 || {};
     const sections = contentLang.sections || {};
     
+    console.log('📊 Step data availability:');
+    console.log('  - step1:', Object.keys(s1).length > 0 ? `${Object.keys(s1).length} keys` : 'empty');
+    console.log('  - step2:', Object.keys(s2).length > 0 ? `${Object.keys(s2).length} keys` : 'empty');
+    console.log('  - step3:', Object.keys(s3).length > 0 ? `${Object.keys(s3).length} keys` : 'empty');
+    console.log('  - step4:', Object.keys(s4).length > 0 ? `${Object.keys(s4).length} keys` : 'empty');
+    console.log('  - step5:', Object.keys(s5).length > 0 ? `${Object.keys(s5).length} keys` : 'empty');
+    console.log('  - step6:', Object.keys(s6).length > 0 ? `${Object.keys(s6).length} keys` : 'empty');
+    console.log('  - step7:', Object.keys(s7).length > 0 ? `${Object.keys(s7).length} keys` : 'empty');
+    console.log('  - step8:', Object.keys(s8).length > 0 ? `${Object.keys(s8).length} keys` : 'empty');
+    console.log('  - step9:', Object.keys(s9).length > 0 ? `${Object.keys(s9).length} keys` : 'empty');
+    console.log('  - step10:', Object.keys(s10).length > 0 ? `${Object.keys(s10).length} keys` : 'empty');
+    console.log('  - step11:', Object.keys(s11).length > 0 ? `${Object.keys(s11).length} keys` : 'empty');
+    console.log('  - step12:', Object.keys(s12).length > 0 ? `${Object.keys(s12).length} keys` : 'empty');
+    console.log('  - step14:', Object.keys(s14).length > 0 ? `${Object.keys(s14).length} keys` : 'empty');
+    console.log('  - step15:', Object.keys(s15).length > 0 ? `${Object.keys(s15).length} keys` : 'empty');
+    console.log('  - step16:', Object.keys(s16).length > 0 ? `${Object.keys(s16).length} keys` : 'empty');
+    console.log('  - step17:', Object.keys(s17).length > 0 ? `${Object.keys(s17).length} keys` : 'empty');
+    console.log('  - step18:', Object.keys(s18).length > 0 ? `${Object.keys(s18).length} keys` : 'empty');
+    
     // Read HTML template - handle both development and production paths
     const possiblePaths = [
       path.join(__dirname, '../templates/cluster-dpr-pdf.html'), // Development
       path.join(process.cwd(), 'server/src/templates/cluster-dpr-pdf.html'), // Production
       path.join(process.cwd(), 'src/templates/cluster-dpr-pdf.html'), // Alternative
     ];
+    
+    console.log('📂 Looking for Cluster DPR template...');
+    console.log('   Possible paths:');
+    possiblePaths.forEach((p, idx) => {
+      const exists = fs.existsSync(p);
+      console.log(`   ${idx + 1}. ${p} - ${exists ? '✅ FOUND' : '❌ NOT FOUND'}`);
+    });
     
     let templatePath = '';
     for (const p of possiblePaths) {
@@ -1391,10 +1454,25 @@ export class DPRService {
     }
     
     if (!templatePath) {
+      console.error('❌ Cluster DPR HTML template not found!');
+      console.error('   Tried paths:', possiblePaths);
       throw new Error('Cluster DPR HTML template not found. Tried paths: ' + possiblePaths.join(', '));
     }
     
+    console.log(`✅ Using template: ${templatePath}`);
     let html = fs.readFileSync(templatePath, 'utf-8');
+    console.log(`✅ Template loaded: ${html.length} characters`);
+    
+    // Verify this is the cluster template by checking for cluster-specific placeholders
+    const isClusterTemplate = html.includes('{{CLUSTER_NAME}}') && 
+                              html.includes('{{PROJECT_SNAPSHOT}}') &&
+                              html.includes('{{DISTRICT_PROFILE}}');
+    if (!isClusterTemplate) {
+      console.error('❌ WARNING: Template does not appear to be cluster-dpr-pdf.html!');
+      console.error('   Template should contain {{CLUSTER_NAME}}, {{PROJECT_SNAPSHOT}}, {{DISTRICT_PROFILE}}');
+      throw new Error('Wrong template file detected. Expected cluster-dpr-pdf.html but got a different template.');
+    }
+    console.log('✅ Template verified as cluster-dpr-pdf.html');
     
     // Replace cover page variables
     html = html.replace('{{CLUSTER_NAME}}', (s1.clusterName || project.projectName || 'CLUSTER NAME').toUpperCase());
@@ -1402,10 +1480,47 @@ export class DPRService {
     html = html.replace('{{SPV_NAME}}', s11.spvName || 'SPV Name');
     html = html.replace('{{LOCATION}}', s1.location || project.location || 'Location');
     
-    // Cover image
-    const coverImage = contentLang.coverImage || '';
+    // Cover image - check multiple sources
+    let coverImage = contentLang.coverImage || contentLang.images?.coverImage || dpr.metadata?.coverImage || '';
+    
+    // If image is a relative path, convert to absolute URL for PDF generation
+    if (coverImage && !coverImage.startsWith('http') && !coverImage.startsWith('data:')) {
+      // Check if it's a local file path
+      const imagePath = path.join(process.cwd(), coverImage.replace(/^\//, ''));
+      if (fs.existsSync(imagePath)) {
+        // Convert to base64 for embedding in PDF
+        try {
+          const imageBuffer = fs.readFileSync(imagePath);
+          const imageBase64 = imageBuffer.toString('base64');
+          const imageExt = path.extname(imagePath).toLowerCase().slice(1);
+          const mimeType = imageExt === 'png' ? 'image/png' : imageExt === 'jpg' || imageExt === 'jpeg' ? 'image/jpeg' : 'image/webp';
+          coverImage = `data:${mimeType};base64,${imageBase64}`;
+        } catch (error) {
+          console.warn('Failed to read cover image file:', error);
+          coverImage = '';
+        }
+      } else {
+        // Try to construct URL from uploads path
+        const uploadsPath = path.join(process.cwd(), 'uploads', 'images', path.basename(coverImage));
+        if (fs.existsSync(uploadsPath)) {
+          try {
+            const imageBuffer = fs.readFileSync(uploadsPath);
+            const imageBase64 = imageBuffer.toString('base64');
+            const imageExt = path.extname(uploadsPath).toLowerCase().slice(1);
+            const mimeType = imageExt === 'png' ? 'image/png' : imageExt === 'jpg' || imageExt === 'jpeg' ? 'image/jpeg' : 'image/webp';
+            coverImage = `data:${mimeType};base64,${imageBase64}`;
+          } catch (error) {
+            console.warn('Failed to read cover image from uploads:', error);
+            coverImage = '';
+          }
+        }
+      }
+    }
+    
     if (coverImage) {
-      html = html.replace('{{COVER_IMAGE}}', `<img src="${coverImage}" alt="Cover Image" />`);
+      html = html.replace('{{COVER_IMAGE}}', `<img src="${coverImage}" alt="Cover Image" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;" />`);
+      // Hide placeholder text when image is present
+      html = html.replace('<div class="placeholder-text" id="cover-image-placeholder-text">No image</div>', '');
     } else {
       html = html.replace('{{COVER_IMAGE}}', '');
     }
@@ -1528,22 +1643,38 @@ export class DPRService {
     html = html.replace('{{TABLE_OF_CONTENTS}}', toc);
     
     // Replace section content - handle markdown and tables
-    const formatContent = (text: string): string => {
+    const formatContent = (text: string, sectionKey?: string): string => {
       if (!text) return '';
       
+      // Check for enhanced content in metadata or contentLang
+      let enhancedText = '';
+      if (sectionKey) {
+        // Try to get enhanced content from multiple sources
+        enhancedText = contentLang.enhancedContent?.[sectionKey] || 
+                      dpr.metadata?.enhancedContent?.[sectionKey] || 
+                      '';
+      }
+      
+      // Use enhanced content if available, otherwise use original text
+      const finalText = enhancedText || text;
+      
       // Process markdown text to handle tables and formatting
-      const processedParas = processMarkdownText(text);
+      const processedParas = processMarkdownText(finalText);
       let html = '';
       
       processedParas.forEach((para) => {
         if (para.type === 'table' && para.tableData) {
-          // Render table
-          html += '<table>';
+          // Render table with proper styling
+          html += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0;">';
           para.tableData.forEach((row, rowIndex) => {
-            html += '<tr>';
+            const bgColor = rowIndex === 0 ? '#E5E7EB' : (rowIndex % 2 === 0 ? '#F9FAFB' : '#FFFFFF');
+            html += `<tr style="background-color: ${bgColor};">`;
             row.forEach((cell) => {
               const tag = rowIndex === 0 ? 'th' : 'td';
-              html += `<${tag}>${cell || ''}</${tag}>`;
+              const style = rowIndex === 0 
+                ? 'border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;'
+                : 'border: 1px solid #1F2937; padding: 0.3cm;';
+              html += `<${tag} style="${style}">${(cell || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</${tag}>`;
             });
             html += '</tr>';
           });
@@ -1552,9 +1683,10 @@ export class DPRService {
           const level = para.headingLevel || 2;
           const tag = `h${Math.min(level + 1, 4)}`;
           const content = para.content.map(seg => seg.text).join('');
-          html += `<${tag} style="font-weight: bold; margin-top: 0.5cm; margin-bottom: 0.3cm;">${content}</${tag}>`;
+          const fontSize = level === 1 ? '18pt' : level === 2 ? '16pt' : '14pt';
+          html += `<${tag} style="font-weight: bold; margin-top: 0.5cm; margin-bottom: 0.3cm; font-size: ${fontSize};">${content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</${tag}>`;
         } else if (para.originalText.trim().length > 0) {
-          html += '<p>';
+          html += '<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8;">';
           para.content.forEach((segment) => {
             const text = segment.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             if (segment.bold) {
@@ -1567,23 +1699,46 @@ export class DPRService {
         }
       });
       
-      return html || text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\n\n/g, '</p><p>')
-        .replace(/\n/g, '<br>');
+      // Fallback to simple text formatting if no processed paragraphs
+      if (!html) {
+        html = finalText
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\n\n/g, '</p><p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8;">')
+          .replace(/\n/g, '<br>');
+        if (html && !html.startsWith('<p')) {
+          html = `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8;">${html}</p>`;
+        }
+      }
+      
+      return html;
     };
     
-    // Ensure we have at least some content
-    const execSummary = formatContent(contentLang.executiveSummary || sections.executiveSummary || '');
-    html = html.replace('{{EXECUTIVE_SUMMARY}}', execSummary || '<p>The cluster development project aims to enhance the processing capabilities and market reach of the cluster through the establishment of a Common Facility Centre.</p>');
+    // Ensure we have at least some content - use enhanced content if available
+    const execSummary = formatContent(
+      contentLang.executiveSummary || sections.executiveSummary || '', 
+      'executiveSummary'
+    );
+    html = html.replace('{{EXECUTIVE_SUMMARY}}', execSummary || '<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8;">The cluster development project aims to enhance the processing capabilities and market reach of the cluster through the establishment of a Common Facility Centre.</p>');
     
-    const intro = formatContent(contentLang.introduction || sections.introduction || '');
-    html = html.replace('{{INTRODUCTION}}', intro || '<p>The sector plays a crucial role in the economy, and this cluster has significant potential for growth and development.</p>');
+    // Introduction can be stored as introduction, businessProfile, or in sections
+    const intro = formatContent(
+      contentLang.introduction || contentLang.businessProfile || sections.introduction || '', 
+      'introduction'
+    );
+    // If still empty, try to generate from step2 data
+    let introContent = intro;
+    if (!introContent || !introContent.trim()) {
+      const introFromData = generateSectionFromData(s2, 'introduction');
+      if (introFromData && introFromData.trim()) {
+        introContent = formatContent(introFromData, 'introduction');
+      }
+    }
+    html = html.replace('{{INTRODUCTION}}', introContent || '<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8;">The sector plays a crucial role in the economy, and this cluster has significant potential for growth and development.</p>');
     
-    // Generate Project Snapshot from clusterData
+    // Generate Project Snapshot from clusterData - matching preview structure
     const generateProjectSnapshot = (): string => {
       const totalUnits = (s1.enterpriseCount?.micro || 0) + (s1.enterpriseCount?.small || 0) + (s1.enterpriseCount?.medium || 0);
       const totalEmployment = (s1.employmentPerUnit?.lessThan5 || 0) + (s1.employmentPerUnit?.between5And10 || 0) + (s1.employmentPerUnit?.moreThan10 || 0);
@@ -1593,29 +1748,113 @@ export class DPRService {
       snapshotHTML += `<tr><td>Name of the cluster</td><td>${s1.clusterName || 'N/A'}, ${s1.district || 'N/A'} District</td></tr>`;
       snapshotHTML += `<tr><td>Location & Spread of the cluster</td><td>${s1.geographicalSpread || s1.location || 'N/A'}</td></tr>`;
       snapshotHTML += `<tr><td>Product range</td><td>${s1.majorProducts || 'N/A'}</td></tr>`;
-      snapshotHTML += `<tr><td>Existing employment in the Cluster</td><td>${totalEmployment} workers (Male: ${s1.employmentPerUnit?.male || 0}, Female: ${s1.employmentPerUnit?.female || 0})</td></tr>`;
+      snapshotHTML += `<tr><td>Existing cluster scenario</td><td>See table below</td></tr>`;
+      snapshotHTML += `<tr><td>Existing employment in the Cluster</td><td>${totalEmployment} workers (Male workers: ${s1.employmentPerUnit?.male || 0}, Female workers: ${s1.employmentPerUnit?.female || 0})</td></tr>`;
       snapshotHTML += `<tr><td>Name of the SPV</td><td>${s11.spvName || 'N/A'}</td></tr>`;
       snapshotHTML += `<tr><td>Legal Status</td><td>${s11.legalStatus || 'N/A'}</td></tr>`;
-      snapshotHTML += `<tr><td>Number of SPV members</td><td>${s11.memberUnits?.length || 0} member units</td></tr>`;
+      snapshotHTML += `<tr><td>Number of SPV members (Micro unit holders)</td><td>${s11.memberUnits?.length || 0} member units</td></tr>`;
       snapshotHTML += '</table>';
       
       // Add existing cluster scenario table if data exists
       if (s1.enterpriseCount || s4.productionCapacity || s14.annualProductionVolume) {
-        snapshotHTML += '<h3 style="margin-top: 1cm; margin-bottom: 0.5cm;">Existing cluster scenario</h3>';
+        snapshotHTML += '<h4 style="margin-top: 1cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937;">Existing cluster scenario</h4>';
         snapshotHTML += '<table>';
-        snapshotHTML += '<tr><th>Product</th><th>Pro forma</th><th>Annual Production (in MT)</th><th>Annual Pro forma (in ₹ lakhs)</th></tr>';
+        snapshotHTML += '<tr><th>Product Type</th><th>No. of units</th><th>Annual Production (in MT)</th><th>Annual Turnover (in Rs.lakhs)</th></tr>';
+        
+        const rows: Array<{type: string, units: number, production: string, turnover: string}> = [];
         
         if (s1.enterpriseCount?.micro && s1.enterpriseCount.micro > 0) {
-          snapshotHTML += `<tr><td>Micro Enterprises</td><td>${s1.enterpriseCount.micro}</td><td>${s14.annualProductionVolume || 'N/A'}</td><td>${s1.turnoverPerUnit ? ((s1.turnoverPerUnit * s1.enterpriseCount.micro) / 100000).toFixed(2) : 'N/A'}</td></tr>`;
+          const turnover = s1.turnoverPerUnit ? ((s1.turnoverPerUnit * s1.enterpriseCount.micro) / 100000).toFixed(2) : 'N/A';
+          rows.push({
+            type: 'Micro Enterprises',
+            units: s1.enterpriseCount.micro,
+            production: s14.annualProductionVolume ? s14.annualProductionVolume.toString() : 'N/A',
+            turnover: turnover
+          });
         }
         if (s1.enterpriseCount?.small && s1.enterpriseCount.small > 0) {
-          snapshotHTML += `<tr><td>Small Enterprises</td><td>${s1.enterpriseCount.small}</td><td>${s14.annualProductionVolume || 'N/A'}</td><td>${s1.turnoverPerUnit ? ((s1.turnoverPerUnit * s1.enterpriseCount.small) / 100000).toFixed(2) : 'N/A'}</td></tr>`;
+          const turnover = s1.turnoverPerUnit ? ((s1.turnoverPerUnit * s1.enterpriseCount.small) / 100000).toFixed(2) : 'N/A';
+          rows.push({
+            type: 'Small Enterprises',
+            units: s1.enterpriseCount.small,
+            production: 'N/A',
+            turnover: turnover
+          });
         }
         if (s1.enterpriseCount?.medium && s1.enterpriseCount.medium > 0) {
-          snapshotHTML += `<tr><td>Medium Enterprises</td><td>${s1.enterpriseCount.medium}</td><td>${s14.annualProductionVolume || 'N/A'}</td><td>${s1.turnoverPerUnit ? ((s1.turnoverPerUnit * s1.enterpriseCount.medium) / 100000).toFixed(2) : 'N/A'}</td></tr>`;
+          const turnover = s1.turnoverPerUnit ? ((s1.turnoverPerUnit * s1.enterpriseCount.medium) / 100000).toFixed(2) : 'N/A';
+          rows.push({
+            type: 'Medium Enterprises',
+            units: s1.enterpriseCount.medium,
+            production: 'N/A',
+            turnover: turnover
+          });
+        }
+        
+        rows.forEach((row, idx) => {
+          snapshotHTML += `<tr><td>${row.type}</td><td>${row.units}</td><td>${row.production}</td><td>${row.turnover}</td></tr>`;
+        });
+        
+        // Add total row
+        if (rows.length > 0) {
+          const totalProduction = s14.annualProductionVolume ? s14.annualProductionVolume.toString() : 'N/A';
+          const totalTurnover = s1.turnoverPerUnit && totalUnits > 0 
+            ? ((s1.turnoverPerUnit * totalUnits) / 100000).toFixed(2)
+            : 'N/A';
+          snapshotHTML += `<tr style="font-weight: bold;"><td>Total</td><td>${totalUnits}</td><td>${totalProduction}</td><td>${totalTurnover}</td></tr>`;
         }
         
         snapshotHTML += '</table>';
+      }
+      
+      // Key Concern areas
+      snapshotHTML += '<h4 style="margin-top: 1cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937;">Key Concern areas of the cluster</h4>';
+      snapshotHTML += '<ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm;">';
+      const concerns: string[] = [];
+      if (s7.technologyGaps) concerns.push(`<strong>Technology:</strong> ${s7.technologyGaps}`);
+      if (s7.infrastructureGaps) concerns.push(`<strong>Infrastructure:</strong> ${s7.infrastructureGaps}`);
+      if (s7.skillGaps) concerns.push(`<strong>Skill:</strong> ${s7.skillGaps}`);
+      if (s7.marketingGaps) concerns.push(`<strong>Marketing:</strong> ${s7.marketingGaps}`);
+      if (s7.financialGaps) concerns.push(`<strong>Finance:</strong> ${s7.financialGaps}`);
+      
+      if (concerns.length > 0) {
+        concerns.forEach(concern => {
+          snapshotHTML += `<li style="margin-bottom: 0.3cm; color: #1F2937;">${concern}</li>`;
+        });
+      } else {
+        snapshotHTML += '<li style="margin-bottom: 0.3cm; color: #1F2937;">N/A</li>';
+      }
+      snapshotHTML += '</ul>';
+      
+      // Project Rationale
+      snapshotHTML += '<h4 style="margin-top: 1cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937;">Project Rationale</h4>';
+      snapshotHTML += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${s7.justificationForIntervention || 'N/A'}</p>`;
+      
+      // Proposed Interventions
+      snapshotHTML += '<h4 style="margin-top: 1cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937;">Proposed Interventions</h4>';
+      if (s9.interventionType) {
+        snapshotHTML += `<p style="margin-bottom: 0.3cm; color: #1F2937;"><strong>Intervention Type:</strong> ${s9.interventionType}</p>`;
+      }
+      if (s9.description) {
+        snapshotHTML += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${s9.description}</p>`;
+      }
+      
+      if (s9.objectives && Array.isArray(s9.objectives) && s9.objectives.length > 0) {
+        snapshotHTML += '<p style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937;">Objectives:</p>';
+        snapshotHTML += '<ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm;">';
+        s9.objectives.forEach((objective: string) => {
+          snapshotHTML += `<li style="margin-bottom: 0.3cm; color: #1F2937;">${objective}</li>`;
+        });
+        snapshotHTML += '</ul>';
+      }
+      
+      if (s9.expectedBenefits && Array.isArray(s9.expectedBenefits) && s9.expectedBenefits.length > 0) {
+        snapshotHTML += '<p style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937;">Expected Benefits:</p>';
+        snapshotHTML += '<ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm;">';
+        s9.expectedBenefits.forEach((benefit: string) => {
+          snapshotHTML += `<li style="margin-bottom: 0.3cm; color: #1F2937;">${benefit}</li>`;
+        });
+        snapshotHTML += '</ul>';
       }
       
       return snapshotHTML;
@@ -1656,100 +1895,228 @@ export class DPRService {
       if (!stepData || Object.keys(stepData).length === 0) return '';
       
       let content = '';
+      let hasContent = false;
+      
       // Generate content from step data
       Object.entries(stepData).forEach(([key, value]) => {
-        if (value && typeof value === 'object' && !Array.isArray(value)) {
-          // Nested object - recurse
+        // Skip internal/technical fields
+        if (key.startsWith('_') || key === 'id' || key === '__v') return;
+        
+        if (value && typeof value === 'object' && !Array.isArray(value) && value !== null) {
+          // Nested object - recurse but format better
           const nested = generateSectionFromData(value, sectionType);
-          if (nested) content += nested;
+          if (nested) {
+            // Add a heading for nested objects if they have meaningful content
+            const keyLabel = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+            content += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937;">${keyLabel}</h4>`;
+            content += nested;
+            hasContent = true;
+          }
         } else if (value && Array.isArray(value)) {
           // Array - create list or table
           if (value.length > 0) {
-            content += `<p><strong>${key}:</strong></p><ul>`;
+            const keyLabel = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+            content += `<p style="margin-top: 0.3cm; margin-bottom: 0.2cm;"><strong>${keyLabel}:</strong></p><ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm;">`;
             value.forEach((item: any) => {
-              if (typeof item === 'string') {
-                content += `<li>${item}</li>`;
-              } else if (typeof item === 'object') {
-                content += `<li>${JSON.stringify(item)}</li>`;
+              if (typeof item === 'string' && item.trim()) {
+                content += `<li style="margin-bottom: 0.2cm;">${item}</li>`;
+                hasContent = true;
+              } else if (typeof item === 'object' && item !== null) {
+                const itemStr = JSON.stringify(item, null, 2).replace(/[{}"]/g, '').trim();
+                if (itemStr) {
+                  content += `<li style="margin-bottom: 0.2cm;">${itemStr}</li>`;
+                  hasContent = true;
+                }
               }
             });
             content += '</ul>';
           }
-        } else if (value && typeof value !== 'object') {
-          // Simple value
-          content += `<p><strong>${key}:</strong> ${value}</p>`;
+        } else if (value !== null && value !== undefined && value !== '') {
+          // Simple value - format key nicely
+          const keyLabel = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+          const valueStr = typeof value === 'number' 
+            ? value.toLocaleString('en-IN') 
+            : String(value);
+          content += `<p style="margin-bottom: 0.3cm;"><strong>${keyLabel}:</strong> ${valueStr}</p>`;
+          hasContent = true;
         }
       });
-      return content;
+      
+      return hasContent ? content : '';
     };
     
     const replaceSection = (placeholder: string, content: string, header: string, stepData?: any) => {
+      const sectionName = header;
+      console.log(`\n🔍 Processing section: ${sectionName}`);
+      console.log(`   Placeholder: ${placeholder}`);
+      console.log(`   Has formatted content: ${!!(content && content.trim())}`);
+      console.log(`   Has stepData: ${!!(stepData && Object.keys(stepData).length > 0)}`);
+      if (stepData && Object.keys(stepData).length > 0) {
+        console.log(`   StepData keys: ${Object.keys(stepData).slice(0, 5).join(', ')}${Object.keys(stepData).length > 5 ? '...' : ''}`);
+      }
+      
       // Try to get content from multiple sources
       let finalContent = content;
+      
+      // If no formatted content, try to generate from stepData
       if (!finalContent || !finalContent.trim()) {
-        // Try to generate from stepData
-        if (stepData) {
+        if (stepData && Object.keys(stepData).length > 0) {
+          console.log(`   ⚙️  Generating content from stepData...`);
           finalContent = generateSectionFromData(stepData, header);
+          console.log(`   Generated content length: ${finalContent ? finalContent.length : 0} chars`);
         }
       }
       
-      // Always include section if we have any content or if it's a required section
-      const requiredSections = ['DISTRICT_PROFILE', 'CLUSTER_PROFILE', 'VALUE_CHAIN', 'MARKET_ASPECTS', 'SWOT_ANALYSIS', 'GAP_ANALYSIS', 'CFC_DETAILS', 'SPV_DETAILS', 'PROJECT_COST'];
-      const isRequired = requiredSections.some(req => header.toUpperCase().includes(req));
+      // Check if template already has page structure (new template format)
+      const hasPageStructure = html.includes(`<div class="page">`) && 
+                               html.includes(`<div class="content">`) &&
+                               html.includes(`${placeholder}`);
+      
+      let sectionHTML = '';
       
       if (finalContent && finalContent.trim()) {
-        const formattedContent = formatContent(finalContent);
-        const sectionHTML = `<div class="page">
-          <div class="page-content">
-            <div class="section-title-box">
-              <div class="section-title-box-inner">
-                <h2>${header}</h2>
+        // Get section key for enhanced content lookup
+        const sectionKey = placeholder.replace(/[{}]/g, '').toLowerCase().replace(/_/g, '');
+        const formattedContent = formatContent(finalContent, sectionKey);
+        
+        if (hasPageStructure) {
+          // Template already has page structure, just replace the placeholder with content
+          sectionHTML = formattedContent;
+          console.log(`   ✅ Section content replaced (template has page structure)`);
+        } else {
+          // Old template format - create full page structure
+          sectionHTML = `<div class="page">
+            <div class="page-content">
+              <div class="section-title-box">
+                <div class="section-title-box-inner">
+                  <h2>${header}</h2>
+                </div>
               </div>
+              <div class="content">${formattedContent}</div>
             </div>
-            <div class="content">${formattedContent}</div>
-          </div>
-        </div>`;
-        html = html.replace(placeholder, sectionHTML);
-      } else if (isRequired) {
-        // Include section even with minimal content
-        const sectionHTML = `<div class="page">
-          <div class="page-content">
-            <div class="section-title-box">
-              <div class="section-title-box-inner">
-                <h2>${header}</h2>
-              </div>
-            </div>
-            <div class="content"><p>Section content will be populated from cluster data.</p></div>
-          </div>
-        </div>`;
-        html = html.replace(placeholder, sectionHTML);
+          </div>`;
+          console.log(`   ✅ Section included with formatted content (full page structure)`);
+        }
       } else {
-        html = html.replace(placeholder, '');
+        // Include section even with minimal content - generate from stepData if available
+        let placeholderContent = '<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8;">This section contains cluster development information. Detailed content will be populated from cluster data.</p>';
+        
+        // Try one more time to get content from stepData
+        if (stepData && Object.keys(stepData).length > 0) {
+          const generatedContent = generateSectionFromData(stepData, header);
+          if (generatedContent && generatedContent.trim()) {
+            placeholderContent = formatContent(generatedContent, placeholder.replace(/[{}]/g, '').toLowerCase().replace(/_/g, ''));
+            console.log(`   ✅ Section included with generated content from stepData`);
+          } else {
+            console.log(`   ⚠️  Section included with placeholder (no data available)`);
+          }
+        } else {
+          console.log(`   ⚠️  Section included with placeholder (no stepData)`);
+        }
+        
+        if (hasPageStructure) {
+          // Template already has page structure, just replace the placeholder with content
+          sectionHTML = placeholderContent;
+          console.log(`   ✅ Section placeholder replaced (template has page structure)`);
+        } else {
+          // Old template format - create full page structure
+          sectionHTML = `<div class="page">
+            <div class="page-content">
+              <div class="section-title-box">
+                <div class="section-title-box-inner">
+                  <h2>${header}</h2>
+                </div>
+              </div>
+              <div class="content">${placeholderContent}</div>
+            </div>
+          </div>`;
+          console.log(`   ✅ Section included with placeholder (full page structure)`);
+        }
       }
+      
+      html = html.replace(placeholder, sectionHTML);
+      console.log(`   ✅ Section replaced in HTML`);
     };
     
-    replaceSection('{{DISTRICT_PROFILE}}', contentLang.districtProfile || sections.districtProfile || '', sectionHeaders['{{DISTRICT_PROFILE}}'], s3);
-    replaceSection('{{CLUSTER_PROFILE}}', contentLang.clusterProfile || sections.clusterProfile || '', sectionHeaders['{{CLUSTER_PROFILE}}'], s4);
-    replaceSection('{{VALUE_CHAIN}}', contentLang.valueChain || sections.valueChain || '', sectionHeaders['{{VALUE_CHAIN}}'], s5);
-    replaceSection('{{MARKET_ASPECTS}}', contentLang.marketAnalysis || sections.marketAssessment || '', sectionHeaders['{{MARKET_ASPECTS}}'], s6);
-    replaceSection('{{SWOT_ANALYSIS}}', contentLang.swotAnalysis || sections.swotAnalysis || '', sectionHeaders['{{SWOT_ANALYSIS}}'], s8);
-    replaceSection('{{GAP_ANALYSIS}}', contentLang.gapAnalysis || sections.gapAnalysis || '', sectionHeaders['{{GAP_ANALYSIS}}'], s7);
-    replaceSection('{{CFC_DETAILS}}', contentLang.cfcDetails || sections.cfcDetails || '', sectionHeaders['{{CFC_DETAILS}}'], s10);
-    replaceSection('{{SPV_DETAILS}}', contentLang.spvDetails || sections.spvDetails || '', sectionHeaders['{{SPV_DETAILS}}'], s11);
-    replaceSection('{{PROJECT_COST}}', contentLang.projectCost || sections.projectCost || '', sectionHeaders['{{PROJECT_COST}}'], s12);
-    replaceSection('{{OPERATING_COST_REVENUE}}', contentLang.operatingCostRevenue || sections.operatingCostRevenue || '', sectionHeaders['{{OPERATING_COST_REVENUE}}'], s14);
-    replaceSection('{{FINANCIAL_VIABILITY}}', contentLang.financialProjections || sections.financialViability || '', sectionHeaders['{{FINANCIAL_VIABILITY}}'], s15);
-    replaceSection('{{IMPLEMENTATION_SCHEDULE}}', contentLang.implementationSchedule || sections.implementationSchedule || '', sectionHeaders['{{IMPLEMENTATION_SCHEDULE}}'], s16);
-    replaceSection('{{EXPECTED_IMPACT}}', contentLang.conclusion || sections.expectedImpact || '', sectionHeaders['{{EXPECTED_IMPACT}}']);
-    replaceSection('{{CONCLUSION}}', contentLang.conclusion && !sections.expectedImpact ? contentLang.conclusion : '', sectionHeaders['{{CONCLUSION}}']);
+    console.log('\n📝 Replacing all section placeholders...');
     
-    // Add Proposed Intervention section
-    const proposedIntervention = contentLang.proposedIntervention || sections.proposedIntervention || s9.interventionType || '';
-    if (proposedIntervention) {
-      replaceSection('{{PROPOSED_INTERVENTION}}', proposedIntervention, '9. PROPOSED INTERVENTION');
-    } else {
-      html = html.replace('{{PROPOSED_INTERVENTION}}', '');
-    }
+    // District Profile
+    const districtProfileContent = contentLang.districtProfile || sections.districtProfile || '';
+    console.log(`📋 District Profile - contentLang: ${!!contentLang.districtProfile}, sections: ${!!sections.districtProfile}, step3: ${Object.keys(s3).length > 0}`);
+    replaceSection('{{DISTRICT_PROFILE}}', districtProfileContent, sectionHeaders['{{DISTRICT_PROFILE}}'], s3);
+    
+    // Cluster Profile
+    const clusterProfileContent = contentLang.clusterProfile || sections.clusterProfile || '';
+    console.log(`📋 Cluster Profile - contentLang: ${!!contentLang.clusterProfile}, sections: ${!!sections.clusterProfile}, step4: ${Object.keys(s4).length > 0}`);
+    replaceSection('{{CLUSTER_PROFILE}}', clusterProfileContent, sectionHeaders['{{CLUSTER_PROFILE}}'], s4);
+    
+    // Value Chain
+    const valueChainContent = contentLang.valueChain || sections.valueChain || '';
+    console.log(`📋 Value Chain - contentLang: ${!!contentLang.valueChain}, sections: ${!!sections.valueChain}, step5: ${Object.keys(s5).length > 0}`);
+    replaceSection('{{VALUE_CHAIN}}', valueChainContent, sectionHeaders['{{VALUE_CHAIN}}'], s5);
+    
+    // Market Aspects
+    const marketAspectsContent = contentLang.marketAnalysis || sections.marketAssessment || '';
+    console.log(`📋 Market Aspects - contentLang.marketAnalysis: ${!!contentLang.marketAnalysis}, sections.marketAssessment: ${!!sections.marketAssessment}, step6: ${Object.keys(s6).length > 0}`);
+    replaceSection('{{MARKET_ASPECTS}}', marketAspectsContent, sectionHeaders['{{MARKET_ASPECTS}}'], s6);
+    
+    // SWOT Analysis
+    const swotContent = contentLang.swotAnalysis || sections.swotAnalysis || '';
+    console.log(`📋 SWOT Analysis - contentLang: ${!!contentLang.swotAnalysis}, sections: ${!!sections.swotAnalysis}, step8: ${Object.keys(s8).length > 0}`);
+    replaceSection('{{SWOT_ANALYSIS}}', swotContent, sectionHeaders['{{SWOT_ANALYSIS}}'], s8);
+    
+    // Gap Analysis
+    const gapAnalysisContent = contentLang.gapAnalysis || sections.gapAnalysis || '';
+    console.log(`📋 Gap Analysis - contentLang: ${!!contentLang.gapAnalysis}, sections: ${!!sections.gapAnalysis}, step7: ${Object.keys(s7).length > 0}`);
+    replaceSection('{{GAP_ANALYSIS}}', gapAnalysisContent, sectionHeaders['{{GAP_ANALYSIS}}'], s7);
+    
+    // CFC Details
+    const cfcContent = contentLang.cfcDetails || sections.cfcDetails || contentLang.technicalFeasibility || '';
+    console.log(`📋 CFC Details - contentLang.cfcDetails: ${!!contentLang.cfcDetails}, contentLang.technicalFeasibility: ${!!contentLang.technicalFeasibility}, sections: ${!!sections.cfcDetails}, step10: ${Object.keys(s10).length > 0}`);
+    replaceSection('{{CFC_DETAILS}}', cfcContent, sectionHeaders['{{CFC_DETAILS}}'], s10);
+    
+    // SPV Details
+    const spvContent = contentLang.spvDetails || sections.spvDetails || '';
+    console.log(`📋 SPV Details - contentLang: ${!!contentLang.spvDetails}, sections: ${!!sections.spvDetails}, step11: ${Object.keys(s11).length > 0}`);
+    replaceSection('{{SPV_DETAILS}}', spvContent, sectionHeaders['{{SPV_DETAILS}}'], s11);
+    
+    // Project Cost
+    const projectCostContent = contentLang.projectCost || sections.projectCost || '';
+    console.log(`📋 Project Cost - contentLang: ${!!contentLang.projectCost}, sections: ${!!sections.projectCost}, step12: ${Object.keys(s12).length > 0}`);
+    replaceSection('{{PROJECT_COST}}', projectCostContent, sectionHeaders['{{PROJECT_COST}}'], s12);
+    
+    // Operating Cost & Revenue
+    const operatingCostContent = contentLang.operatingCostRevenue || sections.operatingCostRevenue || '';
+    console.log(`📋 Operating Cost & Revenue - contentLang: ${!!contentLang.operatingCostRevenue}, sections: ${!!sections.operatingCostRevenue}, step14: ${Object.keys(s14).length > 0}`);
+    replaceSection('{{OPERATING_COST_REVENUE}}', operatingCostContent, sectionHeaders['{{OPERATING_COST_REVENUE}}'], s14);
+    
+    // Financial Viability
+    const financialViabilityContent = contentLang.financialProjections || sections.financialViability || '';
+    console.log(`📋 Financial Viability - contentLang.financialProjections: ${!!contentLang.financialProjections}, sections.financialViability: ${!!sections.financialViability}, step15: ${Object.keys(s15).length > 0}`);
+    replaceSection('{{FINANCIAL_VIABILITY}}', financialViabilityContent, sectionHeaders['{{FINANCIAL_VIABILITY}}'], s15);
+    
+    // Implementation Schedule
+    const implementationContent = contentLang.implementationSchedule || sections.implementationSchedule || '';
+    console.log(`📋 Implementation Schedule - contentLang: ${!!contentLang.implementationSchedule}, sections: ${!!sections.implementationSchedule}, step16: ${Object.keys(s16).length > 0}`);
+    replaceSection('{{IMPLEMENTATION_SCHEDULE}}', implementationContent, sectionHeaders['{{IMPLEMENTATION_SCHEDULE}}'], s16);
+    
+    // Expected Impact - check multiple sources
+    const expectedImpactContent = contentLang.expectedImpact || contentLang.conclusion || sections.expectedImpact || '';
+    console.log(`📋 Expected Impact - contentLang.expectedImpact: ${!!contentLang.expectedImpact}, contentLang.conclusion: ${!!contentLang.conclusion}, sections: ${!!sections.expectedImpact}, step17: ${Object.keys(s17).length > 0}`);
+    replaceSection('{{EXPECTED_IMPACT}}', expectedImpactContent, sectionHeaders['{{EXPECTED_IMPACT}}'], s17);
+    
+    // Conclusion - separate from expected impact
+    const conclusionContent = contentLang.conclusion && !expectedImpactContent ? contentLang.conclusion : 
+                             (contentLang.conclusion && expectedImpactContent ? '' : contentLang.conclusion || '');
+    console.log(`📋 Conclusion - contentLang.conclusion: ${!!contentLang.conclusion}, will include: ${!!conclusionContent}`);
+    replaceSection('{{CONCLUSION}}', conclusionContent, sectionHeaders['{{CONCLUSION}}']);
+    
+    // Proposed Intervention
+    const proposedIntervention = contentLang.proposedIntervention || contentLang.proposedInterventions || sections.proposedIntervention || s9.interventionType || '';
+    console.log(`📋 Proposed Intervention - contentLang.proposedIntervention: ${!!contentLang.proposedIntervention}, contentLang.proposedInterventions: ${!!contentLang.proposedInterventions}, sections: ${!!sections.proposedIntervention}, step9: ${Object.keys(s9).length > 0}`);
+    replaceSection('{{PROPOSED_INTERVENTION}}', proposedIntervention, '9. PROPOSED INTERVENTION', s9);
+    
+    console.log('\n✅ All sections processed');
     
     // Generate Financial Statements section
     const generateFinancialStatements = (): string => {
@@ -1848,6 +2215,41 @@ export class DPRService {
     </div>`;
     html = html.replace('{{ANNEXURES}}', annexuresHTML);
     
+    // Final check: Find any remaining placeholders
+    const remainingPlaceholders = html.match(/\{\{[A-Z_]+\}\}/g);
+    if (remainingPlaceholders && remainingPlaceholders.length > 0) {
+      console.warn('⚠️  WARNING: Some placeholders were not replaced:', remainingPlaceholders);
+      // Replace any remaining placeholders with empty string to avoid showing them in PDF
+      remainingPlaceholders.forEach(placeholder => {
+        console.warn(`   Removing unreplaced placeholder: ${placeholder}`);
+        html = html.replace(placeholder, '');
+      });
+    } else {
+      console.log('✅ All placeholders successfully replaced');
+    }
+    
+    // Log final HTML stats
+    const pageCount = (html.match(/<div class="page"/g) || []).length;
+    console.log(`\n📊 Final HTML Statistics:`);
+    console.log(`   Total pages: ${pageCount}`);
+    console.log(`   HTML length: ${html.length} characters`);
+    console.log(`   Contains Executive Summary: ${html.includes('EXECUTIVE SUMMARY')}`);
+    console.log(`   Contains Introduction: ${html.includes('1. INTRODUCTION')}`);
+    console.log(`   Contains District Profile: ${html.includes('DISTRICT & REGIONAL PROFILE')}`);
+    console.log(`   Contains Cluster Profile: ${html.includes('CLUSTER PROFILE')}`);
+    console.log(`   Contains Value Chain: ${html.includes('VALUE CHAIN')}`);
+    console.log(`   Contains Market Aspects: ${html.includes('MARKET ASPECTS')}`);
+    console.log(`   Contains SWOT: ${html.includes('SWOT ANALYSIS')}`);
+    console.log(`   Contains Gap Analysis: ${html.includes('GAP ANALYSIS')}`);
+    console.log(`   Contains CFC Details: ${html.includes('CFC - OPERATION')}`);
+    console.log(`   Contains SPV Details: ${html.includes('SPV MEMBER')}`);
+    console.log(`   Contains Project Cost: ${html.includes('PROJECT COST')}`);
+    console.log(`   Contains Financial Viability: ${html.includes('FINANCIAL VIABILITY')}`);
+    console.log(`   Contains Expected Impact: ${html.includes('EXPECTED IMPACT')}`);
+    console.log(`   Contains Conclusion: ${html.includes('CONCLUSION')}`);
+    console.log(`   Contains Financial Statements: ${html.includes('FINANCIAL STATEMENTS')}`);
+    console.log(`   Contains Annexures: ${html.includes('ANNEXURES')}`);
+    
     return html;
   }
 
@@ -1857,6 +2259,9 @@ export class DPRService {
   static async generateClusterDPRPDF(dpr: any, project: any, language: 'english' | 'telugu'): Promise<Buffer> {
     try {
       console.log('📄 Starting Cluster DPR PDF generation...');
+      console.log('   ✅ Using: cluster-dpr-pdf.html template');
+      console.log('   DPR ID:', dpr._id || dpr.id);
+      console.log('   Language:', language);
       
       // Generate HTML from template
       let html: string;
@@ -1878,14 +2283,15 @@ export class DPRService {
       }
       
       // Check if styles are present
-      if (!html.includes('<style') || !html.includes('border: 8px solid #2563EB')) {
+      const hasBorderStyle = html.includes('border: 8px double #2563EB') || html.includes('border: 8px solid #2563EB');
+      if (!html.includes('<style') || !hasBorderStyle) {
         console.error('❌ HTML template missing critical styles!');
         throw new Error('HTML template is missing required CSS styles');
       }
       
       console.log(`✅ HTML generated: ${html.length} characters`);
       console.log(`✅ HTML contains styles: ${html.includes('<style')}`);
-      console.log(`✅ HTML contains page borders: ${html.includes('border: 8px solid #2563EB')}`);
+      console.log(`✅ HTML contains page borders: ${hasBorderStyle}`);
       
       // Try to use Puppeteer for HTML-to-PDF conversion
       try {
@@ -1919,26 +2325,28 @@ export class DPRService {
           try {
             await page.setContent(html, {
               waitUntil: ['load', 'networkidle0'],
-              timeout: 60000 // Increased timeout
+              timeout: 90000 // Increased timeout for large documents
             });
             console.log('✅ HTML content set successfully');
+            // Wait a bit for all resources to load
+            await new Promise(resolve => setTimeout(resolve, 1000));
           } catch (contentError: any) {
             console.warn('⚠️  networkidle0 failed, trying domcontentloaded:', contentError.message);
             // Try with simpler wait condition
             await page.setContent(html, {
               waitUntil: 'domcontentloaded',
-              timeout: 60000
+              timeout: 90000
             });
-            // Wait for stylesheets to load
-            await page.waitForTimeout(2000);
+            // Wait for stylesheets to load - use Promise-based delay instead of waitForTimeout
+            await new Promise(resolve => setTimeout(resolve, 3000)); // Longer wait for fallback
             console.log('✅ HTML content set with fallback method');
           }
           
           // Ensure all styles are applied
           await page.evaluateHandle(() => document.fonts.ready);
           
-          // Wait for styles to load and render
-          await page.waitForTimeout(2000);
+          // Wait for styles to load and render - use Promise-based delay
+          await new Promise(resolve => setTimeout(resolve, 2000));
           
           // Verify styles are applied
           const stylesApplied = await page.evaluate(() => {
@@ -1963,8 +2371,48 @@ export class DPRService {
             document.body.style.display = '';
           });
           
-          // Wait a bit more for rendering
-          await page.waitForTimeout(1000);
+          // Wait a bit more for rendering - use Promise-based delay
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Verify all sections are present in the rendered page
+          const sectionsInPage = await page.evaluate(() => {
+            const sections = [
+              'EXECUTIVE SUMMARY',
+              'INTRODUCTION',
+              'DISTRICT & REGIONAL PROFILE',
+              'CLUSTER PROFILE',
+              'VALUE CHAIN',
+              'MARKET ASPECTS',
+              'SWOT ANALYSIS',
+              'GAP ANALYSIS',
+              'CFC - OPERATION',
+              'SPV MEMBER',
+              'PROJECT COST',
+              'FINANCIAL VIABILITY',
+              'EXPECTED IMPACT',
+              'CONCLUSION',
+              'FINANCIAL STATEMENTS',
+              'ANNEXURES'
+            ];
+            const foundSections: string[] = [];
+            const pageText = document.body.innerText || '';
+            sections.forEach(section => {
+              if (pageText.includes(section)) {
+                foundSections.push(section);
+              }
+            });
+            return { found: foundSections, total: sections.length };
+          });
+          
+          console.log(`📊 Sections found in rendered page: ${sectionsInPage.found.length}/${sectionsInPage.total}`);
+          if (sectionsInPage.found.length < sectionsInPage.total) {
+            console.warn(`⚠️  Some sections may be missing. Found: ${sectionsInPage.found.join(', ')}`);
+          } else {
+            console.log('✅ All sections found in rendered page');
+          }
+          
+          // Wait one more time to ensure everything is fully rendered
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           console.log('🔄 Generating PDF...');
           // Generate PDF with proper settings - ensure styles are rendered
@@ -1979,7 +2427,7 @@ export class DPRService {
               left: '0'
             },
             preferCSSPageSize: true,
-            timeout: 60000,
+            timeout: 120000, // Increased timeout for large documents with many sections
             scale: 1.0
           });
           
@@ -1989,20 +2437,35 @@ export class DPRService {
             throw new Error('Generated PDF buffer is empty');
           }
           
+          // Convert to Buffer if it's not already
+          const buffer = Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer);
+          
           // Validate PDF header (PDF files start with %PDF)
-          const pdfHeader = pdfBuffer.slice(0, 4).toString('ascii');
-          if (pdfHeader !== '%PDF') {
-            console.error('❌ Invalid PDF header:', pdfHeader);
-            console.error('First 20 bytes:', pdfBuffer.slice(0, 20).toString('hex'));
+          // Check first 4 bytes: 0x25 0x50 0x44 0x46 = %PDF
+          const isValidPDF = buffer.length >= 4 && 
+                            buffer[0] === 0x25 && // %
+                            buffer[1] === 0x50 && // P
+                            buffer[2] === 0x44 && // D
+                            buffer[3] === 0x46;   // F
+          
+          if (!isValidPDF) {
+            const headerBytes = buffer.slice(0, 4);
+            const headerStr = headerBytes.toString('ascii');
+            const headerHex = Array.from(headerBytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
+            console.error('❌ Invalid PDF header bytes:', Array.from(headerBytes).join(','));
+            console.error('   Header as string:', headerStr);
+            console.error('   Header as hex:', headerHex);
+            console.error('   First 20 bytes:', buffer.slice(0, 20).toString('hex'));
             await browser.close();
-            throw new Error(`Generated buffer does not appear to be a valid PDF. Header: ${pdfHeader}`);
+            throw new Error(`Generated buffer does not appear to be a valid PDF. Header bytes: ${Array.from(headerBytes).join(',')}`);
           }
           
-          console.log(`✅ PDF generated successfully: ${pdfBuffer.length} bytes`);
+          const pdfHeader = buffer.slice(0, 4).toString('ascii');
+          console.log(`✅ PDF generated successfully: ${buffer.length} bytes`);
           console.log(`✅ PDF header validated: ${pdfHeader}`);
           
           await browser.close();
-          return Buffer.from(pdfBuffer); // Ensure it's a proper Buffer
+          return buffer; // Return the validated buffer
         } catch (pageError: any) {
           await browser.close().catch(() => {});
           throw pageError;
@@ -2178,6 +2641,52 @@ export class DPRService {
           });
         };
 
+        // Helper to draw page borders (matching reference PDF)
+        const drawPageBorders = () => {
+          const pageWidth = doc.page.width;
+          const pageHeight = doc.page.height;
+          const borderWidth = 8;
+          const innerBorderWidth = 2;
+          const margin = 10;
+          
+          // Save current graphics state
+          doc.save();
+          
+          // Outer double border (blue) - draw as double line
+          doc.strokeColor('#2563EB');
+          doc.lineWidth(borderWidth);
+          // Top
+          doc.moveTo(0, 0).lineTo(pageWidth, 0).stroke();
+          // Bottom
+          doc.moveTo(0, pageHeight).lineTo(pageWidth, pageHeight).stroke();
+          // Left
+          doc.moveTo(0, 0).lineTo(0, pageHeight).stroke();
+          // Right
+          doc.moveTo(pageWidth, 0).lineTo(pageWidth, pageHeight).stroke();
+          
+          // Inner border (lighter blue)
+          doc.strokeColor('#3B82F6');
+          doc.lineWidth(innerBorderWidth);
+          // Top
+          doc.moveTo(margin, margin).lineTo(pageWidth - margin, margin).stroke();
+          // Bottom
+          doc.moveTo(margin, pageHeight - margin).lineTo(pageWidth - margin, pageHeight - margin).stroke();
+          // Left
+          doc.moveTo(margin, margin).lineTo(margin, pageHeight - margin).stroke();
+          // Right
+          doc.moveTo(pageWidth - margin, margin).lineTo(pageWidth - margin, pageHeight - margin).stroke();
+          
+          // Reset stroke color and restore graphics state
+          doc.strokeColor('#000000');
+          doc.restore();
+        };
+        
+        // Wrapper for addPage that also draws borders
+        const addPageWithBorders = () => {
+          doc.addPage();
+          drawPageBorders();
+        };
+
         // Helper to render section header (blue, bold, underlined)
         const renderSectionHeader = (text: string) => {
           doc.fillColor('#1E40AF'); // Blue
@@ -2186,6 +2695,9 @@ export class DPRService {
           doc.moveDown(0.5);
         };
 
+        // Draw borders on first page
+        drawPageBorders();
+        
         // Cover Page - "DETAILED PROJECT REPORT" format matching preview
         const s1 = clusterData.step1 || {};
         const s11 = clusterData.step11 || {};
@@ -2268,7 +2780,7 @@ export class DPRService {
         doc.fillColor('#000000');
 
         // Table of Contents Page
-        doc.addPage();
+        addPageWithBorders();
         renderSectionHeader('CONTENTS');
         doc.moveDown(1);
         
@@ -2331,7 +2843,7 @@ export class DPRService {
         });
 
         // Section 1: Executive Summary
-        doc.addPage();
+        addPageWithBorders();
         renderSectionHeader('EXECUTIVE SUMMARY');
         const executiveSummary = contentLang.executiveSummary || contentLang.sections?.executiveSummary || '';
         if (executiveSummary) {
@@ -2350,7 +2862,7 @@ export class DPRService {
         doc.moveDown(1);
 
         // Section 1: Introduction
-        doc.addPage();
+        addPageWithBorders();
         renderSectionHeader('1. INTRODUCTION');
         const introduction = contentLang.introduction || contentLang.sections?.introduction || contentLang.businessProfile || '';
         if (introduction) {
@@ -2369,86 +2881,86 @@ export class DPRService {
         const sections = contentLang.sections || {};
         
         if (sections.districtProfile || contentLang.districtProfile) {
-          doc.addPage();
+          addPageWithBorders();
           renderSectionHeader('1.5 DISTRICT & REGIONAL PROFILE');
           addFormattedText(sections.districtProfile || contentLang.districtProfile || '');
         }
 
         if (sections.clusterProfile || contentLang.clusterProfile) {
-          doc.addPage();
+          addPageWithBorders();
           renderSectionHeader('2. CLUSTER PROFILE');
           addFormattedText(sections.clusterProfile || contentLang.clusterProfile || '');
         }
 
         if (sections.valueChain || contentLang.valueChain) {
-          doc.addPage();
+          addPageWithBorders();
           renderSectionHeader('3. CLUSTER VALUE CHAIN MAPPING');
           addFormattedText(sections.valueChain || contentLang.valueChain || '');
         }
 
         if (sections.marketAssessment || contentLang.marketAnalysis) {
-          doc.addPage();
+          addPageWithBorders();
           renderSectionHeader('4. MARKET ASPECTS');
           addFormattedText(sections.marketAssessment || contentLang.marketAnalysis || '');
         }
 
         if (sections.swotAnalysis || contentLang.swotAnalysis) {
-          doc.addPage();
+          addPageWithBorders();
           renderSectionHeader('5. SWOT ANALYSIS');
           addFormattedText(sections.swotAnalysis || contentLang.swotAnalysis || '');
         }
 
         if (sections.gapAnalysis || contentLang.gapAnalysis) {
-          doc.addPage();
+          addPageWithBorders();
           renderSectionHeader('6. NEED GAP ANALYSIS');
           addFormattedText(sections.gapAnalysis || contentLang.gapAnalysis || '');
         }
 
         if (sections.cfcDetails || contentLang.cfcDetails) {
-          doc.addPage();
+          addPageWithBorders();
           renderSectionHeader('7. CFC - OPERATION & MANAGEMENT');
           addFormattedText(sections.cfcDetails || contentLang.cfcDetails || '');
         }
 
         if (sections.spvDetails || contentLang.spvDetails) {
-          doc.addPage();
+          addPageWithBorders();
           renderSectionHeader('8. SPV MEMBER UNITS');
           addFormattedText(sections.spvDetails || contentLang.spvDetails || '');
         }
 
         if (sections.projectCost || contentLang.projectCost) {
-          doc.addPage();
+          addPageWithBorders();
           renderSectionHeader('9. PROJECT COST & MEANS OF FINANCE');
           addFormattedText(sections.projectCost || contentLang.projectCost || '');
         }
 
         if (sections.operatingCostRevenue || contentLang.operatingCostRevenue) {
-          doc.addPage();
+          addPageWithBorders();
           renderSectionHeader('9.5 OPERATING COST & REVENUE');
           addFormattedText(sections.operatingCostRevenue || contentLang.operatingCostRevenue || '');
         }
 
         if (sections.financialViability || contentLang.financialProjections) {
-          doc.addPage();
+          addPageWithBorders();
           renderSectionHeader('10. FINANCIAL VIABILITY');
           addFormattedText(sections.financialViability || contentLang.financialProjections || '');
         }
 
         if (sections.implementationSchedule || contentLang.implementationSchedule) {
-          doc.addPage();
+          addPageWithBorders();
           renderSectionHeader('10.5 PROJECT IMPLEMENTATION SCHEDULE');
           addFormattedText(sections.implementationSchedule || contentLang.implementationSchedule || '');
         }
 
         if (sections.expectedImpact || contentLang.conclusion) {
-          doc.addPage();
+          addPageWithBorders();
           renderSectionHeader('11. EXPECTED IMPACT');
           addFormattedText(sections.expectedImpact || contentLang.conclusion || '');
         }
 
         // Conclusion
         if (contentLang.conclusion && !sections.expectedImpact) {
-          doc.addPage();
+          addPageWithBorders();
           renderSectionHeader('CONCLUSION');
           addFormattedText(contentLang.conclusion);
         }

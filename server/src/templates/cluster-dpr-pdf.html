@@ -53,21 +53,24 @@
       display: flex;
       flex-direction: column;
       font-family: 'Times New Roman', serif;
-      border: 8px solid #2563EB !important;
-      border-style: double !important;
+      background: white !important;
+      /* Blue double-line border - matching reference PDF */
+      border: 8px double #2563EB !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
-      background: white !important;
     }
     
+    /* Inner decorative border for enhanced double-line effect */
     .page::before {
       content: '';
       position: absolute;
-      inset: 0;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
       border: 2px solid #3B82F6 !important;
-      margin: 8px;
-      border-radius: 4px;
+      border-radius: 3px;
       pointer-events: none;
       z-index: 1;
       -webkit-print-color-adjust: exact !important;
@@ -155,26 +158,37 @@
     .cover-image-placeholder {
       width: 100%;
       max-width: 12cm;
-      height: 8cm;
+      min-height: 8cm;
+      height: auto;
       border: 2px dashed #9CA3AF;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      margin: 2cm 0;
+      margin: 2cm auto;
       background-color: #F9FAFB;
+      padding: 1cm;
     }
     
     .cover-image-placeholder img {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
+      display: block;
     }
     
     .cover-image-placeholder .placeholder-text {
       color: #9CA3AF;
       font-size: 10pt;
       margin-top: 0.5cm;
+      text-align: center;
+    }
+    
+    .cover-image-placeholder .placeholder-icon {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 0.5cm;
+      opacity: 0.5;
     }
     
     .submission-details {
@@ -190,23 +204,47 @@
       border-bottom: 2px solid #1F2937;
       padding: 0.5cm 0;
       margin-bottom: 0.5cm;
+      align-items: flex-start;
     }
     
     .submission-label {
       font-weight: bold;
       width: 3.5cm;
       flex-shrink: 0;
+      font-size: 11pt;
+      color: #1F2937;
     }
     
     .submission-value {
       flex: 1;
-      border-bottom: 1px solid #1F2937;
+      font-size: 11pt;
+      color: #1F2937;
       min-height: 1.2cm;
     }
     
     .submission-row-simple {
       display: flex;
       padding: 0.3cm 0;
+      border-bottom: 2px solid #1F2937;
+      align-items: flex-start;
+    }
+    
+    .submission-row-simple:last-child {
+      border-bottom: none;
+    }
+    
+    .submission-row-simple .submission-label {
+      font-weight: bold;
+      width: 3.5cm;
+      flex-shrink: 0;
+      font-size: 11pt;
+      color: #1F2937;
+    }
+    
+    .submission-row-simple .submission-content {
+      flex: 1;
+      font-size: 11pt;
+      color: #1F2937;
     }
     
     /* Table of Contents */
@@ -282,49 +320,127 @@
       line-height: 1.8;
       text-align: justify;
       margin-bottom: 0.5cm;
+      color: #1F2937;
     }
     
     .content p {
       margin-bottom: 0.5cm;
       text-indent: 0;
+      color: #1F2937;
     }
     
     .content strong {
       font-weight: bold;
+      color: #1F2937;
     }
     
-    /* Tables */
+    .content h3 {
+      font-size: 14pt;
+      font-weight: bold;
+      margin-top: 0.5cm;
+      margin-bottom: 0.3cm;
+      color: #1F2937;
+    }
+    
+    .content h4 {
+      font-size: 12pt;
+      font-weight: bold;
+      margin-top: 0.5cm;
+      margin-bottom: 0.3cm;
+      color: #1F2937;
+    }
+    
+    .content ul {
+      list-style-type: disc;
+      padding-left: 1.5cm;
+      margin-bottom: 0.5cm;
+      color: #1F2937;
+    }
+    
+    .content li {
+      margin-bottom: 0.3cm;
+      color: #1F2937;
+      line-height: 1.8;
+    }
+    
+    /* Tables - Matching preview styling */
     table {
       width: 100%;
       border-collapse: collapse;
       margin: 0.5cm 0;
       font-size: 10pt;
+      border: 1px solid #1F2937 !important;
     }
     
     table th {
-      background-color: #D3D3D3 !important;
-      border: 1px solid #000 !important;
+      background-color: #E5E7EB !important;
+      border: 1px solid #1F2937 !important;
       padding: 0.3cm;
       font-weight: bold;
       text-align: left;
+      color: #1F2937 !important;
+      font-size: 10pt;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
     
     table td {
-      border: 1px solid #000 !important;
+      border: 1px solid #1F2937 !important;
       padding: 0.3cm;
+      color: #1F2937;
+      font-size: 10pt;
     }
     
     table tr:nth-child(even) {
-      background-color: #F0F8FF !important;
+      background-color: #F9FAFB !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
     
     table tr:nth-child(odd) {
+      background-color: #FFFFFF !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    
+    /* Table of Contents specific styling */
+    .toc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1cm;
+      font-size: 11pt;
+      border: 1px solid #1F2937 !important;
+    }
+    
+    .toc-table th {
+      background-color: #E5E7EB !important;
+      border: 1px solid #1F2937 !important;
+      padding: 0.3cm;
+      font-weight: bold;
+      text-align: left;
+      color: #1F2937 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    
+    .toc-table td {
+      border: 1px solid #1F2937 !important;
+      padding: 0.3cm;
+      color: #1F2937;
+    }
+    
+    .toc-table tr:nth-child(even) {
+      background-color: #F9FAFB !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    
+    .toc-table tr:nth-child(odd) {
       background-color: #FFFFFF !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
@@ -354,7 +470,7 @@
       
       <div class="cover-image-placeholder" style="margin: 2cm auto;">
         {{COVER_IMAGE}}
-        <div class="placeholder-text">No image</div>
+        <div class="placeholder-text" id="cover-image-placeholder-text">No image</div>
       </div>
       
       <div class="submission-details" style="margin-top: auto;">
@@ -364,14 +480,14 @@
         </div>
         <div class="submission-row-simple">
           <div class="submission-label">Submitted by:</div>
-          <div>
+          <div class="submission-content">
             <div>{{SPV_NAME}}</div>
             <div>{{LOCATION}}</div>
           </div>
         </div>
-        <div class="submission-row-simple">
+        <div class="submission-row-simple" style="border-bottom: none;">
           <div class="submission-label">Prepared by:</div>
-          <div>M/s.ITCOT Limited, 50A Greams Road, Chennai.</div>
+          <div class="submission-content">M/s.ITCOT Limited, 50A Greams Road, Chennai.</div>
         </div>
       </div>
     </div>
@@ -420,57 +536,256 @@
   </div>
   
   <!-- Project Snapshot -->
-  {{PROJECT_SNAPSHOT}}
+  
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>PROJECT SNAPSHOT</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{PROJECT_SNAPSHOT}}
+      </div>
+    </div>
+  </div>
   
   <!-- District Profile -->
-  {{DISTRICT_PROFILE}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>1.5 DISTRICT & REGIONAL PROFILE</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{DISTRICT_PROFILE}}
+      </div>
+    </div>
+  </div>
   
   <!-- Cluster Profile -->
-  {{CLUSTER_PROFILE}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>2. CLUSTER PROFILE</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{CLUSTER_PROFILE}}
+      </div>
+    </div>
+  </div>
   
   <!-- Value Chain -->
-  {{VALUE_CHAIN}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>3. CLUSTER VALUE CHAIN MAPPING</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{VALUE_CHAIN}}
+      </div>
+    </div>
+  </div>
   
   <!-- Market Aspects -->
-  {{MARKET_ASPECTS}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>4. MARKET ASPECTS</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{MARKET_ASPECTS}}
+      </div>
+    </div>
+  </div>
   
   <!-- SWOT Analysis -->
-  {{SWOT_ANALYSIS}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>5. SWOT ANALYSIS</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{SWOT_ANALYSIS}}
+      </div>
+    </div>
+  </div>
   
   <!-- Gap Analysis -->
-  {{GAP_ANALYSIS}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>6. NEED GAP ANALYSIS</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{GAP_ANALYSIS}}
+      </div>
+    </div>
+  </div>
   
   <!-- Proposed Intervention -->
-  {{PROPOSED_INTERVENTION}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>7. PROPOSED INTERVENTION</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{PROPOSED_INTERVENTION}}
+      </div>
+    </div>
+  </div>
   
   <!-- CFC Details -->
-  {{CFC_DETAILS}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>8. CFC - OPERATION & MANAGEMENT</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{CFC_DETAILS}}
+      </div>
+    </div>
+  </div>
   
   <!-- SPV Details -->
-  {{SPV_DETAILS}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>9. SPV MEMBER UNITS</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{SPV_DETAILS}}
+      </div>
+    </div>
+  </div>
   
   <!-- Project Cost -->
-  {{PROJECT_COST}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>10. PROJECT COST & MEANS OF FINANCE</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{PROJECT_COST}}
+      </div>
+    </div>
+  </div>
   
   <!-- Operating Cost & Revenue -->
-  {{OPERATING_COST_REVENUE}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>10.5 OPERATING COST & REVENUE</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{OPERATING_COST_REVENUE}}
+      </div>
+    </div>
+  </div>
   
   <!-- Financial Viability -->
-  {{FINANCIAL_VIABILITY}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>11. FINANCIAL VIABILITY</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{FINANCIAL_VIABILITY}}
+      </div>
+    </div>
+  </div>
   
   <!-- Implementation Schedule -->
-  {{IMPLEMENTATION_SCHEDULE}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>11.5 PROJECT IMPLEMENTATION SCHEDULE</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{IMPLEMENTATION_SCHEDULE}}
+      </div>
+    </div>
+  </div>
   
   <!-- Expected Impact -->
-  {{EXPECTED_IMPACT}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>12. EXPECTED IMPACT</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{EXPECTED_IMPACT}}
+      </div>
+    </div>
+  </div>
   
   <!-- Financial Statements -->
-  {{FINANCIAL_STATEMENTS}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>FINANCIAL STATEMENTS</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{FINANCIAL_STATEMENTS}}
+      </div>
+    </div>
+  </div>
   
   <!-- Conclusion -->
-  {{CONCLUSION}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>CONCLUSION</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{CONCLUSION}}
+      </div>
+    </div>
+  </div>
   
   <!-- Annexures -->
-  {{ANNEXURES}}
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>ANNEXURES</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{ANNEXURES}}
+      </div>
+    </div>
+  </div>
 </body>
 </html>
