@@ -1538,14 +1538,14 @@ export class DPRService {
       tocSections.push({ chapter: '', title: 'Executive Summary', page: 'i-iv' });
     }
     
+    // Project Snapshot - BEFORE Introduction (rearranged order)
+    if (s1.clusterName || s11.spvName) {
+      tocSections.push({ chapter: '', title: 'Project Snapshot', page: String(pageNum++) });
+    }
+    
     // Introduction
     if (contentLang.introduction || sections.introduction || s2.sectorType) {
       tocSections.push({ chapter: '1.', title: 'Introduction', page: String(pageNum++) });
-    }
-    
-    // Project Snapshot (always include if we have cluster data)
-    if (s1.clusterName || s11.spvName) {
-      tocSections.push({ chapter: '', title: 'Project Snapshot', page: String(pageNum++) });
     }
     
     // District Profile
@@ -1649,14 +1649,29 @@ export class DPRService {
       // Check for enhanced content in metadata or contentLang
       let enhancedText = '';
       if (sectionKey) {
-        // Try to get enhanced content from multiple sources
+        // Try to get enhanced content from multiple sources - check various naming patterns
         enhancedText = contentLang.enhancedContent?.[sectionKey] || 
-                      dpr.metadata?.enhancedContent?.[sectionKey] || 
+                      dpr.metadata?.enhancedContent?.[sectionKey] ||
+                      contentLang[`enhanced${sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1)}`] ||
+                      contentLang[`${sectionKey}Enhanced`] ||
                       '';
       }
       
       // Use enhanced content if available, otherwise use original text
+      // BUT: if both exist, combine them (enhanced content + original for completeness)
       let finalText = enhancedText || text;
+      
+      // If we have both enhanced and original, combine them intelligently
+      if (enhancedText && text && enhancedText !== text) {
+        // Check if enhanced content already includes the original (to avoid duplication)
+        if (!enhancedText.toLowerCase().includes(text.toLowerCase().substring(0, 50))) {
+          // Combine: enhanced content first, then original if it adds value
+          finalText = enhancedText + '\n\n' + text;
+        } else {
+          // Enhanced content already includes original, use it
+          finalText = enhancedText;
+        }
+      }
       
       // If text already contains HTML tags, don't escape them - it's already formatted
       const hasHTMLTags = /<[a-z][\s\S]*>/i.test(finalText);
@@ -1752,21 +1767,6 @@ export class DPRService {
       'executiveSummary'
     );
     html = html.replace('{{EXECUTIVE_SUMMARY}}', execSummary || '<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8;">The cluster development project aims to enhance the processing capabilities and market reach of the cluster through the establishment of a Common Facility Centre.</p>');
-    
-    // Introduction can be stored as introduction, businessProfile, or in sections
-    const intro = formatContent(
-      contentLang.introduction || contentLang.businessProfile || sections.introduction || '', 
-      'introduction'
-    );
-    // If still empty, try to generate from step2 data
-    let introContent = intro;
-    if (!introContent || !introContent.trim()) {
-      const introFromData = generateSectionFromData(s2, 'introduction');
-      if (introFromData && introFromData.trim()) {
-        introContent = formatContent(introFromData, 'introduction');
-      }
-    }
-    html = html.replace('{{INTRODUCTION}}', introContent || '<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8;">The sector plays a crucial role in the economy, and this cluster has significant potential for growth and development.</p>');
     
     // Generate Project Snapshot from clusterData - matching preview structure
     const generateProjectSnapshot = (): string => {
@@ -1903,7 +1903,7 @@ export class DPRService {
     const projectSnapshotHTML = generateProjectSnapshot();
     html = html.replace('{{PROJECT_SNAPSHOT}}', projectSnapshotHTML);
     
-    // Replace optional sections with proper headers
+    // Replace optional sections with proper headers - CORRECT ORDER
     const sectionHeaders: Record<string, string> = {
       '{{DISTRICT_PROFILE}}': '1.5 DISTRICT & REGIONAL PROFILE',
       '{{CLUSTER_PROFILE}}': '2. CLUSTER PROFILE',
@@ -1911,13 +1911,14 @@ export class DPRService {
       '{{MARKET_ASPECTS}}': '4. MARKET ASPECTS',
       '{{SWOT_ANALYSIS}}': '5. SWOT ANALYSIS',
       '{{GAP_ANALYSIS}}': '6. NEED GAP ANALYSIS',
-      '{{CFC_DETAILS}}': '7. CFC - OPERATION & MANAGEMENT',
-      '{{SPV_DETAILS}}': '8. SPV MEMBER UNITS',
-      '{{PROJECT_COST}}': '9. PROJECT COST & MEANS OF FINANCE',
-      '{{OPERATING_COST_REVENUE}}': '9.5 OPERATING COST & REVENUE',
-      '{{FINANCIAL_VIABILITY}}': '10. FINANCIAL VIABILITY',
-      '{{IMPLEMENTATION_SCHEDULE}}': '10.5 PROJECT IMPLEMENTATION SCHEDULE',
-      '{{EXPECTED_IMPACT}}': '11. EXPECTED IMPACT',
+      '{{PROPOSED_INTERVENTION}}': '7. PROPOSED INTERVENTION',
+      '{{CFC_DETAILS}}': '8. CFC - OPERATION & MANAGEMENT',
+      '{{SPV_DETAILS}}': '9. SPV MEMBER UNITS',
+      '{{PROJECT_COST}}': '10. PROJECT COST & MEANS OF FINANCE',
+      '{{OPERATING_COST_REVENUE}}': '10.5 OPERATING COST & REVENUE',
+      '{{FINANCIAL_VIABILITY}}': '11. FINANCIAL VIABILITY',
+      '{{IMPLEMENTATION_SCHEDULE}}': '11.5 PROJECT IMPLEMENTATION SCHEDULE',
+      '{{EXPECTED_IMPACT}}': '12. EXPECTED IMPACT',
       '{{CONCLUSION}}': 'CONCLUSION'
     };
     
@@ -1938,6 +1939,24 @@ export class DPRService {
           .replace(/>/g, '&gt;');
       };
       
+      // Helper to check if array should be a table (has objects with same keys)
+      const shouldBeTable = (arr: any[]): boolean => {
+        if (arr.length === 0) return false;
+        const firstItem = arr[0];
+        if (typeof firstItem !== 'object' || firstItem === null || Array.isArray(firstItem)) return false;
+        // Check if all items have similar structure (at least 2 keys)
+        const keys = Object.keys(firstItem);
+        if (keys.length < 2) return false;
+        // Check if at least 50% of items have the same keys
+        const matchingItems = arr.filter(item => 
+          typeof item === 'object' && 
+          item !== null && 
+          !Array.isArray(item) &&
+          keys.every(k => k in item)
+        );
+        return matchingItems.length >= Math.max(1, arr.length * 0.5);
+      };
+      
       // Generate content from step data
       Object.entries(stepData).forEach(([key, value]) => {
         // Skip internal/technical fields
@@ -1954,31 +1973,67 @@ export class DPRService {
             hasContent = true;
           }
         } else if (value && Array.isArray(value)) {
-          // Array - create list or table
+          // Array - create table if objects have similar structure, otherwise list
           if (value.length > 0) {
             const keyLabel = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
-            content += `<p style="margin-top: 0.3cm; margin-bottom: 0.2cm; color: #1F2937;"><strong>${escapeText(keyLabel)}:</strong></p><ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm; color: #1F2937;">`;
-            value.forEach((item: any) => {
-              if (typeof item === 'string' && item.trim()) {
-                content += `<li style="margin-bottom: 0.2cm; line-height: 1.8;">${escapeText(item)}</li>`;
-                hasContent = true;
-              } else if (typeof item === 'object' && item !== null) {
-                // Format object as readable text
-                const parts: string[] = [];
-                Object.entries(item).forEach(([k, v]) => {
-                  if (v !== null && v !== undefined && v !== '') {
-                    const kLabel = k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
-                    const vStr = typeof v === 'number' ? v.toLocaleString('en-IN') : String(v);
-                    parts.push(`${kLabel}: ${vStr}`);
+            
+            if (shouldBeTable(value)) {
+              // Create table
+              const firstItem = value[0];
+              const columns = Object.keys(firstItem).filter(k => !k.startsWith('_') && k !== 'id' && k !== '__v');
+              
+              if (columns.length > 0) {
+                content += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">${escapeText(keyLabel)}</h4>`;
+                content += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+                content += '<thead><tr style="background-color: #E5E7EB;">';
+                columns.forEach(col => {
+                  const colLabel = col.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+                  content += `<th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">${escapeText(colLabel)}</th>`;
+                });
+                content += '</tr></thead><tbody>';
+                
+                value.forEach((item: any, idx: number) => {
+                  if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+                    const bgColor = idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+                    content += `<tr style="background-color: ${bgColor};">`;
+                    columns.forEach(col => {
+                      const cellValue = item[col];
+                      const cellStr = cellValue !== null && cellValue !== undefined 
+                        ? (typeof cellValue === 'number' ? cellValue.toLocaleString('en-IN') : String(cellValue))
+                        : '';
+                      content += `<td style="border: 1px solid #1F2937; padding: 0.3cm;">${escapeText(cellStr)}</td>`;
+                    });
+                    content += '</tr>';
+                    hasContent = true;
                   }
                 });
-                if (parts.length > 0) {
-                  content += `<li style="margin-bottom: 0.2cm; line-height: 1.8;">${escapeText(parts.join(', '))}</li>`;
-                  hasContent = true;
-                }
+                content += '</tbody></table>';
               }
-            });
-            content += '</ul>';
+            } else {
+              // Create list
+              content += `<p style="margin-top: 0.3cm; margin-bottom: 0.2cm; color: #1F2937;"><strong>${escapeText(keyLabel)}:</strong></p><ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm; color: #1F2937;">`;
+              value.forEach((item: any) => {
+                if (typeof item === 'string' && item.trim()) {
+                  content += `<li style="margin-bottom: 0.2cm; line-height: 1.8;">${escapeText(item)}</li>`;
+                  hasContent = true;
+                } else if (typeof item === 'object' && item !== null) {
+                  // Format object as readable text
+                  const parts: string[] = [];
+                  Object.entries(item).forEach(([k, v]) => {
+                    if (v !== null && v !== undefined && v !== '') {
+                      const kLabel = k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+                      const vStr = typeof v === 'number' ? v.toLocaleString('en-IN') : String(v);
+                      parts.push(`${kLabel}: ${vStr}`);
+                    }
+                  });
+                  if (parts.length > 0) {
+                    content += `<li style="margin-bottom: 0.2cm; line-height: 1.8;">${escapeText(parts.join(', '))}</li>`;
+                    hasContent = true;
+                  }
+                }
+              });
+              content += '</ul>';
+            }
           }
         } else if (value !== null && value !== undefined && value !== '') {
           // Simple value - format key nicely
@@ -2004,15 +2059,951 @@ export class DPRService {
         console.log(`   StepData keys: ${Object.keys(stepData).slice(0, 5).join(', ')}${Object.keys(stepData).length > 5 ? '...' : ''}`);
       }
       
-      // Try to get content from multiple sources
+      // Try to get content from multiple sources - COMBINE ENHANCED CONTENT + STEPDATA
       let finalContent = content;
       
-      // If no formatted content, try to generate from stepData
-      if (!finalContent || !finalContent.trim()) {
-        if (stepData && Object.keys(stepData).length > 0) {
+      // Check for enhanced content first (from AI enhancement)
+      const sectionKey = placeholder.replace(/[{}]/g, '').toLowerCase().replace(/_/g, '');
+      let enhancedContent = contentLang.enhancedContent?.[sectionKey] || 
+                            dpr.metadata?.enhancedContent?.[sectionKey] ||
+                            contentLang[`enhanced${sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1)}`] ||
+                            '';
+      
+      // For Introduction, also check introduction and businessProfile fields
+      if (placeholder === '{{INTRODUCTION}}') {
+        enhancedContent = enhancedContent || 
+                         contentLang.introduction || 
+                         contentLang.businessProfile || 
+                         sections.introduction ||
+                         '';
+        console.log(`   📝 Introduction - checking multiple sources for enhanced content`);
+        console.log(`      contentLang.introduction: ${!!contentLang.introduction}`);
+        console.log(`      contentLang.businessProfile: ${!!contentLang.businessProfile}`);
+        console.log(`      sections.introduction: ${!!sections.introduction}`);
+        console.log(`      enhancedContent found: ${!!enhancedContent} (${enhancedContent ? enhancedContent.length : 0} chars)`);
+      }
+      
+      // For District Profile, also check districtProfile field
+      if (placeholder === '{{DISTRICT_PROFILE}}') {
+        enhancedContent = enhancedContent || 
+                         contentLang.districtProfile || 
+                         sections.districtProfile ||
+                         '';
+        console.log(`   📝 District Profile - checking multiple sources for enhanced content`);
+        console.log(`      contentLang.districtProfile: ${!!contentLang.districtProfile}`);
+        console.log(`      sections.districtProfile: ${!!sections.districtProfile}`);
+        console.log(`      enhancedContent found: ${!!enhancedContent} (${enhancedContent ? enhancedContent.length : 0} chars)`);
+      }
+      
+      // For Cluster Profile, also check clusterProfile field
+      if (placeholder === '{{CLUSTER_PROFILE}}') {
+        enhancedContent = enhancedContent || 
+                         contentLang.clusterProfile || 
+                         sections.clusterProfile ||
+                         '';
+        console.log(`   📝 Cluster Profile - checking multiple sources for enhanced content`);
+        console.log(`      contentLang.clusterProfile: ${!!contentLang.clusterProfile}`);
+        console.log(`      sections.clusterProfile: ${!!sections.clusterProfile}`);
+        console.log(`      enhancedContent found: ${!!enhancedContent} (${enhancedContent ? enhancedContent.length : 0} chars)`);
+      }
+      
+      // For Market Aspects, also check marketAnalysis and marketAssessment fields
+      if (placeholder === '{{MARKET_ASPECTS}}') {
+        enhancedContent = enhancedContent || 
+                         contentLang.marketAnalysis || 
+                         contentLang.marketAssessment ||
+                         sections.marketAnalysis ||
+                         sections.marketAssessment ||
+                         '';
+        console.log(`   📝 Market Aspects - checking multiple sources for enhanced content`);
+        console.log(`      contentLang.marketAnalysis: ${!!contentLang.marketAnalysis}`);
+        console.log(`      contentLang.marketAssessment: ${!!contentLang.marketAssessment}`);
+        console.log(`      sections.marketAnalysis: ${!!sections.marketAnalysis}`);
+        console.log(`      sections.marketAssessment: ${!!sections.marketAssessment}`);
+        console.log(`      enhancedContent found: ${!!enhancedContent} (${enhancedContent ? enhancedContent.length : 0} chars)`);
+      }
+      
+      // Generate content from stepData (but ONLY if we don't have enhanced content, or for specific sections)
+      // For Introduction, District Profile, Cluster Profile, and Market Aspects, we'll generate sub-sections separately to avoid duplication
+      let stepDataContent = '';
+      if (stepData && Object.keys(stepData).length > 0) {
+        // For Introduction, District Profile, Cluster Profile, and Market Aspects, don't use generateSectionFromData (it creates duplicates)
+        // We'll generate sub-sections separately
+        if (placeholder !== '{{INTRODUCTION}}' && placeholder !== '{{DISTRICT_PROFILE}}' && placeholder !== '{{CLUSTER_PROFILE}}' && placeholder !== '{{MARKET_ASPECTS}}') {
           console.log(`   ⚙️  Generating content from stepData...`);
-          finalContent = generateSectionFromData(stepData, header);
-          console.log(`   Generated content length: ${finalContent ? finalContent.length : 0} chars`);
+          stepDataContent = generateSectionFromData(stepData, header);
+          console.log(`   Generated stepData content length: ${stepDataContent ? stepDataContent.length : 0} chars`);
+        }
+      }
+      
+      // Combine content intelligently - ENHANCED CONTENT FIRST, THEN STEPDATA
+      // 1. Use enhanced content if available (most comprehensive) - THIS COMES FIRST
+      // 2. Append stepData content AFTER enhanced content (never replace it)
+      // 3. Fall back to original content if no enhanced content
+      
+      // Format enhanced content if it exists
+      if (enhancedContent && enhancedContent.trim()) {
+        console.log(`   ✅ Found enhanced content (${enhancedContent.length} chars) - using as primary content`);
+        // Format the enhanced content properly (convert markdown, preserve HTML)
+        finalContent = formatContent(enhancedContent, sectionKey);
+        console.log(`   ✅ Formatted enhanced content (${finalContent.length} chars)`);
+      } else if (content && content.trim()) {
+        // Use original content if no enhanced content
+        console.log(`   ✅ Using original content (${content.length} chars)`);
+        finalContent = formatContent(content, sectionKey);
+      } else {
+        // No content at all
+        finalContent = '';
+      }
+      
+      // For non-Introduction sections, append stepData content AFTER enhanced content
+      if (placeholder !== '{{INTRODUCTION}}' && stepDataContent && stepDataContent.trim()) {
+        // Check if stepData content is already in enhanced content (avoid duplication)
+        const stepDataPreview = stepDataContent.substring(0, 100).toLowerCase();
+        const stepDataKeyWords = stepDataContent.toLowerCase().split(/\s+/).slice(0, 10).join(' ');
+        
+        // More thorough check for duplication
+        const isDuplicate = finalContent.toLowerCase().includes(stepDataPreview) ||
+                           finalContent.toLowerCase().includes(stepDataKeyWords) ||
+                           (stepDataContent.length < 200 && finalContent.toLowerCase().includes(stepDataContent.toLowerCase().substring(0, 50)));
+        
+        if (!isDuplicate) {
+          console.log(`   ➕ Appending stepData content AFTER enhanced content`);
+          finalContent += '\n\n' + stepDataContent;
+        } else {
+          console.log(`   ℹ️  StepData content already included - skipping to avoid duplication`);
+        }
+      }
+      
+      // For specific sections, generate tables from stepData even if we have content
+      if (stepData && Object.keys(stepData).length > 0) {
+        // Introduction - generate sub-sections (1.1, 1.2, 1.3, 1.4) from stepData
+        // ONLY add these if they're not already in the enhanced content
+        if (placeholder === '{{INTRODUCTION}}' && stepData && Object.keys(stepData).length > 0) {
+          let introSubsections = '';
+          
+          // Check for common Introduction sub-section fields
+          const subsectionFields = [
+            { key: 'sectorType', label: '1.1 Sector/Industry Type' },
+            { key: 'sectorDescription', label: '1.2 Sector Description' },
+            { key: 'nationalImportance', label: '1.3 National Importance' },
+            { key: 'stateLevelImportance', label: '1.4 State-level Importance' },
+            { key: 'industryType', label: '1.1 Sector/Industry Type' },
+            { key: 'description', label: '1.2 Sector Description' },
+            { key: 'nationalSignificance', label: '1.3 National Importance' },
+            { key: 'stateSignificance', label: '1.4 State-level Importance' }
+          ];
+          
+          subsectionFields.forEach(({ key, label}) => {
+            if (stepData[key] && stepData[key] !== null && stepData[key] !== '') {
+              const valueStr = String(stepData[key]).trim();
+              const labelLower = label.toLowerCase();
+              
+              // Check if this subsection is already in the enhanced content
+              // Check for both the label and the value to avoid duplication
+              const labelInContent = finalContent.toLowerCase().includes(labelLower.substring(0, 20));
+              const valueInContent = finalContent.toLowerCase().includes(valueStr.toLowerCase().substring(0, Math.min(50, valueStr.length)));
+              
+              if (!labelInContent && !valueInContent) {
+                console.log(`   ➕ Adding subsection: ${label}`);
+                introSubsections += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">${label}</h4>`;
+                introSubsections += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${valueStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+              } else {
+                console.log(`   ⏭️  Skipping subsection ${label} - already in content`);
+              }
+            }
+          });
+          
+          // Also include any other stepData fields that aren't already covered
+          // But only if they're not already in the enhanced content
+          Object.entries(stepData).forEach(([key, value]) => {
+            // Skip fields we've already processed or internal fields
+            if (key.startsWith('_') || key === 'id' || key === '__v') return;
+            if (subsectionFields.some(f => f.key === key)) return;
+            
+            // Skip if already in content
+            const keyLabel = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+            const valueStr = typeof value === 'number' ? value.toLocaleString('en-IN') : String(value);
+            
+            // Check if this field is already in the enhanced content
+            const keyInContent = finalContent.toLowerCase().includes(keyLabel.toLowerCase().substring(0, 10));
+            const valueInContent = valueStr && valueStr.trim() && finalContent.toLowerCase().includes(valueStr.toLowerCase().substring(0, Math.min(30, valueStr.length)));
+            
+            if (!keyInContent && !valueInContent && value !== null && value !== undefined && value !== '' && valueStr.trim().length > 0) {
+              console.log(`   ➕ Adding additional field: ${keyLabel}`);
+              introSubsections += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">${keyLabel}</h4>`;
+              introSubsections += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${valueStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+            }
+          });
+          
+          // ALWAYS append sub-sections AFTER enhanced content (never replace it)
+          if (introSubsections) {
+            if (finalContent && finalContent.trim()) {
+              // Enhanced content exists - append stepData sub-sections after it
+              console.log(`   ➕ Appending Introduction sub-sections (${introSubsections.length} chars) AFTER enhanced content`);
+              finalContent += '\n\n' + introSubsections;
+            } else {
+              // No enhanced content - use sub-sections as main content
+              console.log(`   ✅ Using Introduction sub-sections as main content (${introSubsections.length} chars)`);
+              finalContent = introSubsections;
+            }
+          } else {
+            console.log(`   ℹ️  No new Introduction sub-sections to add (all already in enhanced content)`);
+          }
+        }
+        
+        // SWOT Analysis - generate table if we have SWOT data
+        if (placeholder === '{{SWOT_ANALYSIS}}' && (s8.strengths || s8.weaknesses || s8.opportunities || s8.threats)) {
+          let swotTable = '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">SWOT Analysis Summary</h4>';
+          swotTable += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+          swotTable += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Category</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Details</th></tr></thead><tbody>';
+          
+          if (s8.strengths) {
+            const strengths = Array.isArray(s8.strengths) ? s8.strengths : [s8.strengths];
+            strengths.forEach((s: any) => {
+              swotTable += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm;"><strong>Strengths</strong></td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+            });
+          }
+          if (s8.weaknesses) {
+            const weaknesses = Array.isArray(s8.weaknesses) ? s8.weaknesses : [s8.weaknesses];
+            weaknesses.forEach((w: any) => {
+              swotTable += `<tr style="background-color: #F9FAFB;"><td style="border: 1px solid #1F2937; padding: 0.3cm;"><strong>Weaknesses</strong></td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(w).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+            });
+          }
+          if (s8.opportunities) {
+            const opportunities = Array.isArray(s8.opportunities) ? s8.opportunities : [s8.opportunities];
+            opportunities.forEach((o: any) => {
+              swotTable += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm;"><strong>Opportunities</strong></td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(o).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+            });
+          }
+          if (s8.threats) {
+            const threats = Array.isArray(s8.threats) ? s8.threats : [s8.threats];
+            threats.forEach((t: any) => {
+              swotTable += `<tr style="background-color: #F9FAFB;"><td style="border: 1px solid #1F2937; padding: 0.3cm;"><strong>Threats</strong></td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+            });
+          }
+          swotTable += '</tbody></table>';
+          
+          // Append table to content if we have content, or use as main content
+          if (finalContent && finalContent.trim()) {
+            finalContent += swotTable;
+          } else {
+            finalContent = swotTable;
+          }
+        }
+        
+        // District & Regional Profile - generate numbered sub-sections and tables
+        if (placeholder === '{{DISTRICT_PROFILE}}' && stepData && Object.keys(stepData).length > 0) {
+          let districtSubsections = '';
+          let subsectionNum = 1;
+          
+          // Define the sub-sections in order
+          const subsectionFields = [
+            { key: 'geography', label: '1.5.1 Geography' },
+            { key: 'climate', label: '1.5.2 Climate' },
+            { key: 'infrastructure', label: '1.5.3 Infrastructure' },
+            { key: 'keyEconomicActivities', label: '1.5.4 Key Economic Activities' },
+            { key: 'economicActivities', label: '1.5.4 Key Economic Activities' },
+            { key: 'rawMaterialAvailability', label: '1.5.5 Raw Material Availability' },
+            { key: 'industrialInfrastructure', label: '1.5.6 Industrial Infrastructure' },
+            { key: 'connectivity', label: '1.5.7 Connectivity' }
+          ];
+          
+          subsectionFields.forEach(({ key, label }) => {
+            if (stepData[key] && stepData[key] !== null && stepData[key] !== '') {
+              const value = stepData[key];
+              const labelLower = label.toLowerCase();
+              
+              // Check if this subsection is already in the enhanced content
+              const labelInContent = finalContent.toLowerCase().includes(labelLower.substring(0, 15));
+              
+              if (!labelInContent) {
+                // Special handling for Raw Material Availability - create table
+                if (key === 'rawMaterialAvailability' && typeof value === 'object' && !Array.isArray(value)) {
+                  districtSubsections += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">${label}</h4>`;
+                  districtSubsections += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+                  districtSubsections += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Parameter</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Details</th></tr></thead><tbody>';
+                  
+                  Object.entries(value).forEach(([paramKey, paramValue], idx) => {
+                    if (paramValue !== null && paramValue !== undefined && paramValue !== '') {
+                      const bgColor = idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+                      const paramLabel = paramKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+                      const paramValueStr = typeof paramValue === 'number' ? paramValue.toLocaleString('en-IN') : String(paramValue);
+                      districtSubsections += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">${paramLabel}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${paramValueStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+                    }
+                  });
+                  districtSubsections += '</tbody></table>';
+                }
+                // Special handling for Connectivity - create table
+                else if (key === 'connectivity' && typeof value === 'object' && !Array.isArray(value)) {
+                  districtSubsections += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">${label}</h4>`;
+                  districtSubsections += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+                  districtSubsections += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Mode</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Details</th></tr></thead><tbody>';
+                  
+                  Object.entries(value).forEach(([modeKey, modeValue], idx) => {
+                    if (modeValue !== null && modeValue !== undefined && modeValue !== '') {
+                      const bgColor = idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+                      const modeLabel = modeKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+                      const modeValueStr = typeof modeValue === 'number' ? modeValue.toLocaleString('en-IN') : String(modeValue);
+                      districtSubsections += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">${modeLabel}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${modeValueStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+                    }
+                  });
+                  districtSubsections += '</tbody></table>';
+                }
+                // Regular text fields
+                else {
+                  const valueStr = typeof value === 'number' ? value.toLocaleString('en-IN') : String(value);
+                  districtSubsections += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">${label}</h4>`;
+                  districtSubsections += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${valueStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+                }
+              }
+            }
+          });
+          
+          // Also include any other stepData fields that aren't already covered
+          Object.entries(stepData).forEach(([key, value]) => {
+            // Skip fields we've already processed or internal fields
+            if (key.startsWith('_') || key === 'id' || key === '__v') return;
+            if (subsectionFields.some(f => f.key === key)) return;
+            
+            // Skip if already in content
+            const keyLabel = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+            const valueStr = typeof value === 'number' ? value.toLocaleString('en-IN') : String(value);
+            
+            // Check if this field is already in the enhanced content
+            const keyInContent = finalContent.toLowerCase().includes(keyLabel.toLowerCase().substring(0, 10));
+            const valueInContent = valueStr && valueStr.trim() && finalContent.toLowerCase().includes(valueStr.toLowerCase().substring(0, Math.min(30, valueStr.length)));
+            
+            if (!keyInContent && !valueInContent && value !== null && value !== undefined && value !== '' && valueStr.trim().length > 0) {
+              subsectionNum++;
+              districtSubsections += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">1.5.${subsectionNum} ${keyLabel}</h4>`;
+              districtSubsections += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${valueStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+            }
+          });
+          
+          // Append sub-sections AFTER enhanced content
+          if (districtSubsections) {
+            if (finalContent && finalContent.trim()) {
+              console.log(`   ➕ Appending District Profile sub-sections (${districtSubsections.length} chars) AFTER enhanced content`);
+              finalContent += '\n\n' + districtSubsections;
+            } else {
+              console.log(`   ✅ Using District Profile sub-sections as main content (${districtSubsections.length} chars)`);
+              finalContent = districtSubsections;
+            }
+          }
+        }
+        
+        // Cluster Profile - generate numbered sub-sections and tables
+        if (placeholder === '{{CLUSTER_PROFILE}}' && stepData && Object.keys(stepData).length > 0) {
+          let clusterSubsections = '';
+          let subsectionNum = 1;
+          
+          // Define the sub-sections in order
+          const subsectionFields = [
+            { key: 'clusterEvolution', label: '2.1 Evolution of the Cluster', isText: true },
+            { key: 'evolution', label: '2.1 Evolution of the Cluster', isText: true },
+            { key: 'presentStatus', label: '2.2 Present Status of Cluster Units', isTable: true },
+            { key: 'presentStatusOfClusterUnits', label: '2.2 Present Status of Cluster Units', isTable: true },
+            { key: 'keyStakeholders', label: '2.3 Key Stakeholders', isList: true },
+            { key: 'stakeholders', label: '2.3 Key Stakeholders', isList: true }
+          ];
+          
+          subsectionFields.forEach(({ key, label, isTable, isList, isText }) => {
+            if (stepData[key] && stepData[key] !== null && stepData[key] !== '') {
+              const value = stepData[key];
+              const labelLower = label.toLowerCase();
+              
+              // Check if this subsection is already in the enhanced content
+              const labelInContent = finalContent.toLowerCase().includes(labelLower.substring(0, 15));
+              
+              if (!labelInContent) {
+                // Special handling for Present Status - create table
+                if (isTable && typeof value === 'object' && !Array.isArray(value)) {
+                  clusterSubsections += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">${label}</h4>`;
+                  clusterSubsections += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+                  clusterSubsections += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Parameter</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Details</th></tr></thead><tbody>';
+                  
+                  Object.entries(value).forEach(([paramKey, paramValue], idx) => {
+                    if (paramValue !== null && paramValue !== undefined && paramValue !== '') {
+                      const bgColor = idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+                      const paramLabel = paramKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+                      // Handle common field names
+                      const displayLabel = paramLabel === 'No Of Units' || paramLabel === 'No. Of Units' || paramLabel === 'Number Of Units' 
+                        ? 'No. of Units' 
+                        : paramLabel === 'Year Of Establishment' || paramLabel === 'Year Of Establishment'
+                        ? 'Year of Establishment'
+                        : paramLabel;
+                      const paramValueStr = typeof paramValue === 'number' ? paramValue.toLocaleString('en-IN') : String(paramValue);
+                      clusterSubsections += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">${displayLabel}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${paramValueStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+                    }
+                  });
+                  clusterSubsections += '</tbody></table>';
+                }
+                // Special handling for Key Stakeholders - create list
+                else if (isList) {
+                  clusterSubsections += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">${label}</h4>`;
+                  if (Array.isArray(value)) {
+                    clusterSubsections += '<ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm; color: #1F2937;">';
+                    value.forEach((item: any) => {
+                      if (item && String(item).trim()) {
+                        clusterSubsections += `<li style="margin-bottom: 0.2cm; line-height: 1.8;">${String(item).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`;
+                      }
+                    });
+                    clusterSubsections += '</ul>';
+                  } else if (typeof value === 'object' && value !== null) {
+                    // Handle object format - extract values
+                    clusterSubsections += '<ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm; color: #1F2937;">';
+                    Object.values(value).forEach((item: any) => {
+                      if (item && String(item).trim()) {
+                        clusterSubsections += `<li style="margin-bottom: 0.2cm; line-height: 1.8;">${String(item).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`;
+                      }
+                    });
+                    clusterSubsections += '</ul>';
+                  } else {
+                    // Single value
+                    clusterSubsections += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+                  }
+                }
+                // Regular text fields
+                else if (isText) {
+                  const valueStr = typeof value === 'number' ? value.toLocaleString('en-IN') : String(value);
+                  clusterSubsections += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">${label}</h4>`;
+                  clusterSubsections += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${valueStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+                }
+              }
+            }
+          });
+          
+          // Also handle presentStatus fields directly from stepData (if not in subsectionFields)
+          if (stepData.numberOfUnits || stepData.productionCapacity || stepData.technologyLevel || 
+              stepData.yearOfEstablishment || stepData.typeOfUnits || stepData.presentActivities) {
+            const labelLower = '2.2 present status of cluster units';
+            if (!finalContent.toLowerCase().includes(labelLower.substring(0, 20))) {
+              clusterSubsections += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">2.2 Present Status of Cluster Units</h4>';
+              clusterSubsections += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+              clusterSubsections += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Parameter</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Details</th></tr></thead><tbody>';
+              
+              let rowIdx = 0;
+              if (stepData.numberOfUnits) {
+                clusterSubsections += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">No. of Units</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${typeof stepData.numberOfUnits === 'number' ? stepData.numberOfUnits.toLocaleString('en-IN') : stepData.numberOfUnits}</td></tr>`;
+                rowIdx++;
+              }
+              if (stepData.productionCapacity) {
+                clusterSubsections += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Production Capacity</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(stepData.productionCapacity).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+                rowIdx++;
+              }
+              if (stepData.technologyLevel) {
+                clusterSubsections += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Technology Level</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(stepData.technologyLevel).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+                rowIdx++;
+              }
+              if (stepData.yearOfEstablishment) {
+                clusterSubsections += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Year of Establishment</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${typeof stepData.yearOfEstablishment === 'number' ? stepData.yearOfEstablishment.toLocaleString('en-IN') : stepData.yearOfEstablishment}</td></tr>`;
+                rowIdx++;
+              }
+              if (stepData.typeOfUnits) {
+                clusterSubsections += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Type of Units</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(stepData.typeOfUnits).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+                rowIdx++;
+              }
+              if (stepData.presentActivities) {
+                clusterSubsections += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Present Activities</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(stepData.presentActivities).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+                rowIdx++;
+              }
+              clusterSubsections += '</tbody></table>';
+            }
+          }
+          
+          // Also include any other stepData fields that aren't already covered
+          Object.entries(stepData).forEach(([key, value]) => {
+            // Skip fields we've already processed or internal fields
+            if (key.startsWith('_') || key === 'id' || key === '__v') return;
+            if (subsectionFields.some(f => f.key === key)) return;
+            if (['numberOfUnits', 'productionCapacity', 'technologyLevel', 'yearOfEstablishment', 'typeOfUnits', 'presentActivities'].includes(key)) return;
+            
+            // Skip if already in content
+            const keyLabel = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+            const valueStr = typeof value === 'number' ? value.toLocaleString('en-IN') : String(value);
+            
+            // Check if this field is already in the enhanced content
+            const keyInContent = finalContent.toLowerCase().includes(keyLabel.toLowerCase().substring(0, 10));
+            const valueInContent = valueStr && valueStr.trim() && finalContent.toLowerCase().includes(valueStr.toLowerCase().substring(0, Math.min(30, valueStr.length)));
+            
+            if (!keyInContent && !valueInContent && value !== null && value !== undefined && value !== '' && valueStr.trim().length > 0) {
+              subsectionNum++;
+              clusterSubsections += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">2.${subsectionNum} ${keyLabel}</h4>`;
+              if (Array.isArray(value)) {
+                clusterSubsections += '<ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm; color: #1F2937;">';
+                value.forEach((item: any) => {
+                  if (item && String(item).trim()) {
+                    clusterSubsections += `<li style="margin-bottom: 0.2cm; line-height: 1.8;">${String(item).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`;
+                  }
+                });
+                clusterSubsections += '</ul>';
+              } else {
+                clusterSubsections += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${valueStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+              }
+            }
+          });
+          
+          // Append sub-sections AFTER enhanced content
+          if (clusterSubsections) {
+            if (finalContent && finalContent.trim()) {
+              console.log(`   ➕ Appending Cluster Profile sub-sections (${clusterSubsections.length} chars) AFTER enhanced content`);
+              finalContent += '\n\n' + clusterSubsections;
+            } else {
+              console.log(`   ✅ Using Cluster Profile sub-sections as main content (${clusterSubsections.length} chars)`);
+              finalContent = clusterSubsections;
+            }
+          }
+        }
+        
+        // Market Aspects - generate numbered sub-sections (4.1, 4.2, etc.) from stepData
+        if (placeholder === '{{MARKET_ASPECTS}}' && stepData && Object.keys(stepData).length > 0) {
+          let marketSubsections = '';
+          let subsectionNum = 1;
+          
+          // Define the sub-sections in order
+          const subsectionFields = [
+            { key: 'demandSupplyAnalysis', label: '4.1 Demand-Supply Analysis', altKeys: ['existingDemand', 'demandSupplyGap'] },
+            { key: 'existingDemand', label: '4.1 Demand-Supply Analysis', isPartOf: 'demandSupplyAnalysis' },
+            { key: 'demandSupplyGap', label: '4.1 Demand-Supply Analysis', isPartOf: 'demandSupplyAnalysis' },
+            { key: 'competitionAnalysis', label: '4.2 Competition Analysis', altKeys: ['competitorAnalysis', 'competitors'] },
+            { key: 'competitorAnalysis', label: '4.2 Competition Analysis', isPartOf: 'competitionAnalysis' },
+            { key: 'priceTrends', label: '4.3 Price Trends', altKeys: ['priceTrend'] },
+            { key: 'exportPotential', label: '4.4 Export Potential', altKeys: ['exportOpportunities'] },
+            { key: 'targetMarket', label: '4.5 Target Market', altKeys: ['targetMarkets', 'markets'] }
+          ];
+          
+          // Track which subsections we've already added
+          const addedSubsections = new Set<string>();
+          
+          subsectionFields.forEach(({ key, label, altKeys, isPartOf }) => {
+            if (isPartOf) return; // Skip if it's part of another subsection
+            
+            const value = stepData[key] || (altKeys && altKeys.find(altKey => stepData[altKey]) ? stepData[altKeys.find(altKey => stepData[altKey])!] : null);
+            
+            if (value && value !== null && value !== '') {
+              const labelLower = label.toLowerCase();
+              
+              // Check if this subsection is already in the enhanced content
+              const labelInContent = finalContent.toLowerCase().includes(labelLower.substring(0, 20));
+              
+              if (!labelInContent && !addedSubsections.has(label)) {
+                addedSubsections.add(label);
+                
+                // For Demand-Supply Analysis, combine existingDemand and demandSupplyGap if both exist
+                if (key === 'demandSupplyAnalysis' || label.includes('Demand-Supply')) {
+                  let combinedContent = '';
+                  if (stepData.existingDemand) {
+                    combinedContent += `<p style="text-align: justify; margin-bottom: 0.3cm; line-height: 1.8; color: #1F2937;">${String(stepData.existingDemand).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+                  }
+                  if (stepData.demandSupplyGap) {
+                    combinedContent += `<p style="text-align: justify; margin-bottom: 0.3cm; line-height: 1.8; color: #1F2937;"><strong>Demand-Supply Gap:</strong> ${String(stepData.demandSupplyGap).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+                  }
+                  if (combinedContent) {
+                    marketSubsections += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">${label}</h4>`;
+                    marketSubsections += combinedContent;
+                  } else {
+                    const valueStr = typeof value === 'number' ? value.toLocaleString('en-IN') : String(value);
+                    marketSubsections += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">${label}</h4>`;
+                    marketSubsections += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${valueStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+                  }
+                } else {
+                  const valueStr = typeof value === 'number' ? value.toLocaleString('en-IN') : String(value);
+                  marketSubsections += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">${label}</h4>`;
+                  marketSubsections += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${valueStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+                }
+              }
+            }
+          });
+          
+          // Also handle individual fields that might not be in subsectionFields
+          const individualFields = ['existingDemand', 'demandSupplyGap', 'competitorAnalysis', 'priceTrends', 'exportPotential', 'targetMarket'];
+          individualFields.forEach(field => {
+            if (stepData[field] && stepData[field] !== null && stepData[field] !== '' && !addedSubsections.has(field)) {
+              const fieldLabel = field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+              const labelLower = fieldLabel.toLowerCase();
+              
+              // Check if already in content
+              if (!finalContent.toLowerCase().includes(labelLower.substring(0, 15))) {
+                subsectionNum++;
+                const valueStr = typeof stepData[field] === 'number' ? stepData[field].toLocaleString('en-IN') : String(stepData[field]);
+                marketSubsections += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">4.${subsectionNum} ${fieldLabel}</h4>`;
+                marketSubsections += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${valueStr.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+              }
+            }
+          });
+          
+          // Append sub-sections AFTER enhanced content
+          if (marketSubsections) {
+            if (finalContent && finalContent.trim()) {
+              console.log(`   ➕ Appending Market Aspects sub-sections (${marketSubsections.length} chars) AFTER enhanced content`);
+              finalContent += '\n\n' + marketSubsections;
+            } else {
+              console.log(`   ✅ Using Market Aspects sub-sections as main content (${marketSubsections.length} chars)`);
+              finalContent = marketSubsections;
+            }
+          }
+        }
+        
+        // Gap Analysis - generate table if we have gap data
+        if (placeholder === '{{GAP_ANALYSIS}}' && (s7.technologyGaps || s7.infrastructureGaps || s7.skillGaps || s7.marketingGaps || s7.financialGaps)) {
+          let gapTable = '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Gap Analysis Summary</h4>';
+          gapTable += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+          gapTable += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Area</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Existing Gap</th></tr></thead><tbody>';
+          
+          if (s7.technologyGaps) {
+            gapTable += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm;"><strong>Technology</strong></td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(s7.technologyGaps).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+          }
+          if (s7.infrastructureGaps) {
+            gapTable += `<tr style="background-color: #F9FAFB;"><td style="border: 1px solid #1F2937; padding: 0.3cm;"><strong>Infrastructure</strong></td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(s7.infrastructureGaps).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+          }
+          if (s7.skillGaps) {
+            gapTable += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm;"><strong>Skill</strong></td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(s7.skillGaps).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+          }
+          if (s7.marketingGaps) {
+            gapTable += `<tr style="background-color: #F9FAFB;"><td style="border: 1px solid #1F2937; padding: 0.3cm;"><strong>Marketing</strong></td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(s7.marketingGaps).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+          }
+          if (s7.financialGaps) {
+            gapTable += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm;"><strong>Finance</strong></td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(s7.financialGaps).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+          }
+          gapTable += '</tbody></table>';
+          
+          // Append table to content if we have content, or use as main content
+          if (finalContent && finalContent.trim()) {
+            finalContent += gapTable;
+          } else {
+            finalContent = gapTable;
+          }
+        }
+        
+        // SPV Member Units - generate tables for shareholding and member units
+        if (placeholder === '{{SPV_DETAILS}}' && s11) {
+          let spvTables = '';
+          
+          // Shareholding Pattern Table
+          if (s11.shareholdingPattern && Array.isArray(s11.shareholdingPattern) && s11.shareholdingPattern.length > 0) {
+            spvTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Shareholding Pattern</h4>';
+            spvTables += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+            spvTables += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Stakeholder</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Percentage (%)</th></tr></thead><tbody>';
+            
+            s11.shareholdingPattern.forEach((share: any, idx: number) => {
+              const bgColor = idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+              const stakeholder = share.stakeholder || share.name || 'N/A';
+              const percentage = share.percentage || share.percent || '0';
+              spvTables += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(stakeholder).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${percentage}%</td></tr>`;
+            });
+            spvTables += '</tbody></table>';
+          } else if (s11.shareholdingPattern && typeof s11.shareholdingPattern === 'object') {
+            // Handle object format shareholding
+            spvTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Shareholding Pattern</h4>';
+            spvTables += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+            spvTables += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Stakeholder</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Percentage (%)</th></tr></thead><tbody>';
+            
+            let rowIdx = 0;
+            Object.entries(s11.shareholdingPattern).forEach(([key, value]) => {
+              const bgColor = rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+              const stakeholder = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+              const percentage = typeof value === 'number' ? value : (typeof value === 'string' ? parseFloat(value) || 0 : 0);
+              spvTables += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">${stakeholder}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${percentage}%</td></tr>`;
+              rowIdx++;
+            });
+            spvTables += '</tbody></table>';
+          }
+          
+          // Member Units Table
+          if (s11.memberUnits && Array.isArray(s11.memberUnits) && s11.memberUnits.length > 0) {
+            spvTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Member Units</h4>';
+            spvTables += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+            spvTables += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Sl. No</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Unit Name</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Registration</th></tr></thead><tbody>';
+            
+            s11.memberUnits.forEach((unit: any, idx: number) => {
+              const bgColor = idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+              const unitName = unit.name || unit.unitName || unit.unit || 'N/A';
+              const registration = unit.registration || unit.udyamRegistration || unit.registrationNumber || 'N/A';
+              spvTables += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">${idx + 1}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(unitName).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(registration).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+            });
+            spvTables += '</tbody></table>';
+          }
+          
+          // Board of Directors Table
+          if (s11.boardOfDirectors && Array.isArray(s11.boardOfDirectors) && s11.boardOfDirectors.length > 0) {
+            spvTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Board of Directors</h4>';
+            spvTables += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+            spvTables += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Name</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Designation</th></tr></thead><tbody>';
+            
+            s11.boardOfDirectors.forEach((director: any, idx: number) => {
+              const bgColor = idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+              const name = director.name || 'N/A';
+              const designation = director.designation || director.role || 'N/A';
+              spvTables += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(name).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(designation).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+            });
+            spvTables += '</tbody></table>';
+          }
+          
+          if (spvTables) {
+            if (finalContent && finalContent.trim()) {
+              finalContent += spvTables;
+            } else {
+              finalContent = spvTables;
+            }
+          }
+        }
+        
+        // Project Cost - generate tables for cost breakdown and means of finance
+        if (placeholder === '{{PROJECT_COST}}' && s12) {
+          let costTables = '';
+          
+          // Cost of Project Table
+          if (s12.land || s12.building || s12.machinery || s12.utilities || s12.preliminary || s12.workingCapital) {
+            costTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Cost of Project</h4>';
+            costTables += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+            costTables += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Particulars</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Amount (₹)</th></tr></thead><tbody>';
+            
+            let rowIdx = 0;
+            if (s12.land) {
+              costTables += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Land</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s12.land === 'number' ? s12.land.toLocaleString('en-IN') : s12.land}</td></tr>`;
+              rowIdx++;
+            }
+            if (s12.building) {
+              costTables += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Building</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s12.building === 'number' ? s12.building.toLocaleString('en-IN') : s12.building}</td></tr>`;
+              rowIdx++;
+            }
+            if (s12.machinery) {
+              costTables += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Machinery</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s12.machinery === 'number' ? s12.machinery.toLocaleString('en-IN') : s12.machinery}</td></tr>`;
+              rowIdx++;
+            }
+            if (s12.utilities) {
+              costTables += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Utilities & Infrastructure</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s12.utilities === 'number' ? s12.utilities.toLocaleString('en-IN') : s12.utilities}</td></tr>`;
+              rowIdx++;
+            }
+            if (s12.preliminary) {
+              costTables += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Preliminary & Pre-operative</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s12.preliminary === 'number' ? s12.preliminary.toLocaleString('en-IN') : s12.preliminary}</td></tr>`;
+              rowIdx++;
+            }
+            if (s12.workingCapital) {
+              costTables += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Working Capital Margin</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s12.workingCapital === 'number' ? s12.workingCapital.toLocaleString('en-IN') : s12.workingCapital}</td></tr>`;
+              rowIdx++;
+            }
+            
+            // Calculate and add total
+            const total = (s12.land || 0) + (s12.building || 0) + (s12.machinery || 0) + (s12.utilities || 0) + (s12.preliminary || 0) + (s12.workingCapital || 0);
+            if (total > 0) {
+              costTables += `<tr style="background-color: #E5E7EB; font-weight: bold;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Total</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${total.toLocaleString('en-IN')}</td></tr>`;
+            }
+            costTables += '</tbody></table>';
+          }
+          
+          // Means of Finance Table
+          if (s12.meansOfFinance) {
+            const mof = s12.meansOfFinance;
+            if (mof.spvContribution || mof.governmentGrant || mof.bankLoan || mof.otherSources) {
+              costTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Means of Finance</h4>';
+              costTables += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+              costTables += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Source</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Amount (₹)</th></tr></thead><tbody>';
+              
+              let mofRowIdx = 0;
+              if (mof.spvContribution) {
+                costTables += `<tr style="background-color: ${mofRowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">SPV Contribution</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof mof.spvContribution === 'number' ? mof.spvContribution.toLocaleString('en-IN') : mof.spvContribution}</td></tr>`;
+                mofRowIdx++;
+              }
+              if (mof.governmentGrant) {
+                costTables += `<tr style="background-color: ${mofRowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Government Grant</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof mof.governmentGrant === 'number' ? mof.governmentGrant.toLocaleString('en-IN') : mof.governmentGrant}</td></tr>`;
+                mofRowIdx++;
+              }
+              if (mof.bankLoan) {
+                costTables += `<tr style="background-color: ${mofRowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Bank Loan</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof mof.bankLoan === 'number' ? mof.bankLoan.toLocaleString('en-IN') : mof.bankLoan}</td></tr>`;
+                mofRowIdx++;
+              }
+              if (mof.otherSources) {
+                costTables += `<tr style="background-color: ${mofRowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Other Sources</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof mof.otherSources === 'number' ? mof.otherSources.toLocaleString('en-IN') : mof.otherSources}</td></tr>`;
+                mofRowIdx++;
+              }
+              
+              const mofTotal = (mof.spvContribution || 0) + (mof.governmentGrant || 0) + (mof.bankLoan || 0) + (mof.otherSources || 0);
+              if (mofTotal > 0) {
+                costTables += `<tr style="background-color: #E5E7EB; font-weight: bold;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Total</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${mofTotal.toLocaleString('en-IN')}</td></tr>`;
+              }
+              costTables += '</tbody></table>';
+            }
+          }
+          
+          if (costTables) {
+            if (finalContent && finalContent.trim()) {
+              finalContent += costTables;
+            } else {
+              finalContent = costTables;
+            }
+          }
+        }
+        
+        // Financial Viability - generate tables for projections
+        if (placeholder === '{{FINANCIAL_VIABILITY}}' && s15) {
+          let viabilityTables = '';
+          
+          // Profit & Loss Projections Table
+          if (s15.profitAndLossProjections && Array.isArray(s15.profitAndLossProjections) && s15.profitAndLossProjections.length > 0) {
+            viabilityTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Profit & Loss Projections</h4>';
+            viabilityTables += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+            viabilityTables += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Year</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Revenue (₹)</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Cost (₹)</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Profit (₹)</th></tr></thead><tbody>';
+            
+            s15.profitAndLossProjections.forEach((proj: any, idx: number) => {
+              const bgColor = idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+              const revenue = typeof proj.revenue === 'number' ? proj.revenue.toLocaleString('en-IN') : (proj.revenue || '0');
+              const cost = typeof proj.cost === 'number' ? proj.cost.toLocaleString('en-IN') : (proj.cost || '0');
+              const profit = typeof proj.profit === 'number' ? proj.profit.toLocaleString('en-IN') : (proj.profit || '0');
+              viabilityTables += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Year ${idx + 1}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${revenue}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${cost}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${profit}</td></tr>`;
+            });
+            viabilityTables += '</tbody></table>';
+          }
+          
+          // Financial Indicators Table
+          if (s15.breakEvenPoint || s15.irr || s15.npv) {
+            viabilityTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Financial Indicators</h4>';
+            viabilityTables += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+            viabilityTables += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Indicator</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Value</th></tr></thead><tbody>';
+            
+            if (s15.breakEvenPoint) {
+              viabilityTables += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Break Even Point</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${s15.breakEvenPoint} years</td></tr>`;
+            }
+            if (s15.irr) {
+              viabilityTables += `<tr style="background-color: #F9FAFB;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">IRR</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${s15.irr}%</td></tr>`;
+            }
+            if (s15.npv) {
+              viabilityTables += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">NPV</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s15.npv === 'number' ? s15.npv.toLocaleString('en-IN') : s15.npv}</td></tr>`;
+            }
+            viabilityTables += '</tbody></table>';
+          }
+          
+          if (viabilityTables) {
+            if (finalContent && finalContent.trim()) {
+              finalContent += viabilityTables;
+            } else {
+              finalContent = viabilityTables;
+            }
+          }
+        }
+        
+        // Implementation Schedule - generate table if we have schedule data
+        if (placeholder === '{{IMPLEMENTATION_SCHEDULE}}' && s16) {
+          let scheduleTable = '';
+          
+          if (s16.milestones && Array.isArray(s16.milestones) && s16.milestones.length > 0) {
+            scheduleTable += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Implementation Schedule</h4>';
+            scheduleTable += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+            scheduleTable += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Activity</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Time Required</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Start Date</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">End Date</th></tr></thead><tbody>';
+            
+            s16.milestones.forEach((milestone: any, idx: number) => {
+              const bgColor = idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+              const activity = milestone.activity || milestone.name || milestone.task || 'N/A';
+              const timeRequired = milestone.timeRequired || milestone.duration || 'N/A';
+              const startDate = milestone.startDate || milestone.start || 'N/A';
+              const endDate = milestone.endDate || milestone.end || 'N/A';
+              scheduleTable += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(activity).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(timeRequired).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(startDate).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(endDate).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+            });
+            scheduleTable += '</tbody></table>';
+            
+            if (finalContent && finalContent.trim()) {
+              finalContent += scheduleTable;
+            } else {
+              finalContent = scheduleTable;
+            }
+          }
+        }
+        
+        // Operating Cost & Revenue - generate tables
+        if (placeholder === '{{OPERATING_COST_REVENUE}}' && s14) {
+          let operatingTables = '';
+          
+          // Operating Costs Table
+          if (s14.rawMaterialCost || s14.powerCost || s14.wages || s14.administrativeExpenses || s14.marketingExpenses) {
+            operatingTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Operating Costs</h4>';
+            operatingTables += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+            operatingTables += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Cost Component</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Amount (₹)</th></tr></thead><tbody>';
+            
+            let opRowIdx = 0;
+            if (s14.rawMaterialCost) {
+              operatingTables += `<tr style="background-color: ${opRowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Raw Material Cost</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s14.rawMaterialCost === 'number' ? s14.rawMaterialCost.toLocaleString('en-IN') : s14.rawMaterialCost}</td></tr>`;
+              opRowIdx++;
+            }
+            if (s14.powerCost) {
+              operatingTables += `<tr style="background-color: ${opRowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Power Cost</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s14.powerCost === 'number' ? s14.powerCost.toLocaleString('en-IN') : s14.powerCost}</td></tr>`;
+              opRowIdx++;
+            }
+            if (s14.wages) {
+              operatingTables += `<tr style="background-color: ${opRowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Wages</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s14.wages === 'number' ? s14.wages.toLocaleString('en-IN') : s14.wages}</td></tr>`;
+              opRowIdx++;
+            }
+            if (s14.administrativeExpenses) {
+              operatingTables += `<tr style="background-color: ${opRowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Administrative Expenses</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s14.administrativeExpenses === 'number' ? s14.administrativeExpenses.toLocaleString('en-IN') : s14.administrativeExpenses}</td></tr>`;
+              opRowIdx++;
+            }
+            if (s14.marketingExpenses) {
+              operatingTables += `<tr style="background-color: ${opRowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Marketing Expenses</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s14.marketingExpenses === 'number' ? s14.marketingExpenses.toLocaleString('en-IN') : s14.marketingExpenses}</td></tr>`;
+              opRowIdx++;
+            }
+            
+            const totalOpCost = (s14.rawMaterialCost || 0) + (s14.powerCost || 0) + (s14.wages || 0) + (s14.administrativeExpenses || 0) + (s14.marketingExpenses || 0);
+            if (totalOpCost > 0) {
+              operatingTables += `<tr style="background-color: #E5E7EB; font-weight: bold;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Total Operating Cost</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${totalOpCost.toLocaleString('en-IN')}</td></tr>`;
+            }
+            operatingTables += '</tbody></table>';
+          }
+          
+          // Revenue Projections Table
+          if (s14.annualProductionVolume || s14.annualSalesRealization) {
+            operatingTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Revenue Projections</h4>';
+            operatingTables += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+            operatingTables += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Parameter</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Value</th></tr></thead><tbody>';
+            
+            if (s14.annualProductionVolume) {
+              operatingTables += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Annual Production Volume</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${typeof s14.annualProductionVolume === 'number' ? s14.annualProductionVolume.toLocaleString('en-IN') : s14.annualProductionVolume} ${s14.productionUnit || 'units'}</td></tr>`;
+            }
+            if (s14.annualSalesRealization) {
+              operatingTables += `<tr style="background-color: #F9FAFB;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Annual Sales Realization</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s14.annualSalesRealization === 'number' ? s14.annualSalesRealization.toLocaleString('en-IN') : s14.annualSalesRealization}</td></tr>`;
+            }
+            operatingTables += '</tbody></table>';
+          }
+          
+          if (operatingTables) {
+            if (finalContent && finalContent.trim()) {
+              finalContent += operatingTables;
+            } else {
+              finalContent = operatingTables;
+            }
+          }
+        }
+        
+        // Expected Impact - ensure all impact data is included
+        if (placeholder === '{{EXPECTED_IMPACT}}' && s17) {
+          let impactContent = '';
+          
+          // Generate impact metrics if available
+          if (s17.employmentGeneration || s17.incomeIncrease || s17.exportGrowth || s17.otherImpacts) {
+            impactContent += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Expected Impact Metrics</h4>';
+            impactContent += '<ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm; color: #1F2937;">';
+            
+            if (s17.employmentGeneration) {
+              impactContent += `<li style="margin-bottom: 0.3cm; line-height: 1.8;"><strong>Employment Generation:</strong> ${String(s17.employmentGeneration).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`;
+            }
+            if (s17.incomeIncrease) {
+              impactContent += `<li style="margin-bottom: 0.3cm; line-height: 1.8;"><strong>Income Increase:</strong> ${String(s17.incomeIncrease).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`;
+            }
+            if (s17.exportGrowth) {
+              impactContent += `<li style="margin-bottom: 0.3cm; line-height: 1.8;"><strong>Export Growth:</strong> ${String(s17.exportGrowth).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`;
+            }
+            if (s17.otherImpacts && Array.isArray(s17.otherImpacts)) {
+              s17.otherImpacts.forEach((impact: any) => {
+                impactContent += `<li style="margin-bottom: 0.3cm; line-height: 1.8;">${String(impact).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`;
+              });
+            }
+            impactContent += '</ul>';
+            
+            if (finalContent && finalContent.trim()) {
+              finalContent += impactContent;
+            } else {
+              finalContent = impactContent;
+            }
+          }
         }
       }
       
@@ -2027,19 +3018,30 @@ export class DPRService {
         // Get section key for enhanced content lookup
         const sectionKey = placeholder.replace(/[{}]/g, '').toLowerCase().replace(/_/g, '');
         
-        // Check if content is already HTML (from generateSectionFromData)
+        // Check if content is already HTML (from generateSectionFromData or contains tables)
         const isAlreadyHTML = /<[a-z][\s\S]*>/i.test(finalContent);
+        const hasTables = /<table[\s\S]*?<\/table>/i.test(finalContent);
         let formattedContent: string;
         
-        if (isAlreadyHTML) {
+        if (isAlreadyHTML || hasTables) {
           // Content is already HTML - don't process through formatContent to avoid double-escaping
-          // Just ensure it's clean
+          // Just ensure it's clean and preserve tables
           formattedContent = finalContent
             .replace(/&amp;amp;/g, '&amp;')
             .replace(/&amp;lt;/g, '&lt;')
             .replace(/&amp;gt;/g, '&gt;');
+          
+          // If we have enhanced content that wasn't included, try to append it
+          const enhancedContent = contentLang.enhancedContent?.[sectionKey] || 
+                                dpr.metadata?.enhancedContent?.[sectionKey] ||
+                                '';
+          if (enhancedContent && enhancedContent.trim() && !formattedContent.includes(enhancedContent.substring(0, 100))) {
+            // Enhanced content not yet included, append it
+            const enhancedFormatted = formatContent(enhancedContent, sectionKey);
+            formattedContent += '\n' + enhancedFormatted;
+          }
         } else {
-          // Plain text - format it properly
+          // Plain text - format it properly (this will also check for enhanced content)
           formattedContent = formatContent(finalContent, sectionKey);
         }
         
@@ -2105,6 +3107,15 @@ export class DPRService {
     
     console.log('\n📝 Replacing all section placeholders...');
     
+    // Introduction - MUST use replaceSection to ensure stepData is included
+    // This processes Introduction with step2 data to include all sub-sections (1.1, 1.2, 1.3, 1.4, etc.)
+    const introContent = contentLang.introduction || contentLang.businessProfile || sections.introduction || '';
+    console.log(`📋 Introduction - contentLang.introduction: ${!!contentLang.introduction}, contentLang.businessProfile: ${!!contentLang.businessProfile}, sections.introduction: ${!!sections.introduction}, step2: ${Object.keys(s2).length > 0}`);
+    if (Object.keys(s2).length > 0) {
+      console.log(`   Step2 keys: ${Object.keys(s2).join(', ')}`);
+    }
+    replaceSection('{{INTRODUCTION}}', introContent, '1. INTRODUCTION', s2);
+    
     // District Profile
     const districtProfileContent = contentLang.districtProfile || sections.districtProfile || '';
     console.log(`📋 District Profile - contentLang: ${!!contentLang.districtProfile}, sections: ${!!sections.districtProfile}, step3: ${Object.keys(s3).length > 0}`);
@@ -2115,10 +3126,107 @@ export class DPRService {
     console.log(`📋 Cluster Profile - contentLang: ${!!contentLang.clusterProfile}, sections: ${!!sections.clusterProfile}, step4: ${Object.keys(s4).length > 0}`);
     replaceSection('{{CLUSTER_PROFILE}}', clusterProfileContent, sectionHeaders['{{CLUSTER_PROFILE}}'], s4);
     
+    // Handle Cluster Photos images
+    const clusterUnitImage = s4.clusterUnitImage || s4.sampleClusterUnitImage || contentLang.images?.clusterUnit || '';
+    const productionProcessImage = s4.productionProcessImage || s4.productionProcessImage || contentLang.images?.productionProcess || '';
+    
+    // Process cluster unit image
+    let clusterUnitImageHTML = '';
+    if (clusterUnitImage && (clusterUnitImage.startsWith('http') || clusterUnitImage.startsWith('data:'))) {
+      clusterUnitImageHTML = `<img src="${clusterUnitImage}" alt="Sample cluster unit" style="max-width: 100%; max-height: 3cm; object-fit: contain; display: block; margin: 0 auto;" />`;
+    } else if (clusterUnitImage) {
+      // Try to load from file system
+      try {
+        const imagePath = path.join(process.cwd(), clusterUnitImage.replace(/^\//, ''));
+        if (fs.existsSync(imagePath)) {
+          const imageBuffer = fs.readFileSync(imagePath);
+          const imageBase64 = imageBuffer.toString('base64');
+          const imageExt = path.extname(imagePath).toLowerCase().slice(1);
+          const mimeType = imageExt === 'png' ? 'image/png' : imageExt === 'jpg' || imageExt === 'jpeg' ? 'image/jpeg' : 'image/webp';
+          clusterUnitImageHTML = `<img src="data:${mimeType};base64,${imageBase64}" alt="Sample cluster unit" style="max-width: 100%; max-height: 3cm; object-fit: contain; display: block; margin: 0 auto;" />`;
+        }
+      } catch (error) {
+        console.warn('Failed to read cluster unit image:', error);
+      }
+    }
+    if (!clusterUnitImageHTML) {
+      // Create placeholder with icon and text
+      clusterUnitImageHTML = `
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity: 0.5; margin-bottom: 0.3cm;">
+          <path d="M21 19V5C21 3.9 20.1 3 19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19ZM8.5 13.5L11 16.51L14.5 12L19 18H5L8.5 13.5Z" fill="#9CA3AF"/>
+        </svg>
+        <div style="color: #9CA3AF; font-size: 10pt; margin-top: 0.2cm;">No image</div>
+      `;
+    }
+    html = html.replace('{{CLUSTER_UNIT_IMAGE}}', clusterUnitImageHTML);
+    
+    // Process production process image
+    let productionProcessImageHTML = '';
+    if (productionProcessImage && (productionProcessImage.startsWith('http') || productionProcessImage.startsWith('data:'))) {
+      productionProcessImageHTML = `<img src="${productionProcessImage}" alt="Production process" style="max-width: 100%; max-height: 3cm; object-fit: contain; display: block; margin: 0 auto;" />`;
+    } else if (productionProcessImage) {
+      // Try to load from file system
+      try {
+        const imagePath = path.join(process.cwd(), productionProcessImage.replace(/^\//, ''));
+        if (fs.existsSync(imagePath)) {
+          const imageBuffer = fs.readFileSync(imagePath);
+          const imageBase64 = imageBuffer.toString('base64');
+          const imageExt = path.extname(imagePath).toLowerCase().slice(1);
+          const mimeType = imageExt === 'png' ? 'image/png' : imageExt === 'jpg' || imageExt === 'jpeg' ? 'image/jpeg' : 'image/webp';
+          productionProcessImageHTML = `<img src="data:${mimeType};base64,${imageBase64}" alt="Production process" style="max-width: 100%; max-height: 3cm; object-fit: contain; display: block; margin: 0 auto;" />`;
+        }
+      } catch (error) {
+        console.warn('Failed to read production process image:', error);
+      }
+    }
+    if (!productionProcessImageHTML) {
+      // Create placeholder with icon and text
+      productionProcessImageHTML = `
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity: 0.5; margin-bottom: 0.3cm;">
+          <path d="M21 19V5C21 3.9 20.1 3 19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19ZM8.5 13.5L11 16.51L14.5 12L19 18H5L8.5 13.5Z" fill="#9CA3AF"/>
+        </svg>
+        <div style="color: #9CA3AF; font-size: 10pt; margin-top: 0.2cm;">No image</div>
+      `;
+    }
+    html = html.replace('{{PRODUCTION_PROCESS_IMAGE}}', productionProcessImageHTML);
+    
     // Value Chain
     const valueChainContent = contentLang.valueChain || sections.valueChain || '';
     console.log(`📋 Value Chain - contentLang: ${!!contentLang.valueChain}, sections: ${!!sections.valueChain}, step5: ${Object.keys(s5).length > 0}`);
     replaceSection('{{VALUE_CHAIN}}', valueChainContent, sectionHeaders['{{VALUE_CHAIN}}'], s5);
+    
+    // Handle Value Chain Flow Diagram image
+    const valueChainDiagram = s5.valueChainDiagram || s5.valueChainFlowDiagram || s5.flowDiagram || contentLang.images?.valueChainDiagram || '';
+    
+    // Process value chain diagram image
+    let valueChainDiagramHTML = '';
+    if (valueChainDiagram && (valueChainDiagram.startsWith('http') || valueChainDiagram.startsWith('data:'))) {
+      valueChainDiagramHTML = `<img src="${valueChainDiagram}" alt="Value Chain Flow Diagram" style="max-width: 100%; max-height: 4cm; object-fit: contain; display: block; margin: 0 auto;" />`;
+    } else if (valueChainDiagram) {
+      // Try to load from file system
+      try {
+        const imagePath = path.join(process.cwd(), valueChainDiagram.replace(/^\//, ''));
+        if (fs.existsSync(imagePath)) {
+          const imageBuffer = fs.readFileSync(imagePath);
+          const imageBase64 = imageBuffer.toString('base64');
+          const imageExt = path.extname(imagePath).toLowerCase().slice(1);
+          const mimeType = imageExt === 'png' ? 'image/png' : imageExt === 'jpg' || imageExt === 'jpeg' ? 'image/jpeg' : 'image/webp';
+          valueChainDiagramHTML = `<img src="data:${mimeType};base64,${imageBase64}" alt="Value Chain Flow Diagram" style="max-width: 100%; max-height: 4cm; object-fit: contain; display: block; margin: 0 auto;" />`;
+        }
+      } catch (error) {
+        console.warn('Failed to read value chain diagram image:', error);
+      }
+    }
+    if (!valueChainDiagramHTML) {
+      // Create placeholder with icon and text
+      valueChainDiagramHTML = `
+        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity: 0.5; margin-bottom: 0.3cm;">
+          <path d="M21 19V5C21 3.9 20.1 3 19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19ZM8.5 13.5L11 16.51L14.5 12L19 18H5L8.5 13.5Z" fill="#3B82F6"/>
+        </svg>
+        <div style="color: #6B7280; font-size: 10pt; margin-top: 0.2cm;">No image</div>
+      `;
+    }
+    html = html.replace('{{VALUE_CHAIN_DIAGRAM}}', valueChainDiagramHTML);
     
     // Market Aspects
     const marketAspectsContent = contentLang.marketAnalysis || sections.marketAssessment || '';
@@ -2176,26 +3284,89 @@ export class DPRService {
     console.log(`📋 Conclusion - contentLang.conclusion: ${!!contentLang.conclusion}, will include: ${!!conclusionContent}`);
     replaceSection('{{CONCLUSION}}', conclusionContent, sectionHeaders['{{CONCLUSION}}']);
     
-    // Proposed Intervention
+    // Proposed Intervention - Section 7 (BEFORE CFC Details)
     const proposedIntervention = contentLang.proposedIntervention || contentLang.proposedInterventions || sections.proposedIntervention || s9.interventionType || '';
     console.log(`📋 Proposed Intervention - contentLang.proposedIntervention: ${!!contentLang.proposedIntervention}, contentLang.proposedInterventions: ${!!contentLang.proposedInterventions}, sections: ${!!sections.proposedIntervention}, step9: ${Object.keys(s9).length > 0}`);
-    replaceSection('{{PROPOSED_INTERVENTION}}', proposedIntervention, '9. PROPOSED INTERVENTION', s9);
+    replaceSection('{{PROPOSED_INTERVENTION}}', proposedIntervention, sectionHeaders['{{PROPOSED_INTERVENTION}}'], s9);
     
     console.log('\n✅ All sections processed');
     
-    // Generate Financial Statements section
+    // Generate Financial Statements section - ENSURE ALL DATA IS INCLUDED
     const generateFinancialStatements = (): string => {
       let statementsHTML = '';
       
-      if (s12.land || s12.building || s12.machinery) {
+      // Cost of Project & Means of Finance - Include ALL cost components
+      if (s12.land || s12.building || s12.machinery || s12.utilities || s12.preliminary || s12.workingCapital) {
         statementsHTML += '<h3 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 14pt;">1. Cost of Project & Means of Finance</h3>';
         statementsHTML += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
         statementsHTML += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Particulars</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Amount (₹)</th></tr></thead>';
         statementsHTML += '<tbody>';
-        if (s12.land) statementsHTML += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Land</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${s12.land.toLocaleString('en-IN')}</td></tr>`;
-        if (s12.building) statementsHTML += `<tr style="background-color: #F9FAFB;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Building</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${s12.building.toLocaleString('en-IN')}</td></tr>`;
-        if (s12.machinery) statementsHTML += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Machinery</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${s12.machinery.toLocaleString('en-IN')}</td></tr>`;
+        let rowIdx = 0;
+        if (s12.land) {
+          statementsHTML += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Land</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s12.land === 'number' ? s12.land.toLocaleString('en-IN') : s12.land}</td></tr>`;
+          rowIdx++;
+        }
+        if (s12.building) {
+          statementsHTML += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Building</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s12.building === 'number' ? s12.building.toLocaleString('en-IN') : s12.building}</td></tr>`;
+          rowIdx++;
+        }
+        if (s12.machinery) {
+          statementsHTML += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Machinery</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s12.machinery === 'number' ? s12.machinery.toLocaleString('en-IN') : s12.machinery}</td></tr>`;
+          rowIdx++;
+        }
+        if (s12.utilities) {
+          statementsHTML += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Utilities & Infrastructure</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s12.utilities === 'number' ? s12.utilities.toLocaleString('en-IN') : s12.utilities}</td></tr>`;
+          rowIdx++;
+        }
+        if (s12.preliminary) {
+          statementsHTML += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Preliminary & Pre-operative</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s12.preliminary === 'number' ? s12.preliminary.toLocaleString('en-IN') : s12.preliminary}</td></tr>`;
+          rowIdx++;
+        }
+        if (s12.workingCapital) {
+          statementsHTML += `<tr style="background-color: ${rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Working Capital Margin</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof s12.workingCapital === 'number' ? s12.workingCapital.toLocaleString('en-IN') : s12.workingCapital}</td></tr>`;
+          rowIdx++;
+        }
+        
+        // Add total
+        const total = (s12.land || 0) + (s12.building || 0) + (s12.machinery || 0) + (s12.utilities || 0) + (s12.preliminary || 0) + (s12.workingCapital || 0);
+        if (total > 0) {
+          statementsHTML += `<tr style="background-color: #E5E7EB; font-weight: bold;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Total</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${total.toLocaleString('en-IN')}</td></tr>`;
+        }
         statementsHTML += '</tbody></table>';
+        
+        // Means of Finance Table
+        if (s12.meansOfFinance) {
+          const mof = s12.meansOfFinance;
+          if (mof.spvContribution || mof.governmentGrant || mof.bankLoan || mof.otherSources) {
+            statementsHTML += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Means of Finance</h4>';
+            statementsHTML += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+            statementsHTML += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Source</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Amount (₹)</th></tr></thead><tbody>';
+            
+            let mofRowIdx = 0;
+            if (mof.spvContribution) {
+              statementsHTML += `<tr style="background-color: ${mofRowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">SPV Contribution</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof mof.spvContribution === 'number' ? mof.spvContribution.toLocaleString('en-IN') : mof.spvContribution}</td></tr>`;
+              mofRowIdx++;
+            }
+            if (mof.governmentGrant) {
+              statementsHTML += `<tr style="background-color: ${mofRowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Government Grant</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof mof.governmentGrant === 'number' ? mof.governmentGrant.toLocaleString('en-IN') : mof.governmentGrant}</td></tr>`;
+              mofRowIdx++;
+            }
+            if (mof.bankLoan) {
+              statementsHTML += `<tr style="background-color: ${mofRowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Bank Loan</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof mof.bankLoan === 'number' ? mof.bankLoan.toLocaleString('en-IN') : mof.bankLoan}</td></tr>`;
+              mofRowIdx++;
+            }
+            if (mof.otherSources) {
+              statementsHTML += `<tr style="background-color: ${mofRowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Other Sources</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${typeof mof.otherSources === 'number' ? mof.otherSources.toLocaleString('en-IN') : mof.otherSources}</td></tr>`;
+              mofRowIdx++;
+            }
+            
+            const mofTotal = (mof.spvContribution || 0) + (mof.governmentGrant || 0) + (mof.bankLoan || 0) + (mof.otherSources || 0);
+            if (mofTotal > 0) {
+              statementsHTML += `<tr style="background-color: #E5E7EB; font-weight: bold;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Total</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${mofTotal.toLocaleString('en-IN')}</td></tr>`;
+            }
+            statementsHTML += '</tbody></table>';
+          }
+        }
       }
       
       if (s15.profitAndLossProjections && s15.profitAndLossProjections.length > 0) {

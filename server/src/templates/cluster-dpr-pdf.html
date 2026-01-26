@@ -689,20 +689,6 @@
     </div>
   </div>
   
-  <!-- Introduction -->
-  <div class="page">
-    <div class="page-content">
-      <div class="section-title-box">
-        <div class="section-title-box-inner">
-          <h2>1. INTRODUCTION</h2>
-        </div>
-      </div>
-      <div class="content">
-        {{INTRODUCTION}}
-      </div>
-    </div>
-  </div>
-  
   <!-- Project Snapshot -->
   <div class="page">
     <div class="page-content">
@@ -713,6 +699,20 @@
       </div>
       <div class="content">
         {{PROJECT_SNAPSHOT}}
+      </div>
+    </div>
+  </div>
+  
+  <!-- Introduction -->
+  <div class="page">
+    <div class="page-content">
+      <div class="section-title-box">
+        <div class="section-title-box-inner">
+          <h2>1. INTRODUCTION</h2>
+        </div>
+      </div>
+      <div class="content">
+        {{INTRODUCTION}}
       </div>
     </div>
   </div>
@@ -741,6 +741,30 @@
       </div>
       <div class="content">
         {{CLUSTER_PROFILE}}
+        
+        <!-- Cluster Photos Section -->
+        <div style="margin-top: 1cm;">
+          <h4 style="margin-top: 0.5cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937; font-size: 12pt; display: flex; align-items: center;">
+            <span style="margin-right: 0.3cm; font-size: 14pt;">📷</span>
+            Cluster Photos
+          </h4>
+          <div style="display: flex; gap: 1cm; margin-top: 0.5cm;">
+            <!-- Sample Cluster Unit Image -->
+            <div style="flex: 1; border: 2px dashed #9CA3AF; border-radius: 4px; padding: 0.8cm; text-align: center; background-color: #F9FAFB; min-height: 4cm; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;">
+              <div id="cluster-unit-image-container">
+                {{CLUSTER_UNIT_IMAGE}}
+              </div>
+              <div style="margin-top: 0.5cm; color: #9CA3AF; font-size: 10pt; font-weight: 500;">Sample cluster unit</div>
+            </div>
+            <!-- Production Process Image -->
+            <div style="flex: 1; border: 2px dashed #9CA3AF; border-radius: 4px; padding: 0.8cm; text-align: center; background-color: #F9FAFB; min-height: 4cm; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;">
+              <div id="production-process-image-container">
+                {{PRODUCTION_PROCESS_IMAGE}}
+              </div>
+              <div style="margin-top: 0.5cm; color: #9CA3AF; font-size: 10pt; font-weight: 500;">Production process</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -755,6 +779,19 @@
       </div>
       <div class="content">
         {{VALUE_CHAIN}}
+        
+        <!-- Value Chain Flow Diagram Section -->
+        <div style="margin-top: 1cm;">
+          <h4 style="margin-top: 0.5cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937; font-size: 12pt;">
+            Value Chain Flow Diagram
+          </h4>
+          <div style="border: 2px dashed #3B82F6; border-radius: 4px; padding: 1cm; text-align: center; background-color: #F9FAFB; min-height: 5cm; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;">
+            <div id="value-chain-diagram-container">
+              {{VALUE_CHAIN_DIAGRAM}}
+            </div>
+            <div style="margin-top: 0.5cm; color: #6B7280; font-size: 10pt; font-style: italic;">Value chain flow from raw material to end customer</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
