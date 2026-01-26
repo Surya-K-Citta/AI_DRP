@@ -42,7 +42,7 @@
       min-height: 29.7cm;
       height: auto;
       max-height: none;
-      padding: 2cm;
+      padding: 1.5cm;
       margin: 0 auto;
       margin-bottom: 1cm;
       page-break-after: always;
@@ -59,6 +59,20 @@
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
+    }
+    
+    .cover-page.page {
+      padding: 1.5cm;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .cover-page .page-content {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      height: 100%;
+      justify-content: space-between;
     }
     
     /* Inner decorative border for enhanced double-line effect */
@@ -96,12 +110,14 @@
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
+      min-height: 100%;
+      height: 100%;
     }
     
     .title-box {
       width: 100%;
-      max-width: 17cm;
-      padding: 1.5cm;
+      max-width: 16cm;
+      padding: 0.8cm;
       background-color: #F3F4F6 !important;
       background-image: repeating-linear-gradient(
         45deg,
@@ -114,60 +130,67 @@
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
       border-radius: 8px;
       text-align: center;
-      margin: 0 auto 2cm auto;
+      margin: 0 auto;
+      flex-shrink: 0;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
     
     .title-box h1 {
-      font-size: 36pt;
+      font-size: 28pt;
       font-weight: bold;
       color: #1F2937;
       letter-spacing: 0.05em;
-      margin-bottom: 0.5cm;
+      margin-bottom: 0.3cm;
       font-family: 'Times New Roman', serif;
+      line-height: 1.2;
     }
     
     .title-box h2 {
-      font-size: 18pt;
+      font-size: 14pt;
       font-weight: 600;
       color: #1F2937;
-      margin-bottom: 0.3cm;
+      margin-bottom: 0.2cm;
       font-family: 'Times New Roman', serif;
+      line-height: 1.3;
     }
     
     .title-box .cluster-name {
-      font-size: 24pt;
+      font-size: 22pt;
       font-weight: bold;
       color: #059669;
       letter-spacing: 0.05em;
-      margin: 0.5cm 0;
+      margin: 0.3cm 0;
       text-transform: uppercase;
       font-family: 'Times New Roman', serif;
+      line-height: 1.2;
     }
     
     .title-box .programme {
-      font-size: 18pt;
+      font-size: 14pt;
       font-weight: 600;
       color: #1F2937;
-      margin-top: 0.3cm;
+      margin-top: 0.2cm;
       font-family: 'Times New Roman', serif;
+      line-height: 1.3;
     }
     
     .cover-image-placeholder {
       width: 100%;
-      max-width: 12cm;
-      min-height: 8cm;
+      max-width: 10cm;
+      min-height: 6cm;
       height: auto;
       border: 2px dashed #9CA3AF;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      margin: 2cm auto;
+      margin: 1cm auto;
       background-color: #F9FAFB;
-      padding: 1cm;
+      padding: 0.5cm;
+      flex: 1;
+      flex-shrink: 0;
     }
     
     .cover-image-placeholder img {
@@ -193,17 +216,18 @@
     
     .submission-details {
       width: 100%;
-      max-width: 17cm;
+      max-width: 16cm;
       margin-top: auto;
-      font-size: 11pt;
+      font-size: 10pt;
+      flex-shrink: 0;
     }
     
     .submission-row {
       display: flex;
       border-top: 2px solid #1F2937;
       border-bottom: 2px solid #1F2937;
-      padding: 0.5cm 0;
-      margin-bottom: 0.5cm;
+      padding: 0.4cm 0;
+      margin-bottom: 0.4cm;
       align-items: flex-start;
     }
     
@@ -211,15 +235,16 @@
       font-weight: bold;
       width: 3.5cm;
       flex-shrink: 0;
-      font-size: 11pt;
+      font-size: 10pt;
       color: #1F2937;
     }
     
     .submission-value {
       flex: 1;
-      font-size: 11pt;
+      font-size: 10pt;
       color: #1F2937;
-      min-height: 1.2cm;
+      min-height: 1cm;
+      line-height: 1.5;
     }
     
     .submission-row-simple {
@@ -237,22 +262,23 @@
       font-weight: bold;
       width: 3.5cm;
       flex-shrink: 0;
-      font-size: 11pt;
+      font-size: 10pt;
       color: #1F2937;
     }
     
     .submission-row-simple .submission-content {
       flex: 1;
-      font-size: 11pt;
+      font-size: 10pt;
       color: #1F2937;
+      line-height: 1.5;
     }
     
     /* Table of Contents */
     .toc-section {
       display: flex;
       justify-content: space-between;
-      padding: 0.3cm 0;
-      font-size: 11pt;
+      padding: 0.2cm 0;
+      font-size: 9pt;
       border-bottom: 1px dotted #9CA3AF;
       font-family: 'Times New Roman', serif;
     }
@@ -282,7 +308,7 @@
     
     /* Section Title Box (like CONTENTS, EXECUTIVE SUMMARY) */
     .section-title-box {
-      margin-bottom: 1.5cm;
+      margin-bottom: 0.8cm;
       text-align: center;
     }
     
@@ -298,8 +324,8 @@
       border: 1px solid #D1D5DB !important;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
       border-radius: 8px;
-      padding: 1cm;
-      max-width: 17cm;
+      padding: 0.5cm;
+      max-width: 15cm;
       margin: 0 auto;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
@@ -307,7 +333,7 @@
     }
     
     .section-title-box-inner h2 {
-      font-size: 24pt;
+      font-size: 18pt;
       font-weight: bold;
       color: #1F2937;
       margin: 0;
@@ -321,12 +347,15 @@
       text-align: justify;
       margin-bottom: 0.5cm;
       color: #1F2937;
+      font-family: 'Times New Roman', serif;
     }
     
     .content p {
       margin-bottom: 0.5cm;
       text-indent: 0;
       color: #1F2937;
+      line-height: 1.8;
+      text-align: justify;
     }
     
     .content strong {
@@ -340,6 +369,7 @@
       margin-top: 0.5cm;
       margin-bottom: 0.3cm;
       color: #1F2937;
+      font-family: 'Times New Roman', serif;
     }
     
     .content h4 {
@@ -348,12 +378,22 @@
       margin-top: 0.5cm;
       margin-bottom: 0.3cm;
       color: #1F2937;
+      font-family: 'Times New Roman', serif;
     }
     
     .content ul {
       list-style-type: disc;
       padding-left: 1.5cm;
       margin-bottom: 0.5cm;
+      margin-top: 0.3cm;
+      color: #1F2937;
+    }
+    
+    .content ol {
+      list-style-type: decimal;
+      padding-left: 1.5cm;
+      margin-bottom: 0.5cm;
+      margin-top: 0.3cm;
       color: #1F2937;
     }
     
@@ -361,6 +401,12 @@
       margin-bottom: 0.3cm;
       color: #1F2937;
       line-height: 1.8;
+      text-align: left;
+    }
+    
+    .content table {
+      margin-top: 0.5cm;
+      margin-bottom: 0.5cm;
     }
     
     /* Tables - Matching preview styling */
@@ -370,6 +416,7 @@
       margin: 0.5cm 0;
       font-size: 10pt;
       border: 1px solid #1F2937 !important;
+      font-family: 'Times New Roman', serif;
     }
     
     table th {
@@ -380,6 +427,7 @@
       text-align: left;
       color: #1F2937 !important;
       font-size: 10pt;
+      font-family: 'Times New Roman', serif;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
@@ -390,6 +438,8 @@
       padding: 0.3cm;
       color: #1F2937;
       font-size: 10pt;
+      font-family: 'Times New Roman', serif;
+      line-height: 1.6;
     }
     
     table tr:nth-child(even) {
@@ -401,6 +451,13 @@
     
     table tr:nth-child(odd) {
       background-color: #FFFFFF !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    
+    table tr:first-child {
+      background-color: #E5E7EB !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
@@ -447,11 +504,53 @@
       color-adjust: exact !important;
     }
     
+    /* Additional styling improvements */
+    .content br {
+      line-height: 1.8;
+    }
+    
+    .content * {
+      max-width: 100%;
+    }
+    
+    /* Fix for nested lists */
+    .content ul ul,
+    .content ol ol {
+      margin-top: 0.2cm;
+      margin-bottom: 0.2cm;
+    }
+    
+    /* Better spacing for paragraphs */
+    .content p + p {
+      margin-top: 0.3cm;
+    }
+    
+    /* Fix table cell text wrapping */
+    table td,
+    table th {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    
+    /* Ensure proper text rendering */
+    .content {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
     /* Print styles */
     @media print {
       .page {
         margin: 0;
         padding: 2cm;
+      }
+      
+      .page {
+        break-after: page;
+      }
+      
+      .page:last-child {
+        break-after: auto;
       }
     }
   </style>
@@ -468,12 +567,12 @@
         <p class="programme">under 'Micro Cluster Development Programme'</p>
       </div>
       
-      <div class="cover-image-placeholder" style="margin: 2cm auto;">
+      <div class="cover-image-placeholder">
         {{COVER_IMAGE}}
         <div class="placeholder-text" id="cover-image-placeholder-text">No image</div>
       </div>
       
-      <div class="submission-details" style="margin-top: auto;">
+      <div class="submission-details">
         <div class="submission-row">
           <div class="submission-label">Submitted to:</div>
           <div class="submission-value">{{SUBMITTED_TO}}</div>
@@ -501,7 +600,7 @@
           <h2>CONTENTS</h2>
         </div>
       </div>
-      <div style="margin-top: 1cm;">
+      <div style="margin-top: 0.5cm;">
         {{TABLE_OF_CONTENTS}}
       </div>
     </div>
@@ -536,7 +635,6 @@
   </div>
   
   <!-- Project Snapshot -->
-  
   <div class="page">
     <div class="page-content">
       <div class="section-title-box">
@@ -782,7 +880,7 @@
           <h2>ANNEXURES</h2>
         </div>
       </div>
-      <div class="content">
+      <div class="content" style="border: none; padding: 0;">
         {{ANNEXURES}}
       </div>
     </div>

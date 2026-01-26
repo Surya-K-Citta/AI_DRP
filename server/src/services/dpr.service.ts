@@ -1656,7 +1656,25 @@ export class DPRService {
       }
       
       // Use enhanced content if available, otherwise use original text
-      const finalText = enhancedText || text;
+      let finalText = enhancedText || text;
+      
+      // If text already contains HTML tags, don't escape them - it's already formatted
+      const hasHTMLTags = /<[a-z][\s\S]*>/i.test(finalText);
+      
+      if (hasHTMLTags) {
+        // Text already contains HTML - clean it up but don't escape
+        // Remove any double-escaped entities
+        finalText = finalText
+          .replace(/&amp;amp;/g, '&amp;')
+          .replace(/&amp;lt;/g, '&lt;')
+          .replace(/&amp;gt;/g, '&gt;')
+          .replace(/&amp;quot;/g, '&quot;');
+        
+        // If it's already well-formed HTML, return it
+        if (finalText.includes('<p') || finalText.includes('<div') || finalText.includes('<table')) {
+          return finalText;
+        }
+      }
       
       // Process markdown text to handle tables and formatting
       const processedParas = processMarkdownText(finalText);
@@ -1665,16 +1683,19 @@ export class DPRService {
       processedParas.forEach((para) => {
         if (para.type === 'table' && para.tableData) {
           // Render table with proper styling
-          html += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0;">';
+          html += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
           para.tableData.forEach((row, rowIndex) => {
             const bgColor = rowIndex === 0 ? '#E5E7EB' : (rowIndex % 2 === 0 ? '#F9FAFB' : '#FFFFFF');
             html += `<tr style="background-color: ${bgColor};">`;
             row.forEach((cell) => {
               const tag = rowIndex === 0 ? 'th' : 'td';
+              const cellText = (cell || '').toString();
+              // Only escape if not already HTML
+              const escapedCell = hasHTMLTags ? cellText : cellText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
               const style = rowIndex === 0 
-                ? 'border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;'
+                ? 'border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left; background-color: #E5E7EB;'
                 : 'border: 1px solid #1F2937; padding: 0.3cm;';
-              html += `<${tag} style="${style}">${(cell || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</${tag}>`;
+              html += `<${tag} style="${style}">${escapedCell}</${tag}>`;
             });
             html += '</tr>';
           });
@@ -1684,15 +1705,17 @@ export class DPRService {
           const tag = `h${Math.min(level + 1, 4)}`;
           const content = para.content.map(seg => seg.text).join('');
           const fontSize = level === 1 ? '18pt' : level === 2 ? '16pt' : '14pt';
-          html += `<${tag} style="font-weight: bold; margin-top: 0.5cm; margin-bottom: 0.3cm; font-size: ${fontSize};">${content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</${tag}>`;
+          const escapedContent = hasHTMLTags ? content : content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          html += `<${tag} style="font-weight: bold; margin-top: 0.5cm; margin-bottom: 0.3cm; font-size: ${fontSize}; color: #1F2937;">${escapedContent}</${tag}>`;
         } else if (para.originalText.trim().length > 0) {
-          html += '<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8;">';
+          html += '<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">';
           para.content.forEach((segment) => {
-            const text = segment.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const text = segment.text;
+            const escapedText = hasHTMLTags ? text : text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             if (segment.bold) {
-              html += `<strong>${text}</strong>`;
+              html += `<strong>${escapedText}</strong>`;
             } else {
-              html += text;
+              html += escapedText;
             }
           });
           html += '</p>';
@@ -1701,15 +1724,21 @@ export class DPRService {
       
       // Fallback to simple text formatting if no processed paragraphs
       if (!html) {
-        html = finalText
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-          .replace(/\n\n/g, '</p><p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8;">')
-          .replace(/\n/g, '<br>');
-        if (html && !html.startsWith('<p')) {
-          html = `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8;">${html}</p>`;
+        if (hasHTMLTags) {
+          // Already HTML, just return it
+          html = finalText;
+        } else {
+          // Plain text - format it
+          html = finalText
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n\n/g, '</p><p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">')
+            .replace(/\n/g, '<br>');
+          if (html && !html.startsWith('<p') && !html.startsWith('<div') && !html.startsWith('<table')) {
+            html = `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${html}</p>`;
+          }
         }
       }
       
@@ -1755,11 +1784,12 @@ export class DPRService {
       snapshotHTML += `<tr><td>Number of SPV members (Micro unit holders)</td><td>${s11.memberUnits?.length || 0} member units</td></tr>`;
       snapshotHTML += '</table>';
       
-      // Add existing cluster scenario table if data exists
-      if (s1.enterpriseCount || s4.productionCapacity || s14.annualProductionVolume) {
-        snapshotHTML += '<h4 style="margin-top: 1cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937;">Existing cluster scenario</h4>';
-        snapshotHTML += '<table>';
-        snapshotHTML += '<tr><th>Product Type</th><th>No. of units</th><th>Annual Production (in MT)</th><th>Annual Turnover (in Rs.lakhs)</th></tr>';
+        // Add existing cluster scenario table if data exists
+        if (s1.enterpriseCount || s4.productionCapacity || s14.annualProductionVolume) {
+          snapshotHTML += '<h4 style="margin-top: 1cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Existing cluster scenario</h4>';
+          snapshotHTML += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+          snapshotHTML += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Product Type</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">No. of units</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Annual Production (in MT)</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Annual Turnover (in Rs.lakhs)</th></tr></thead>';
+          snapshotHTML += '<tbody>';
         
         const rows: Array<{type: string, units: number, production: string, turnover: string}> = [];
         
@@ -1792,7 +1822,8 @@ export class DPRService {
         }
         
         rows.forEach((row, idx) => {
-          snapshotHTML += `<tr><td>${row.type}</td><td>${row.units}</td><td>${row.production}</td><td>${row.turnover}</td></tr>`;
+          const bgColor = idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+          snapshotHTML += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">${row.type}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${row.units}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${row.production}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${row.turnover}</td></tr>`;
         });
         
         // Add total row
@@ -1801,58 +1832,63 @@ export class DPRService {
           const totalTurnover = s1.turnoverPerUnit && totalUnits > 0 
             ? ((s1.turnoverPerUnit * totalUnits) / 100000).toFixed(2)
             : 'N/A';
-          snapshotHTML += `<tr style="font-weight: bold;"><td>Total</td><td>${totalUnits}</td><td>${totalProduction}</td><td>${totalTurnover}</td></tr>`;
+          snapshotHTML += `<tr style="background-color: #E5E7EB; font-weight: bold;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Total</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${totalUnits}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${totalProduction}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${totalTurnover}</td></tr>`;
         }
         
-        snapshotHTML += '</table>';
+        snapshotHTML += '</tbody></table>';
       }
       
       // Key Concern areas
-      snapshotHTML += '<h4 style="margin-top: 1cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937;">Key Concern areas of the cluster</h4>';
-      snapshotHTML += '<ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm;">';
+      snapshotHTML += '<h4 style="margin-top: 1cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Key Concern areas of the cluster</h4>';
+      snapshotHTML += '<ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm; color: #1F2937;">';
       const concerns: string[] = [];
-      if (s7.technologyGaps) concerns.push(`<strong>Technology:</strong> ${s7.technologyGaps}`);
-      if (s7.infrastructureGaps) concerns.push(`<strong>Infrastructure:</strong> ${s7.infrastructureGaps}`);
-      if (s7.skillGaps) concerns.push(`<strong>Skill:</strong> ${s7.skillGaps}`);
-      if (s7.marketingGaps) concerns.push(`<strong>Marketing:</strong> ${s7.marketingGaps}`);
-      if (s7.financialGaps) concerns.push(`<strong>Finance:</strong> ${s7.financialGaps}`);
+      if (s7.technologyGaps) concerns.push(`<strong>Technology:</strong> ${(s7.technologyGaps || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}`);
+      if (s7.infrastructureGaps) concerns.push(`<strong>Infrastructure:</strong> ${(s7.infrastructureGaps || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}`);
+      if (s7.skillGaps) concerns.push(`<strong>Skill:</strong> ${(s7.skillGaps || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}`);
+      if (s7.marketingGaps) concerns.push(`<strong>Marketing:</strong> ${(s7.marketingGaps || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}`);
+      if (s7.financialGaps) concerns.push(`<strong>Finance:</strong> ${(s7.financialGaps || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}`);
       
       if (concerns.length > 0) {
         concerns.forEach(concern => {
-          snapshotHTML += `<li style="margin-bottom: 0.3cm; color: #1F2937;">${concern}</li>`;
+          snapshotHTML += `<li style="margin-bottom: 0.3cm; color: #1F2937; line-height: 1.8;">${concern}</li>`;
         });
       } else {
-        snapshotHTML += '<li style="margin-bottom: 0.3cm; color: #1F2937;">N/A</li>';
+        snapshotHTML += '<li style="margin-bottom: 0.3cm; color: #1F2937; line-height: 1.8;">N/A</li>';
       }
       snapshotHTML += '</ul>';
       
       // Project Rationale
-      snapshotHTML += '<h4 style="margin-top: 1cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937;">Project Rationale</h4>';
-      snapshotHTML += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${s7.justificationForIntervention || 'N/A'}</p>`;
+      snapshotHTML += '<h4 style="margin-top: 1cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Project Rationale</h4>';
+      const rationale = (s7.justificationForIntervention || 'N/A').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      snapshotHTML += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${rationale}</p>`;
       
       // Proposed Interventions
-      snapshotHTML += '<h4 style="margin-top: 1cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937;">Proposed Interventions</h4>';
+      snapshotHTML += '<h4 style="margin-top: 1cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Proposed Interventions</h4>';
       if (s9.interventionType) {
-        snapshotHTML += `<p style="margin-bottom: 0.3cm; color: #1F2937;"><strong>Intervention Type:</strong> ${s9.interventionType}</p>`;
+        const interventionType = (s9.interventionType || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        snapshotHTML += `<p style="margin-bottom: 0.3cm; color: #1F2937; line-height: 1.8;"><strong>Intervention Type:</strong> ${interventionType}</p>`;
       }
       if (s9.description) {
-        snapshotHTML += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${s9.description}</p>`;
+        const description = (s9.description || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        snapshotHTML += `<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">${description}</p>`;
       }
       
       if (s9.objectives && Array.isArray(s9.objectives) && s9.objectives.length > 0) {
         snapshotHTML += '<p style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937;">Objectives:</p>';
-        snapshotHTML += '<ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm;">';
+        snapshotHTML += '<ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm; color: #1F2937;">';
         s9.objectives.forEach((objective: string) => {
-          snapshotHTML += `<li style="margin-bottom: 0.3cm; color: #1F2937;">${objective}</li>`;
+          const objText = (objective || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          snapshotHTML += `<li style="margin-bottom: 0.3cm; color: #1F2937; line-height: 1.8;">${objText}</li>`;
         });
         snapshotHTML += '</ul>';
       }
       
       if (s9.expectedBenefits && Array.isArray(s9.expectedBenefits) && s9.expectedBenefits.length > 0) {
         snapshotHTML += '<p style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937;">Expected Benefits:</p>';
-        snapshotHTML += '<ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm;">';
+        snapshotHTML += '<ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm; color: #1F2937;">';
         s9.expectedBenefits.forEach((benefit: string) => {
-          snapshotHTML += `<li style="margin-bottom: 0.3cm; color: #1F2937;">${benefit}</li>`;
+          const benefitText = (benefit || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          snapshotHTML += `<li style="margin-bottom: 0.3cm; color: #1F2937; line-height: 1.8;">${benefitText}</li>`;
         });
         snapshotHTML += '</ul>';
       }
@@ -1860,16 +1896,8 @@ export class DPRService {
       return snapshotHTML;
     };
     
-    const projectSnapshotHTML = `<div class="page">
-      <div class="page-content">
-        <div class="section-title-box">
-          <div class="section-title-box-inner">
-            <h2>PROJECT SNAPSHOT</h2>
-          </div>
-        </div>
-        <div class="content">${generateProjectSnapshot()}</div>
-      </div>
-    </div>`;
+    // Template already has page structure, just return content
+    const projectSnapshotHTML = generateProjectSnapshot();
     html = html.replace('{{PROJECT_SNAPSHOT}}', projectSnapshotHTML);
     
     // Replace optional sections with proper headers
@@ -1897,6 +1925,16 @@ export class DPRService {
       let content = '';
       let hasContent = false;
       
+      // Helper to escape HTML in text (but preserve existing HTML structure)
+      const escapeText = (text: string): string => {
+        // Don't escape if it already looks like HTML
+        if (/<[a-z]/i.test(text)) return text;
+        return text
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      };
+      
       // Generate content from step data
       Object.entries(stepData).forEach(([key, value]) => {
         // Skip internal/technical fields
@@ -1908,7 +1946,7 @@ export class DPRService {
           if (nested) {
             // Add a heading for nested objects if they have meaningful content
             const keyLabel = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
-            content += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937;">${keyLabel}</h4>`;
+            content += `<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">${escapeText(keyLabel)}</h4>`;
             content += nested;
             hasContent = true;
           }
@@ -1916,15 +1954,23 @@ export class DPRService {
           // Array - create list or table
           if (value.length > 0) {
             const keyLabel = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
-            content += `<p style="margin-top: 0.3cm; margin-bottom: 0.2cm;"><strong>${keyLabel}:</strong></p><ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm;">`;
+            content += `<p style="margin-top: 0.3cm; margin-bottom: 0.2cm; color: #1F2937;"><strong>${escapeText(keyLabel)}:</strong></p><ul style="list-style-type: disc; padding-left: 1.5cm; margin-bottom: 0.5cm; color: #1F2937;">`;
             value.forEach((item: any) => {
               if (typeof item === 'string' && item.trim()) {
-                content += `<li style="margin-bottom: 0.2cm;">${item}</li>`;
+                content += `<li style="margin-bottom: 0.2cm; line-height: 1.8;">${escapeText(item)}</li>`;
                 hasContent = true;
               } else if (typeof item === 'object' && item !== null) {
-                const itemStr = JSON.stringify(item, null, 2).replace(/[{}"]/g, '').trim();
-                if (itemStr) {
-                  content += `<li style="margin-bottom: 0.2cm;">${itemStr}</li>`;
+                // Format object as readable text
+                const parts: string[] = [];
+                Object.entries(item).forEach(([k, v]) => {
+                  if (v !== null && v !== undefined && v !== '') {
+                    const kLabel = k.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
+                    const vStr = typeof v === 'number' ? v.toLocaleString('en-IN') : String(v);
+                    parts.push(`${kLabel}: ${vStr}`);
+                  }
+                });
+                if (parts.length > 0) {
+                  content += `<li style="margin-bottom: 0.2cm; line-height: 1.8;">${escapeText(parts.join(', '))}</li>`;
                   hasContent = true;
                 }
               }
@@ -1937,7 +1983,7 @@ export class DPRService {
           const valueStr = typeof value === 'number' 
             ? value.toLocaleString('en-IN') 
             : String(value);
-          content += `<p style="margin-bottom: 0.3cm;"><strong>${keyLabel}:</strong> ${valueStr}</p>`;
+          content += `<p style="margin-bottom: 0.3cm; line-height: 1.8; color: #1F2937;"><strong>${escapeText(keyLabel)}:</strong> ${escapeText(valueStr)}</p>`;
           hasContent = true;
         }
       });
@@ -1977,7 +2023,22 @@ export class DPRService {
       if (finalContent && finalContent.trim()) {
         // Get section key for enhanced content lookup
         const sectionKey = placeholder.replace(/[{}]/g, '').toLowerCase().replace(/_/g, '');
-        const formattedContent = formatContent(finalContent, sectionKey);
+        
+        // Check if content is already HTML (from generateSectionFromData)
+        const isAlreadyHTML = /<[a-z][\s\S]*>/i.test(finalContent);
+        let formattedContent: string;
+        
+        if (isAlreadyHTML) {
+          // Content is already HTML - don't process through formatContent to avoid double-escaping
+          // Just ensure it's clean
+          formattedContent = finalContent
+            .replace(/&amp;amp;/g, '&amp;')
+            .replace(/&amp;lt;/g, '&lt;')
+            .replace(/&amp;gt;/g, '&gt;');
+        } else {
+          // Plain text - format it properly
+          formattedContent = formatContent(finalContent, sectionKey);
+        }
         
         if (hasPageStructure) {
           // Template already has page structure, just replace the placeholder with content
@@ -1999,13 +2060,14 @@ export class DPRService {
         }
       } else {
         // Include section even with minimal content - generate from stepData if available
-        let placeholderContent = '<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8;">This section contains cluster development information. Detailed content will be populated from cluster data.</p>';
+        let placeholderContent = '<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">This section contains cluster development information. Detailed content will be populated from cluster data.</p>';
         
         // Try one more time to get content from stepData
         if (stepData && Object.keys(stepData).length > 0) {
           const generatedContent = generateSectionFromData(stepData, header);
           if (generatedContent && generatedContent.trim()) {
-            placeholderContent = formatContent(generatedContent, placeholder.replace(/[{}]/g, '').toLowerCase().replace(/_/g, ''));
+            // Generated content is already HTML, use it directly
+            placeholderContent = generatedContent;
             console.log(`   ✅ Section included with generated content from stepData`);
           } else {
             console.log(`   ⚠️  Section included with placeholder (no data available)`);
@@ -2123,97 +2185,88 @@ export class DPRService {
       let statementsHTML = '';
       
       if (s12.land || s12.building || s12.machinery) {
-        statementsHTML += '<h3 style="margin-top: 0.5cm; margin-bottom: 0.3cm;">1. Cost of Project & Means of Finance</h3>';
-        statementsHTML += '<table>';
-        statementsHTML += '<tr><th>Particulars</th><th>Amount (₹)</th></tr>';
-        if (s12.land) statementsHTML += `<tr><td>Land</td><td>${s12.land.toLocaleString('en-IN')}</td></tr>`;
-        if (s12.building) statementsHTML += `<tr><td>Building</td><td>${s12.building.toLocaleString('en-IN')}</td></tr>`;
-        if (s12.machinery) statementsHTML += `<tr><td>Machinery</td><td>${s12.machinery.toLocaleString('en-IN')}</td></tr>`;
-        statementsHTML += '</table>';
+        statementsHTML += '<h3 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 14pt;">1. Cost of Project & Means of Finance</h3>';
+        statementsHTML += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+        statementsHTML += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Particulars</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Amount (₹)</th></tr></thead>';
+        statementsHTML += '<tbody>';
+        if (s12.land) statementsHTML += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Land</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${s12.land.toLocaleString('en-IN')}</td></tr>`;
+        if (s12.building) statementsHTML += `<tr style="background-color: #F9FAFB;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Building</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${s12.building.toLocaleString('en-IN')}</td></tr>`;
+        if (s12.machinery) statementsHTML += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Machinery</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${s12.machinery.toLocaleString('en-IN')}</td></tr>`;
+        statementsHTML += '</tbody></table>';
       }
       
       if (s15.profitAndLossProjections && s15.profitAndLossProjections.length > 0) {
-        statementsHTML += '<h3 style="margin-top: 0.5cm; margin-bottom: 0.3cm;">2. Cost of Production & Profitability</h3>';
-        statementsHTML += '<table>';
-        statementsHTML += '<tr><th>Year</th><th>Revenue</th><th>Cost</th><th>Profit</th></tr>';
+        statementsHTML += '<h3 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 14pt;">2. Cost of Production & Profitability</h3>';
+        statementsHTML += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+        statementsHTML += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Year</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Revenue</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Cost</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Profit</th></tr></thead>';
+        statementsHTML += '<tbody>';
         s15.profitAndLossProjections.forEach((proj: any, idx: number) => {
-          statementsHTML += `<tr><td>Year ${idx + 1}</td><td>${proj.revenue || 0}</td><td>${proj.cost || 0}</td><td>${proj.profit || 0}</td></tr>`;
+          const bgColor = idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+          const revenue = typeof proj.revenue === 'number' ? `₹${proj.revenue.toLocaleString('en-IN')}` : (proj.revenue || '0');
+          const cost = typeof proj.cost === 'number' ? `₹${proj.cost.toLocaleString('en-IN')}` : (proj.cost || '0');
+          const profit = typeof proj.profit === 'number' ? `₹${proj.profit.toLocaleString('en-IN')}` : (proj.profit || '0');
+          statementsHTML += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Year ${idx + 1}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${revenue}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${cost}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${profit}</td></tr>`;
         });
-        statementsHTML += '</table>';
+        statementsHTML += '</tbody></table>';
       }
       
       if (s15.breakEvenPoint || s15.irr || s15.npv) {
-        statementsHTML += '<h3 style="margin-top: 0.5cm; margin-bottom: 0.3cm;">3. Financial Indicators</h3>';
-        statementsHTML += '<table>';
-        statementsHTML += '<tr><th>Indicator</th><th>Value</th></tr>';
-        if (s15.breakEvenPoint) statementsHTML += `<tr><td>Break Even Point</td><td>${s15.breakEvenPoint} years</td></tr>`;
-        if (s15.irr) statementsHTML += `<tr><td>IRR</td><td>${s15.irr}%</td></tr>`;
-        if (s15.npv) statementsHTML += `<tr><td>NPV</td><td>₹${s15.npv.toLocaleString('en-IN')}</td></tr>`;
-        statementsHTML += '</table>';
+        statementsHTML += '<h3 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 14pt;">3. Financial Indicators</h3>';
+        statementsHTML += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+        statementsHTML += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Indicator</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Value</th></tr></thead>';
+        statementsHTML += '<tbody>';
+        if (s15.breakEvenPoint) statementsHTML += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Break Even Point</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${s15.breakEvenPoint} years</td></tr>`;
+        if (s15.irr) statementsHTML += `<tr style="background-color: #F9FAFB;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">IRR</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${s15.irr}%</td></tr>`;
+        if (s15.npv) statementsHTML += `<tr style="background-color: #FFFFFF;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">NPV</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${s15.npv.toLocaleString('en-IN')}</td></tr>`;
+        statementsHTML += '</tbody></table>';
       }
       
-      return statementsHTML || '<p>Financial statements data not available.</p>';
+      return statementsHTML || '<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">Financial statements data not available.</p>';
     };
     
-    const financialStatementsHTML = `<div class="page">
-      <div class="page-content">
-        <div class="section-title-box">
-          <div class="section-title-box-inner">
-            <h2>FINANCIAL STATEMENTS</h2>
-          </div>
-        </div>
-        <div class="content">${generateFinancialStatements()}</div>
-      </div>
-    </div>`;
+    // Template already has page structure, just return content
+    const financialStatementsHTML = generateFinancialStatements();
     html = html.replace('{{FINANCIAL_STATEMENTS}}', financialStatementsHTML);
     
     // Generate Annexures section
     const generateAnnexures = (): string => {
-      let annexuresHTML = '<ul style="list-style-type: none; padding-left: 0;">';
+      let annexuresHTML = '<ul style="list-style-type: none; padding-left: 0; color: #1F2937;">';
       let annexureNum = 1;
       
       if (s18.spvRegistration) {
-        annexuresHTML += `<li style="margin-bottom: 0.5cm;"><strong>Annexure ${annexureNum}:</strong> SPV Registration</li>`;
+        annexuresHTML += `<li style="margin-bottom: 0.5cm; line-height: 1.8;"><strong>Annexure ${annexureNum}:</strong> SPV Registration</li>`;
         annexureNum++;
       }
       if (s18.landDocuments) {
-        annexuresHTML += `<li style="margin-bottom: 0.5cm;"><strong>Annexure ${annexureNum}:</strong> Land Documents</li>`;
+        annexuresHTML += `<li style="margin-bottom: 0.5cm; line-height: 1.8;"><strong>Annexure ${annexureNum}:</strong> Land Documents</li>`;
         annexureNum++;
       }
       if (s18.buildingEstimates) {
-        annexuresHTML += `<li style="margin-bottom: 0.5cm;"><strong>Annexure ${annexureNum}:</strong> Building Estimates</li>`;
+        annexuresHTML += `<li style="margin-bottom: 0.5cm; line-height: 1.8;"><strong>Annexure ${annexureNum}:</strong> Building Estimates</li>`;
         annexureNum++;
       }
       if (s18.machineryQuotations) {
-        annexuresHTML += `<li style="margin-bottom: 0.5cm;"><strong>Annexure ${annexureNum}:</strong> Machinery Quotations</li>`;
+        annexuresHTML += `<li style="margin-bottom: 0.5cm; line-height: 1.8;"><strong>Annexure ${annexureNum}:</strong> Machinery Quotations</li>`;
         annexureNum++;
       }
       if (s18.memberRegistrations) {
-        annexuresHTML += `<li style="margin-bottom: 0.5cm;"><strong>Annexure ${annexureNum}:</strong> Member Registrations</li>`;
+        annexuresHTML += `<li style="margin-bottom: 0.5cm; line-height: 1.8;"><strong>Annexure ${annexureNum}:</strong> Member Registrations</li>`;
         annexureNum++;
       }
       if (s18.supportingDocuments && Array.isArray(s18.supportingDocuments) && s18.supportingDocuments.length > 0) {
         s18.supportingDocuments.forEach((doc: any, idx: number) => {
-          annexuresHTML += `<li style="margin-bottom: 0.5cm;"><strong>Annexure ${annexureNum}:</strong> Supporting Document ${idx + 1}</li>`;
+          annexuresHTML += `<li style="margin-bottom: 0.5cm; line-height: 1.8;"><strong>Annexure ${annexureNum}:</strong> Supporting Document ${idx + 1}</li>`;
           annexureNum++;
         });
       }
       
       annexuresHTML += '</ul>';
-      return annexuresHTML || '<p>No annexures available.</p>';
+      return annexuresHTML || '<p style="text-align: justify; margin-bottom: 0.5cm; line-height: 1.8; color: #1F2937;">No annexures available.</p>';
     };
     
-    const annexuresHTML = `<div class="page">
-      <div class="page-content">
-        <div class="section-title-box">
-          <div class="section-title-box-inner">
-            <h2>ANNEXURES</h2>
-          </div>
-        </div>
-        <div class="content">${generateAnnexures()}</div>
-      </div>
-    </div>`;
-    html = html.replace('{{ANNEXURES}}', annexuresHTML);
+    // Template already has page structure, just return content
+    const annexuresHTMLContent = generateAnnexures();
+    html = html.replace('{{ANNEXURES}}', annexuresHTMLContent);
     
     // Final check: Find any remaining placeholders
     const remainingPlaceholders = html.match(/\{\{[A-Z_]+\}\}/g);
