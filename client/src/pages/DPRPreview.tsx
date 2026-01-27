@@ -254,9 +254,24 @@ export const DPRPreview: React.FC = () => {
 
   const handleDownload = async (format: 'pdf' | 'docx' | 'xls') => {
     try {
+      // Get enhanced paragraphs from localStorage for cluster DPRs
+      let enhancedParagraphs: Record<string, string> | undefined;
+      if (isClusterDPR && dprId) {
+        try {
+          const storageKey = `cluster-dpr-enhanced-${dprId}-${viewLanguage}`;
+          const saved = localStorage.getItem(storageKey);
+          if (saved) {
+            enhancedParagraphs = JSON.parse(saved);
+            console.log('📥 Loaded enhanced paragraphs from localStorage for download:', Object.keys(enhancedParagraphs || {}).length, 'sections');
+          }
+        } catch (error) {
+          console.warn('Could not load enhanced paragraphs from localStorage:', error);
+        }
+      }
+
       let blob;
       if (format === 'pdf') {
-        blob = await api.downloadPDF(dprId!, viewLanguage);
+        blob = await api.downloadPDF(dprId!, viewLanguage, enhancedParagraphs);
         downloadBlob(blob, `DPR_${project?.projectName || 'Report'}_${viewLanguage}.pdf`);
       } else if (format === 'docx') {
         blob = await api.downloadDOCX(dprId!, viewLanguage);

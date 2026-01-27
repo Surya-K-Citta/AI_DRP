@@ -76,7 +76,8 @@ router.post('/cluster/sections/enhance', ClusterDPRController.enhanceSection);
 
 // DPR retrieval and download
 router.get('/:dprId', DPRController.getDPR);
-router.get('/:dprId/download/pdf', DPRController.downloadPDF);
+router.get('/:dprId/download/pdf', DPRController.downloadPDF); // GET for backward compatibility
+router.post('/:dprId/download/pdf', DPRController.downloadPDF); // POST to accept enhanced paragraphs
 router.get('/:dprId/download/docx', DPRController.downloadDOCX);
 router.get('/:dprId/download/xls', DPRController.downloadXLS);
 

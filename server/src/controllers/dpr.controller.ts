@@ -712,6 +712,8 @@ export class DPRController {
     try {
       const { dprId } = req.params;
       const { language = 'english' } = req.query;
+      // Get enhanced paragraphs from request body (for POST) or query (for GET backward compatibility)
+      const enhancedParagraphs = req.body?.enhancedParagraphs || req.query?.enhancedParagraphs;
 
       console.log(`📥 Downloading PDF for DPR ${dprId} in ${language}...`);
 
@@ -724,6 +726,7 @@ export class DPRController {
       const pdfBuffer = await DPRService.generatePDF(
         dprId,
         language as 'english' | 'telugu',
+        enhancedParagraphs,
         authToken
       );
 
