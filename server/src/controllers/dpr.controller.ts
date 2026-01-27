@@ -715,9 +715,16 @@ export class DPRController {
 
       console.log(`📥 Downloading PDF for DPR ${dprId} in ${language}...`);
 
+      // Get auth token from request headers (Bearer token)
+      const authHeader = req.headers.authorization;
+      const authToken = authHeader?.startsWith('Bearer ') 
+        ? authHeader.substring(7) 
+        : null;
+      
       const pdfBuffer = await DPRService.generatePDF(
         dprId,
-        language as 'english' | 'telugu'
+        language as 'english' | 'telugu',
+        authToken
       );
 
       // Validate PDF buffer

@@ -267,7 +267,7 @@ export class DPRService {
    * For Telugu: Generate Word document first, then convert to PDF (ensures proper Unicode support)
    * For English: Generate PDF directly (works fine with PDFKit)
    */
-  static async generatePDF(dprId: string, language: 'english' | 'telugu'): Promise<Buffer> {
+  static async generatePDF(dprId: string, language: 'english' | 'telugu', authToken?: string): Promise<Buffer> {
     // For Telugu language, ALWAYS use Word document conversion to PDF
     // DOCX library handles Telugu perfectly, so we convert DOCX -> PDF
     // Try multiple conversion methods in order: LibreOffice -> Pandoc -> Error
@@ -422,8 +422,8 @@ export class DPRService {
       
       // If it's a cluster DPR, use the cluster-specific PDF generation
       if (isClusterDPR) {
-        console.log('✅ Using Cluster DPR template (cluster-dpr-pdf.html)');
-        return await this.generateClusterDPRPDF(dpr, project, language);
+        console.log('✅ Using Cluster DPR preview page rendering (no template)');
+        return await this.generateClusterDPRPDF(dpr, project, language, authToken);
       }
       
       console.log('📄 Using regular DPR template (PDFKit)');
@@ -3483,44 +3483,33 @@ export class DPRService {
   /**
    * Generate PDF for Cluster DPR matching the preview template exactly using HTML-to-PDF
    */
-  static async generateClusterDPRPDF(dpr: any, project: any, language: 'english' | 'telugu'): Promise<Buffer> {
+  static async generateClusterDPRPDF(dpr: any, project: any, language: 'english' | 'telugu', authToken?: string): Promise<Buffer> {
     try {
       console.log('📄 Starting Cluster DPR PDF generation...');
-      console.log('   ✅ Using: cluster-dpr-pdf.html template');
+      console.log('   ✅ Using: Preview page rendering (no template)');
       console.log('   DPR ID:', dpr._id || dpr.id);
       console.log('   Language:', language);
       
-      // Generate HTML from template
-      let html: string;
-      try {
-        html = this.generateClusterDPRHTML(dpr, project, language);
-      } catch (htmlError: any) {
-        console.error('❌ Error generating HTML:', htmlError);
-        throw new Error(`Failed to generate HTML template: ${htmlError.message}`);
+      const dprId = dpr._id || dpr.id;
+      if (!dprId) {
+        throw new Error('DPR ID is required');
       }
       
-      // Validate HTML was generated
-      if (!html || html.length === 0) {
-        throw new Error('Generated HTML template is empty');
+      // Get frontend URL from environment or use default
+      const frontendUrl = process.env.CORS_ORIGIN || process.env.CLIENT_URL || 'http://localhost:5173';
+      const previewUrl = `${frontendUrl}/dpr/view/${dprId}?language=${language}`;
+      
+      console.log(`🔄 Navigating to preview page: ${previewUrl}`);
+      console.log(`   Frontend URL: ${frontendUrl}`);
+      console.log(`   DPR ID: ${dprId}`);
+      console.log(`   Language: ${language}`);
+      
+      // Verify frontend URL is accessible (optional check)
+      if (!frontendUrl.startsWith('http://') && !frontendUrl.startsWith('https://')) {
+        throw new Error(`Invalid frontend URL: ${frontendUrl}. Please set CORS_ORIGIN or CLIENT_URL environment variable.`);
       }
       
-      // Validate HTML structure
-      if (!html.includes('<!DOCTYPE html>') || !html.includes('</html>')) {
-        console.warn('⚠️  HTML template may be malformed');
-      }
-      
-      // Check if styles are present
-      const hasBorderStyle = html.includes('border: 8px double #2563EB') || html.includes('border: 8px solid #2563EB');
-      if (!html.includes('<style') || !hasBorderStyle) {
-        console.error('❌ HTML template missing critical styles!');
-        throw new Error('HTML template is missing required CSS styles');
-      }
-      
-      console.log(`✅ HTML generated: ${html.length} characters`);
-      console.log(`✅ HTML contains styles: ${html.includes('<style')}`);
-      console.log(`✅ HTML contains page borders: ${hasBorderStyle}`);
-      
-      // Try to use Puppeteer for HTML-to-PDF conversion
+      // Try to use Puppeteer to render the preview page directly
       try {
         const puppeteer = require('puppeteer');
         console.log('🔄 Launching Puppeteer browser...');
@@ -3542,120 +3531,604 @@ export class DPRService {
           
           // Set viewport for A4
           await page.setViewport({
-            width: 794, // A4 width in pixels at 96 DPI
-            height: 1123, // A4 height in pixels at 96 DPI
+            width: 1200, // Wider viewport for better rendering
+            height: 1600,
           });
           
-          console.log('🔄 Setting HTML content...');
-          // Set content with longer timeout and error handling
-          // Use base64 encoding for images if needed
-          try {
-            await page.setContent(html, {
-              waitUntil: ['load', 'networkidle0'],
-              timeout: 90000 // Increased timeout for large documents
-            });
-            console.log('✅ HTML content set successfully');
-            // Wait a bit for all resources to load
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          } catch (contentError: any) {
-            console.warn('⚠️  networkidle0 failed, trying domcontentloaded:', contentError.message);
-            // Try with simpler wait condition
-            await page.setContent(html, {
+          // Set authentication token in localStorage before navigating
+          if (authToken) {
+            console.log('🔄 Setting authentication token...');
+            try {
+              // Navigate to frontend root first to set localStorage
+              await page.goto(frontendUrl, { 
               waitUntil: 'domcontentloaded',
+                timeout: 60000 
+              });
+              await page.evaluate((token) => {
+                localStorage.setItem('token', token);
+                // Also set user data if available (optional)
+                const userData = { id: 'pdf-generator', role: 'user' };
+                localStorage.setItem('user', JSON.stringify(userData));
+              }, authToken);
+              console.log('✅ Authentication token set');
+            } catch (authError: any) {
+              console.warn('⚠️  Failed to set auth token on frontend root:', authError.message);
+              console.warn('   Will try to set token directly on preview page...');
+              // Continue anyway - we'll try to set it on the preview page
+            }
+          }
+          
+          console.log('🔄 Navigating to preview page...');
+          
+          // Navigate to the preview page with more lenient wait condition
+          try {
+            await page.goto(previewUrl, {
+              waitUntil: 'domcontentloaded', // Use domcontentloaded instead of networkidle0 for faster loading
+              timeout: 180000 // 3 minutes timeout
+            });
+            console.log('✅ Page navigation successful');
+            
+            // If auth token wasn't set earlier, try to set it now
+            if (authToken) {
+              try {
+                await page.evaluate((token) => {
+                  localStorage.setItem('token', token);
+                  const userData = { id: 'pdf-generator', role: 'user' };
+                  localStorage.setItem('user', JSON.stringify(userData));
+                }, authToken);
+                console.log('✅ Authentication token set on preview page');
+                // Reload page to apply auth
+                await page.reload({ waitUntil: 'domcontentloaded', timeout: 180000 });
+              } catch (tokenError) {
+                console.warn('⚠️  Could not set auth token on preview page:', tokenError);
+              }
+            }
+          } catch (navError: any) {
+            console.error('❌ Navigation error:', navError.message);
+            // Check if it's a timeout or other error
+            if (navError.message.includes('timeout')) {
+              // Try to get the current URL to see if we're on a different page (like login)
+              const currentUrl = page.url();
+              console.log(`⚠️  Current URL after timeout: ${currentUrl}`);
+              if (currentUrl.includes('/login') || currentUrl.includes('/register')) {
+                throw new Error('Authentication failed - redirected to login page. Please check if the auth token is valid and the frontend is running.');
+              }
+              // If we're on the right page but timeout occurred, continue anyway
+              console.warn('⚠️  Navigation timeout, but page may have loaded. Continuing...');
+          } else {
+              throw new Error(`Failed to navigate to preview page: ${navError.message}. Make sure the frontend is running on ${frontendUrl}`);
+            }
+          }
+          
+          // Wait a bit for React to start rendering
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          
+          console.log('✅ Page loaded, waiting for React to render...');
+          
+          // Wait for React to render - check for the DPR content container (with longer timeout)
+          try {
+            await page.waitForSelector('[class*="ClusterDPRDocumentView"], [class*="cluster-dpr"], .bg-white, [class*="bg-gray-100"]', {
               timeout: 90000
             });
-            // Wait for stylesheets to load - use Promise-based delay instead of waitForTimeout
-            await new Promise(resolve => setTimeout(resolve, 3000)); // Longer wait for fallback
-            console.log('✅ HTML content set with fallback method');
+            console.log('✅ DPR content container found');
+          } catch (selectorError) {
+            console.warn('⚠️  Could not find specific selector, checking page content...');
+            // Check if page loaded at all
+            const pageContent = await page.content();
+            if (!pageContent || pageContent.length < 1000) {
+              const currentUrl = page.url();
+              throw new Error(`Page content is too small (${pageContent?.length || 0} chars). Current URL: ${currentUrl}. Page may not have loaded correctly.`);
+            }
+            console.log(`⚠️  Page content size: ${pageContent.length} chars. Continuing without specific selector...`);
           }
           
-          // Ensure all styles are applied
-          await page.evaluateHandle(() => document.fonts.ready);
+          // Wait for loading spinner to disappear (if present) - with timeout
+          try {
+            await page.waitForFunction(
+              () => {
+                const loadingElements = document.querySelectorAll('[class*="animate-spin"], [class*="Loader"], [class*="loading"]');
+                return loadingElements.length === 0;
+              },
+              { timeout: 60000 }
+            );
+            console.log('✅ Loading complete');
+          } catch (e) {
+            console.warn('⚠️  Loading check timeout, continuing...');
+          }
           
-          // Wait for styles to load and render - use Promise-based delay
+          // Wait for data to load - check if content is present (with longer timeout and more lenient check)
+          try {
+            await page.waitForFunction(
+              () => {
+                const bodyText = document.body.innerText || '';
+                // More lenient check - just need some content
+                return bodyText.length > 100 || 
+                       bodyText.includes('DETAILED') ||
+                       bodyText.includes('PROJECT') ||
+                       bodyText.includes('REPORT') ||
+                       bodyText.includes('EXECUTIVE') ||
+                       bodyText.includes('SUMMARY') ||
+                       bodyText.includes('Cluster') ||
+                       bodyText.includes('DPR');
+              },
+              { timeout: 90000 }
+            );
+            console.log('✅ Content loaded');
+          } catch (contentError) {
+            console.warn('⚠️  Content check timeout, checking manually...');
+            // Manual check
+            const bodyText = await page.evaluate(() => document.body.innerText || '');
+            console.log(`⚠️  Body text length: ${bodyText.length}`);
+            if (bodyText.length < 100) {
+              const currentUrl = page.url();
+              throw new Error(`Page content is insufficient (${bodyText.length} chars). Current URL: ${currentUrl}. Page may not have loaded correctly.`);
+            }
+            console.log('⚠️  Continuing with manual content check...');
+          }
+          
+          // Ensure language selector is set correctly (if URL param didn't work)
+          console.log('✅ Content loaded, ensuring language is set...');
+          await page.evaluate((lang) => {
+            const select = document.querySelector('select[value], select') as HTMLSelectElement;
+            if (select) {
+              const options = Array.from(select.options);
+              const targetOption = options.find(opt => 
+                opt.value === lang || 
+                opt.textContent?.toLowerCase().includes(lang.toLowerCase())
+              );
+              if (targetOption && select.value !== targetOption.value) {
+                select.value = targetOption.value;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+            }
+          }, language);
+          
+          // Wait for language change to take effect
           await new Promise(resolve => setTimeout(resolve, 2000));
           
-          // Verify styles are applied
-          const stylesApplied = await page.evaluate(() => {
-            const firstPage = document.querySelector('.page');
-            if (!firstPage) return false;
-            const computedStyle = window.getComputedStyle(firstPage);
-            const borderWidth = computedStyle.borderWidth;
-            return borderWidth && parseFloat(borderWidth) > 0;
-          });
+          console.log('✅ Language set, extracting DPR content only...');
           
-          if (!stylesApplied) {
-            console.warn('⚠️  Styles may not be fully applied, but continuing...');
-          } else {
-            console.log('✅ Styles verified and applied');
-          }
-          
-          // Ensure CSS is loaded by checking for styled elements
-          await page.evaluate(() => {
-            // Force style recalculation
-            document.body.style.display = 'none';
-            document.body.offsetHeight; // Trigger reflow
-            document.body.style.display = '';
-          });
-          
-          // Wait a bit more for rendering - use Promise-based delay
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Verify all sections are present in the rendered page
-          const sectionsInPage = await page.evaluate(() => {
-            const sections = [
-              'EXECUTIVE SUMMARY',
-              'INTRODUCTION',
-              'DISTRICT & REGIONAL PROFILE',
-              'CLUSTER PROFILE',
-              'VALUE CHAIN',
-              'MARKET ASPECTS',
-              'SWOT ANALYSIS',
-              'GAP ANALYSIS',
-              'CFC - OPERATION',
-              'SPV MEMBER',
-              'PROJECT COST',
-              'FINANCIAL VIABILITY',
-              'EXPECTED IMPACT',
-              'CONCLUSION',
-              'FINANCIAL STATEMENTS',
-              'ANNEXURES'
-            ];
-            const foundSections: string[] = [];
-            const pageText = document.body.innerText || '';
-            sections.forEach(section => {
-              if (pageText.includes(section)) {
-                foundSections.push(section);
+          // Extract only the DPR document content and create a clean HTML document
+          const cleanHTML = await page.evaluate(() => {
+            // Find the ClusterDPRDocumentView container
+            // Structure: div.bg-gray-100.p-4 > div.bg-white.shadow-2xl > ClusterDPRDocumentView
+            // We want to extract the inner white container, not the gray wrapper
+            let dprContainer = document.querySelector('div.bg-white.shadow-2xl') ||
+                              document.querySelector('[class*="bg-white"][class*="shadow-2xl"]');
+            
+            // If not found, try to find the gray wrapper and get its inner content
+            if (!dprContainer) {
+              const grayWrapper = document.querySelector('div.bg-gray-100.p-4') ||
+                                 document.querySelector('[class*="bg-gray-100"][class*="p-4"]');
+              if (grayWrapper) {
+                dprContainer = grayWrapper.querySelector('div.bg-white.shadow-2xl') ||
+                              grayWrapper.querySelector('[class*="bg-white"][class*="shadow-2xl"]') ||
+                              grayWrapper.firstElementChild;
               }
-            });
-            return { found: foundSections, total: sections.length };
+            }
+            
+            // Last resort: find container with DPR content by text and page-break class
+            if (!dprContainer) {
+              const allContainers = Array.from(document.querySelectorAll('div'));
+              for (const container of allContainers) {
+                const text = container.innerText || '';
+                const hasPageBreak = container.querySelector('[class*="page-break"]') || 
+                                    container.classList.contains('page-break');
+                if ((text.includes('DETAILED PROJECT REPORT') || 
+                     text.includes('EXECUTIVE SUMMARY') ||
+                     text.includes('వివరణాత్మక') || // Telugu for "Detailed"
+                     (text.includes('Cluster') && text.length > 1000)) &&
+                    hasPageBreak) {
+                  dprContainer = container;
+                  break;
+                }
+              }
+            }
+            
+            if (!dprContainer) {
+              throw new Error('Could not find DPR content container');
+            }
+            
+            // Remove any wrapper divs that add unnecessary padding/margin
+            // If the container has bg-gray-100 or p-4 classes, try to get its inner content
+            if (dprContainer.classList.contains('bg-gray-100') || 
+                dprContainer.classList.contains('p-4')) {
+              const innerContent = dprContainer.querySelector('div.bg-white.shadow-2xl') ||
+                                  dprContainer.firstElementChild;
+              if (innerContent) {
+                dprContainer = innerContent;
+              }
+            }
+            
+            // Get all style tags from the original page - preserve ALL styles for exact preview matching
+            const styleTags = Array.from(document.querySelectorAll('style'));
+            const styles = styleTags.map(tag => tag.innerHTML).join('\n\n');
+            
+            // Get all link tags for stylesheets (same-origin only) - preserve Tailwind and custom styles
+            const linkTags = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
+            const stylesheetLinks = linkTags
+              .filter(link => {
+                const href = link.getAttribute('href') || '';
+                // Include all stylesheets - they contain Tailwind CSS and custom styles needed for preview matching
+                return href.startsWith('/') || href.startsWith('./') || !href.includes('://');
+              })
+              .map(link => link.outerHTML)
+              .join('\n');
+            
+            // Create clean HTML document with only the DPR content
+            return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DPR Document</title>
+  ${stylesheetLinks}
+  <style>
+    /* Reset and base styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: auto;
+      background: white;
+      font-family: 'Times New Roman', serif;
+    }
+    
+    /* PDF page rules - set margins for all pages */
+    @page {
+      size: A4;
+      margin: 0;
+    }
+    
+    /* Ensure DPR container takes full width and removes extra spacing */
+    .dpr-content-wrapper {
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: white !important;
+      overflow: visible !important;
+    }
+    
+    /* Remove padding from outer wrapper divs that might add space, but preserve page-break padding */
+    .dpr-content-wrapper > div:not(.page-break) {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    
+    /* Remove bg-gray-100 padding that adds space */
+    .bg-gray-100 {
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    
+    /* Ensure page-break elements work correctly and maintain proper padding - ALL PAGES */
+    .page-break {
+      page-break-after: always !important;
+      page-break-inside: avoid !important;
+      break-after: page !important;
+      break-inside: avoid !important;
+      width: 21cm !important;
+      min-height: 29.7cm !important;
+      height: auto !important;
+      max-height: none !important;
+      margin: 0 auto !important;
+      margin-bottom: 0 !important;
+      margin-top: 0 !important;
+      padding: 2cm !important; /* Consistent 2cm padding on all sides for ALL pages */
+      box-sizing: border-box !important;
+      position: relative !important;
+      overflow: visible !important;
+      font-family: 'Times New Roman', serif !important;
+    }
+    
+    /* Ensure ALL pages have consistent padding - match preview exactly */
+    .dpr-content-wrapper .page-break {
+      padding-top: 2cm !important;
+      padding-left: 2cm !important;
+      padding-right: 2cm !important;
+      padding-bottom: 2cm !important;
+    }
+    
+    /* Ensure the first page-break starts at the very top with proper padding */
+    .dpr-content-wrapper .page-break:first-child {
+      margin-top: 0 !important;
+      padding-top: 2cm !important; /* Match preview: 2cm padding from top */
+      padding-left: 2cm !important;
+      padding-right: 2cm !important;
+      padding-bottom: 2cm !important;
+    }
+    
+    /* Ensure subsequent pages also have consistent margins */
+    .dpr-content-wrapper .page-break:not(:first-child) {
+      margin-top: 0 !important;
+      padding-top: 2cm !important;
+      padding-left: 2cm !important;
+      padding-right: 2cm !important;
+      padding-bottom: 2cm !important;
+    }
+    
+    /* Remove any top margin/padding from wrapper divs before the first page-break */
+    .dpr-content-wrapper > div:first-child:not(.page-break),
+    .dpr-content-wrapper > div:first-child > div:first-child:not(.page-break) {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+    }
+    
+    /* Ensure the body and wrapper start at the top */
+    body > .dpr-content-wrapper {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+    }
+    
+    /* Ensure bg-white.shadow-2xl wrapper doesn't add extra spacing */
+    .bg-white.shadow-2xl {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    
+    /* Ensure the first page content starts within the 2cm padding */
+    .page-break:first-child > * {
+      margin-top: 0 !important;
+    }
+    
+    /* Ensure flex containers don't add extra spacing */
+    .page-break.flex {
+      display: flex !important;
+    }
+    
+    .page-break.flex-col {
+      flex-direction: column !important;
+    }
+    
+    /* Ensure h-full doesn't create extra space on first page */
+    .page-break:first-child .h-full {
+      min-height: auto !important;
+      height: auto !important;
+    }
+    
+    /* Match preview: ensure content flows naturally within 2cm padding */
+    .page-break:first-child .flex.flex-col {
+      justify-content: flex-start !important;
+      align-items: stretch !important;
+    }
+    
+    /* Preserve border styling from preview - double blue border */
+    .page-break[style*="border"] {
+      border: 8px solid #2563EB !important;
+      border-style: double !important;
+    }
+    
+    /* Preserve decorative inner border */
+    .page-break .absolute.inset-0 {
+      border: 2px solid #3B82F6 !important;
+      margin: 8px !important;
+      border-radius: 4px !important;
+    }
+    
+    /* Ensure all pages maintain consistent formatting */
+    .page-break * {
+      font-family: inherit !important;
+    }
+    
+    /* Preserve background colors and patterns from preview */
+    .page-break [style*="background"] {
+      /* Preserve inline background styles */
+    }
+    
+    /* Preserve ALL inline styles from preview - colors, fonts, spacing */
+    .page-break [style] {
+      /* Preserve inline styles - don't override */
+    }
+    
+    /* Preserve specific colors from preview - Green for cluster name */
+    .page-break [style*="color: #059669"],
+    .page-break [style*="color:#059669"],
+    .page-break [style*="color: '#059669'"],
+    .page-break [style*='color: "#059669"'],
+    .page-break [style*="059669"] {
+      color: #059669 !important; /* Green cluster name from preview */
+    }
+    
+    /* Preserve dark gray text color */
+    .page-break [style*="color: #1F2937"],
+    .page-break [style*="color:#1F2937"],
+    .page-break [style*="color: '#1F2937'"],
+    .page-break [style*='color: "#1F2937"'],
+    .page-break [style*="1F2937"] {
+      color: #1F2937 !important; /* Dark gray text from preview */
+    }
+    
+    /* Preserve text colors and formatting from preview */
+    .page-break h1, .page-break h2, .page-break h3,
+    .page-break h4, .page-break h5, .page-break h6,
+    .page-break p, .page-break span, .page-break div {
+      /* Preserve original colors and styles from inline styles */
+    }
+    
+    /* Preserve font sizes and weights from preview - Tailwind classes */
+    .page-break .text-4xl { font-size: 2.25rem !important; line-height: 2.5rem !important; }
+    .page-break .text-3xl { font-size: 1.875rem !important; line-height: 2.25rem !important; }
+    .page-break .text-2xl { font-size: 1.5rem !important; line-height: 2rem !important; }
+    .page-break .text-xl { font-size: 1.25rem !important; line-height: 1.75rem !important; }
+    .page-break .text-lg { font-size: 1.125rem !important; line-height: 1.75rem !important; }
+    .page-break .font-bold { font-weight: 700 !important; }
+    .page-break .font-semibold { font-weight: 600 !important; }
+    
+    /* Preserve letter spacing from preview */
+    .page-break [style*="letter-spacing"],
+    .page-break [style*="letterSpacing"],
+    .page-break [style*="0.05em"] {
+      /* Preserve letter spacing - inline styles will override */
+    }
+    
+    /* Preserve uppercase transformation */
+    .page-break .uppercase {
+      text-transform: uppercase !important;
+    }
+    
+    /* Preserve text alignment from preview */
+    .page-break .text-center {
+      text-align: center !important;
+    }
+    
+    /* Ensure tables and content maintain proper spacing within pages */
+    .page-break table {
+      width: 100% !important;
+      margin: 0.5cm 0 !important;
+    }
+    
+    /* Ensure proper spacing between sections */
+    .page-break > div {
+      margin-bottom: 0.5cm !important;
+    }
+    
+    .page-break > div:last-child {
+      margin-bottom: 0 !important;
+    }
+    
+    /* Hide any remaining UI elements */
+    button, select, [role="button"], 
+    [class*="Button"], 
+    [class*="action"], 
+    [class*="header"], 
+    [class*="navbar"],
+    [class*="toolbar"],
+    [class*="ArrowLeft"],
+    [class*="action-bar"],
+    nav, header, footer {
+      display: none !important;
+    }
+    
+    /* Ensure images don't break pages awkwardly */
+    img {
+      max-width: 100% !important;
+      height: auto !important;
+      page-break-inside: avoid !important;
+    }
+    
+    /* Ensure tables don't break across pages awkwardly */
+    table {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    
+    /* Ensure section titles don't break from their content */
+    h1, h2, h3, h4, h5, h6 {
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+    }
+    
+    /* Ensure paragraphs don't break awkwardly */
+    p {
+      orphans: 3;
+      widows: 3;
+    }
+    
+    /* Prevent empty pages */
+    .page-break:empty {
+      display: none !important;
+    }
+    
+    /* Preserve original styles but override spacing */
+    ${styles}
+  </style>
+</head>
+<body>
+  <div class="dpr-content-wrapper">
+    ${dprContainer.outerHTML}
+  </div>
+</body>
+</html>
+            `;
           });
           
-          console.log(`📊 Sections found in rendered page: ${sectionsInPage.found.length}/${sectionsInPage.total}`);
-          if (sectionsInPage.found.length < sectionsInPage.total) {
-            console.warn(`⚠️  Some sections may be missing. Found: ${sectionsInPage.found.join(', ')}`);
+          // Create a new page with only the clean DPR content
+          console.log('✅ Creating clean HTML document with DPR content only...');
+          await page.setContent(cleanHTML, {
+            waitUntil: ['load', 'networkidle0'],
+            timeout: 60000
+          });
+          
+          // Wait for all stylesheets to load completely
+          await page.evaluate(async () => {
+            // Wait for all stylesheets to load
+            const stylesheets = Array.from(document.styleSheets);
+            await Promise.all(stylesheets.map(sheet => {
+              return new Promise((resolve) => {
+                if (sheet.href) {
+                  const link = document.querySelector(`link[href="${sheet.href}"]`);
+                  if (link) {
+                    if (link.sheet) {
+                      resolve();
           } else {
-            console.log('✅ All sections found in rendered page');
-          }
+                      link.onload = resolve;
+                      link.onerror = resolve; // Continue even if stylesheet fails
+                    }
+                  } else {
+                    resolve();
+                  }
+                } else {
+                  resolve();
+                }
+              });
+            }));
+          });
           
-          // Wait one more time to ensure everything is fully rendered
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Wait for fonts to load
+          await page.evaluateHandle(() => document.fonts.ready);
           
-          console.log('🔄 Generating PDF...');
-          // Generate PDF with proper settings - ensure styles are rendered
+          // Additional wait to ensure all styles are computed and applied
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+          // Verify styles are loaded by checking computed styles
+          await page.evaluate(() => {
+            const firstPageBreak = document.querySelector('.page-break');
+            if (firstPageBreak) {
+              const computed = window.getComputedStyle(firstPageBreak);
+              if (!computed.border || computed.border === 'none') {
+                console.warn('⚠️  Border styles may not be loaded');
+              }
+            }
+          });
+          
+          // Ensure all images are loaded
+          await page.evaluate(() => {
+            const images = Array.from(document.querySelectorAll('img'));
+            return Promise.all(images.map(img => {
+              if (img.complete) return Promise.resolve();
+              return new Promise((resolve) => {
+                img.onload = resolve;
+                img.onerror = resolve; // Continue even if image fails
+              });
+            }));
+          });
+          
+          console.log('🔄 Generating PDF from clean DPR document...');
+          
+          // Generate PDF with proper settings
+          // Note: Margins are handled by CSS @page and page-break padding (2cm)
+          // Setting margins to 0 here allows CSS to control page layout
+          // This ensures the PDF matches the preview exactly with consistent 2cm margins on all pages
           const pdfBuffer = await page.pdf({
             format: 'A4',
-            printBackground: true,
-            displayHeaderFooter: false,
+            printBackground: true, // Preserve background colors and borders from preview
+            displayHeaderFooter: false, // No headers/footers - content only
             margin: {
               top: '0',
               right: '0',
               bottom: '0',
               left: '0'
             },
-            preferCSSPageSize: true,
-            timeout: 120000, // Increased timeout for large documents with many sections
-            scale: 1.0
+            preferCSSPageSize: true, // This ensures CSS page size rules (21cm x 29.7cm) are respected
+            timeout: 120000,
+            scale: 1.0 // 100% scale to match preview exactly
           });
           
           // Validate PDF buffer
@@ -3668,7 +4141,6 @@ export class DPRService {
           const buffer = Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer);
           
           // Validate PDF header (PDF files start with %PDF)
-          // Check first 4 bytes: 0x25 0x50 0x44 0x46 = %PDF
           const isValidPDF = buffer.length >= 4 && 
                             buffer[0] === 0x25 && // %
                             buffer[1] === 0x50 && // P
@@ -3677,12 +4149,6 @@ export class DPRService {
           
           if (!isValidPDF) {
             const headerBytes = buffer.slice(0, 4);
-            const headerStr = headerBytes.toString('ascii');
-            const headerHex = Array.from(headerBytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
-            console.error('❌ Invalid PDF header bytes:', Array.from(headerBytes).join(','));
-            console.error('   Header as string:', headerStr);
-            console.error('   Header as hex:', headerHex);
-            console.error('   First 20 bytes:', buffer.slice(0, 20).toString('hex'));
             await browser.close();
             throw new Error(`Generated buffer does not appear to be a valid PDF. Header bytes: ${Array.from(headerBytes).join(',')}`);
           }
@@ -3692,22 +4158,15 @@ export class DPRService {
           console.log(`✅ PDF header validated: ${pdfHeader}`);
           
           await browser.close();
-          return buffer; // Return the validated buffer
+          return buffer;
         } catch (pageError: any) {
           await browser.close().catch(() => {});
           throw pageError;
         }
       } catch (puppeteerError: any) {
-        console.warn('⚠️  Puppeteer error:', puppeteerError.message);
-        console.warn('⚠️  Error stack:', puppeteerError.stack);
-        console.warn('⚠️  Falling back to PDFKit...');
-        // Fallback to PDFKit if Puppeteer is not available
-        try {
-          return await this.generateClusterDPRPDFWithPDFKit(dpr, project, language);
-        } catch (pdfKitError: any) {
-          console.error('❌ PDFKit fallback also failed:', pdfKitError.message);
-          throw new Error(`Both Puppeteer and PDFKit failed. Puppeteer: ${puppeteerError.message}, PDFKit: ${pdfKitError.message}`);
-        }
+        console.error('❌ Puppeteer error:', puppeteerError.message);
+        console.error('   Error stack:', puppeteerError.stack);
+        throw new Error(`Failed to generate PDF from preview page: ${puppeteerError.message}`);
       }
     } catch (error: any) {
       console.error('❌ Error generating Cluster DPR PDF:', error);

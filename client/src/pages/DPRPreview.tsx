@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Layout } from '@/components/layout/Layout';
@@ -31,11 +31,17 @@ export const DPRPreview: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { dprId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [dpr, setDpr] = useState<any>(null);
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [viewLanguage, setViewLanguage] = useState<'english' | 'telugu'>('english');
+  
+  // Get language from URL query parameter, default to 'english'
+  const urlLanguage = searchParams.get('language') as 'english' | 'telugu' | null;
+  const [viewLanguage, setViewLanguage] = useState<'english' | 'telugu'>(
+    urlLanguage === 'telugu' ? 'telugu' : 'english'
+  );
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<string>('');
   const [qualityScore, setQualityScore] = useState<number | null>(null);
@@ -58,6 +64,14 @@ export const DPRPreview: React.FC = () => {
       loadDPR();
     }
   }, [dprId]);
+
+  // Update language from URL query parameter when it changes
+  useEffect(() => {
+    const urlLanguage = searchParams.get('language') as 'english' | 'telugu' | null;
+    if (urlLanguage === 'telugu' || urlLanguage === 'english') {
+      setViewLanguage(urlLanguage);
+    }
+  }, [searchParams]);
 
   const [isClusterDPR, setIsClusterDPR] = useState(false);
 
