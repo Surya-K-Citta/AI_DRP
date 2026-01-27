@@ -182,9 +182,10 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   const renderSectionTitle = (title: string, stepNumber?: number) => {
     const step = stepNumber || getStepFromSection(title);
     const isClickable = onSectionClick && step !== null;
+    const sectionId = step ? `section-step-${step}` : `section-${title.toLowerCase().replace(/\s+/g, '-')}`;
     
     return (
-      <div className="mb-6">
+      <div className="mb-6" id={sectionId} data-step={step || undefined}>
         <div 
           className={`rounded-lg p-4 mx-auto max-w-2xl ${isClickable ? 'cursor-pointer hover:shadow-lg transition-all duration-200' : ''}`}
           style={{
