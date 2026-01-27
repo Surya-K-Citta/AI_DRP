@@ -267,7 +267,7 @@ export class DPRService {
    * For Telugu: Generate Word document first, then convert to PDF (ensures proper Unicode support)
    * For English: Generate PDF directly (works fine with PDFKit)
    */
-  static async generatePDF(dprId: string, language: 'english' | 'telugu'): Promise<Buffer> {
+  static async generatePDF(dprId: string, language: 'english' | 'telugu', enhancedParagraphs?: Record<string, string>): Promise<Buffer> {
     // For Telugu language, ALWAYS use Word document conversion to PDF
     // DOCX library handles Telugu perfectly, so we convert DOCX -> PDF
     // Try multiple conversion methods in order: LibreOffice -> Pandoc -> Error
@@ -423,7 +423,7 @@ export class DPRService {
       // If it's a cluster DPR, use the cluster-specific PDF generation
       if (isClusterDPR) {
         console.log('✅ Using Cluster DPR template (cluster-dpr-pdf.html)');
-        return await this.generateClusterDPRPDF(dpr, project, language);
+        return await this.generateClusterDPRPDF(dpr, project, language, enhancedParagraphs);
       }
       
       console.log('📄 Using regular DPR template (PDFKit)');
@@ -1365,10 +1365,13 @@ export class DPRService {
   /**
    * Generate HTML content for Cluster DPR PDF
    */
-  private static generateClusterDPRHTML(dpr: any, project: any, language: 'english' | 'telugu'): string {
+  private static generateClusterDPRHTML(dpr: any, project: any, language: 'english' | 'telugu', enhancedParagraphs?: Record<string, string>): string {
     console.log('📄 Starting Cluster DPR HTML generation...');
     console.log('📊 DPR ID:', dpr._id || dpr.id);
     console.log('📊 Language:', language);
+    if (enhancedParagraphs && Object.keys(enhancedParagraphs).length > 0) {
+      console.log(`📊 Enhanced paragraphs provided: ${Object.keys(enhancedParagraphs).join(', ')}`);
+    }
     
     const content = dpr.content || {};
     const contentLang = language === 'telugu' 
@@ -2062,12 +2065,39 @@ export class DPRService {
       // Try to get content from multiple sources - COMBINE ENHANCED CONTENT + STEPDATA
       let finalContent = content;
       
-      // Check for enhanced content first (from AI enhancement)
+      // Map placeholders to section names used in enhancedParagraphs
+      const placeholderToSectionMap: Record<string, string> = {
+        '{{INTRODUCTION}}': 'introduction',
+        '{{DISTRICT_PROFILE}}': 'districtProfile',
+        '{{CLUSTER_PROFILE}}': 'clusterProfile',
+        '{{MARKET_ASPECTS}}': 'marketAspects',
+        '{{VALUE_CHAIN}}': 'valueChain',
+        '{{SWOT_ANALYSIS}}': 'swotAnalysis',
+        '{{GAP_ANALYSIS}}': 'gapAnalysis',
+        '{{CFC_DETAILS}}': 'cfcDetails',
+        '{{SPV_DETAILS}}': 'spvDetails',
+        '{{PROJECT_COST}}': 'projectCost',
+        '{{FINANCIAL_VIABILITY}}': 'financialViability',
+        '{{EXPECTED_IMPACT}}': 'expectedImpact',
+        '{{CONCLUSION}}': 'conclusion',
+      };
+      
+      const enhancedSectionKey = placeholderToSectionMap[placeholder] || placeholder.replace(/[{}]/g, '').toLowerCase().replace(/_/g, '');
+      
+      // Check for enhanced content first (from localStorage enhancedParagraphs - HIGHEST PRIORITY)
+      let enhancedContent = '';
+      if (enhancedParagraphs && enhancedParagraphs[enhancedSectionKey]) {
+        enhancedContent = enhancedParagraphs[enhancedSectionKey];
+        console.log(`   ✅ Found enhanced paragraph from localStorage for ${enhancedSectionKey} (${enhancedContent.length} chars)`);
+      }
+      
+      // Check for enhanced content from other sources (from AI enhancement stored in DPR)
       const sectionKey = placeholder.replace(/[{}]/g, '').toLowerCase().replace(/_/g, '');
-      let enhancedContent = contentLang.enhancedContent?.[sectionKey] || 
-                            dpr.metadata?.enhancedContent?.[sectionKey] ||
-                            contentLang[`enhanced${sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1)}`] ||
-                            '';
+      enhancedContent = enhancedContent || 
+                        contentLang.enhancedContent?.[sectionKey] || 
+                        dpr.metadata?.enhancedContent?.[sectionKey] ||
+                        contentLang[`enhanced${sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1)}`] ||
+                        '';
       
       // For Introduction, also check introduction and businessProfile fields
       if (placeholder === '{{INTRODUCTION}}') {
@@ -2077,6 +2107,7 @@ export class DPRService {
                          sections.introduction ||
                          '';
         console.log(`   📝 Introduction - checking multiple sources for enhanced content`);
+        console.log(`      enhancedParagraphs: ${!!(enhancedParagraphs && enhancedParagraphs['introduction'])}`);
         console.log(`      contentLang.introduction: ${!!contentLang.introduction}`);
         console.log(`      contentLang.businessProfile: ${!!contentLang.businessProfile}`);
         console.log(`      sections.introduction: ${!!sections.introduction}`);
@@ -3483,17 +3514,20 @@ export class DPRService {
   /**
    * Generate PDF for Cluster DPR matching the preview template exactly using HTML-to-PDF
    */
-  static async generateClusterDPRPDF(dpr: any, project: any, language: 'english' | 'telugu'): Promise<Buffer> {
+  static async generateClusterDPRPDF(dpr: any, project: any, language: 'english' | 'telugu', enhancedParagraphs?: Record<string, string>): Promise<Buffer> {
     try {
       console.log('📄 Starting Cluster DPR PDF generation...');
       console.log('   ✅ Using: cluster-dpr-pdf.html template');
       console.log('   DPR ID:', dpr._id || dpr.id);
       console.log('   Language:', language);
+      if (enhancedParagraphs && Object.keys(enhancedParagraphs).length > 0) {
+        console.log(`   📝 Enhanced paragraphs provided for ${Object.keys(enhancedParagraphs).length} sections`);
+      }
       
       // Generate HTML from template
       let html: string;
       try {
-        html = this.generateClusterDPRHTML(dpr, project, language);
+        html = this.generateClusterDPRHTML(dpr, project, language, enhancedParagraphs);
       } catch (htmlError: any) {
         console.error('❌ Error generating HTML:', htmlError);
         throw new Error(`Failed to generate HTML template: ${htmlError.message}`);

@@ -382,12 +382,24 @@ class APIClient {
     return response.data;
   }
 
-  async downloadPDF(dprId: string, language: string = 'english') {
-    const response = await this.client.get(`/dpr/${dprId}/download/pdf`, {
-      params: { language },
-      responseType: 'blob',
-    });
-    return response.data;
+  async downloadPDF(dprId: string, language: string = 'english', enhancedParagraphs?: Record<string, string>) {
+    // Use POST if enhanced paragraphs are provided, otherwise use GET for backward compatibility
+    if (enhancedParagraphs && Object.keys(enhancedParagraphs).length > 0) {
+      const response = await this.client.post(`/dpr/${dprId}/download/pdf`, 
+        { enhancedParagraphs },
+        {
+          params: { language },
+          responseType: 'blob',
+        }
+      );
+      return response.data;
+    } else {
+      const response = await this.client.get(`/dpr/${dprId}/download/pdf`, {
+        params: { language },
+        responseType: 'blob',
+      });
+      return response.data;
+    }
   }
 
   async downloadDOCX(dprId: string, language: string = 'english') {
