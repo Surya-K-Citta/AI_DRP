@@ -569,12 +569,25 @@ export async function captureElementAsStandaloneHTMLAsync(rootEl: Element): Prom
       page-break-after: always !important; 
       page-break-inside: avoid !important;
     }
-    /* Ensure images display properly */
+    /* Ensure images display properly without borders */
     img {
       max-width: 100% !important;
       height: auto !important;
       object-fit: contain !important;
       display: block !important;
+      border: none !important;
+    }
+    /* Remove border from image containers */
+    img:not([src*="placeholder"]),
+    img:not([src="data:image/svg"]) {
+      border: none !important;
+      outline: none !important;
+    }
+    /* Remove dashed border from image container divs in PDF */
+    .border-dashed,
+    [class*="border-dashed"],
+    div[style*="border"] img {
+      border: none !important;
     }
   `;
 
