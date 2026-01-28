@@ -22,6 +22,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
   const [expanded, setExpanded] = useState(true);
   const [hasGenerated, setHasGenerated] = useState(false);
   const [applyingFields, setApplyingFields] = useState<Set<string>>(new Set());
+  const [applyingAll, setApplyingAll] = useState(false);
 
   // Only show AI suggestions from Step 2 onwards (Step 1 provides basic info)
   if (currentStep < 2) {
@@ -71,6 +72,73 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
     }
   };
 
+  const parseAndTransformFieldContent = (field: string, content: string) => {
+    // Parse content if it's JSON (for array fields)
+    let parsedContent: any = content;
+    try {
+      parsedContent = JSON.parse(content);
+      console.log(`✅ Parsed JSON content for ${field}:`, parsedContent);
+
+      if (Array.isArray(parsedContent)) {
+        if (field === 'valueAdditionStages') {
+          if (parsedContent.length > 0 && typeof parsedContent[0] === 'string') {
+            parsedContent = parsedContent.map((stage: string) => ({
+              stage,
+              sellingPrice: 0,
+            }));
+            console.log(`✅ Transformed valueAdditionStages to object format:`, parsedContent);
+          }
+        } else if (field === 'rawMaterials') {
+          if (parsedContent.length > 0 && typeof parsedContent[0] === 'string') {
+            parsedContent = parsedContent.map((material: string) => ({
+              name: material,
+              source: '',
+            }));
+            console.log(`✅ Transformed rawMaterials to object format:`, parsedContent);
+          }
+        } else if (field === 'boardOfDirectors') {
+          if (parsedContent.length > 0 && typeof parsedContent[0] === 'string') {
+            parsedContent = parsedContent.map((director: string) => ({
+              name: director,
+              designation: '',
+            }));
+            console.log(`✅ Transformed boardOfDirectors to object format:`, parsedContent);
+          }
+        } else if (field === 'shareholdingPattern') {
+          if (parsedContent.length > 0 && typeof parsedContent[0] === 'string') {
+            parsedContent = parsedContent.map((stakeholder: string) => ({
+              stakeholder,
+              percentage: 0,
+            }));
+            console.log(`✅ Transformed shareholdingPattern to object format:`, parsedContent);
+          }
+        } else if (field === 'memberUnits') {
+          if (parsedContent.length > 0 && typeof parsedContent[0] === 'string') {
+            parsedContent = parsedContent.map((unit: string) => ({
+              name: unit,
+              registration: '',
+            }));
+            console.log(`✅ Transformed memberUnits to object format:`, parsedContent);
+          }
+        }
+      }
+    } catch {
+      parsedContent = content;
+      console.log(`✅ Using plain text content for ${field}:`, parsedContent);
+    }
+
+    if (
+      parsedContent === null ||
+      parsedContent === undefined ||
+      (Array.isArray(parsedContent) && parsedContent.length === 0) ||
+      (typeof parsedContent === 'string' && parsedContent.trim() === '')
+    ) {
+      return null;
+    }
+
+    return parsedContent;
+  };
+
   // Function to apply a suggestion to a field
   const handleApplySuggestion = async (suggestion: AISuggestion) => {
     if (!suggestion.field) {
@@ -91,73 +159,8 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
       );
 
       if (content) {
-        // Parse content if it's JSON (for array fields)
-        let parsedContent: any = content;
-        try {
-          // Try to parse as JSON first
-          parsedContent = JSON.parse(content);
-          console.log(`✅ Parsed JSON content for ${suggestion.field}:`, parsedContent);
-          
-          // Transform structured array fields if needed
-          if (Array.isArray(parsedContent)) {
-            // Check if this is a structured array field that needs object format
-            if (suggestion.field === 'valueAdditionStages') {
-              // Transform array of strings to array of objects if needed
-              if (parsedContent.length > 0 && typeof parsedContent[0] === 'string') {
-                parsedContent = parsedContent.map((stage: string, index: number) => ({
-                  stage: stage,
-                  sellingPrice: 0, // Default price, user can update
-                }));
-                console.log(`✅ Transformed valueAdditionStages to object format:`, parsedContent);
-              }
-            } else if (suggestion.field === 'rawMaterials') {
-              // Transform array of strings to array of objects if needed
-              if (parsedContent.length > 0 && typeof parsedContent[0] === 'string') {
-                parsedContent = parsedContent.map((material: string) => ({
-                  name: material,
-                  source: '', // User can fill this
-                }));
-                console.log(`✅ Transformed rawMaterials to object format:`, parsedContent);
-              }
-            } else if (suggestion.field === 'boardOfDirectors') {
-              // Transform array of strings to array of objects if needed
-              if (parsedContent.length > 0 && typeof parsedContent[0] === 'string') {
-                parsedContent = parsedContent.map((director: string) => ({
-                  name: director,
-                  designation: '', // User can fill this
-                }));
-                console.log(`✅ Transformed boardOfDirectors to object format:`, parsedContent);
-              }
-            } else if (suggestion.field === 'shareholdingPattern') {
-              // Transform array of strings to array of objects if needed
-              if (parsedContent.length > 0 && typeof parsedContent[0] === 'string') {
-                parsedContent = parsedContent.map((stakeholder: string) => ({
-                  stakeholder: stakeholder,
-                  percentage: 0, // User can fill this
-                }));
-                console.log(`✅ Transformed shareholdingPattern to object format:`, parsedContent);
-              }
-            } else if (suggestion.field === 'memberUnits') {
-              // Transform array of strings to array of objects if needed
-              if (parsedContent.length > 0 && typeof parsedContent[0] === 'string') {
-                parsedContent = parsedContent.map((unit: string) => ({
-                  name: unit,
-                  registration: '', // User can fill this
-                }));
-                console.log(`✅ Transformed memberUnits to object format:`, parsedContent);
-              }
-            }
-          }
-        } catch {
-          // If not JSON, use as-is
-          parsedContent = content;
-          console.log(`✅ Using plain text content for ${suggestion.field}:`, parsedContent);
-        }
-
-        // Ensure the field is always populated (never empty)
-        if (parsedContent === null || parsedContent === undefined || 
-            (Array.isArray(parsedContent) && parsedContent.length === 0) ||
-            (typeof parsedContent === 'string' && parsedContent.trim() === '')) {
+        const parsedContent = parseAndTransformFieldContent(suggestion.field, content);
+        if (parsedContent === null) {
           toast.error(`Generated content is empty for ${suggestion.field}. Please try again.`);
           return;
         }
@@ -188,6 +191,70 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
         newSet.delete(suggestion.field);
         return newSet;
       });
+    }
+  };
+
+  const handleApplyAllSuggestions = async () => {
+    if (!suggestions || suggestions.length === 0) return;
+    if (applyingAll) return;
+
+    const validSuggestions = suggestions.filter((s) => !!s.field);
+    if (validSuggestions.length === 0) {
+      toast.error('No applicable suggestions found.');
+      return;
+    }
+
+    setApplyingAll(true);
+    // Mark all fields as applying (disables individual Apply buttons)
+    setApplyingFields(new Set(validSuggestions.map((s) => s.field)));
+
+    try {
+      let updatedStepData = { ...currentStepData };
+      let appliedCount = 0;
+
+      // Sequential on purpose (keeps API load reasonable, easier to debug)
+      for (const suggestion of validSuggestions) {
+        try {
+          const content = await AISuggestionsService.generateFieldContent(
+            suggestion.field,
+            currentStep,
+            updatedStepData,
+            previousStepsData,
+            suggestion.suggestion
+          );
+
+          if (!content) continue;
+
+          const parsedContent = parseAndTransformFieldContent(suggestion.field, content);
+          if (parsedContent === null) continue;
+
+          updatedStepData = {
+            ...updatedStepData,
+            [suggestion.field]: parsedContent,
+          };
+
+          if (onApplySuggestion) {
+            onApplySuggestion(suggestion.field, parsedContent);
+          }
+
+          appliedCount += 1;
+        } catch (e) {
+          console.error(`Error applying suggestion for ${suggestion.field}:`, e);
+          // Continue applying others
+        }
+      }
+
+      if (appliedCount === 0) {
+        toast.error('Could not apply any suggestions. Try again.');
+        return;
+      }
+
+      // Single store update for the step (final state)
+      setStepData(currentStep, updatedStepData);
+      toast.success(`✅ Applied ${appliedCount} suggestion${appliedCount !== 1 ? 's' : ''}`);
+    } finally {
+      setApplyingAll(false);
+      setApplyingFields(new Set());
     }
   };
 
@@ -292,6 +359,24 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
           >
             <Sparkles className="h-3 w-3" />
             Regenerate
+          </button>
+          <button
+            onClick={handleApplyAllSuggestions}
+            disabled={loading || applyingAll}
+            className="ml-2 px-3 py-1.5 text-xs bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+            title="Apply all suggestions"
+          >
+            {applyingAll ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Applying...
+              </>
+            ) : (
+              <>
+                <Check className="h-3 w-3" />
+                Apply All
+              </>
+            )}
           </button>
         </div>
 
