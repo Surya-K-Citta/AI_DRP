@@ -312,10 +312,20 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
                           {suggestion.field}:
                         </p>
                       )}
-                      <p className="text-sm text-gray-700">{suggestion.suggestion}</p>
+                      <p className="text-sm text-gray-700">
+                        {typeof suggestion.suggestion === 'string' 
+                          ? suggestion.suggestion 
+                          : typeof suggestion.suggestion === 'object' 
+                            ? JSON.stringify(suggestion.suggestion, null, 2)
+                            : String(suggestion.suggestion || '')}
+                      </p>
                       {suggestion.reasoning && (
                         <p className="text-xs text-muted-foreground mt-1 italic">
-                          {suggestion.reasoning}
+                          {typeof suggestion.reasoning === 'string' 
+                            ? suggestion.reasoning 
+                            : typeof suggestion.reasoning === 'object' 
+                              ? JSON.stringify(suggestion.reasoning, null, 2)
+                              : String(suggestion.reasoning || '')}
                         </p>
                       )}
                     </div>

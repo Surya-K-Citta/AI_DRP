@@ -697,11 +697,21 @@ EMPTY FIELDS (PRIORITY): ${emptyFields.length > 0 ? emptyFields.join(', ') : 'Al
 ═══════════════════════════════════════════════════════════════
 TASK:
 ═══════════════════════════════════════════════════════════════
-Provide 3-5 specific, actionable suggestions for completing Step ${currentStep}: "${stepMapping.stepName}".
+Provide suggestions for ALL ${stepMapping.fields.length} fields in Step ${currentStep}: "${stepMapping.stepName}".
+
+MANDATORY REQUIREMENT: You MUST provide exactly ${stepMapping.fields.length} suggestions - one for EACH field:
+${stepMapping.fields.map((f, idx) => `${idx + 1}. ${f.name} (${f.type})`).join('\n')}
 
 CRITICAL REQUIREMENTS:
 
-1. **ANALYZE ALL PREVIOUS STEPS DATA COMPREHENSIVELY:**
+1. **MANDATORY: SUGGEST ALL FIELDS**
+   - You MUST provide suggestions for EVERY field in Step ${currentStep}
+   - Total fields to suggest: ${stepMapping.fields.length}
+   - Field list: ${stepMapping.fields.map(f => `${f.name} (${f.type})`).join(', ')}
+   - Provide ONE suggestion per field - NO EXCEPTIONS
+   - If a field is already filled, suggest improvements or additional details based on previous steps
+
+2. **ANALYZE ALL PREVIOUS STEPS DATA COMPREHENSIVELY:**
    - You have been provided with COMPLETE data from ALL previous steps (Steps 1-${currentStep - 1})
    - Read through ALL the "COMPREHENSIVE DATA FROM ALL PREVIOUS STEPS" section above
    - Extract and use relevant information from:
@@ -716,38 +726,48 @@ CRITICAL REQUIREMENTS:
    - DO NOT rely only on Step 1. Use information from ALL relevant previous steps
    - Cross-reference data across steps to provide accurate suggestions
 
-2. **FIELD-SPECIFIC FOCUS:**
+3. **FIELD-SPECIFIC FOCUS:**
    - Focus ONLY on fields in Step ${currentStep}: ${stepMapping.fields.map(f => f.name).join(', ')}
    - Each suggestion must target ONE specific field from the list above
    - Do NOT suggest fields from other steps
+   - IMPORTANT: Consider the FIELD TYPE when making suggestions:
+     * For NUMBER fields (yearOfEstablishment, investmentPerUnit, etc.): Suggest actual numbers derived from previous steps
+     * For ARRAY fields (stakeholders, keyProducts, rawMaterials, valueAdditionStages, etc.): Suggest list items based on data from previous steps
+     * For TEXT fields: Suggest detailed paragraphs derived from previous step information
+     * For SHORTTEXT fields: Suggest concise phrases (10-15 words max) based on previous steps
+     * For OBJECT fields: Suggest structured data matching the expected format, derived from previous steps
 
-3. **PRIORITIZE EMPTY FIELDS:**
-   - Focus suggestions on EMPTY fields: ${emptyFields.length > 0 ? emptyFields.join(', ') : 'All fields are filled'}
-   - If all fields are filled, provide suggestions to improve/expand existing content
+4. **PRIORITIZE EMPTY FIELDS:**
+   - EMPTY fields (priority): ${emptyFields.length > 0 ? emptyFields.join(', ') : 'None - all fields are filled'}
+   - FILLED fields: ${filledFields.length > 0 ? filledFields.join(', ') : 'None'}
+   - For EMPTY fields: Provide comprehensive suggestions to fill them
+   - For FILLED fields: Provide suggestions to improve, expand, or enhance existing content
 
-4. **EACH SUGGESTION MUST:**
+5. **EACH SUGGESTION MUST:**
    - Reference SPECIFIC data from relevant previous steps (quote actual values when possible)
    - Show how information from previous steps connects to the current field
-   - Be actionable and specific (tell user exactly what to write)
-   - Be accurate and consistent with all previous step data
+   - Be actionable and specific (tell user exactly what to write based on field type and previous step data)
+   - Be accurate and consistent with ALL information from previous steps
    - Use actual cluster name "${clusterName}", district "${district}", nature of business "${natureOfBusiness}", products "${majorProducts}" in suggestions
 
-5. **ACCURACY REQUIREMENTS:**
+6. **ACCURACY REQUIREMENTS:**
    - Suggestions must be accurate and specific to: ${clusterName}${district ? ` in ${district}` : ''}${natureOfBusiness ? ` - ${natureOfBusiness}` : ''}
    - Ensure consistency with ALL information from previous steps
    - Do not contradict data from previous steps
    - Build logically on information from earlier steps
 
-Return suggestions in JSON format:
+Return suggestions in JSON format with EXACTLY ${stepMapping.fields.length} suggestions:
 {
   "suggestions": [
-    {
-      "field": "exact field name from: ${stepMapping.fields.map(f => f.name).join(', ')}",
-      "suggestion": "specific, actionable guidance that references actual data from relevant previous steps (use actual values like '${clusterName}', '${natureOfBusiness}', '${majorProducts}', etc.)",
+    ${stepMapping.fields.map(f => `{
+      "field": "${f.name}",
+      "suggestion": "specific, actionable guidance for ${f.name} (${f.type}) that references actual data from relevant previous steps (use actual values like '${clusterName}', '${natureOfBusiness}', '${majorProducts}', etc.)",
       "reasoning": "explain why this field is important and how specific data from previous steps (mention which steps) relates to it"
-    }
+    }`).join(',\n    ')}
   ]
-}`;
+}
+
+CRITICAL: You MUST return exactly ${stepMapping.fields.length} suggestions - one for each field: ${stepMapping.fields.map(f => f.name).join(', ')}`;
 
       // Use OpenAI chat completions directly
       const response = await openai.chat.completions.create({
@@ -773,7 +793,7 @@ Return suggestions in JSON format only.`,
           },
         ],
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 2000, // Increased to handle suggestions for all fields
       });
 
       const responseText = response.choices[0]?.message?.content || '';
@@ -784,7 +804,50 @@ Return suggestions in JSON format only.`,
           const jsonMatch = responseText.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            return parsed.suggestions || [];
+            const aiSuggestions = parsed.suggestions || [];
+            
+            // Validate that we have suggestions for all fields
+            const suggestedFields = new Set(aiSuggestions.map((s: any) => s.field));
+            const allFields = stepMapping.fields.map(f => f.name);
+            const missingFields = allFields.filter(f => !suggestedFields.has(f));
+            
+            if (missingFields.length > 0) {
+              console.log(`⚠️ AI did not provide suggestions for all fields. Missing: ${missingFields.join(', ')}`);
+              // Add fallback suggestions for missing fields
+              missingFields.forEach(field => {
+                const fieldInfo = stepMapping.fields.find(f => f.name === field);
+                aiSuggestions.push({
+                  field,
+                  suggestion: `Fill in the ${field} field (${fieldInfo?.type || 'field'}) based on ${clusterName}${district ? ` in ${district}` : ''}${natureOfBusiness ? ` (${natureOfBusiness})` : ''} data from all previous steps.`,
+                  reasoning: 'Ensure consistency with all previous step data.',
+                });
+              });
+            }
+            
+            // Normalize suggestions to ensure suggestion and reasoning are strings
+            const normalizedSuggestions = aiSuggestions.map((s: any) => ({
+              field: s.field || '',
+              suggestion: typeof s.suggestion === 'string' 
+                ? s.suggestion 
+                : typeof s.suggestion === 'object' 
+                  ? JSON.stringify(s.suggestion, null, 2)
+                  : String(s.suggestion || ''),
+              reasoning: typeof s.reasoning === 'string'
+                ? s.reasoning
+                : typeof s.reasoning === 'object'
+                  ? JSON.stringify(s.reasoning, null, 2)
+                  : String(s.reasoning || ''),
+            }));
+            
+            // Sort suggestions to match the field order in stepMapping
+            const fieldOrder = new Map(stepMapping.fields.map((f, idx) => [f.name, idx]));
+            normalizedSuggestions.sort((a: any, b: any) => {
+              const orderA = fieldOrder.get(a.field) ?? 999;
+              const orderB = fieldOrder.get(b.field) ?? 999;
+              return orderA - orderB;
+            });
+            
+            return normalizedSuggestions;
           }
         }
       } catch (parseError) {
@@ -795,12 +858,12 @@ Return suggestions in JSON format only.`,
       // Note: step1Data, clusterName, district, natureOfBusiness, majorProducts, emptyFields, and filledFields
       // are already declared and calculated above - reuse them here
 
-      // Generate field-specific fallback suggestions
+      // Generate field-specific fallback suggestions for ALL fields
       const fallbackSuggestions = [];
 
-      // Generate suggestions for up to 3 empty fields
-      // emptyFields is already calculated above, reuse it
-      const fieldsToSuggest = emptyFields.length > 0 ? emptyFields.slice(0, 3) : [];
+      // Generate suggestions for ALL fields (not just empty ones)
+      // This ensures we always provide suggestions for every field
+      const fieldsToSuggest = stepMapping.fields.map(f => f.name);
 
       fieldsToSuggest.forEach(field => {
         let suggestion = '';
@@ -840,18 +903,44 @@ Return suggestions in JSON format only.`,
         }
       });
 
-      // If no empty fields or suggestions generated, provide general guidance
-      if (fallbackSuggestions.length === 0) {
-        return [
-          {
-            field: stepMapping.fields[0] || 'General',
-            suggestion: `Complete all fields in Step ${currentStep} (${stepMapping.stepName}) using data from all previous steps: ${clusterName}${district ? ` in ${district}` : ''}${natureOfBusiness ? ` - ${natureOfBusiness}` : ''}.`,
-            reasoning: 'Ensure all information is consistent with data from all previous steps.',
-          },
-        ];
-      }
+      // Ensure we have suggestions for all fields
+      // If we're missing any, add generic suggestions for them
+      const suggestedFields = new Set(fallbackSuggestions.map(s => s.field));
+      const missingFields = fieldsToSuggest.filter(f => !suggestedFields.has(f));
+      
+      missingFields.forEach(field => {
+        const fieldInfo = stepMapping.fields.find(f => f.name === field);
+        fallbackSuggestions.push({
+          field,
+          suggestion: `Fill in the ${field} field (${fieldInfo?.type || 'field'}) based on ${clusterName}${district ? ` in ${district}` : ''}${natureOfBusiness ? ` (${natureOfBusiness})` : ''} data from all previous steps. Consider all information from Steps 1-${currentStep - 1}.`,
+          reasoning: 'Ensure consistency with all previous step data.',
+        });
+      });
 
-      return fallbackSuggestions;
+      // Normalize suggestions to ensure suggestion and reasoning are strings
+      const normalizedFallbackSuggestions = fallbackSuggestions.map((s: any) => ({
+        field: s.field || '',
+        suggestion: typeof s.suggestion === 'string' 
+          ? s.suggestion 
+          : typeof s.suggestion === 'object' 
+            ? JSON.stringify(s.suggestion, null, 2)
+            : String(s.suggestion || ''),
+        reasoning: typeof s.reasoning === 'string'
+          ? s.reasoning
+          : typeof s.reasoning === 'object'
+            ? JSON.stringify(s.reasoning, null, 2)
+            : String(s.reasoning || ''),
+      }));
+
+      // Sort suggestions to match the field order in stepMapping
+      const fieldOrder = new Map(stepMapping.fields.map((f, idx) => [f.name, idx]));
+      normalizedFallbackSuggestions.sort((a, b) => {
+        const orderA = fieldOrder.get(a.field) ?? 999;
+        const orderB = fieldOrder.get(b.field) ?? 999;
+        return orderA - orderB;
+      });
+
+      return normalizedFallbackSuggestions;
     } catch (error: any) {
       console.error('Error getting AI suggestions:', error);
       return [];

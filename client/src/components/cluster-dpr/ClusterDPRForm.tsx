@@ -474,6 +474,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   if (currentStep === 3) {
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div>
           <label className="block text-sm font-medium mb-2">Geography</label>
           <textarea
@@ -1402,6 +1409,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
 
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">Land (₹)</label>

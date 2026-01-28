@@ -729,7 +729,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           const hasProjectCost = (s12.land && s12.land > 0) || (s12.building && s12.building > 0) || (s12.machinery && s12.machinery > 0);
           const hasOperatingCostRevenue = s14.rawMaterialCost || s14.powerCost || s14.wages || s14.maintenance || s14.administrativeExpenses || s14.marketingExpenses || s14.annualProductionVolume || s14.annualSalesRealization;
           const hasFinancialViability = s15.profitAndLossProjections?.length > 0 || s15.cashFlowProjections?.length > 0 || s15.balanceSheetProjections?.length > 0 || s15.breakEvenPoint || s15.irr || s15.npv;
-          const hasImplementationSchedule = s16.startDate || (s16.milestones && s16.milestones.length > 0) || s16.totalImplementationPeriod;
+          const hasImplementationSchedule = s16.startDate || (Array.isArray(s16.milestones) && s16.milestones.length > 0) || s16.totalImplementationPeriod;
           const hasExpectedImpact = s17.employmentGeneration || s17.turnoverGrowth || s17.exportGrowth || s17.incomeEnhancement || s17.sustainabilityOutcomes?.length > 0;
           const hasFinancialStatements = (s12.workingCapitalMargin && s12.workingCapitalMargin > 0) || 
                                         (s14.capacityUtilization || s14.rawMaterialCostPercentage || s14.powerCost) ||
@@ -1728,7 +1728,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               ]
             )}
           </div>
-          {s11.shareholdingPattern && s11.shareholdingPattern.length > 0 && (
+          {s11.shareholdingPattern && Array.isArray(s11.shareholdingPattern) && s11.shareholdingPattern.length > 0 && (
             <div>
               <h3 className="text-xl font-semibold mb-3">8.2 Shareholding Pattern</h3>
               {renderTable(
@@ -1748,7 +1748,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie
-                      data={s11.shareholdingPattern.map((s: any) => ({ name: s.stakeholder, value: s.percentage || 0 }))}
+                      data={Array.isArray(s11.shareholdingPattern) ? s11.shareholdingPattern.map((s: any) => ({ name: s.stakeholder, value: s.percentage || 0 })) : []}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
@@ -1757,7 +1757,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                       fill="#8884d8"
                       dataKey="value"
                     >
-                      {s11.shareholdingPattern.map((entry: any, index: number) => (
+                      {Array.isArray(s11.shareholdingPattern) && s11.shareholdingPattern.map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'][index % 5]} />
                       ))}
                     </Pie>
@@ -1776,7 +1776,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             <div>
               {renderSectionTitle('8. SPV MEMBER UNITS (Continued)')}
               <div className="space-y-6 text-sm">
-                {s11.memberUnits && s11.memberUnits.length > 0 && (
+                {s11.memberUnits && Array.isArray(s11.memberUnits) && s11.memberUnits.length > 0 && (
                   <div>
                     <h3 className="text-xl font-semibold mb-3">8.3 Member Units</h3>
                     {renderTable(
@@ -1785,7 +1785,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                     )}
                   </div>
                 )}
-                {s11.objectives && s11.objectives.length > 0 && (
+                {s11.objectives && Array.isArray(s11.objectives) && s11.objectives.length > 0 && (
                   <div>
                     <h3 className="text-xl font-semibold mb-3">8.4 SPV Objectives</h3>
                     <ul className="list-disc list-inside space-y-2 text-sm">
@@ -1795,7 +1795,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                     </ul>
                   </div>
                 )}
-                {s11.rolesAndResponsibilities && s11.rolesAndResponsibilities.length > 0 && (
+                {s11.rolesAndResponsibilities && Array.isArray(s11.rolesAndResponsibilities) && s11.rolesAndResponsibilities.length > 0 && (
                   <div>
                     <h3 className="text-xl font-semibold mb-3">8.5 Roles and Responsibilities</h3>
                     <ul className="list-disc list-inside space-y-2 text-sm">
@@ -1805,7 +1805,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                     </ul>
                   </div>
                 )}
-                {s11.boardOfDirectors && s11.boardOfDirectors.length > 0 && (
+                {s11.boardOfDirectors && Array.isArray(s11.boardOfDirectors) && s11.boardOfDirectors.length > 0 && (
                   <div>
                     <h3 className="text-xl font-semibold mb-3">8.6 Board of Directors</h3>
                     {renderTable(
@@ -1814,7 +1814,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                     )}
                   </div>
                 )}
-                {s11.statutoryRegistrations && s11.statutoryRegistrations.length > 0 && (
+                {s11.statutoryRegistrations && Array.isArray(s11.statutoryRegistrations) && s11.statutoryRegistrations.length > 0 && (
                   <div>
                     <h3 className="text-xl font-semibold mb-3">8.7 Statutory Registrations</h3>
                     <ul className="list-disc list-inside space-y-2 text-sm">
@@ -2158,7 +2158,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       </div>
 
       {/* Section 10.5: Project Implementation Schedule */}
-      {(s16.startDate || (s16.milestones && s16.milestones.length > 0) || s16.totalImplementationPeriod) && (
+      {(s16.startDate || (Array.isArray(s16.milestones) && s16.milestones.length > 0) || s16.totalImplementationPeriod) && (
         <div 
           className="p-12 border-b-4 border-gray-800 page-break relative"
           style={{ 
@@ -2764,7 +2764,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 if (section.name === 'operatingCostRevenue') return s14.rawMaterialCost || s14.powerCost || s14.wages;
                 if (section.name === 'projectCost') return s12.land || s12.building || s12.machinery;
                 if (section.name === 'financialViability') return s15.profitAndLossProjections || s15.irr || s15.npv;
-                if (section.name === 'implementationSchedule') return s16.startDate || s16.milestones?.length > 0;
+                if (section.name === 'implementationSchedule') return s16.startDate || (Array.isArray(s16.milestones) && s16.milestones.length > 0);
                 if (section.name === 'expectedImpact') return s17.employmentGeneration || s17.turnoverGrowth;
                 if (section.name === 'conclusion') return true; // Always enhance conclusion
                 return false;
