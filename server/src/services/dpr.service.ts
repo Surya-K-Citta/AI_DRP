@@ -1586,19 +1586,19 @@ export class DPRService {
       tocSections.push({ chapter: '7.', title: 'Proposed Intervention', page: String(pageNum++) });
     }
     
-    // CFC Details
+    // CFC Details - Section 7
     if (contentLang.cfcDetails || sections.cfcDetails || s10.name) {
-      tocSections.push({ chapter: '8.', title: 'CFC - Operation & Management', page: String(pageNum++) });
+      tocSections.push({ chapter: '7.', title: 'CFC - Operation & Management', page: String(pageNum++) });
     }
     
-    // SPV Details
+    // SPV Details - Section 8
     if (contentLang.spvDetails || sections.spvDetails || s11.spvName) {
-      tocSections.push({ chapter: '9.', title: 'SPV Member Units', page: String(pageNum++) });
+      tocSections.push({ chapter: '8.', title: 'SPV Member Units', page: String(pageNum++) });
     }
     
     // Project Cost
     if (contentLang.projectCost || sections.projectCost || s12.land || s12.building || s12.machinery) {
-      tocSections.push({ chapter: '10.', title: 'Project Cost & Means Of Finance', page: String(pageNum++) });
+      tocSections.push({ chapter: '9.', title: 'Project Cost & Means Of Finance', page: String(pageNum++) });
     }
     
     // Operating Cost & Revenue
@@ -1915,9 +1915,9 @@ export class DPRService {
       '{{SWOT_ANALYSIS}}': '5. SWOT ANALYSIS',
       '{{GAP_ANALYSIS}}': '6. NEED GAP ANALYSIS',
       '{{PROPOSED_INTERVENTION}}': '7. PROPOSED INTERVENTION',
-      '{{CFC_DETAILS}}': '8. CFC - OPERATION & MANAGEMENT',
-      '{{SPV_DETAILS}}': '9. SPV MEMBER UNITS',
-      '{{PROJECT_COST}}': '10. PROJECT COST & MEANS OF FINANCE',
+      '{{CFC_DETAILS}}': '7. CFC - OPERATION & MANAGEMENT',
+      '{{SPV_DETAILS}}': '8. SPV MEMBER UNITS',
+      '{{PROJECT_COST}}': '9. PROJECT COST & MEANS OF FINANCE',
       '{{OPERATING_COST_REVENUE}}': '10.5 OPERATING COST & REVENUE',
       '{{FINANCIAL_VIABILITY}}': '11. FINANCIAL VIABILITY',
       '{{IMPLEMENTATION_SCHEDULE}}': '11.5 PROJECT IMPLEMENTATION SCHEDULE',
@@ -2711,9 +2711,32 @@ export class DPRService {
         if (placeholder === '{{SPV_DETAILS}}' && s11) {
           let spvTables = '';
           
-          // Shareholding Pattern Table
+          // SPV Profile Table (8.1)
+          if (s11.spvName || s11.legalStatus || s11.yearOfIncorporation || s11.memberUnits) {
+            spvTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">8.1 SPV Profile</h4>';
+            spvTables += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
+            spvTables += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Parameter</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Details</th></tr></thead><tbody>';
+            
+            const spvProfileRows = [
+              { label: 'Name', value: s11.spvName || 'N/A' },
+              { label: 'Legal Status', value: s11.legalStatus || 'N/A' },
+              { label: 'Year of Incorporation', value: s11.yearOfIncorporation || 'N/A' },
+              { label: 'Members', value: (s11.memberUnits?.length || 0) + ' member units' }
+            ];
+            
+            spvProfileRows.forEach((row, idx) => {
+              if (row.value && row.value !== 'N/A') {
+                const bgColor = idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+                spvTables += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">${row.label}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(row.value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`;
+              }
+            });
+            
+            spvTables += '</tbody></table>';
+          }
+          
+          // Shareholding Pattern Table (8.2)
           if (s11.shareholdingPattern && Array.isArray(s11.shareholdingPattern) && s11.shareholdingPattern.length > 0) {
-            spvTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Shareholding Pattern</h4>';
+            spvTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">8.2 Shareholding Pattern</h4>';
             spvTables += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
             spvTables += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Stakeholder</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Percentage (%)</th></tr></thead><tbody>';
             
@@ -2724,9 +2747,81 @@ export class DPRService {
               spvTables += `<tr style="background-color: ${bgColor};"><td style="border: 1px solid #1F2937; padding: 0.3cm;">${String(stakeholder).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">${percentage}%</td></tr>`;
             });
             spvTables += '</tbody></table>';
+            
+            // Generate Pie Chart SVG for Shareholding Pattern
+            const chartData = s11.shareholdingPattern.map((share: any) => ({
+              name: share.stakeholder || share.name || 'N/A',
+              value: parseFloat(share.percentage || share.percent || '0')
+            })).filter((item: any) => item.value > 0);
+            
+            if (chartData.length > 0) {
+              const total = chartData.reduce((sum: number, item: any) => sum + item.value, 0);
+              const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82CA9D', '#FFC658', '#FF7C7C'];
+              
+              // Calculate pie chart segments
+              let currentAngle = -90; // Start from top
+              const radius = 80;
+              const centerX = 150;
+              const centerY = 150;
+              
+              spvTables += '<div style="margin: 0.5cm 0; text-align: center;">';
+              spvTables += '<h4 style="margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 11pt;">Shareholding Pattern</h4>';
+              spvTables += '<svg width="300" height="300" style="display: block; margin: 0 auto;">';
+              
+              chartData.forEach((item: any, idx: number) => {
+                const percentage = (item.value / total) * 100;
+                const angle = (item.value / total) * 360;
+                const startAngle = currentAngle;
+                const endAngle = currentAngle + angle;
+                
+                // Convert angles to radians
+                const startRad = (startAngle * Math.PI) / 180;
+                const endRad = (endAngle * Math.PI) / 180;
+                
+                // Calculate arc path
+                const x1 = centerX + radius * Math.cos(startRad);
+                const y1 = centerY + radius * Math.sin(startRad);
+                const x2 = centerX + radius * Math.cos(endRad);
+                const y2 = centerY + radius * Math.sin(endRad);
+                
+                const largeArcFlag = angle > 180 ? 1 : 0;
+                
+                const path = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+                
+                const color = colors[idx % colors.length];
+                spvTables += `<path d="${path}" fill="${color}" stroke="#FFFFFF" stroke-width="2"/>`;
+                
+                // Add label
+                const labelAngle = (startAngle + endAngle) / 2;
+                const labelRad = (labelAngle * Math.PI) / 180;
+                const labelRadius = radius * 0.7;
+                const labelX = centerX + labelRadius * Math.cos(labelRad);
+                const labelY = centerY + labelRadius * Math.sin(labelRad);
+                
+                spvTables += `<text x="${labelX}" y="${labelY}" text-anchor="middle" dominant-baseline="middle" font-size="10" font-weight="bold" fill="#FFFFFF">${percentage.toFixed(0)}%</text>`;
+                
+                currentAngle = endAngle;
+              });
+              
+              spvTables += '</svg>';
+              
+              // Add legend
+              spvTables += '<div style="margin-top: 0.3cm; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5cm;">';
+              chartData.forEach((item: any, idx: number) => {
+                const percentage = ((item.value / total) * 100).toFixed(1);
+                const color = colors[idx % colors.length];
+                const displayName = item.name.length > 30 ? item.name.substring(0, 27) + '...' : item.name;
+                spvTables += `<div style="display: flex; align-items: center; margin: 0.1cm;">`;
+                spvTables += `<span style="display: inline-block; width: 12px; height: 12px; background-color: ${color}; margin-right: 0.2cm; border: 1px solid #1F2937;"></span>`;
+                spvTables += `<span style="font-size: 9pt; color: #1F2937;">${displayName}: ${percentage}%</span>`;
+                spvTables += `</div>`;
+              });
+              spvTables += '</div>';
+              spvTables += '</div>';
+            }
           } else if (s11.shareholdingPattern && typeof s11.shareholdingPattern === 'object') {
             // Handle object format shareholding
-            spvTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">Shareholding Pattern</h4>';
+            spvTables += '<h4 style="margin-top: 0.5cm; margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 12pt;">8.2 Shareholding Pattern</h4>';
             spvTables += '<table style="width: 100%; border-collapse: collapse; margin: 0.5cm 0; font-size: 10pt;">';
             spvTables += '<thead><tr style="background-color: #E5E7EB;"><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Stakeholder</th><th style="border: 1px solid #1F2937; padding: 0.3cm; font-weight: bold; text-align: left;">Percentage (%)</th></tr></thead><tbody>';
             
@@ -2739,6 +2834,84 @@ export class DPRService {
               rowIdx++;
             });
             spvTables += '</tbody></table>';
+            
+            // Generate Pie Chart SVG for Shareholding Pattern (object format)
+            const chartDataObj: Array<{name: string, value: number}> = [];
+            Object.entries(s11.shareholdingPattern).forEach(([key, value]) => {
+              const percentage = typeof value === 'number' ? value : (typeof value === 'string' ? parseFloat(value) || 0 : 0);
+              if (percentage > 0) {
+                chartDataObj.push({
+                  name: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+                  value: percentage
+                });
+              }
+            });
+            
+            if (chartDataObj.length > 0) {
+              const total = chartDataObj.reduce((sum, item) => sum + item.value, 0);
+              const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82CA9D', '#FFC658', '#FF7C7C'];
+              
+              // Calculate pie chart segments
+              let currentAngle = -90; // Start from top
+              const radius = 80;
+              const centerX = 150;
+              const centerY = 150;
+              
+              spvTables += '<div style="margin: 0.5cm 0; text-align: center;">';
+              spvTables += '<h4 style="margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 11pt;">Shareholding Pattern</h4>';
+              spvTables += '<svg width="300" height="300" style="display: block; margin: 0 auto;">';
+              
+              chartDataObj.forEach((item, idx) => {
+                const percentage = (item.value / total) * 100;
+                const angle = (item.value / total) * 360;
+                const startAngle = currentAngle;
+                const endAngle = currentAngle + angle;
+                
+                // Convert angles to radians
+                const startRad = (startAngle * Math.PI) / 180;
+                const endRad = (endAngle * Math.PI) / 180;
+                
+                // Calculate arc path
+                const x1 = centerX + radius * Math.cos(startRad);
+                const y1 = centerY + radius * Math.sin(startRad);
+                const x2 = centerX + radius * Math.cos(endRad);
+                const y2 = centerY + radius * Math.sin(endRad);
+                
+                const largeArcFlag = angle > 180 ? 1 : 0;
+                
+                const path = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+                
+                const color = colors[idx % colors.length];
+                spvTables += `<path d="${path}" fill="${color}" stroke="#FFFFFF" stroke-width="2"/>`;
+                
+                // Add label
+                const labelAngle = (startAngle + endAngle) / 2;
+                const labelRad = (labelAngle * Math.PI) / 180;
+                const labelRadius = radius * 0.7;
+                const labelX = centerX + labelRadius * Math.cos(labelRad);
+                const labelY = centerY + labelRadius * Math.sin(labelRad);
+                
+                spvTables += `<text x="${labelX}" y="${labelY}" text-anchor="middle" dominant-baseline="middle" font-size="10" font-weight="bold" fill="#FFFFFF">${percentage.toFixed(0)}%</text>`;
+                
+                currentAngle = endAngle;
+              });
+              
+              spvTables += '</svg>';
+              
+              // Add legend
+              spvTables += '<div style="margin-top: 0.3cm; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5cm;">';
+              chartDataObj.forEach((item, idx) => {
+                const percentage = ((item.value / total) * 100).toFixed(1);
+                const color = colors[idx % colors.length];
+                const displayName = item.name.length > 30 ? item.name.substring(0, 27) + '...' : item.name;
+                spvTables += `<div style="display: flex; align-items: center; margin: 0.1cm;">`;
+                spvTables += `<span style="display: inline-block; width: 12px; height: 12px; background-color: ${color}; margin-right: 0.2cm; border: 1px solid #1F2937;"></span>`;
+                spvTables += `<span style="font-size: 9pt; color: #1F2937;">${displayName}: ${percentage}%</span>`;
+                spvTables += `</div>`;
+              });
+              spvTables += '</div>';
+              spvTables += '</div>';
+            }
           }
           
           // Member Units Table
