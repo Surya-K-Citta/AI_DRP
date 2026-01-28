@@ -2,6 +2,7 @@
 import OpenAI from 'openai';
 import { DPRVersion } from '../models/DPRVersion.model';
 import { Project } from '../models/Project.model';
+import { STEP_FIELDS_MAPPING } from './stepFieldsMapping';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -35,7 +36,7 @@ export class ClusterDPRService {
       const majorProducts = clusterData.step1?.majorProducts || clusterData.step1?.productRange || 'N/A';
       const enterpriseCount = clusterData.step1?.enterpriseCount || {};
       const totalEnterprises = (enterpriseCount.micro || 0) + (enterpriseCount.small || 0) + (enterpriseCount.medium || 0);
-      
+
       const prompt = `You are an expert DPR (Detailed Project Report) generation engine for Cluster Development Projects.
 
 CRITICAL REQUIREMENT: Generate a COMPREHENSIVE, DETAILED DPR document with MINIMUM 30 PAGES. Each section must be extensively detailed, professional, and government-ready.
@@ -185,7 +186,7 @@ Return only valid JSON without markdown code blocks.`;
       });
 
       const content = response.choices[0]?.message?.content || '{}';
-      
+
       // Clean up the response
       let cleanedContent = content
         .replace(/```json\n?/g, '')
@@ -219,7 +220,7 @@ Return only valid JSON without markdown code blocks.`;
     const location = clusterData.step1?.location || 'Location';
     const spvName = clusterData.step11?.spvName || 'SPV Name';
     const submittedTo = clusterData.step11?.submittedTo || 'DIC, District';
-    
+
     return {
       coverPage: `# DETAILED PROJECT REPORT\n\n## On Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\n\n### ${district}, ${location}\n\n---\n\n**Submitted to:** ${submittedTo}\n**Submitted by:** ${spvName}\n**Prepared by:** ${spvName}\n**Date:** ${new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}\n\n---\n\n*This Detailed Project Report has been prepared in accordance with the guidelines for Cluster Development Projects.*`,
       tableOfContents: `# Table of Contents\n\n1. Executive Summary – Basic Cluster Details\n2. Introduction & Sector Overview\n3. District & Regional Profile\n4. Cluster Profile\n5. Value Chain Details\n6. Market Assessment\n7. Gap Analysis\n8. SWOT Analysis\n9. Proposed Interventions\n10. Common Facility Centre (CFC) Details\n11. SPV Details\n12. Project Cost Details\n13. Means of Finance\n14. Operating Cost & Revenue\n15. Financial Viability\n16. Project Implementation Schedule\n17. Expected Impact\n18. Annexures & Document Uploads`,
@@ -262,7 +263,7 @@ Return only valid JSON without markdown code blocks.`;
 
     // Format the data in a readable way with actual values
     let content = `## Section ${step} Content\n\n`;
-    
+
     // Add cluster context
     if (clusterName) {
       content += `**Cluster Name:** ${clusterName}\n`;
@@ -273,10 +274,10 @@ Return only valid JSON without markdown code blocks.`;
     if (district) {
       content += `**District:** ${district}\n\n`;
     }
-    
+
     // Format step data as readable text
     content += this.formatStepDataAsText(stepData);
-    
+
     return content;
   }
 
@@ -337,11 +338,11 @@ Return only valid JSON without markdown code blocks.`;
       // Calculate total cost from step 12 if available
       const totalCost = clusterData.step12
         ? (clusterData.step12.land || 0) +
-          (clusterData.step12.building || 0) +
-          (clusterData.step12.machinery || 0) +
-          (clusterData.step12.utilitiesAndInfrastructure || 0) +
-          (clusterData.step12.preliminaryAndPreOperative || 0) +
-          (clusterData.step12.workingCapitalMargin || 0)
+        (clusterData.step12.building || 0) +
+        (clusterData.step12.machinery || 0) +
+        (clusterData.step12.utilitiesAndInfrastructure || 0) +
+        (clusterData.step12.preliminaryAndPreOperative || 0) +
+        (clusterData.step12.workingCapitalMargin || 0)
         : 0;
 
       // Calculate own contribution from step 13 if available
@@ -485,66 +486,66 @@ Return only valid JSON without markdown code blocks.`;
       // Create section-specific prompts
       const sectionPrompts: Record<string, string> = {
         'projectSnapshot': `Generate a comprehensive paragraph (150-200 words) for the Project Snapshot section. Use the following data: Cluster Name: ${clusterName}, Location: ${location}, District: ${district}, Enterprise Count: ${JSON.stringify(clusterData.step1?.enterpriseCount || {})}, SPV Name: ${clusterData.step11?.spvName || 'N/A'}, Major Products: ${clusterData.step1?.majorProducts || 'N/A'}. Write a professional, government-ready paragraph summarizing the project overview, cluster characteristics, and key highlights.`,
-        
+
         'operatingCostRevenue': `Generate a comprehensive paragraph (150-200 words) for the Operating Cost & Revenue section. Use the following data: ${JSON.stringify(sectionData)}. Calculate and mention: Total annual operating cost, breakdown of major cost components (raw material, power, wages, etc.), annual production volume, annual sales realization, and operating surplus. Write a professional paragraph explaining the operational viability and financial sustainability of the project.`,
-        
+
         'projectCost': `Generate a comprehensive paragraph (150-200 words) for the Project Cost & Means of Finance section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Total project cost, cost breakdown (land, building, machinery, etc.), means of finance (SPV contribution, government grant, bank loan, etc.), and financial structure. Write a professional paragraph explaining the project investment and financing plan.`,
-        
+
         'financialViability': `Generate a comprehensive paragraph (150-200 words) for the Financial Viability section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Profit & Loss projections, cash flow, balance sheet, break-even point, IRR, NPV, and overall financial viability. Write a professional paragraph explaining the financial sustainability and profitability of the project.`,
-        
+
         'expectedImpact': `Generate a comprehensive paragraph (150-200 words) for the Expected Impact section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Employment generation, turnover growth, export growth, income enhancement, and sustainability outcomes. Write a professional paragraph explaining the socio-economic impact and benefits of the project.`,
-        
+
         'clusterProfile': `Generate a comprehensive paragraph (150-200 words) for the Cluster Profile section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Cluster evolution, present status, number of units, production capacity, technology level, and key stakeholders. Write a professional paragraph describing the cluster's current state and characteristics.`,
-        
+
         'valueChain': `Generate a comprehensive paragraph (150-200 words) for the Value Chain Mapping section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Raw materials, value addition stages, intermediate products, final products, and major buyers. Write a professional paragraph explaining the complete value chain structure.`,
-        
+
         'marketAspects': `Generate a comprehensive paragraph (150-200 words) for the Market Aspects section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Existing demand, demand-supply gap, competition analysis, price trends, export potential, and target market. Write a professional paragraph analyzing the market scenario and opportunities.`,
-        
+
         'swotAnalysis': `Generate a comprehensive paragraph (150-200 words) for the SWOT Analysis section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Key strengths, weaknesses, opportunities, and threats. Write a professional paragraph summarizing the SWOT analysis and strategic implications.`,
-        
+
         'gapAnalysis': `Generate a comprehensive paragraph (150-200 words) for the Gap Analysis section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Technology gaps, infrastructure gaps, skill gaps, marketing gaps, financial gaps, and justification for intervention. Write a professional paragraph explaining the identified gaps and need for intervention.`,
-        
+
         'cfcDetails': `Generate a comprehensive paragraph (150-200 words) for the CFC Operation & Management section. Use the following data: ${JSON.stringify(sectionData)}. Mention: CFC name, location, plant & machinery, manufacturing process, capacity, and requirements (power, water, manpower). Write a professional paragraph describing the CFC setup and operations.`,
-        
+
         'spvDetails': `Generate a comprehensive paragraph (150-200 words) for the SPV Member Units section. Use the following data: ${JSON.stringify(sectionData)}. Mention: SPV name, legal status, member units, shareholding pattern, objectives, and roles. Write a professional paragraph describing the SPV structure and governance.`,
-        
+
         'implementationSchedule': `Generate a comprehensive paragraph (150-200 words) for the Project Implementation Schedule section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Project start date, key milestones, timeline, and total implementation period. Write a professional paragraph explaining the project timeline and implementation plan.`,
-        
+
         'conclusion': `Generate a comprehensive conclusion paragraph (200-250 words) for the DPR. Summarize: Project rationale, key highlights, expected benefits, financial viability, expected impact, and recommendation. Use data from the entire cluster DPR. Write a professional, government-ready conclusion that ties together all aspects of the project.`,
-        
+
         'introduction': `Generate a comprehensive paragraph (150-200 words) for the Introduction section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Sector/Industry type, sector description, national importance, and state-level importance. Write a professional paragraph explaining the sector context and significance.`,
-        
+
         'districtProfile': `Generate a comprehensive paragraph (150-200 words) for the District & Regional Profile section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Geography, climate, infrastructure, key economic activities, raw material availability, industrial infrastructure, and connectivity. Write a professional paragraph describing the district's characteristics and advantages.`,
-        
+
         'tableExplanation': `Generate a comprehensive explanation paragraph (100-150 words) for the following table data: ${JSON.stringify(sectionData)}. Explain what the table shows, key findings, trends, and implications. Write a professional paragraph that provides context and analysis for the table.`,
-        
+
         'graphExplanation': `Generate a comprehensive explanation paragraph (100-150 words) for the following graph/chart data: ${JSON.stringify(sectionData)}. Explain what the graph shows, key trends, patterns, and insights. Write a professional paragraph that provides context and analysis for the visualization.`,
-        
+
         // District Profile Subsections
         'districtProfile-geography': `Generate a comprehensive paragraph (150-200 words) for the Geography subsection of District & Regional Profile. The cluster is "${clusterName}" located in ${district}, ${location}. Current information: ${typeof sectionData === 'object' && sectionData.text ? sectionData.text : sectionData}. Additional context: ${JSON.stringify(typeof sectionData === 'object' && sectionData.context ? sectionData.context : {})}. Write a detailed, professional paragraph describing the geographical characteristics, terrain, location advantages, geographical significance, and how geography supports the cluster's operations. Make it informative for investors.`,
-        
+
         'districtProfile-climate': `Generate a comprehensive paragraph (150-200 words) for the Climate subsection of District & Regional Profile. The cluster is "${clusterName}" located in ${district}, ${location}. Current information: ${typeof sectionData === 'object' && sectionData.text ? sectionData.text : sectionData}. Additional context: ${JSON.stringify(typeof sectionData === 'object' && sectionData.context ? sectionData.context : {})}. Write a detailed, professional paragraph describing the climate conditions, seasonal patterns, temperature ranges, rainfall patterns, and how climate affects the cluster's operations and production cycles. Make it informative for investors.`,
-        
+
         'districtProfile-infrastructure': `Generate a comprehensive paragraph (150-200 words) for the Infrastructure subsection of District & Regional Profile. The cluster is "${clusterName}" located in ${district}, ${location}. Current information: ${typeof sectionData === 'object' && sectionData.text ? sectionData.text : sectionData}. Additional context: ${JSON.stringify(typeof sectionData === 'object' && sectionData.context ? sectionData.context : {})}. Write a detailed, professional paragraph describing the existing infrastructure facilities (roads, power, water, communication, etc.), their capacity, quality, accessibility, and importance for the cluster's operations. Make it informative for investors.`,
-        
+
         'districtProfile-keyEconomicActivities': `Generate a comprehensive paragraph (150-200 words) for the Key Economic Activities subsection of District & Regional Profile. The cluster is "${clusterName}" located in ${district}, ${location}. Current information: ${typeof sectionData === 'object' && sectionData.text ? sectionData.text : sectionData}. Additional context: ${JSON.stringify(typeof sectionData === 'object' && sectionData.context ? sectionData.context : {})}. Write a detailed, professional paragraph describing the major economic activities in the district, their significance, contribution to the local economy, employment generation, and how they relate to the cluster. Make it informative for investors.`,
-        
+
         'districtProfile-industrialInfrastructure': `Generate a comprehensive paragraph (150-200 words) for the Industrial Infrastructure subsection of District & Regional Profile. The cluster is "${clusterName}" located in ${district}, ${location}. Current information: ${typeof sectionData === 'object' && sectionData.text ? sectionData.text : sectionData}. Additional context: ${JSON.stringify(typeof sectionData === 'object' && sectionData.context ? sectionData.context : {})}. Write a detailed, professional paragraph describing the industrial infrastructure facilities (industrial parks, SEZs, common facilities, etc.), their capacity, role in supporting cluster development, and benefits for investors. Make it informative for investors.`,
-        
+
         // Cluster Profile Subsections
         'clusterProfile-evolution': `Generate a comprehensive paragraph (150-200 words) for the Evolution of the Cluster subsection. The cluster is "${clusterName}" located in ${district}, ${location}. Current information: ${typeof sectionData === 'object' && sectionData.text ? sectionData.text : sectionData}. Additional context: ${JSON.stringify(typeof sectionData === 'object' && sectionData.context ? sectionData.context : {})}. Write a detailed, professional paragraph describing how the cluster evolved over time, its historical development, growth trajectory, transformation phases, key milestones, and current status. Make it informative for investors.`,
-        
+
         // Market Aspects Subsections
         'marketAspects-demandSupply': `Generate a comprehensive paragraph (150-200 words) for the Demand-Supply Analysis subsection. The cluster is "${clusterName}" producing ${clusterData.step1?.majorProducts || 'products'}. Current information: ${typeof sectionData === 'object' && sectionData.text ? sectionData.text : sectionData}. Additional context: ${JSON.stringify(typeof sectionData === 'object' && sectionData.context ? sectionData.context : {})}. Write a detailed, professional paragraph analyzing the existing demand, supply patterns, market dynamics, demand-supply balance, market size, growth trends, and opportunities. Make it informative for investors.`,
-        
+
         'marketAspects-demandSupplyGap': `Generate a comprehensive paragraph (150-200 words) explaining the Demand-Supply Gap. The cluster is "${clusterName}" producing ${clusterData.step1?.majorProducts || 'products'}. Current information: ${typeof sectionData === 'object' && sectionData.text ? sectionData.text : sectionData}. Additional context: ${JSON.stringify(typeof sectionData === 'object' && sectionData.context ? sectionData.context : {})}. Write a detailed, professional paragraph describing the gap between demand and supply, its magnitude, causes, implications for the cluster, market opportunities, and potential for growth. Make it informative for investors.`,
-        
+
         'marketAspects-competition': `Generate a comprehensive paragraph (150-200 words) for the Competition Analysis subsection. The cluster is "${clusterName}" producing ${clusterData.step1?.majorProducts || 'products'}. Current information: ${typeof sectionData === 'object' && sectionData.text ? sectionData.text : sectionData}. Additional context: ${JSON.stringify(typeof sectionData === 'object' && sectionData.context ? sectionData.context : {})}. Write a detailed, professional paragraph analyzing the competitive landscape, key competitors, competitive advantages, market positioning, differentiation factors, and competitive strategies. Make it informative for investors.`,
-        
+
         'marketAspects-priceTrends': `Generate a comprehensive paragraph (150-200 words) for the Price Trends subsection. The cluster is "${clusterName}" producing ${clusterData.step1?.majorProducts || 'products'}. Current information: ${typeof sectionData === 'object' && sectionData.text ? sectionData.text : sectionData}. Additional context: ${JSON.stringify(typeof sectionData === 'object' && sectionData.context ? sectionData.context : {})}. Write a detailed, professional paragraph describing price trends, seasonal variations, historical patterns, future price outlook, price stability, and profitability implications. Make it informative for investors.`,
-        
+
         'marketAspects-exportPotential': `Generate a comprehensive paragraph (150-200 words) for the Export Potential subsection. The cluster is "${clusterName}" producing ${clusterData.step1?.majorProducts || 'products'}. Current information: ${typeof sectionData === 'object' && sectionData.text ? sectionData.text : sectionData}. Additional context: ${JSON.stringify(typeof sectionData === 'object' && sectionData.context ? sectionData.context : {})}. Write a detailed, professional paragraph describing export opportunities, target markets, export potential, international demand, export regulations, and strategies for export growth. Make it informative for investors.`,
-        
+
         'marketAspects-targetMarket': `Generate a comprehensive paragraph (150-200 words) for the Target Market subsection. The cluster is "${clusterName}" producing ${clusterData.step1?.majorProducts || 'products'}. Current information: ${typeof sectionData === 'object' && sectionData.text ? sectionData.text : sectionData}. Additional context: ${JSON.stringify(typeof sectionData === 'object' && sectionData.context ? sectionData.context : {})}. Write a detailed, professional paragraph describing the target market segments, customer profiles, market size, market entry strategies, distribution channels, and market penetration opportunities. Make it informative for investors.`
       };
 
@@ -582,6 +583,525 @@ Return only valid JSON without markdown code blocks.`;
     } catch (error: any) {
       console.error(`Error enhancing section ${sectionName}:`, error);
       throw new Error(`Failed to enhance section: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get AI suggestions for a specific step based on previous steps data
+   */
+  static async getAISuggestionsForStep(
+    currentStep: number,
+    currentStepData: any,
+    previousStepsData: Record<string, any>
+  ): Promise<Array<{ field: string; suggestion: string; reasoning?: string }>> {
+    try {
+      // Only provide suggestions for steps >= 2
+      if (currentStep < 2) {
+        return [];
+      }
+
+      // Check if we have at least Step 1 data
+      if (!previousStepsData.step1 || Object.keys(previousStepsData.step1).length === 0) {
+        console.log('No Step 1 data available for AI suggestions');
+        return [];
+      }
+
+      // Get step field mapping
+      const stepMapping = STEP_FIELDS_MAPPING[currentStep];
+      if (!stepMapping) {
+        console.log(`No field mapping found for step ${currentStep}`);
+        return [];
+      }
+
+      // Build comprehensive context from ALL previous steps
+      const contextText = this.formatStepDataAsText(previousStepsData);
+      const currentStepText = this.formatStepDataAsText({ [`step${currentStep}`]: currentStepData });
+
+      // Extract key information from Step 1 for quick reference
+      const step1Data = previousStepsData.step1 || {};
+      const clusterName = step1Data.clusterName || '';
+      const district = step1Data.district || '';
+      const location = step1Data.location || '';
+      const natureOfBusiness = step1Data.natureOfBusiness || '';
+      const majorProducts = step1Data.majorProducts || '';
+      const enterpriseCount = step1Data.enterpriseCount || {};
+      const totalEnterprises = (enterpriseCount.micro || 0) + (enterpriseCount.small || 0) + (enterpriseCount.medium || 0);
+
+      // Extract key information from other previous steps for better context
+      const step2Data = previousStepsData.step2 || {};
+      const step3Data = previousStepsData.step3 || {};
+      const step4Data = previousStepsData.step4 || {};
+      const step5Data = previousStepsData.step5 || {};
+      const step6Data = previousStepsData.step6 || {};
+      const step7Data = previousStepsData.step7 || {};
+      const step8Data = previousStepsData.step8 || {};
+
+      // Build summary of all previous steps data
+      const previousStepsSummary = [];
+      if (previousStepsData.step1) previousStepsSummary.push(`Step 1: Basic Cluster Details - ${clusterName}${district ? ` in ${district}` : ''}${natureOfBusiness ? ` (${natureOfBusiness})` : ''}`);
+      if (previousStepsData.step2) previousStepsSummary.push(`Step 2: Sector Overview - ${step2Data.sectorType || 'Sector information available'}`);
+      if (previousStepsData.step3) previousStepsSummary.push(`Step 3: District Profile - ${step3Data.geography ? 'Geographical and infrastructure details available' : 'District information available'}`);
+      if (previousStepsData.step4) previousStepsSummary.push(`Step 4: Cluster Profile - ${step4Data.yearOfEstablishment ? `Established ${step4Data.yearOfEstablishment}` : 'Cluster details available'}`);
+      if (previousStepsData.step5) previousStepsSummary.push(`Step 5: Value Chain - ${step5Data.finalProducts ? 'Value chain mapped' : 'Value chain details available'}`);
+      if (previousStepsData.step6) previousStepsSummary.push(`Step 6: Market Assessment - Market analysis completed`);
+      if (previousStepsData.step7) previousStepsSummary.push(`Step 7: Gap Analysis - Gaps identified`);
+      if (previousStepsData.step8) previousStepsSummary.push(`Step 8: SWOT Analysis - Strengths, weaknesses, opportunities, threats analyzed`);
+
+      // Identify which fields are already filled and which are empty
+      const filledFields: string[] = [];
+      const emptyFields: string[] = [];
+
+      stepMapping.fields.forEach(fieldInfo => {
+        const fieldName = fieldInfo.name;
+        const fieldValue = currentStepData[fieldName];
+        if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '' &&
+          !(Array.isArray(fieldValue) && fieldValue.length === 0)) {
+          filledFields.push(fieldName);
+        } else {
+          emptyFields.push(fieldName);
+        }
+      });
+
+      const prompt = `You are an expert consultant helping create a Detailed Project Report (DPR) for an MSME cluster.
+
+═══════════════════════════════════════════════════════════════
+CURRENT STEP TO COMPLETE:
+═══════════════════════════════════════════════════════════════
+Step Number: ${currentStep}
+Step Name: "${stepMapping.stepName}"
+Required Fields: ${stepMapping.fields.map(f => f.name).join(', ')}
+
+═══════════════════════════════════════════════════════════════
+COMPLETED PREVIOUS STEPS (${previousStepsSummary.length} steps):
+═══════════════════════════════════════════════════════════════
+${previousStepsSummary.length > 0 ? previousStepsSummary.join('\n') : 'No previous steps completed'}
+
+═══════════════════════════════════════════════════════════════
+COMPREHENSIVE DATA FROM ALL PREVIOUS STEPS:
+═══════════════════════════════════════════════════════════════
+IMPORTANT: Read and analyze ALL the data below carefully. This contains complete information from Steps 1-${currentStep - 1}.
+
+${contextText}
+
+═══════════════════════════════════════════════════════════════
+CURRENT STEP DATA (what user has filled so far):
+═══════════════════════════════════════════════════════════════
+${currentStepText}
+
+═══════════════════════════════════════════════════════════════
+FIELD STATUS:
+═══════════════════════════════════════════════════════════════
+FILLED FIELDS: ${filledFields.length > 0 ? filledFields.join(', ') : 'None'}
+EMPTY FIELDS (PRIORITY): ${emptyFields.length > 0 ? emptyFields.join(', ') : 'All fields are filled'}
+
+═══════════════════════════════════════════════════════════════
+TASK:
+═══════════════════════════════════════════════════════════════
+Provide 3-5 specific, actionable suggestions for completing Step ${currentStep}: "${stepMapping.stepName}".
+
+CRITICAL REQUIREMENTS:
+
+1. **ANALYZE ALL PREVIOUS STEPS DATA COMPREHENSIVELY:**
+   - You have been provided with COMPLETE data from ALL previous steps (Steps 1-${currentStep - 1})
+   - Read through ALL the "COMPREHENSIVE DATA FROM ALL PREVIOUS STEPS" section above
+   - Extract and use relevant information from:
+     * Step 1: Cluster basics (${clusterName}${district ? ` in ${district}` : ''}, ${natureOfBusiness}, ${majorProducts}, ${totalEnterprises} enterprises)
+     ${previousStepsData.step2 ? `     * Step 2: Sector overview (${step2Data.sectorType || 'sector type'}, ${step2Data.nationalImportance ? 'national/state importance' : 'sector description'})` : ''}
+     ${previousStepsData.step3 ? `     * Step 3: District/regional profile (geography, infrastructure, connectivity)` : ''}
+     ${previousStepsData.step4 ? `     * Step 4: Cluster profile (establishment, evolution, capacity, technology)` : ''}
+     ${previousStepsData.step5 ? `     * Step 5: Value chain (raw materials, products, buyers)` : ''}
+     ${previousStepsData.step6 ? `     * Step 6: Market assessment (demand, competition, pricing)` : ''}
+     ${previousStepsData.step7 ? `     * Step 7: Gap analysis (technology, infrastructure, skills gaps)` : ''}
+     ${previousStepsData.step8 ? `     * Step 8: SWOT analysis (strengths, weaknesses, opportunities, threats)` : ''}
+   - DO NOT rely only on Step 1. Use information from ALL relevant previous steps
+   - Cross-reference data across steps to provide accurate suggestions
+
+2. **FIELD-SPECIFIC FOCUS:**
+   - Focus ONLY on fields in Step ${currentStep}: ${stepMapping.fields.map(f => f.name).join(', ')}
+   - Each suggestion must target ONE specific field from the list above
+   - Do NOT suggest fields from other steps
+
+3. **PRIORITIZE EMPTY FIELDS:**
+   - Focus suggestions on EMPTY fields: ${emptyFields.length > 0 ? emptyFields.join(', ') : 'All fields are filled'}
+   - If all fields are filled, provide suggestions to improve/expand existing content
+
+4. **EACH SUGGESTION MUST:**
+   - Reference SPECIFIC data from relevant previous steps (quote actual values when possible)
+   - Show how information from previous steps connects to the current field
+   - Be actionable and specific (tell user exactly what to write)
+   - Be accurate and consistent with all previous step data
+   - Use actual cluster name "${clusterName}", district "${district}", nature of business "${natureOfBusiness}", products "${majorProducts}" in suggestions
+
+5. **ACCURACY REQUIREMENTS:**
+   - Suggestions must be accurate and specific to: ${clusterName}${district ? ` in ${district}` : ''}${natureOfBusiness ? ` - ${natureOfBusiness}` : ''}
+   - Ensure consistency with ALL information from previous steps
+   - Do not contradict data from previous steps
+   - Build logically on information from earlier steps
+
+Return suggestions in JSON format:
+{
+  "suggestions": [
+    {
+      "field": "exact field name from: ${stepMapping.fields.map(f => f.name).join(', ')}",
+      "suggestion": "specific, actionable guidance that references actual data from relevant previous steps (use actual values like '${clusterName}', '${natureOfBusiness}', '${majorProducts}', etc.)",
+      "reasoning": "explain why this field is important and how specific data from previous steps (mention which steps) relates to it"
+    }
+  ]
+}`;
+
+      // Use OpenAI chat completions directly
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert consultant helping create Detailed Project Reports (DPR) for MSME clusters. 
+
+Your task is to analyze ALL data from previous steps (Steps 1-${currentStep - 1}) and provide field-specific suggestions for Step ${currentStep}.
+
+CRITICAL: 
+- Carefully read and understand ALL previous steps data provided
+- Use information from ALL completed steps, not just Step 1
+- Each suggestion must reference specific data from relevant previous steps
+- Provide accurate, contextual suggestions that connect previous step data to current step fields
+
+Return suggestions in JSON format only.`,
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 1000,
+      });
+
+      const responseText = response.choices[0]?.message?.content || '';
+
+      // Parse JSON response
+      try {
+        if (responseText) {
+          const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            return parsed.suggestions || [];
+          }
+        }
+      } catch (parseError) {
+        console.error('Error parsing AI suggestions:', parseError);
+      }
+
+      // Fallback: return field-specific suggestions based on all previous step data
+      // Note: step1Data, clusterName, district, natureOfBusiness, majorProducts, emptyFields, and filledFields
+      // are already declared and calculated above - reuse them here
+
+      // Generate field-specific fallback suggestions
+      const fallbackSuggestions = [];
+
+      // Generate suggestions for up to 3 empty fields
+      // emptyFields is already calculated above, reuse it
+      const fieldsToSuggest = emptyFields.length > 0 ? emptyFields.slice(0, 3) : [];
+
+      fieldsToSuggest.forEach(field => {
+        let suggestion = '';
+        let reasoning = '';
+
+        // Field-specific suggestions based on step - use all previous step data
+        // Reuse variables already declared above (clusterName, district, natureOfBusiness, majorProducts)
+        if (currentStep === 2) {
+          if (field === 'sectorType') {
+            suggestion = `Based on the nature of business "${natureOfBusiness}" from Step 1, specify the sector type (e.g., Agro-processing, Manufacturing, Handicrafts).`;
+            reasoning = 'The sector type should align with the nature of business identified in Step 1.';
+          } else if (field === 'sectorDescription') {
+            suggestion = `Describe the ${natureOfBusiness || 'sector'} sector in detail, focusing on ${clusterName}${district ? ` in ${district}` : ''}. Include characteristics, significance, and how it relates to the cluster's major products: ${majorProducts || 'products from Step 1'}.`;
+            reasoning = 'A detailed sector description helps establish the context and importance of the cluster.';
+          } else if (field === 'nationalImportance') {
+            suggestion = `Explain why the ${natureOfBusiness || 'sector'} sector is important at the national level. Consider contribution to GDP, employment, exports, food security, or other national priorities.`;
+            reasoning = 'National importance demonstrates the broader significance of supporting this cluster.';
+          } else if (field === 'stateLevelImportance') {
+            suggestion = `Describe the significance of the ${natureOfBusiness || 'sector'} sector for ${district ? `the state, particularly ${district}` : 'the state'}. Include state-level economic impact, employment generation, and alignment with state development goals.`;
+            reasoning = 'State-level importance shows how the cluster contributes to regional development.';
+          } else if (field === 'keyProducts') {
+            suggestion = `List the key products from Step 1: "${majorProducts || 'products'}" and expand with additional products relevant to ${natureOfBusiness || 'the sector'}.`;
+            reasoning = 'Key products should align with the major products identified in Step 1.';
+          }
+        } else {
+          // Generic fallback for other steps - reference all previous steps
+          suggestion = `Fill in the ${field} field based on ${clusterName}${district ? ` in ${district}` : ''}${natureOfBusiness ? ` (${natureOfBusiness})` : ''} data from previous steps. Consider all information from Steps 1-${currentStep - 1}.`;
+          reasoning = 'Ensure consistency with all previous step data.';
+        }
+
+        if (suggestion) {
+          fallbackSuggestions.push({
+            field,
+            suggestion,
+            reasoning,
+          });
+        }
+      });
+
+      // If no empty fields or suggestions generated, provide general guidance
+      if (fallbackSuggestions.length === 0) {
+        return [
+          {
+            field: stepMapping.fields[0] || 'General',
+            suggestion: `Complete all fields in Step ${currentStep} (${stepMapping.stepName}) using data from all previous steps: ${clusterName}${district ? ` in ${district}` : ''}${natureOfBusiness ? ` - ${natureOfBusiness}` : ''}.`,
+            reasoning: 'Ensure all information is consistent with data from all previous steps.',
+          },
+        ];
+      }
+
+      return fallbackSuggestions;
+    } catch (error: any) {
+      console.error('Error getting AI suggestions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get step-specific guidance for AI suggestions
+   */
+  private static getStepSpecificGuidance(step: number): string {
+    const guidanceMap: Record<number, string> = {
+      2: 'Focus on sector overview that relates to the cluster type and products mentioned in Step 1.',
+      3: 'Connect district and regional profile with the location and geographical spread from Step 1.',
+      4: 'Reference the cluster name, enterprise count, and business nature from Step 1.',
+      5: 'Link value chain details with the major products and nature of business from Step 1.',
+      6: 'Consider market assessment based on the cluster\'s products and market served percentages from Step 1.',
+      7: 'Identify gaps that are relevant to the cluster\'s current state described in Step 1.',
+      8: 'Analyze SWOT considering the cluster\'s strengths and characteristics from Step 1.',
+      9: 'Propose interventions that address the cluster\'s specific needs identified in previous steps.',
+      10: 'Design CFC details that align with the cluster\'s production capacity and requirements from Step 1.',
+      11: 'Structure SPV details considering the cluster name and enterprise count from Step 1.',
+      12: 'Estimate project costs based on the cluster\'s scale and investment per unit from Step 1.',
+      13: 'Plan financing considering the cluster\'s financial capacity from Step 1.',
+      14: 'Calculate operating costs and revenue based on turnover per unit and production capacity from Step 1.',
+      15: 'Assess financial viability using the cluster\'s financial metrics from Step 1.',
+      16: 'Schedule implementation considering the cluster\'s current state and requirements.',
+      17: 'Project impact based on the cluster\'s current employment and turnover from Step 1.',
+      18: 'Include documents relevant to the cluster\'s registration and legal status.',
+    };
+
+    return guidanceMap[step] || 'Ensure all information is consistent with data from Step 1.';
+  }
+
+  /**
+   * Get field-specific suggestion
+   */
+  static async getFieldSuggestion(
+    fieldName: string,
+    fieldValue: any,
+    context: Record<string, any>
+  ): Promise<string | null> {
+    try {
+      const contextText = this.formatStepDataAsText(context);
+
+      const prompt = `You are helping fill a DPR form field.
+
+Field name: ${fieldName}
+Current value: ${fieldValue || '(empty)'}
+
+Context from other fields:
+${contextText}
+
+Provide a brief, helpful suggestion (1-2 sentences) for filling this field based on the context.
+Return only the suggestion text, no JSON or formatting.`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant providing suggestions for filling DPR form fields.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 200,
+      });
+
+      const responseText = response.choices[0]?.message?.content || '';
+      return responseText.trim() || null;
+    } catch (error: any) {
+      console.error('Error getting field suggestion:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate actual content for a field based on suggestion and context
+   */
+  static async generateFieldContent(
+    fieldName: string,
+    currentStep: number,
+    currentStepData: any,
+    previousStepsData: Record<string, any>,
+    suggestion: string
+  ): Promise<string | null> {
+    try {
+      // Get step field mapping
+      const stepMapping = STEP_FIELDS_MAPPING[currentStep];
+      if (!stepMapping) {
+        console.log(`No field mapping found for step ${currentStep}`);
+        return null;
+      }
+
+      // Build context from all previous steps
+      const contextText = this.formatStepDataAsText(previousStepsData);
+      const currentStepText = this.formatStepDataAsText({ [`step${currentStep}`]: currentStepData });
+
+      // Extract Step 1 key information
+      const step1Data = previousStepsData.step1 || {};
+      const clusterName = step1Data.clusterName || '';
+      const district = step1Data.district || '';
+      const natureOfBusiness = step1Data.natureOfBusiness || '';
+      const majorProducts = step1Data.majorProducts || '';
+
+      // Get field info to determine the expected format
+      const fieldInfo = stepMapping.fields.find(f => f.name === fieldName);
+      const fieldType = fieldInfo?.type || 'text';
+      const sampleValue = fieldInfo?.sampleValue || '';
+
+      // Determine format instructions based on field type and sample value
+      let formatInstructions = '';
+      if (fieldType === 'array') {
+        if (sampleValue.includes('{"') || sampleValue.includes('{name') || sampleValue.includes('{stage')) {
+          // Structured array (objects)
+          if (fieldName === 'valueAdditionStages') {
+            formatInstructions = `
+CRITICAL FORMAT FOR valueAdditionStages:
+- Return a JSON array of objects with "stage" and "sellingPrice" properties
+- Each object must have: {"stage": "Stage description", "sellingPrice": number}
+- Example: [{"stage": "Sourcing Raw Materials", "sellingPrice": 0}, {"stage": "Cleaning and Drying", "sellingPrice": 0}]
+- Generate 5-7 stages based on the cluster's value chain
+- sellingPrice can be 0 if not specified, or provide realistic prices in rupees
+- Return ONLY the JSON array, no explanations`;
+          } else if (fieldName === 'rawMaterials') {
+            formatInstructions = `
+CRITICAL FORMAT FOR rawMaterials:
+- Return a JSON array of objects with "name" and "source" properties
+- Each object must have: {"name": "Material name", "source": "Source location"}
+- Example: [{"name": "Raw Chilli", "source": "Local farmers"}, {"name": "Packaging Material", "source": "Local suppliers"}]
+- Generate 3-5 materials based on the cluster's production process
+- Return ONLY the JSON array, no explanations`;
+          } else if (fieldName === 'boardOfDirectors') {
+            formatInstructions = `
+CRITICAL FORMAT FOR boardOfDirectors:
+- Return a JSON array of objects with "name" and "designation" properties
+- Each object must have: {"name": "Director name", "designation": "Designation"}
+- Example: [{"name": "John Doe", "designation": "Chairman"}, {"name": "Jane Smith", "designation": "Secretary"}]
+- Generate 3-5 directors
+- Return ONLY the JSON array, no explanations`;
+          } else if (fieldName === 'shareholdingPattern') {
+            formatInstructions = `
+CRITICAL FORMAT FOR shareholdingPattern:
+- Return a JSON array of objects with "stakeholder" and "percentage" properties
+- Each object must have: {"stakeholder": "Stakeholder name", "percentage": number}
+- Percentages should add up to 100
+- Example: [{"stakeholder": "SPV Members", "percentage": 60}, {"stakeholder": "Government", "percentage": 40}]
+- Return ONLY the JSON array, no explanations`;
+          } else if (fieldName === 'memberUnits') {
+            formatInstructions = `
+CRITICAL FORMAT FOR memberUnits:
+- Return a JSON array of objects with "name" and "registration" properties
+- Each object must have: {"name": "Unit name", "registration": "Registration number"}
+- Example: [{"name": "Unit 1", "registration": "REG001"}, {"name": "Unit 2", "registration": "REG002"}]
+- Generate based on cluster enterprise count
+- Return ONLY the JSON array, no explanations`;
+          } else if (fieldName === 'milestones') {
+            formatInstructions = `
+CRITICAL FORMAT FOR milestones:
+- Return a JSON array of objects with "activity", "timeRequired", "startDate", and "endDate" properties
+- Each object must have: {"activity": "Activity name", "timeRequired": "X months", "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD"}
+- Example: [{"activity": "Land Acquisition", "timeRequired": "2 months", "startDate": "2024-01-01", "endDate": "2024-03-01"}]
+- Return ONLY the JSON array, no explanations`;
+          } else {
+            // Simple array (strings)
+            formatInstructions = `
+CRITICAL FORMAT FOR ${fieldName}:
+- Return a JSON array of strings
+- Example: ["Item 1", "Item 2", "Item 3"]
+- Generate 3-7 items based on the cluster context
+- Return ONLY the JSON array, no explanations`;
+          }
+        } else {
+          // Simple array (strings)
+          formatInstructions = `
+CRITICAL FORMAT FOR ${fieldName}:
+- Return a JSON array of strings
+- Example: ["Item 1", "Item 2", "Item 3"]
+- Generate 3-7 items based on the cluster context
+- Return ONLY the JSON array, no explanations`;
+        }
+      } else if (fieldType === 'number') {
+        formatInstructions = `
+CRITICAL FORMAT FOR ${fieldName}:
+- Return ONLY a number (integer or float)
+- No text, no units, no explanations
+- Example: 500000 or 75.5`;
+      } else {
+        formatInstructions = `
+CRITICAL FORMAT FOR ${fieldName}:
+- Return a well-written paragraph or multiple paragraphs
+- Be specific and reference actual data from previous steps
+- Make it appropriate for a DPR document`;
+      }
+
+      const prompt = `You are an expert consultant helping create a Detailed Project Report (DPR) for an MSME cluster.
+
+CURRENT STEP: Step ${currentStep} - ${stepMapping.stepName}
+FIELD TO FILL: ${fieldName}
+FIELD TYPE: ${fieldType}
+CURRENT FIELD VALUE: ${currentStepData[fieldName] || '(empty)'}
+
+CLUSTER INFORMATION FROM STEP 1:
+- Cluster Name: ${clusterName}
+- District: ${district}
+- Nature of Business: ${natureOfBusiness}
+- Major Products: ${majorProducts}
+
+ALL PREVIOUS STEPS DATA:
+${contextText}
+
+CURRENT STEP DATA:
+${currentStepText}
+
+AI SUGGESTION FOR THIS FIELD:
+${suggestion}
+
+TASK: Generate actual content for the field "${fieldName}" in Step ${currentStep} based on:
+1. The AI suggestion provided above
+2. All previous steps data (especially Step 1)
+3. The cluster context (${clusterName}${district ? ` in ${district}` : ''}${natureOfBusiness ? ` - ${natureOfBusiness}` : ''})
+
+${formatInstructions}
+
+Return only the field content, no JSON wrapper or additional text.`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert consultant generating actual content for DPR form fields. Return only the content, no explanations.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      });
+
+      const responseText = response.choices[0]?.message?.content || '';
+      return responseText.trim() || null;
+    } catch (error: any) {
+      console.error('Error generating field content:', error);
+      return null;
     }
   }
 }

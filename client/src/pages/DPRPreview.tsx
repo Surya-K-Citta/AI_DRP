@@ -22,6 +22,9 @@ import {
   Loader2,
   Sparkles,
   Award,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
 } from 'lucide-react';
 import { downloadBlob } from '@/lib/utils';
 import { FormattedText } from '@/utils/textFormatter';
@@ -44,6 +47,7 @@ export const DPRPreview: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [hasTelugu, setHasTelugu] = useState(false);
+  const [previewZoom, setPreviewZoom] = useState(0.6); // Default zoom set to 60%
 
   // Update i18n language when viewLanguage changes
   useEffect(() => {
@@ -774,11 +778,63 @@ export const DPRPreview: React.FC = () => {
 
         {/* DPR Sections */}
         {isClusterDPR ? (
-          <div className="w-full bg-gray-100 p-4">
-            <div className="bg-white shadow-2xl" style={{ minHeight: '100vh' }}>
-              <ClusterDPRDocumentView dpr={dpr} project={project} viewLanguage={viewLanguage} />
-            </div>
-          </div>
+          <Card className="border-2 shadow-lg">
+            <CardHeader className="flex-shrink-0 border-b border-border">
+              <div className="flex items-center justify-between">
+                <CardTitle>DPR Preview</CardTitle>
+                <div className="flex items-center gap-2">
+                  {/* Zoom Controls */}
+                  <div className="flex items-center gap-1 border rounded-lg p-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPreviewZoom(Math.max(0.3, previewZoom - 0.1))}
+                      className="h-7 w-7 p-0"
+                      title="Zoom Out"
+                    >
+                      <ZoomOut className="h-4 w-4" />
+                    </Button>
+                    <span className="text-xs px-2 min-w-[3rem] text-center">
+                      {Math.round(previewZoom * 100)}%
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPreviewZoom(Math.min(2, previewZoom + 0.1))}
+                      className="h-7 w-7 p-0"
+                      title="Zoom In"
+                    >
+                      <ZoomIn className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPreviewZoom(0.6)}
+                      className="h-7 w-7 p-0"
+                      title="Reset Zoom to 60%"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="overflow-auto p-4 bg-gray-100" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+              <div 
+                className="w-full overflow-auto"
+                style={{ 
+                  transform: `scale(${previewZoom})`,
+                  transformOrigin: 'top left',
+                  width: `${100 / previewZoom}%`,
+                  height: `${100 / previewZoom}%`,
+                }}
+              >
+                <div className="bg-white shadow-2xl mx-auto" style={{ width: '21cm', minHeight: '29.7cm' }}>
+                  <ClusterDPRDocumentView dpr={dpr} project={project} viewLanguage={viewLanguage} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         ) : (
           <div className="space-y-6">
             {sections.map((section) => {

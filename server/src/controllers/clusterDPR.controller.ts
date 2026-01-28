@@ -3,9 +3,11 @@ import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { ClusterDPRService } from '../services/clusterDPR.service';
 import { GeminiService } from '../services/gemini.service';
+import { CloudinaryService } from '../services/cloudinary.service';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import axios from 'axios';
 
 export class ClusterDPRController {
   /**
@@ -184,11 +186,29 @@ export class ClusterDPRController {
       // Generate image using Gemini-enhanced prompt with DALL-E
       const imageUrl = await GeminiService.generateImage(prompt, sectionInfo || {});
 
+      // Upload generated image to Cloudinary
+      let cloudinaryUrl = imageUrl;
+      let cloudinaryPublicId = null;
+      try {
+        const cloudinaryResult = await CloudinaryService.uploadImageFromUrl(
+          imageUrl,
+          'msme-dpr/cluster-images/generated'
+        );
+        cloudinaryUrl = cloudinaryResult.secureUrl;
+        cloudinaryPublicId = cloudinaryResult.publicId;
+        console.log(`✅ Image uploaded to Cloudinary: ${cloudinaryPublicId}`);
+      } catch (cloudinaryError: any) {
+        console.error('⚠️ Failed to upload to Cloudinary, using original URL:', cloudinaryError);
+        // Continue with original URL if Cloudinary upload fails
+      }
+
       res.status(200).json({
         success: true,
         message: 'Image generated successfully',
         data: {
-          imageUrl,
+          imageUrl: cloudinaryUrl,
+          originalUrl: imageUrl,
+          cloudinaryPublicId,
           sectionType,
         },
       });
@@ -225,14 +245,35 @@ export class ClusterDPRController {
         return;
       }
 
-      // Return the file path relative to uploads directory
-      const imageUrl = `/uploads/images/${file.filename}`;
+      // Upload to Cloudinary
+      let cloudinaryUrl = `/uploads/images/${file.filename}`;
+      let cloudinaryPublicId = null;
+      try {
+        const cloudinaryResult = await CloudinaryService.uploadImage(
+          file.path,
+          'msme-dpr/cluster-images/uploaded',
+          `uploaded-${Date.now()}-${file.filename.replace(/\.[^/.]+$/, '')}`
+        );
+        cloudinaryUrl = cloudinaryResult.secureUrl;
+        cloudinaryPublicId = cloudinaryResult.publicId;
+        
+        // Delete local file after successful Cloudinary upload
+        fs.unlink(file.path, (err) => {
+          if (err) console.error('Error deleting local file:', err);
+        });
+        
+        console.log(`✅ Image uploaded to Cloudinary: ${cloudinaryPublicId}`);
+      } catch (cloudinaryError: any) {
+        console.error('⚠️ Failed to upload to Cloudinary, using local file:', cloudinaryError);
+        // Continue with local file path if Cloudinary upload fails
+      }
 
       res.status(200).json({
         success: true,
         message: 'Image uploaded successfully',
         data: {
-          imageUrl,
+          imageUrl: cloudinaryUrl,
+          cloudinaryPublicId,
           filename: file.filename,
           originalName: file.originalname,
           size: file.size,
@@ -293,6 +334,216 @@ export class ClusterDPRController {
       res.status(500).json({
         success: false,
         message: 'Failed to enhance section',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Delete image from Cloudinary
+   */
+  static async deleteImage(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const { imageUrl, publicId } = req.body;
+
+      if (!imageUrl && !publicId) {
+        res.status(400).json({
+          success: false,
+          message: 'Image URL or public ID is required',
+        });
+        return;
+      }
+
+      // Extract public ID from URL if not provided
+      let imagePublicId = publicId;
+      if (!imagePublicId && imageUrl) {
+        imagePublicId = CloudinaryService.extractPublicId(imageUrl);
+      }
+
+      if (!imagePublicId) {
+        res.status(400).json({
+          success: false,
+          message: 'Could not extract public ID from image URL',
+        });
+        return;
+      }
+
+      // Delete from Cloudinary
+      const deleted = await CloudinaryService.deleteImage(imagePublicId);
+
+      if (deleted) {
+        res.status(200).json({
+          success: true,
+          message: 'Image deleted successfully',
+          data: {
+            publicId: imagePublicId,
+          },
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: 'Image not found in Cloudinary',
+        });
+      }
+    } catch (error: any) {
+      console.error('❌ Error deleting image:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete image',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get AI suggestions for cluster step
+   */
+  static async getAISuggestions(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const { currentStep, currentStepData, previousStepsData } = req.body;
+
+      if (currentStep === undefined || !currentStepData) {
+        res.status(400).json({
+          success: false,
+          message: 'Current step and step data are required',
+        });
+        return;
+      }
+
+      console.log(`🤖 Getting AI suggestions for step ${currentStep}`);
+
+      const suggestions = await ClusterDPRService.getAISuggestionsForStep(
+        currentStep,
+        currentStepData,
+        previousStepsData || {}
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'AI suggestions retrieved successfully',
+        data: {
+          suggestions,
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ Error getting AI suggestions:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get AI suggestions',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get AI field suggestion
+   */
+  static async getFieldSuggestion(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const { fieldName, fieldValue, context } = req.body;
+
+      if (!fieldName) {
+        res.status(400).json({
+          success: false,
+          message: 'Field name is required',
+        });
+        return;
+      }
+
+      const suggestion = await ClusterDPRService.getFieldSuggestion(
+        fieldName,
+        fieldValue,
+        context || {}
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Field suggestion retrieved successfully',
+        data: {
+          suggestion,
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ Error getting field suggestion:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get field suggestion',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Generate field content based on suggestion
+   */
+  static async generateFieldContent(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const { fieldName, currentStep, currentStepData, previousStepsData, suggestion } = req.body;
+
+      if (!fieldName || !currentStep || !suggestion) {
+        res.status(400).json({
+          success: false,
+          message: 'Field name, current step, and suggestion are required',
+        });
+        return;
+      }
+
+      const content = await ClusterDPRService.generateFieldContent(
+        fieldName,
+        currentStep,
+        currentStepData || {},
+        previousStepsData || {},
+        suggestion
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Field content generated successfully',
+        data: {
+          content,
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ Error generating field content:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to generate field content',
         error: error.message,
       });
     }

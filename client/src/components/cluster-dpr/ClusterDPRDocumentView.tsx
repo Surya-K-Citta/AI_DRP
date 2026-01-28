@@ -295,14 +295,22 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     try {
       const result = await api.uploadClusterDPRImage(file);
       if (result.success && result.data?.imageUrl) {
-        // Construct full URL for uploaded images
-        // The API returns /uploads/images/filename.png, we need to prepend the server base URL
-        const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-        const serverBaseUrl = apiBaseUrl.replace('/api', ''); // Remove /api to get server base
+        // Use Cloudinary URL directly (already full URL) or construct local URL
         const imageUrl = result.data.imageUrl.startsWith('http') 
           ? result.data.imageUrl 
-          : `${serverBaseUrl}${result.data.imageUrl}`;
+          : (() => {
+              const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+              const serverBaseUrl = apiBaseUrl.replace('/api', '');
+              return `${serverBaseUrl}${result.data.imageUrl}`;
+            })();
+        
         setImages({ ...images, [imageId]: imageUrl });
+        
+        // Store Cloudinary public ID for future deletion if available
+        if (result.data.cloudinaryPublicId) {
+          console.log('Image uploaded with Cloudinary ID:', result.data.cloudinaryPublicId);
+        }
+        
         toast.success('Image uploaded successfully!');
       } else {
         toast.error(result.message || 'Failed to upload image');
@@ -314,11 +322,57 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   };
 
   // Handle image removal
-  const handleRemoveImage = (imageId: string) => {
-    const newImages = { ...images };
-    delete newImages[imageId];
-    setImages(newImages);
-    toast.success('Image removed');
+  const handleRemoveImage = async (imageId: string) => {
+    const imageUrl = images[imageId];
+    if (!imageUrl) {
+      return;
+    }
+
+    // Check if it's a Cloudinary URL
+    const isCloudinaryUrl = imageUrl.includes('cloudinary.com') || imageUrl.includes('res.cloudinary.com');
+    
+    if (isCloudinaryUrl) {
+      try {
+        // Extract public ID from Cloudinary URL
+        const urlParts = imageUrl.split('/');
+        const uploadIndex = urlParts.findIndex(part => part === 'upload');
+        if (uploadIndex !== -1 && uploadIndex < urlParts.length - 1) {
+          // Extract public ID (format: v1234567890/folder/public_id.ext)
+          const publicIdPath = urlParts.slice(uploadIndex + 2).join('/').replace(/\.[^/.]+$/, '');
+          
+          // Call API to delete from Cloudinary
+          const result = await api.deleteClusterDPRImage(imageUrl, publicIdPath);
+          
+          if (result.success) {
+            const newImages = { ...images };
+            delete newImages[imageId];
+            setImages(newImages);
+            toast.success('Image removed and deleted from storage');
+          } else {
+            throw new Error(result.message || 'Failed to delete image');
+          }
+        } else {
+          // Fallback: just remove from UI
+          const newImages = { ...images };
+          delete newImages[imageId];
+          setImages(newImages);
+          toast.success('Image removed');
+        }
+      } catch (error: any) {
+        console.error('Error deleting image from Cloudinary:', error);
+        toast.error('Failed to delete image from storage, but removed from view');
+        // Still remove from UI even if deletion fails
+        const newImages = { ...images };
+        delete newImages[imageId];
+        setImages(newImages);
+      }
+    } else {
+      // Not a Cloudinary URL, just remove from UI
+      const newImages = { ...images };
+      delete newImages[imageId];
+      setImages(newImages);
+      toast.success('Image removed');
+    }
   };
 
   // Handle section enhancement (silent mode for batch operations)
@@ -668,7 +722,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           const hasClusterProfile = s4.clusterEvolution || s4.productionCapacity || s4.technologyLevel;
           const hasValueChain = s5.rawMaterials?.length > 0 || s5.valueAdditionStages?.length > 0;
           const hasMarketAspects = s6.existingDemand || s6.demandSupplyGap || s6.competitorAnalysis || s6.priceTrends || s6.exportPotential;
-          const hasSWOT = s8.strengths?.length > 0 || s8.weaknesses?.length > 0 || s8.opportunities?.length > 0 || s8.threats?.length > 0;
+          const hasSWOT = (Array.isArray(s8.strengths) && s8.strengths.length > 0) || (Array.isArray(s8.weaknesses) && s8.weaknesses.length > 0) || (Array.isArray(s8.opportunities) && s8.opportunities.length > 0) || (Array.isArray(s8.threats) && s8.threats.length > 0);
           const hasGapAnalysis = s7.technologyGaps || s7.infrastructureGaps || s7.skillGaps || s7.marketingGaps || s7.financialGaps || s7.justificationForIntervention;
           const hasCFCDetails = s10.name || s10.location || s10.plantAndMachinery || s10.manufacturingProcess || s10.capacity;
           const hasSPVDetails = s11.spvName || s11.legalStatus || s11.memberUnits?.length > 0;
@@ -1272,16 +1326,16 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               ]
             )}
           </div>
-          {s4.stakeholders && s4.stakeholders.length > 0 && (
-            <div>
-              <h3 className="text-xl font-semibold mb-3">2.3 Key Stakeholders</h3>
-              <ul className="list-disc list-inside space-y-2 text-sm">
-                {s4.stakeholders.map((stakeholder: string, idx: number) => (
-                  <li key={idx}>{stakeholder}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+            {s4.stakeholders && Array.isArray(s4.stakeholders) && s4.stakeholders.length > 0 && (
+              <div>
+                <h3 className="text-xl font-semibold mb-3">2.3 Key Stakeholders</h3>
+                <ul className="list-disc list-inside space-y-2 text-sm">
+                  {s4.stakeholders.map((stakeholder: string, idx: number) => (
+                    <li key={idx}>{stakeholder}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           {/* Image placeholder for cluster photos */}
           <div className="my-6">
             <h4 className="text-lg font-semibold mb-3">📸 Cluster Photos</h4>
@@ -1338,7 +1392,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           <div>
             <h3 className="text-xl font-semibold mb-3">3.1 Value Chain Stages</h3>
             <p className="mb-4">Raw Material → Processing → Value Addition → Marketing → End Customer</p>
-            {s5.rawMaterials && s5.rawMaterials.length > 0 && (
+            {s5.rawMaterials && Array.isArray(s5.rawMaterials) && s5.rawMaterials.length > 0 && (
               <div className="my-4">
                 <h4 className="font-semibold mb-2">Raw Materials:</h4>
                 {renderTable(
@@ -1347,7 +1401,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 )}
               </div>
             )}
-            {s5.valueAdditionStages && s5.valueAdditionStages.length > 0 && (
+            {s5.valueAdditionStages && Array.isArray(s5.valueAdditionStages) && s5.valueAdditionStages.length > 0 && (
               <div className="my-4">
                 <h4 className="font-semibold mb-2">Value Addition Stages:</h4>
                 {renderTable(
@@ -1356,7 +1410,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 )}
               </div>
             )}
-            {s5.intermediateProducts && s5.intermediateProducts.length > 0 && (
+            {s5.intermediateProducts && Array.isArray(s5.intermediateProducts) && s5.intermediateProducts.length > 0 && (
               <div className="my-4">
                 <h4 className="font-semibold mb-2">Intermediate Products:</h4>
                 <ul className="list-disc list-inside space-y-1 text-sm">
@@ -1366,7 +1420,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 </ul>
               </div>
             )}
-            {s5.finalProducts && s5.finalProducts.length > 0 && (
+            {s5.finalProducts && Array.isArray(s5.finalProducts) && s5.finalProducts.length > 0 && (
               <div className="my-4">
                 <h4 className="font-semibold mb-2">Final Products:</h4>
                 <ul className="list-disc list-inside space-y-1 text-sm">
@@ -1376,7 +1430,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 </ul>
               </div>
             )}
-            {s5.majorBuyers && s5.majorBuyers.length > 0 && (
+            {s5.majorBuyers && Array.isArray(s5.majorBuyers) && s5.majorBuyers.length > 0 && (
               <div className="my-4">
                 <h4 className="font-semibold mb-2">Major Buyers:</h4>
                 <ul className="list-disc list-inside space-y-1 text-sm">
@@ -1491,7 +1545,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           <div>
             <h3 className="text-lg font-semibold mb-3 text-green-700">Strengths</h3>
             <ul className="list-disc list-inside space-y-1">
-              {(s8.strengths || []).map((s: string, idx: number) => (
+              {(Array.isArray(s8.strengths) ? s8.strengths : []).map((s: string, idx: number) => (
                 <li key={idx}>{s}</li>
               ))}
             </ul>
@@ -1499,7 +1553,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           <div>
             <h3 className="text-lg font-semibold mb-3 text-orange-700">Weaknesses</h3>
             <ul className="list-disc list-inside space-y-1">
-              {(s8.weaknesses || []).map((w: string, idx: number) => (
+              {(Array.isArray(s8.weaknesses) ? s8.weaknesses : []).map((w: string, idx: number) => (
                 <li key={idx}>{w}</li>
               ))}
             </ul>
@@ -1507,7 +1561,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           <div>
             <h3 className="text-lg font-semibold mb-3 text-blue-700">Opportunities</h3>
             <ul className="list-disc list-inside space-y-1">
-              {(s8.opportunities || []).map((o: string, idx: number) => (
+              {(Array.isArray(s8.opportunities) ? s8.opportunities : []).map((o: string, idx: number) => (
                 <li key={idx}>{o}</li>
               ))}
             </ul>
@@ -1515,7 +1569,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           <div>
             <h3 className="text-lg font-semibold mb-3 text-red-700">Threats</h3>
             <ul className="list-disc list-inside space-y-1">
-              {(s8.threats || []).map((t: string, idx: number) => (
+              {(Array.isArray(s8.threats) ? s8.threats : []).map((t: string, idx: number) => (
                 <li key={idx}>{t}</li>
               ))}
             </ul>
@@ -2703,7 +2757,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 if (section.name === 'clusterProfile') return s4.clusterEvolution || s4.productionCapacity;
                 if (section.name === 'valueChain') return s5.rawMaterials?.length > 0 || s5.valueAdditionStages?.length > 0;
                 if (section.name === 'marketAspects') return s6.existingDemand || s6.competitorAnalysis;
-                if (section.name === 'swotAnalysis') return s8.strengths?.length > 0 || s8.weaknesses?.length > 0;
+                if (section.name === 'swotAnalysis') return (Array.isArray(s8.strengths) && s8.strengths.length > 0) || (Array.isArray(s8.weaknesses) && s8.weaknesses.length > 0);
                 if (section.name === 'gapAnalysis') return s7.technologyGaps || s7.infrastructureGaps;
                 if (section.name === 'cfcDetails') return s10.name || s10.location;
                 if (section.name === 'spvDetails') return s11.spvName || s11.legalStatus;

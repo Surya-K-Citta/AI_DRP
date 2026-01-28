@@ -13,15 +13,29 @@ import { api } from '@/lib/api';
 
 export const ClusterDPRCreation: React.FC = () => {
   const navigate = useNavigate();
-  const { data, setCurrentStep, saveDraft, setGeneratedDPR } = useClusterDPRStore();
+  const { data, setCurrentStep, saveDraft, setGeneratedDPR, resetData } = useClusterDPRStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewMode, setPreviewMode] = useState<'split' | 'form' | 'preview'>('split');
   const [viewLanguage, setViewLanguage] = useState<'english' | 'telugu'>('english');
-  const [previewZoom, setPreviewZoom] = useState(1);
+  const [previewZoom, setPreviewZoom] = useState(0.6); // Default zoom set to 60%
   const [previewScroll, setPreviewScroll] = useState(0);
 
   const currentStep = data.currentStep || 1;
   const totalSteps = 18;
+
+  // Clear old data when component mounts (when user navigates to create new cluster)
+  useEffect(() => {
+    // Check if we're coming from DPR generation (has generatedDPR) or if there's existing data
+    // Only reset if there's a generatedDPR, meaning user just generated a DPR and is creating a new one
+    const hasGeneratedDPR = data.generatedDPR && Object.keys(data.generatedDPR).length > 0;
+    const hasStepData = Object.keys(data).some(key => key.startsWith('step') && data[key as keyof typeof data]);
+    
+    // Reset if there's generated DPR data (user just generated DPR and wants to create new cluster)
+    if (hasGeneratedDPR) {
+      resetData();
+      console.log('🔄 Cleared old cluster data - starting fresh cluster creation');
+    }
+  }, []); // Run only on mount
 
   useEffect(() => {
     // Auto-save draft every 30 seconds
@@ -362,7 +376,7 @@ export const ClusterDPRCreation: React.FC = () => {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="flex-1 overflow-hidden p-0 bg-gray-100 relative">
+                  <CardContent className="flex-1 overflow-auto p-0 bg-gray-100 relative">
                     <div 
                       id="dpr-preview-container"
                       className="w-full h-full overflow-auto"
@@ -371,6 +385,8 @@ export const ClusterDPRCreation: React.FC = () => {
                         transformOrigin: 'top left',
                         width: `${100 / previewZoom}%`,
                         height: `${100 / previewZoom}%`,
+                        overflowY: 'auto',
+                        overflowX: 'auto',
                       }}
                     >
                       <div 

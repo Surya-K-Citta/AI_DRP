@@ -4,6 +4,9 @@ import { useClusterDPRStore } from '@/store/clusterDPRStore';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Plus, Trash2 } from 'lucide-react';
+import { AISuggestions } from './AISuggestions';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { FIELD_DESCRIPTIONS } from '@/data/fieldDescriptions';
 
 interface ClusterDPRFormProps {
   currentStep: number;
@@ -19,6 +22,46 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   const { data, setStepData, getStepData } = useClusterDPRStore();
   const stepData = getStepData(currentStep) || {};
 
+  // Helper function to render label with info icon
+  const renderLabel = (fieldName: string, label: string, required: boolean = false) => {
+    const stepKey = `step${currentStep}`;
+    const stepDescriptions = FIELD_DESCRIPTIONS[stepKey] || {};
+    const description = stepDescriptions[fieldName];
+
+    return (
+      <label className={`block text-sm font-medium mb-2 ${required ? '' : ''} flex items-center gap-2`}>
+        {label}
+        {required && <span className="text-red-500">*</span>}
+        {description && (
+          <InfoTooltip content={description} />
+        )}
+      </label>
+    );
+  };
+
+  // Helper function to normalize array/string to array
+  const normalizeToArray = (value: any): any[] => {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    if (typeof value === 'string' && value.trim()) {
+      // Split by comma and clean up
+      return value.split(',').map(item => item.trim()).filter(item => item.length > 0);
+    }
+    return [];
+  };
+
+  // Helper function to normalize array/string to comma-separated string for display
+  const normalizeToString = (value: any): string => {
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    return '';
+  };
+
   const handleInputChange = (field: string, value: any) => {
     setStepData(currentStep, {
       ...stepData,
@@ -26,8 +69,18 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
     });
   };
 
+  // Handle comma-separated input fields (for array fields)
+  const handleCommaSeparatedChange = (field: string, value: string) => {
+    // Convert comma-separated string to array
+    const arrayValue = normalizeToArray(value);
+    setStepData(currentStep, {
+      ...stepData,
+      [field]: arrayValue,
+    });
+  };
+
   const handleArrayAdd = (field: string, newItem: any) => {
-    const currentArray = stepData[field] || [];
+    const currentArray = Array.isArray(stepData[field]) ? stepData[field] : [];
     setStepData(currentStep, {
       ...stepData,
       [field]: [...currentArray, newItem],
@@ -35,7 +88,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   };
 
   const handleArrayRemove = (field: string, index: number) => {
-    const currentArray = stepData[field] || [];
+    const currentArray = Array.isArray(stepData[field]) ? stepData[field] : [];
     setStepData(currentStep, {
       ...stepData,
       [field]: currentArray.filter((_: any, i: number) => i !== index),
@@ -43,10 +96,10 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   };
 
   const handleArrayUpdate = (field: string, index: number, updatedItem: any) => {
-    const currentArray = stepData[field] || [];
+    const currentArray = Array.isArray(stepData[field]) ? stepData[field] : [];
     setStepData(currentStep, {
       ...stepData,
-      [field]: currentArray.map((item: any, i: number) => 
+      [field]: currentArray.map((item: any, i: number) =>
         i === index ? { ...item, ...updatedItem } : item
       ),
     });
@@ -54,11 +107,18 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
 
   // Step 1: Executive Summary
   if (currentStep === 1) {
+    const stepDescriptions = FIELD_DESCRIPTIONS.step1 || {};
+
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Cluster Name *</label>
+            <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+              Cluster Name *
+              {stepDescriptions.clusterName && (
+                <InfoTooltip content={stepDescriptions.clusterName} />
+              )}
+            </label>
             <Input
               value={stepData.clusterName || ''}
               onChange={(e) => handleInputChange('clusterName', e.target.value)}
@@ -66,7 +126,12 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">District *</label>
+            <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+              District *
+              {stepDescriptions.district && (
+                <InfoTooltip content={stepDescriptions.district} />
+              )}
+            </label>
             <Input
               value={stepData.district || ''}
               onChange={(e) => handleInputChange('district', e.target.value)}
@@ -74,18 +139,28 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
         </div>
-        
+
         <div>
-          <label className="block text-sm font-medium mb-2">Location *</label>
+          <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+            Location *
+            {stepDescriptions.location && (
+              <InfoTooltip content={stepDescriptions.location} />
+            )}
+          </label>
           <Input
             value={stepData.location || ''}
             onChange={(e) => handleInputChange('location', e.target.value)}
             placeholder="Enter location"
           />
         </div>
-        
+
         <div>
-          <label className="block text-sm font-medium mb-2">Geographical Spread</label>
+          <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+            Geographical Spread
+            {stepDescriptions.geographicalSpread && (
+              <InfoTooltip content={stepDescriptions.geographicalSpread} />
+            )}
+          </label>
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.geographicalSpread || ''}
@@ -93,10 +168,15 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             placeholder="Describe geographical spread"
           />
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Nature of Business</label>
+            <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+              Nature of Business
+              {stepDescriptions.natureOfBusiness && (
+                <InfoTooltip content={stepDescriptions.natureOfBusiness} />
+              )}
+            </label>
             <Input
               value={stepData.natureOfBusiness || ''}
               onChange={(e) => handleInputChange('natureOfBusiness', e.target.value)}
@@ -104,7 +184,12 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Major Products</label>
+            <label className="block text-sm font-medium mb-2 flex items-center gap-2">
+              Major Products
+              {stepDescriptions.majorProducts && (
+                <InfoTooltip content={stepDescriptions.majorProducts} />
+              )}
+            </label>
             <Input
               value={stepData.majorProducts || ''}
               onChange={(e) => handleInputChange('majorProducts', e.target.value)}
@@ -301,6 +386,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   if (currentStep === 2) {
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div>
           <label className="block text-sm font-medium mb-2">Sector / Industry Type *</label>
           <Input
@@ -309,7 +401,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             placeholder="Enter sector type"
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium mb-2">Sector Description *</label>
           <textarea
@@ -319,7 +411,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             placeholder="Describe the sector in detail"
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium mb-2">National Importance</label>
           <textarea
@@ -329,7 +421,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             placeholder="Describe national importance"
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium mb-2">State-level Importance</label>
           <textarea
@@ -339,11 +431,11 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             placeholder="Describe state-level importance"
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium mb-2">Key Products</label>
           <div className="space-y-2">
-            {(stepData.keyProducts || []).map((product: string, index: number) => (
+            {(Array.isArray(stepData.keyProducts) ? stepData.keyProducts : []).map((product: string, index: number) => (
               <div key={index} className="flex items-center gap-2">
                 <Input
                   value={product}
@@ -491,6 +583,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   if (currentStep === 4) {
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div>
           <label className="block text-sm font-medium mb-2">Year of Establishment</label>
           <Input
@@ -544,37 +643,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Stakeholders</label>
-          <div className="space-y-2">
-            {(stepData.stakeholders || []).map((stakeholder: string, index: number) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={stakeholder}
-                  onChange={(e) => {
-                    const updated = [...(stepData.stakeholders || [])];
-                    updated[index] = e.target.value;
-                    handleInputChange('stakeholders', updated);
-                  }}
-                  placeholder="Enter stakeholder name"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleArrayRemove('stakeholders', index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleArrayAdd('stakeholders', '')}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Stakeholder
-            </Button>
-          </div>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={normalizeToString(stepData.stakeholders)}
+            onChange={(e) => handleCommaSeparatedChange('stakeholders', e.target.value)}
+            placeholder="Enter stakeholders separated by commas (e.g., Stakeholder 1, Stakeholder 2, Stakeholder 3)"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Separate multiple stakeholders with commas</p>
         </div>
       </div>
     );
@@ -584,10 +659,17 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   if (currentStep === 5) {
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div>
           <label className="block text-sm font-medium mb-2">Raw Materials</label>
           <div className="space-y-4">
-            {(stepData.rawMaterials || []).map((material: any, index: number) => (
+            {(Array.isArray(stepData.rawMaterials) ? stepData.rawMaterials : []).map((material: any, index: number) => (
               <div key={index} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Raw Material {index + 1}</span>
@@ -624,46 +706,22 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             </Button>
           </div>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium mb-2">Intermediate Products</label>
-          <div className="space-y-2">
-            {(stepData.intermediateProducts || []).map((product: string, index: number) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={product}
-                  onChange={(e) => {
-                    const updated = [...(stepData.intermediateProducts || [])];
-                    updated[index] = e.target.value;
-                    handleInputChange('intermediateProducts', updated);
-                  }}
-                  placeholder="Enter intermediate product"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleArrayRemove('intermediateProducts', index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleArrayAdd('intermediateProducts', '')}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Intermediate Product
-            </Button>
-          </div>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={normalizeToString(stepData.intermediateProducts)}
+            onChange={(e) => handleCommaSeparatedChange('intermediateProducts', e.target.value)}
+            placeholder="Enter intermediate products separated by commas (e.g., Semi-finished Product 1, Semi-finished Product 2)"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Separate multiple products with commas</p>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium mb-2">Final Products</label>
           <div className="space-y-2">
-            {(stepData.finalProducts || []).map((product: string, index: number) => (
+            {(Array.isArray(stepData.finalProducts) ? stepData.finalProducts : []).map((product: string, index: number) => (
               <div key={index} className="flex items-center gap-2">
                 <Input
                   value={product}
@@ -694,11 +752,11 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             </Button>
           </div>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium mb-2">Value Addition Stages</label>
           <div className="space-y-4">
-            {(stepData.valueAdditionStages || []).map((stage: any, index: number) => (
+            {(Array.isArray(stepData.valueAdditionStages) ? stepData.valueAdditionStages : []).map((stage: any, index: number) => (
               <div key={index} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Stage {index + 1}</span>
@@ -736,40 +794,16 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             </Button>
           </div>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium mb-2">Major Buyers</label>
-          <div className="space-y-2">
-            {(stepData.majorBuyers || []).map((buyer: string, index: number) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={buyer}
-                  onChange={(e) => {
-                    const updated = [...(stepData.majorBuyers || [])];
-                    updated[index] = e.target.value;
-                    handleInputChange('majorBuyers', updated);
-                  }}
-                  placeholder="Enter buyer name"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleArrayRemove('majorBuyers', index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleArrayAdd('majorBuyers', '')}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Buyer
-            </Button>
-          </div>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={normalizeToString(stepData.majorBuyers)}
+            onChange={(e) => handleCommaSeparatedChange('majorBuyers', e.target.value)}
+            placeholder="Enter major buyers separated by commas (e.g., Buyer 1, Buyer 2, Buyer 3)"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Separate multiple buyers with commas</p>
         </div>
       </div>
     );
@@ -779,6 +813,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   if (currentStep === 6) {
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div>
           <label className="block text-sm font-medium mb-2">Existing Demand</label>
           <textarea
@@ -841,6 +882,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   if (currentStep === 7) {
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div>
           <label className="block text-sm font-medium mb-2">Technology Gaps</label>
           <textarea
@@ -903,141 +951,52 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   if (currentStep === 8) {
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div>
           <label className="block text-sm font-medium mb-2">Strengths</label>
-          <div className="space-y-2">
-            {(stepData.strengths || []).map((strength: string, index: number) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={strength}
-                  onChange={(e) => {
-                    const updated = [...(stepData.strengths || [])];
-                    updated[index] = e.target.value;
-                    handleInputChange('strengths', updated);
-                  }}
-                  placeholder="Enter strength"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleArrayRemove('strengths', index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleArrayAdd('strengths', '')}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Strength
-            </Button>
-          </div>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={normalizeToString(stepData.strengths)}
+            onChange={(e) => handleCommaSeparatedChange('strengths', e.target.value)}
+            placeholder="Enter strengths separated by commas (e.g., Strong market presence, Skilled workforce, Good infrastructure)"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Separate multiple strengths with commas</p>
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Weaknesses</label>
-          <div className="space-y-2">
-            {(stepData.weaknesses || []).map((weakness: string, index: number) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={weakness}
-                  onChange={(e) => {
-                    const updated = [...(stepData.weaknesses || [])];
-                    updated[index] = e.target.value;
-                    handleInputChange('weaknesses', updated);
-                  }}
-                  placeholder="Enter weakness"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleArrayRemove('weaknesses', index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleArrayAdd('weaknesses', '')}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Weakness
-            </Button>
-          </div>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={normalizeToString(stepData.weaknesses)}
+            onChange={(e) => handleCommaSeparatedChange('weaknesses', e.target.value)}
+            placeholder="Enter weaknesses separated by commas (e.g., Limited technology, Lack of skilled workers, Poor infrastructure)"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Separate multiple weaknesses with commas</p>
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Opportunities</label>
-          <div className="space-y-2">
-            {(stepData.opportunities || []).map((opportunity: string, index: number) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={opportunity}
-                  onChange={(e) => {
-                    const updated = [...(stepData.opportunities || [])];
-                    updated[index] = e.target.value;
-                    handleInputChange('opportunities', updated);
-                  }}
-                  placeholder="Enter opportunity"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleArrayRemove('opportunities', index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleArrayAdd('opportunities', '')}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Opportunity
-            </Button>
-          </div>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={normalizeToString(stepData.opportunities)}
+            onChange={(e) => handleCommaSeparatedChange('opportunities', e.target.value)}
+            placeholder="Enter opportunities separated by commas (e.g., Growing market demand, Government support, Export potential)"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Separate multiple opportunities with commas</p>
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Threats</label>
-          <div className="space-y-2">
-            {(stepData.threats || []).map((threat: string, index: number) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={threat}
-                  onChange={(e) => {
-                    const updated = [...(stepData.threats || [])];
-                    updated[index] = e.target.value;
-                    handleInputChange('threats', updated);
-                  }}
-                  placeholder="Enter threat"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleArrayRemove('threats', index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleArrayAdd('threats', '')}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Threat
-            </Button>
-          </div>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={normalizeToString(stepData.threats)}
+            onChange={(e) => handleCommaSeparatedChange('threats', e.target.value)}
+            placeholder="Enter threats separated by commas (e.g., Market competition, Price fluctuations, Regulatory changes)"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Separate multiple threats with commas</p>
         </div>
       </div>
     );
@@ -1047,6 +1006,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   if (currentStep === 9) {
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div>
           <label className="block text-sm font-medium mb-2">Intervention Type *</label>
           <select
@@ -1071,71 +1037,23 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Objectives</label>
-          <div className="space-y-2">
-            {(stepData.objectives || []).map((objective: string, index: number) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={objective}
-                  onChange={(e) => {
-                    const updated = [...(stepData.objectives || [])];
-                    updated[index] = e.target.value;
-                    handleInputChange('objectives', updated);
-                  }}
-                  placeholder="Enter objective"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleArrayRemove('objectives', index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleArrayAdd('objectives', '')}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Objective
-            </Button>
-          </div>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={normalizeToString(stepData.objectives)}
+            onChange={(e) => handleCommaSeparatedChange('objectives', e.target.value)}
+            placeholder="Enter objectives separated by commas (e.g., Objective 1, Objective 2, Objective 3)"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Separate multiple objectives with commas</p>
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Expected Benefits</label>
-          <div className="space-y-2">
-            {(stepData.expectedBenefits || []).map((benefit: string, index: number) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={benefit}
-                  onChange={(e) => {
-                    const updated = [...(stepData.expectedBenefits || [])];
-                    updated[index] = e.target.value;
-                    handleInputChange('expectedBenefits', updated);
-                  }}
-                  placeholder="Enter expected benefit"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleArrayRemove('expectedBenefits', index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleArrayAdd('expectedBenefits', '')}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Benefit
-            </Button>
-          </div>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={normalizeToString(stepData.expectedBenefits)}
+            onChange={(e) => handleCommaSeparatedChange('expectedBenefits', e.target.value)}
+            placeholder="Enter expected benefits separated by commas (e.g., Benefit 1, Benefit 2, Benefit 3)"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Separate multiple benefits with commas</p>
         </div>
       </div>
     );
@@ -1145,6 +1063,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   if (currentStep === 10) {
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">CFC Name *</label>
@@ -1241,6 +1166,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   if (currentStep === 11) {
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">SPV Name *</label>
@@ -1281,7 +1213,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         <div>
           <label className="block text-sm font-medium mb-2">Objectives</label>
           <div className="space-y-2">
-            {(stepData.objectives || []).map((objective: string, index: number) => (
+            {(Array.isArray(stepData.objectives) ? stepData.objectives : []).map((objective: string, index: number) => (
               <div key={index} className="flex items-center gap-2">
                 <Input
                   value={objective}
@@ -1314,42 +1246,18 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Roles & Responsibilities</label>
-          <div className="space-y-2">
-            {(stepData.rolesAndResponsibilities || []).map((role: string, index: number) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={role}
-                  onChange={(e) => {
-                    const updated = [...(stepData.rolesAndResponsibilities || [])];
-                    updated[index] = e.target.value;
-                    handleInputChange('rolesAndResponsibilities', updated);
-                  }}
-                  placeholder="Enter role/responsibility"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleArrayRemove('rolesAndResponsibilities', index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleArrayAdd('rolesAndResponsibilities', '')}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Role/Responsibility
-            </Button>
-          </div>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={normalizeToString(stepData.rolesAndResponsibilities)}
+            onChange={(e) => handleCommaSeparatedChange('rolesAndResponsibilities', e.target.value)}
+            placeholder="Enter roles and responsibilities separated by commas (e.g., Role 1, Role 2, Role 3)"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Separate multiple roles with commas</p>
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Board of Directors</label>
           <div className="space-y-4">
-            {(stepData.boardOfDirectors || []).map((director: any, index: number) => (
+            {(Array.isArray(stepData.boardOfDirectors) ? stepData.boardOfDirectors : []).map((director: any, index: number) => (
               <div key={index} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Director {index + 1}</span>
@@ -1389,7 +1297,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         <div>
           <label className="block text-sm font-medium mb-2">Shareholding Pattern</label>
           <div className="space-y-4">
-            {(stepData.shareholdingPattern || []).map((share: any, index: number) => (
+            {(Array.isArray(stepData.shareholdingPattern) ? stepData.shareholdingPattern : []).map((share: any, index: number) => (
               <div key={index} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Shareholder {index + 1}</span>
@@ -1432,7 +1340,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         <div>
           <label className="block text-sm font-medium mb-2">Member Units</label>
           <div className="space-y-4">
-            {(stepData.memberUnits || []).map((unit: any, index: number) => (
+            {(Array.isArray(stepData.memberUnits) ? stepData.memberUnits : []).map((unit: any, index: number) => (
               <div key={index} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Unit {index + 1}</span>
@@ -1471,37 +1379,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Statutory Registrations</label>
-          <div className="space-y-2">
-            {(stepData.statutoryRegistrations || []).map((registration: string, index: number) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={registration}
-                  onChange={(e) => {
-                    const updated = [...(stepData.statutoryRegistrations || [])];
-                    updated[index] = e.target.value;
-                    handleInputChange('statutoryRegistrations', updated);
-                  }}
-                  placeholder="Enter registration"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleArrayRemove('statutoryRegistrations', index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleArrayAdd('statutoryRegistrations', '')}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Registration
-            </Button>
-          </div>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={normalizeToString(stepData.statutoryRegistrations)}
+            onChange={(e) => handleCommaSeparatedChange('statutoryRegistrations', e.target.value)}
+            placeholder="Enter statutory registrations separated by commas (e.g., Registration 1, Registration 2, Registration 3)"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Separate multiple registrations with commas</p>
         </div>
       </div>
     );
@@ -1509,13 +1393,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
 
   // Step 12: Project Cost Details
   if (currentStep === 12) {
-    const totalCost = (stepData.land || 0) + 
-                     (stepData.building || 0) + 
-                     (stepData.machinery || 0) + 
-                     (stepData.utilitiesAndInfrastructure || 0) + 
-                     (stepData.preliminaryAndPreOperative || 0) + 
-                     (stepData.workingCapitalMargin || 0);
-    
+    const totalCost = (stepData.land || 0) +
+      (stepData.building || 0) +
+      (stepData.machinery || 0) +
+      (stepData.utilitiesAndInfrastructure || 0) +
+      (stepData.preliminaryAndPreOperative || 0) +
+      (stepData.workingCapitalMargin || 0);
+
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1588,13 +1472,20 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
 
   // Step 13: Means of Finance
   if (currentStep === 13) {
-    const total = (stepData.spvContribution || 0) + 
-                 (stepData.governmentGrant || 0) + 
-                 (stepData.bankLoan || 0) + 
-                 (stepData.otherSources || 0);
-    
+    const total = (stepData.spvContribution || 0) +
+      (stepData.governmentGrant || 0) +
+      (stepData.bankLoan || 0) +
+      (stepData.otherSources || 0);
+
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">SPV Contribution (₹)</label>
@@ -1649,6 +1540,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   if (currentStep === 14) {
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">Raw Material Cost (₹)</label>
@@ -1731,6 +1629,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   if (currentStep === 15) {
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div>
           <label className="block text-sm font-medium mb-2">Break-even Point (₹)</label>
           <Input
@@ -1782,6 +1687,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   if (currentStep === 16) {
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div>
           <label className="block text-sm font-medium mb-2">Start Date</label>
           <Input
@@ -1793,7 +1705,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         <div>
           <label className="block text-sm font-medium mb-2">Milestones</label>
           <div className="space-y-4">
-            {(stepData.milestones || []).map((milestone: any, index: number) => (
+            {(Array.isArray(stepData.milestones) ? stepData.milestones : []).map((milestone: any, index: number) => (
               <div key={index} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Milestone {index + 1}</span>
@@ -1860,6 +1772,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   if (currentStep === 17) {
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">Increase in Units</label>
@@ -1909,37 +1828,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Sustainability Outcomes</label>
-          <div className="space-y-2">
-            {(stepData.sustainabilityOutcomes || []).map((outcome: string, index: number) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  value={outcome}
-                  onChange={(e) => {
-                    const updated = [...(stepData.sustainabilityOutcomes || [])];
-                    updated[index] = e.target.value;
-                    handleInputChange('sustainabilityOutcomes', updated);
-                  }}
-                  placeholder="Enter sustainability outcome"
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleArrayRemove('sustainabilityOutcomes', index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleArrayAdd('sustainabilityOutcomes', '')}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Outcome
-            </Button>
-          </div>
+          <textarea
+            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={normalizeToString(stepData.sustainabilityOutcomes)}
+            onChange={(e) => handleCommaSeparatedChange('sustainabilityOutcomes', e.target.value)}
+            placeholder="Enter sustainability outcomes separated by commas (e.g., Outcome 1, Outcome 2, Outcome 3)"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Separate multiple outcomes with commas</p>
         </div>
       </div>
     );
@@ -1956,6 +1851,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
 
     return (
       <div className="space-y-6">
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+        />
         <div>
           <label className="block text-sm font-medium mb-2">SPV Registration</label>
           <Input

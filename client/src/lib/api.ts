@@ -566,6 +566,92 @@ class APIClient {
     );
   }
 
+  async getAISuggestionsForClusterStep(currentStep: number, currentStepData: any, previousStepsData: Record<string, any>) {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/dpr/cluster/ai/suggestions', {
+          currentStep,
+          currentStepData,
+          previousStepsData,
+        });
+        return response.data;
+      },
+      () => {
+        return Promise.resolve({
+          success: false,
+          message: 'AI suggestions failed',
+          data: { suggestions: [] },
+        });
+      }
+    );
+  }
+
+  async getAIFieldSuggestion(fieldName: string, fieldValue: any, context: Record<string, any>) {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/dpr/cluster/ai/field-suggestion', {
+          fieldName,
+          fieldValue,
+          context,
+        });
+        return response.data;
+      },
+      () => {
+        return Promise.resolve({
+          success: false,
+          message: 'Field suggestion failed',
+        });
+      }
+    );
+  }
+
+  async generateFieldContent(
+    fieldName: string,
+    currentStep: number,
+    currentStepData: any,
+    previousStepsData: Record<string, any>,
+    suggestion: string
+  ) {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/dpr/cluster/ai/generate-field-content', {
+          fieldName,
+          currentStep,
+          currentStepData,
+          previousStepsData,
+          suggestion,
+        });
+        return response.data;
+      },
+      () => {
+        return Promise.resolve({
+          success: false,
+          message: 'Field content generation failed',
+        });
+      }
+    );
+  }
+
+  async deleteClusterDPRImage(imageUrl: string, cloudinaryPublicId?: string) {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.delete('/dpr/cluster/images/delete', {
+          data: {
+            imageUrl,
+            publicId: cloudinaryPublicId,
+          },
+        });
+        return response.data;
+      },
+      () => {
+        return Promise.resolve({
+          success: false,
+          message: 'Image deletion failed',
+        });
+      }
+    );
+  }
+
   async getUserDPRs() {
     const cacheKey = this.getCacheKey('GET', '/dpr/user/list');
     return this.handleRequest(

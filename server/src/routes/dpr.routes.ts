@@ -74,6 +74,14 @@ router.post('/cluster/images/upload', (req, res, next) => {
 // Section enhancement for Cluster DPR
 router.post('/cluster/sections/enhance', ClusterDPRController.enhanceSection);
 
+// AI suggestions for Cluster DPR
+router.post('/cluster/ai/suggestions', ClusterDPRController.getAISuggestions);
+router.post('/cluster/ai/field-suggestion', ClusterDPRController.getFieldSuggestion);
+router.post('/cluster/ai/generate-field-content', ClusterDPRController.generateFieldContent);
+
+// Image deletion for Cluster DPR
+router.delete('/cluster/images/delete', ClusterDPRController.deleteImage);
+
 // DPR retrieval and download
 router.get('/:dprId', DPRController.getDPR);
 router.get('/:dprId/download/pdf', DPRController.downloadPDF); // GET for backward compatibility
