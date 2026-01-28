@@ -4,6 +4,7 @@ import { DPRVersion } from '../models/DPRVersion.model';
 import { Project } from '../models/Project.model';
 import { STEP_FIELDS_MAPPING } from './stepFieldsMapping';
 import dotenv from 'dotenv';
+import { ClusterSection } from '../models/ClusterSection.model';
 
 dotenv.config();
 
@@ -455,6 +456,9 @@ Return only valid JSON without markdown code blocks.`;
         await project.save();
       }
 
+      // Store generated sections separately (for user review before applying)
+      const generatedSections = enhancedDPR.sections || {};
+      
       // Create DPR version with proper structure
       // Store cluster-specific sections as additional keys in content
       const dprVersion = await DPRVersion.create({
@@ -489,6 +493,8 @@ Return only valid JSON without markdown code blocks.`;
             annexures: enhancedDPR.sections?.annexures || '',
             isClusterDPR: true,
             clusterData: cleanClusterData,
+            // Store generated sections separately (for user review before applying)
+            generatedSections: generatedSections,
             // Store all enhanced content (including subsections) for use in rendering
             enhancedContent: providedEnhancedContent,
           },
@@ -518,6 +524,8 @@ Return only valid JSON without markdown code blocks.`;
             annexures: enhancedDPR.sections?.annexures || '',
             isClusterDPR: true,
             clusterData: cleanClusterData,
+            // Store generated sections separately (for user review before applying)
+            generatedSections: generatedSections,
             // Store enhanced content for Telugu as well
             enhancedContent: providedEnhancedContent,
           },
@@ -539,6 +547,29 @@ Return only valid JSON without markdown code blocks.`;
       });
 
       console.log(`✅ Cluster DPR generated and saved: ${dprVersion._id} for project ${project._id}`);
+
+      // Store generated sections in ClusterSection model
+      const sectionsToStore = enhancedDPR.sections || {};
+      const sectionPromises = Object.entries(sectionsToStore).map(async ([sectionType, content]) => {
+        // Store for both languages if bilingual
+        const languages = language === 'bilingual' ? ['english', 'telugu'] : [language === 'telugu' ? 'telugu' : 'english'];
+        
+        return Promise.all(languages.map(async (lang) => {
+          await ClusterSection.create({
+            userId,
+            dprId: dprVersion._id.toString(),
+            sectionType,
+            language: lang as 'english' | 'telugu',
+            content: '', // Empty initially, will be filled when applied
+            generatedContent: content as string,
+            isApplied: false,
+            version: 1,
+          });
+        }));
+      });
+
+      await Promise.all(sectionPromises);
+      console.log(`✅ Stored ${Object.keys(sectionsToStore).length} generated sections in ClusterSection model`);
 
       // Return the saved DPR content structure (not the raw enhancedDPR)
       // This ensures the frontend receives the data in the correct format

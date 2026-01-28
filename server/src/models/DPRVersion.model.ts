@@ -1,6 +1,7 @@
 // @ts-nocheck
 import mongoose, { Schema } from 'mongoose';
 import { IDPRVersion } from '../types';
+import { ClusterSection } from './ClusterSection.model';
 
 const dprVersionSchema = new Schema<IDPRVersion>(
   {
@@ -9,6 +10,15 @@ const dprVersionSchema = new Schema<IDPRVersion>(
       required: true,
       ref: 'Project',
       index: true,
+    },
+    userId: {
+      type: String,
+      required: false,
+      index: true,
+    },
+    versionNumber: {
+      type: Number,
+      default: 1,
     },
     contentPath: String,
     content: {
@@ -20,6 +30,28 @@ const dprVersionSchema = new Schema<IDPRVersion>(
         financialProjections: { type: String, default: '' },
         conclusion: { type: String, default: '' },
         eligibleSchemes: { type: String, default: '' },
+        // Cluster DPR specific sections
+        coverPage: { type: String, default: '' },
+        tableOfContents: { type: String, default: '' },
+        districtProfile: { type: String, default: '' },
+        clusterProfile: { type: String, default: '' },
+        valueChain: { type: String, default: '' },
+        gapAnalysis: { type: String, default: '' },
+        swotAnalysis: { type: String, default: '' },
+        proposedInterventions: { type: String, default: '' },
+        cfcDetails: { type: String, default: '' },
+        spvDetails: { type: String, default: '' },
+        projectCost: { type: String, default: '' },
+        meansOfFinance: { type: String, default: '' },
+        operatingCostRevenue: { type: String, default: '' },
+        implementationSchedule: { type: String, default: '' },
+        annexures: { type: String, default: '' },
+        // Generated sections and enhanced content (stored separately for user review)
+        generatedSections: { type: Schema.Types.Mixed, default: {} },
+        enhancedContent: { type: Schema.Types.Mixed, default: {} },
+        // Additional cluster DPR metadata
+        isClusterDPR: { type: Boolean, default: false },
+        clusterData: { type: Schema.Types.Mixed, default: {} },
       },
       telugu: {
         executiveSummary: { type: String, default: '' },
@@ -29,6 +61,28 @@ const dprVersionSchema = new Schema<IDPRVersion>(
         financialProjections: { type: String, default: '' },
         conclusion: { type: String, default: '' },
         eligibleSchemes: { type: String, default: '' },
+        // Cluster DPR specific sections
+        coverPage: { type: String, default: '' },
+        tableOfContents: { type: String, default: '' },
+        districtProfile: { type: String, default: '' },
+        clusterProfile: { type: String, default: '' },
+        valueChain: { type: String, default: '' },
+        gapAnalysis: { type: String, default: '' },
+        swotAnalysis: { type: String, default: '' },
+        proposedInterventions: { type: String, default: '' },
+        cfcDetails: { type: String, default: '' },
+        spvDetails: { type: String, default: '' },
+        projectCost: { type: String, default: '' },
+        meansOfFinance: { type: String, default: '' },
+        operatingCostRevenue: { type: String, default: '' },
+        implementationSchedule: { type: String, default: '' },
+        annexures: { type: String, default: '' },
+        // Generated sections and enhanced content (stored separately for user review)
+        generatedSections: { type: Schema.Types.Mixed, default: {} },
+        enhancedContent: { type: Schema.Types.Mixed, default: {} },
+        // Additional cluster DPR metadata
+        isClusterDPR: { type: Boolean, default: false },
+        clusterData: { type: Schema.Types.Mixed, default: {} },
       },
     },
     // Store eligible schemes data for easy access

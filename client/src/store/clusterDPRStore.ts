@@ -264,6 +264,8 @@ export interface ClusterDPRData {
   currentStep?: number;
   isDraft?: boolean;
   lastSaved?: Date;
+  dprId?: string;
+  projectId?: string;
 }
 
 interface ClusterDPRState {
@@ -272,6 +274,7 @@ interface ClusterDPRState {
   getStepData: (step: number) => any;
   setGeneratedDPR: (dpr: any) => void;
   setCurrentStep: (step: number) => void;
+  setDprIds: (dprId: string, projectId: string) => void;
   resetData: () => void;
   saveDraft: () => void;
   loadDraft: (draft: ClusterDPRData) => void;
@@ -318,6 +321,16 @@ export const useClusterDPRStore = create<ClusterDPRState>()(
           data: {
             ...state.data,
             currentStep: step,
+          },
+        }));
+      },
+      
+      setDprIds: (dprId, projectId) => {
+        set((state) => ({
+          data: {
+            ...state.data,
+            dprId,
+            projectId,
           },
         }));
       },

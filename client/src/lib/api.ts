@@ -531,6 +531,45 @@ class APIClient {
     );
   }
 
+  async storeClusterDPRGeneratedSections(dprId: string, generatedSections: Record<string, string>, language: string = 'english') {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post(`/dpr/cluster/${dprId}/generated-sections`, {
+          generatedSections,
+          language,
+        });
+        return response.data;
+      },
+      () => Promise.resolve({ success: false, message: 'Failed to store generated sections' })
+    );
+  }
+
+  async applyClusterDPRGeneratedSection(dprId: string, sectionName: string, language: string = 'english') {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post(`/dpr/cluster/${dprId}/apply-generated-section`, {
+          sectionName,
+          language,
+        });
+        return response.data;
+      },
+      () => Promise.resolve({ success: false, message: 'Failed to apply generated section' })
+    );
+  }
+
+  async applyClusterDPREnhancedContent(dprId: string, sectionName: string, language: string = 'english') {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post(`/dpr/cluster/${dprId}/apply-enhanced-content`, {
+          sectionName,
+          language,
+        });
+        return response.data;
+      },
+      () => Promise.resolve({ success: false, message: 'Failed to apply enhanced content' })
+    );
+  }
+
   // Image generation and upload for Cluster DPR
   async generateClusterDPRImage(prompt: string, sectionType: string, sectionInfo: any) {
     return this.handleRequest(

@@ -61,17 +61,36 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     return {};
   });
   const [enhancingSections, setEnhancingSections] = useState<Record<string, boolean>>({});
+  
+  // Generated sections state (for user review before applying)
+  const [generatedSections, setGeneratedSections] = useState<Record<string, string>>(() => {
+    const dprGeneratedSections = content.generatedSections || dpr.content?.english?.generatedSections || dpr.content?.telugu?.generatedSections || {};
+    if (Object.keys(dprGeneratedSections).length > 0) {
+      console.log('📥 Loaded generated sections from database:', Object.keys(dprGeneratedSections).length, 'sections');
+      return dprGeneratedSections;
+    }
+    return {};
+  });
+  const [applyingSections, setApplyingSections] = useState<Record<string, boolean>>({});
 
-  // Reload enhanced content when DPR ID or language changes (from database only)
+  // Reload enhanced content and generated sections when DPR ID or language changes (from database only)
   useEffect(() => {
     // Load only from DPR content (from backend/database)
     const dprEnhancedContent = content.enhancedContent || dpr.content?.english?.enhancedContent || dpr.content?.telugu?.enhancedContent || {};
+    const dprGeneratedSections = content.generatedSections || dpr.content?.english?.generatedSections || dpr.content?.telugu?.generatedSections || {};
     
     if (Object.keys(dprEnhancedContent).length > 0) {
       console.log('📥 Reloaded enhanced content from database:', Object.keys(dprEnhancedContent).length, 'sections');
       setEnhancedContent(dprEnhancedContent);
     } else {
       setEnhancedContent({});
+    }
+    
+    if (Object.keys(dprGeneratedSections).length > 0) {
+      console.log('📥 Reloaded generated sections from database:', Object.keys(dprGeneratedSections).length, 'sections');
+      setGeneratedSections(dprGeneratedSections);
+    } else {
+      setGeneratedSections({});
     }
   }, [dpr?._id || dpr?.id, viewLanguage, content]);
 
@@ -425,16 +444,136 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     }
   };
 
-  // Helper to render enhanced content (no button, just display)
-  const renderEnhancedContent = (sectionName: string) => {
+  // Handle applying generated section
+  const handleApplyGeneratedSection = async (sectionName: string) => {
+    const dprId = dpr?._id || dpr?.id;
+    if (!dprId) {
+      toast.error('DPR not found. Please generate DPR first.');
+      return;
+    }
+
+    setApplyingSections((prev) => ({ ...prev, [sectionName]: true }));
+    try {
+      const result = await api.applyClusterDPRGeneratedSection(dprId, sectionName, viewLanguage);
+      if (result.success) {
+        toast.success(`Section "${sectionName}" applied successfully!`);
+        // Reload the page or refresh content
+        window.location.reload();
+      } else {
+        toast.error(result.message || 'Failed to apply section');
+      }
+    } catch (error: any) {
+      console.error('Error applying generated section:', error);
+      toast.error(error.message || 'Failed to apply section');
+    } finally {
+      setApplyingSections((prev) => ({ ...prev, [sectionName]: false }));
+    }
+  };
+
+  // Handle applying enhanced content
+  const handleApplyEnhancedContent = async (sectionName: string) => {
+    const dprId = dpr?._id || dpr?.id;
+    if (!dprId) {
+      toast.error('DPR not found. Please generate DPR first.');
+      return;
+    }
+
+    setApplyingSections((prev) => ({ ...prev, [`enhanced-${sectionName}`]: true }));
+    try {
+      const result = await api.applyClusterDPREnhancedContent(dprId, sectionName, viewLanguage);
+      if (result.success) {
+        toast.success(`Enhanced content for "${sectionName}" applied successfully!`);
+        // Reload the page or refresh content
+        window.location.reload();
+      } else {
+        toast.error(result.message || 'Failed to apply enhanced content');
+      }
+    } catch (error: any) {
+      console.error('Error applying enhanced content:', error);
+      toast.error(error.message || 'Failed to apply enhanced content');
+    } finally {
+      setApplyingSections((prev) => ({ ...prev, [`enhanced-${sectionName}`]: false }));
+    }
+  };
+
+  // Helper to render generated section with Apply button
+  const renderGeneratedSection = (sectionName: string, sectionTitle: string) => {
+    const generatedText = generatedSections[sectionName];
+    if (!generatedText) return null;
+    
+    const isApplying = applyingSections[sectionName];
+    
+    return (
+      <div className="mb-6 p-4 border-2 border-blue-300 rounded-lg bg-blue-50/30">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-lg font-semibold text-blue-800">Generated {sectionTitle}</h4>
+          <Button
+            onClick={() => handleApplyGeneratedSection(sectionName)}
+            disabled={isApplying}
+            className="gap-2"
+            variant="primary"
+            size="sm"
+          >
+            {isApplying ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Applying...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Apply Section
+              </>
+            )}
+          </Button>
+        </div>
+        <div className="p-3 bg-white rounded border border-blue-200 max-h-60 overflow-y-auto">
+          <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+            {generatedText}
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  // Helper to render enhanced content with Apply button
+  const renderEnhancedContent = (sectionName: string, sectionTitle?: string) => {
     const hasEnhancedContent = enhancedContent[sectionName];
     if (!hasEnhancedContent) return null;
     
+    const isApplying = applyingSections[`enhanced-${sectionName}`];
+    
     return (
-      <div className="mb-4 p-4">
-        <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
-          {hasEnhancedContent}
-        </p>
+      <div className="mb-6 p-4 border-2 border-purple-300 rounded-lg bg-purple-50/30">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-lg font-semibold text-purple-800">
+            Enhanced {sectionTitle || sectionName}
+          </h4>
+          <Button
+            onClick={() => handleApplyEnhancedContent(sectionName)}
+            disabled={isApplying}
+            className="gap-2"
+            variant="primary"
+            size="sm"
+          >
+            {isApplying ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Applying...
+              </>
+            ) : (
+              <>
+                <Wand2 className="h-4 w-4" />
+                Apply Enhanced
+              </>
+            )}
+          </Button>
+        </div>
+        <div className="p-3 bg-white rounded border border-purple-200 max-h-60 overflow-y-auto">
+          <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+            {hasEnhancedContent}
+          </p>
+        </div>
       </div>
     );
   };
@@ -1120,6 +1259,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       {renderPageWrapper(
         <div>
           {renderSectionTitle('EXECUTIVE SUMMARY', 1)}
+          {renderGeneratedSection('executiveSummary', 'Executive Summary')}
+          {renderEnhancedContent('executiveSummary', 'Executive Summary')}
         {content.executiveSummary ? (
           <div className="prose max-w-none text-sm leading-relaxed">
             <FormattedText text={content.executiveSummary} />
@@ -1186,7 +1327,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       {renderPageWrapper(
         <div>
           {renderSectionTitle('1. INTRODUCTION', 2)}
-          {renderEnhancedContent('introduction')}
+          {renderGeneratedSection('introduction', 'Introduction & Sector Overview')}
+          {renderEnhancedContent('introduction', 'Introduction & Sector Overview')}
         {content.introduction ? (
           <div className="prose max-w-none text-sm leading-relaxed">
             <FormattedText text={content.introduction} />
@@ -1315,6 +1457,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('2. CLUSTER PROFILE', 4)}
+          {renderGeneratedSection('clusterProfile', 'Cluster Profile')}
+          {renderEnhancedContent('clusterProfile', 'Cluster Profile')}
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">2.1 Evolution of the Cluster</h3>
@@ -1396,6 +1540,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('3. CLUSTER VALUE CHAIN MAPPING', 5)}
+          {renderGeneratedSection('valueChain', 'Value Chain Mapping')}
+          {renderEnhancedContent('valueChain', 'Value Chain Mapping')}
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">3.1 Value Chain Stages</h3>
@@ -1491,7 +1637,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('4. MARKET ASPECTS', 6)}
-          {renderEnhancedContent('marketAspects')}
+          {renderGeneratedSection('marketAspects', 'Market Aspects')}
+          {renderEnhancedContent('marketAspects', 'Market Aspects')}
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">4.1 Demand–Supply Analysis</h3>

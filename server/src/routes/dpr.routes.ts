@@ -56,7 +56,11 @@ router.get('/project/:projectId', DPRController.getProjectDPRs);
 router.post('/cluster/generate', ClusterDPRController.generateClusterDPR);
 router.post('/cluster/draft/save', ClusterDPRController.saveClusterDPRDraft);
 router.post('/cluster/:dprId/enhanced-content', ClusterDPRController.saveEnhancedContent);
+router.post('/cluster/:dprId/generated-sections', ClusterDPRController.storeGeneratedSections);
+router.post('/cluster/:dprId/apply-generated-section', ClusterDPRController.applyGeneratedSection);
+router.post('/cluster/:dprId/apply-enhanced-content', ClusterDPRController.applyEnhancedContent);
 router.get('/cluster/:dprId', ClusterDPRController.getClusterDPR);
+router.get('/cluster/:dprId/sections', ClusterDPRController.getClusterSections);
 
 // Image generation and upload for Cluster DPR
 router.post('/cluster/images/generate', ClusterDPRController.generateImage);

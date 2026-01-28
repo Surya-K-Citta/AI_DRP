@@ -6,6 +6,7 @@ import { GeminiService } from '../services/gemini.service';
 import { CloudinaryService } from '../services/cloudinary.service';
 import { Project } from '../models/Project.model';
 import { DPRVersion } from '../models/DPRVersion.model';
+import { ClusterSection } from '../models/ClusterSection.model';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -113,15 +114,105 @@ export class ClusterDPRController {
         return;
       }
 
+      // Fetch all cluster sections for this DPR
+      const clusterSections = await ClusterSection.find({
+        dprId,
+        userId,
+      });
+
+      // Organize sections by language and type
+      const sectionsByLanguage: Record<string, Record<string, any>> = {
+        english: {},
+        telugu: {},
+      };
+
+      clusterSections.forEach((section) => {
+        const lang = section.language;
+        sectionsByLanguage[lang][section.sectionType] = {
+          content: section.content,
+          generatedContent: section.generatedContent,
+          enhancedContent: section.enhancedContent,
+          isApplied: section.isApplied,
+          version: section.version,
+        };
+      });
+
+      // Add sections to DPR response
+      const dprData = dpr.toObject();
+      dprData.clusterSections = sectionsByLanguage;
+
       res.status(200).json({
         success: true,
-        data: dpr,
+        data: dprData,
       });
     } catch (error: any) {
       console.error('Error fetching Cluster DPR:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch Cluster DPR',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Get all sections for a DPR
+   */
+  static async getClusterSections(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { dprId } = req.params;
+      const { language = 'english' } = req.query;
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      // Verify DPR exists
+      const dpr = await DPRVersion.findOne({
+        _id: dprId,
+        userId,
+      });
+
+      if (!dpr) {
+        res.status(404).json({
+          success: false,
+          message: 'DPR not found',
+        });
+        return;
+      }
+
+      // Fetch cluster sections
+      const sections = await ClusterSection.find({
+        dprId,
+        userId,
+        language: language as 'english' | 'telugu',
+      });
+
+      res.status(200).json({
+        success: true,
+        data: {
+          sections: sections.map((s) => ({
+            sectionType: s.sectionType,
+            content: s.content,
+            generatedContent: s.generatedContent,
+            enhancedContent: s.enhancedContent,
+            isApplied: s.isApplied,
+            version: s.version,
+            createdAt: s.createdAt,
+            updatedAt: s.updatedAt,
+          })),
+        },
+      });
+    } catch (error: any) {
+      console.error('Error fetching cluster sections:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch cluster sections',
         error: error.message,
       });
     }
@@ -415,11 +506,55 @@ export class ClusterDPRController {
         console.log('✅ Updated cluster project draft:', project._id);
       }
 
+      // Create or update DPRVersion record
+      let dprVersion = await DPRVersion.findOne({
+        projectId: project._id.toString(),
+        userId,
+        status: 'draft',
+      }).sort({ createdAt: -1 });
+
+      if (!dprVersion) {
+        // Create base DPRVersion record
+        dprVersion = await DPRVersion.create({
+          projectId: project._id.toString(),
+          userId,
+          versionNumber: 1,
+          status: 'draft',
+          language: 'bilingual',
+          content: {
+            english: {
+              isClusterDPR: true,
+              clusterData: clusterData,
+            },
+            telugu: {
+              isClusterDPR: true,
+              clusterData: clusterData,
+            },
+          },
+        });
+        console.log('✅ Created base DPRVersion record:', dprVersion._id);
+      } else {
+        // Update existing DPRVersion with latest clusterData
+        if (!dprVersion.content.english) {
+          dprVersion.content.english = {};
+        }
+        if (!dprVersion.content.telugu) {
+          dprVersion.content.telugu = {};
+        }
+        dprVersion.content.english.isClusterDPR = true;
+        dprVersion.content.english.clusterData = clusterData;
+        dprVersion.content.telugu.isClusterDPR = true;
+        dprVersion.content.telugu.clusterData = clusterData;
+        await dprVersion.save();
+        console.log('✅ Updated DPRVersion record:', dprVersion._id);
+      }
+
       res.status(200).json({
         success: true,
         message: 'Cluster DPR draft saved successfully',
         data: {
           projectId: project._id.toString(),
+          dprId: dprVersion._id.toString(),
           projectName: project.projectName,
         },
       });
@@ -466,9 +601,9 @@ export class ClusterDPRController {
         return;
       }
 
-      // Find DPR version
+      // Find DPR version by _id (not dprId)
       const dprVersion = await DPRVersion.findOne({
-        dprId,
+        _id: dprId,
         userId,
       });
 
@@ -480,8 +615,43 @@ export class ClusterDPRController {
         return;
       }
 
-      // Update enhanced content in DPR content
-      const contentKey = language === 'telugu' ? 'telugu' : 'english';
+      // Store enhanced content in ClusterSection model
+      const lang = language === 'telugu' ? 'telugu' : 'english';
+      const sectionPromises = Object.entries(enhancedContent).map(async ([sectionType, content]) => {
+        // Find or create cluster section
+        let clusterSection = await ClusterSection.findOne({
+          dprId,
+          userId,
+          sectionType,
+          language: lang,
+        });
+
+        if (clusterSection) {
+          // Update existing section with enhanced content
+          clusterSection.enhancedContent = content as string;
+          clusterSection.version += 1;
+          await clusterSection.save();
+        } else {
+          // Create new cluster section
+          clusterSection = await ClusterSection.create({
+            userId,
+            dprId,
+            sectionType,
+            language: lang,
+            content: '', // Empty initially, will be filled when applied
+            enhancedContent: content as string,
+            isApplied: false,
+            version: 1,
+          });
+        }
+
+        return clusterSection;
+      });
+
+      await Promise.all(sectionPromises);
+
+      // Also update DPRVersion for backward compatibility
+      const contentKey = lang;
       if (!dprVersion.content[contentKey]) {
         dprVersion.content[contentKey] = {};
       }
@@ -507,6 +677,339 @@ export class ClusterDPRController {
       res.status(500).json({
         success: false,
         message: 'Failed to save enhanced content',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Store generated sections separately (for user review before applying)
+   */
+  static async storeGeneratedSections(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const { dprId } = req.params;
+      const { generatedSections, language = 'english' } = req.body;
+
+      if (!dprId) {
+        res.status(400).json({
+          success: false,
+          message: 'DPR ID is required',
+        });
+        return;
+      }
+
+      if (!generatedSections || Object.keys(generatedSections).length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Generated sections are required',
+        });
+        return;
+      }
+
+      // Verify DPR exists and belongs to user
+      const dprVersion = await DPRVersion.findOne({
+        _id: dprId,
+        userId,
+      });
+
+      if (!dprVersion) {
+        res.status(404).json({
+          success: false,
+          message: 'DPR not found',
+        });
+        return;
+      }
+
+      // Store each generated section in ClusterSection model
+      const lang = language === 'telugu' ? 'telugu' : 'english';
+      const sectionPromises = Object.entries(generatedSections).map(async ([sectionType, content]) => {
+        // Find or create cluster section
+        let clusterSection = await ClusterSection.findOne({
+          dprId,
+          userId,
+          sectionType,
+          language: lang,
+        });
+
+        if (clusterSection) {
+          // Update existing section with generated content
+          clusterSection.generatedContent = content as string;
+          clusterSection.version += 1;
+          await clusterSection.save();
+        } else {
+          // Create new cluster section
+          clusterSection = await ClusterSection.create({
+            userId,
+            dprId,
+            sectionType,
+            language: lang,
+            content: '', // Empty initially, will be filled when applied
+            generatedContent: content as string,
+            isApplied: false,
+            version: 1,
+          });
+        }
+
+        return clusterSection;
+      });
+
+      await Promise.all(sectionPromises);
+      console.log(`✅ Stored ${Object.keys(generatedSections).length} generated sections for DPR ${dprId}`);
+
+      res.status(200).json({
+        success: true,
+        message: 'Generated sections stored successfully',
+        data: {
+          dprId,
+          generatedSectionsCount: Object.keys(generatedSections).length,
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ Error storing generated sections:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to store generated sections',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Apply a generated section (replace current section content)
+   */
+  static async applyGeneratedSection(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const { dprId } = req.params;
+      const { sectionName, language = 'english' } = req.body;
+
+      if (!dprId || !sectionName) {
+        res.status(400).json({
+          success: false,
+          message: 'DPR ID and section name are required',
+        });
+        return;
+      }
+
+      // Verify DPR exists
+      const dprVersion = await DPRVersion.findOne({
+        _id: dprId,
+        userId,
+      });
+
+      if (!dprVersion) {
+        res.status(404).json({
+          success: false,
+          message: 'DPR not found',
+        });
+        return;
+      }
+
+      const lang = language === 'telugu' ? 'telugu' : 'english';
+
+      // Find cluster section with generated content
+      const clusterSection = await ClusterSection.findOne({
+        dprId,
+        userId,
+        sectionType: sectionName,
+        language: lang,
+      });
+
+      if (!clusterSection || !clusterSection.generatedContent) {
+        res.status(404).json({
+          success: false,
+          message: `Generated section "${sectionName}" not found`,
+        });
+        return;
+      }
+
+      // Apply generated content to the section
+      clusterSection.content = clusterSection.generatedContent;
+      clusterSection.isApplied = true;
+      clusterSection.version += 1;
+      await clusterSection.save();
+
+      // Also update DPRVersion content for backward compatibility
+      const contentKey = lang;
+      if (!dprVersion.content[contentKey]) {
+        dprVersion.content[contentKey] = {};
+      }
+
+      // Map section names to content fields
+      const sectionMapping: Record<string, string> = {
+        'executiveSummary': 'executiveSummary',
+        'introduction': 'businessProfile',
+        'districtProfile': 'districtProfile',
+        'clusterProfile': 'clusterProfile',
+        'valueChain': 'valueChain',
+        'marketAspects': 'marketAnalysis',
+        'gapAnalysis': 'gapAnalysis',
+        'swotAnalysis': 'swotAnalysis',
+        'proposedInterventions': 'proposedInterventions',
+        'cfcDetails': 'technicalFeasibility',
+        'spvDetails': 'spvDetails',
+        'projectCost': 'projectCost',
+        'meansOfFinance': 'meansOfFinance',
+        'operatingCostRevenue': 'operatingCostRevenue',
+        'financialViability': 'financialProjections',
+        'implementationSchedule': 'implementationSchedule',
+        'expectedImpact': 'conclusion',
+        'annexures': 'annexures',
+      };
+
+      const contentField = sectionMapping[sectionName] || sectionName;
+      dprVersion.content[contentKey][contentField] = clusterSection.content;
+      await dprVersion.save();
+
+      console.log(`✅ Applied generated section "${sectionName}" to DPR ${dprId}`);
+
+      res.status(200).json({
+        success: true,
+        message: 'Generated section applied successfully',
+        data: {
+          dprId,
+          sectionName,
+          appliedContent: clusterSection.content.substring(0, 100) + '...',
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ Error applying generated section:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to apply generated section',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Apply enhanced content to replace current section content
+   */
+  static async applyEnhancedContent(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const { dprId } = req.params;
+      const { sectionName, language = 'english' } = req.body;
+
+      if (!dprId || !sectionName) {
+        res.status(400).json({
+          success: false,
+          message: 'DPR ID and section name are required',
+        });
+        return;
+      }
+
+      // Verify DPR exists
+      const dprVersion = await DPRVersion.findOne({
+        _id: dprId,
+        userId,
+      });
+
+      if (!dprVersion) {
+        res.status(404).json({
+          success: false,
+          message: 'DPR not found',
+        });
+        return;
+      }
+
+      const lang = language === 'telugu' ? 'telugu' : 'english';
+
+      // Find cluster section with enhanced content
+      const clusterSection = await ClusterSection.findOne({
+        dprId,
+        userId,
+        sectionType: sectionName,
+        language: lang,
+      });
+
+      if (!clusterSection || !clusterSection.enhancedContent) {
+        res.status(404).json({
+          success: false,
+          message: `Enhanced content for section "${sectionName}" not found`,
+        });
+        return;
+      }
+
+      // Apply enhanced content to the section
+      clusterSection.content = clusterSection.enhancedContent;
+      clusterSection.isApplied = true;
+      clusterSection.version += 1;
+      await clusterSection.save();
+
+      // Also update DPRVersion content for backward compatibility
+      const contentKey = lang;
+      if (!dprVersion.content[contentKey]) {
+        dprVersion.content[contentKey] = {};
+      }
+
+      // Map section names to content fields
+      const sectionMapping: Record<string, string> = {
+        'executiveSummary': 'executiveSummary',
+        'introduction': 'businessProfile',
+        'districtProfile': 'districtProfile',
+        'clusterProfile': 'clusterProfile',
+        'valueChain': 'valueChain',
+        'marketAspects': 'marketAnalysis',
+        'gapAnalysis': 'gapAnalysis',
+        'swotAnalysis': 'swotAnalysis',
+        'proposedInterventions': 'proposedInterventions',
+        'cfcDetails': 'technicalFeasibility',
+        'spvDetails': 'spvDetails',
+        'projectCost': 'projectCost',
+        'meansOfFinance': 'meansOfFinance',
+        'operatingCostRevenue': 'operatingCostRevenue',
+        'financialViability': 'financialProjections',
+        'implementationSchedule': 'implementationSchedule',
+        'expectedImpact': 'conclusion',
+        'annexures': 'annexures',
+      };
+
+      const contentField = sectionMapping[sectionName] || sectionName;
+      dprVersion.content[contentKey][contentField] = clusterSection.content;
+      await dprVersion.save();
+
+      console.log(`✅ Applied enhanced content for section "${sectionName}" to DPR ${dprId}`);
+
+      res.status(200).json({
+        success: true,
+        message: 'Enhanced content applied successfully',
+        data: {
+          dprId,
+          sectionName,
+          appliedContent: clusterSection.content.substring(0, 100) + '...',
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ Error applying enhanced content:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to apply enhanced content',
         error: error.message,
       });
     }

@@ -13,7 +13,7 @@ import { api } from '@/lib/api';
 
 export const ClusterDPRCreation: React.FC = () => {
   const navigate = useNavigate();
-  const { data, setCurrentStep, saveDraft, setGeneratedDPR, resetData } = useClusterDPRStore();
+  const { data, setCurrentStep, saveDraft, setGeneratedDPR, resetData, setDprIds } = useClusterDPRStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewMode, setPreviewMode] = useState<'split' | 'form' | 'preview'>('split');
   const [viewLanguage, setViewLanguage] = useState<'english' | 'telugu'>('english');
@@ -48,8 +48,14 @@ export const ClusterDPRCreation: React.FC = () => {
       try {
         // Only save if we have at least step1 data
         if (data.step1?.clusterName) {
-          await api.saveClusterDPRDraft(data);
-          console.log('💾 Auto-saved cluster DPR draft to database');
+          const response = await api.saveClusterDPRDraft(data);
+          if (response.success && response.data) {
+            // Store the dprId and projectId from the response
+            if (response.data.dprId && response.data.projectId) {
+              setDprIds(response.data.dprId, response.data.projectId);
+            }
+            console.log('💾 Auto-saved cluster DPR draft to database');
+          }
         }
       } catch (error) {
         console.error('Error auto-saving draft to database:', error);
@@ -91,8 +97,16 @@ export const ClusterDPRCreation: React.FC = () => {
     // Also save to database
     try {
       if (data.step1?.clusterName) {
-        await api.saveClusterDPRDraft(data);
-        toast.success('Draft saved to database successfully!');
+        const response = await api.saveClusterDPRDraft(data);
+        if (response.success && response.data) {
+          // Store the dprId and projectId from the response
+          if (response.data.dprId && response.data.projectId) {
+            setDprIds(response.data.dprId, response.data.projectId);
+          }
+          toast.success('Draft saved to database successfully!');
+        } else {
+          toast.success('Draft saved to local storage!');
+        }
       } else {
         toast.success('Draft saved to local storage!');
       }

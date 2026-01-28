@@ -96,6 +96,8 @@ export interface ISchemeMatch extends Document {
 export interface IDPRVersion extends Document {
   _id: string;
   projectId: string;
+  userId?: string;
+  versionNumber?: number;
   contentPath?: string;
   content: {
     english: {
@@ -106,6 +108,28 @@ export interface IDPRVersion extends Document {
       financialProjections: string;
       conclusion: string;
       eligibleSchemes?: string;
+      // Cluster DPR specific sections
+      coverPage?: string;
+      tableOfContents?: string;
+      districtProfile?: string;
+      clusterProfile?: string;
+      valueChain?: string;
+      gapAnalysis?: string;
+      swotAnalysis?: string;
+      proposedInterventions?: string;
+      cfcDetails?: string;
+      spvDetails?: string;
+      projectCost?: string;
+      meansOfFinance?: string;
+      operatingCostRevenue?: string;
+      implementationSchedule?: string;
+      annexures?: string;
+      // Generated sections and enhanced content
+      generatedSections?: Record<string, string>;
+      enhancedContent?: Record<string, string>;
+      // Additional cluster DPR metadata
+      isClusterDPR?: boolean;
+      clusterData?: any;
       [key: string]: any; // Allow additional sections
     };
     telugu: {
@@ -116,6 +140,28 @@ export interface IDPRVersion extends Document {
       financialProjections: string;
       conclusion: string;
       eligibleSchemes?: string;
+      // Cluster DPR specific sections
+      coverPage?: string;
+      tableOfContents?: string;
+      districtProfile?: string;
+      clusterProfile?: string;
+      valueChain?: string;
+      gapAnalysis?: string;
+      swotAnalysis?: string;
+      proposedInterventions?: string;
+      cfcDetails?: string;
+      spvDetails?: string;
+      projectCost?: string;
+      meansOfFinance?: string;
+      operatingCostRevenue?: string;
+      implementationSchedule?: string;
+      annexures?: string;
+      // Generated sections and enhanced content
+      generatedSections?: Record<string, string>;
+      enhancedContent?: Record<string, string>;
+      // Additional cluster DPR metadata
+      isClusterDPR?: boolean;
+      clusterData?: any;
       [key: string]: any; // Allow additional sections
     };
   };
