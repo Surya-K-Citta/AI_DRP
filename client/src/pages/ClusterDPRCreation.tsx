@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
@@ -37,14 +37,17 @@ export const ClusterDPRCreation: React.FC = () => {
     }
   }, []); // Run only on mount
 
-  useEffect(() => {
-    // Auto-save draft to localStorage every 30 seconds
-    const localStorageInterval = setInterval(() => {
-      saveDraft();
-    }, 30000);
-
-    // Auto-save draft to database every 60 seconds (less frequent to reduce API calls)
-    const databaseInterval = setInterval(async () => {
+  // Debounce function to prevent too many rapid saves
+  const saveToDatabaseRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const saveToDatabase = useCallback(async () => {
+    // Clear any pending save
+    if (saveToDatabaseRef.current) {
+      clearTimeout(saveToDatabaseRef.current);
+    }
+    
+    // Debounce: wait 500ms after last change before saving
+    saveToDatabaseRef.current = setTimeout(async () => {
       try {
         // Only save if we have at least step1 data
         if (data.step1?.clusterName) {
@@ -61,16 +64,51 @@ export const ClusterDPRCreation: React.FC = () => {
         console.error('Error auto-saving draft to database:', error);
         // Don't show error toast for background saves
       }
-    }, 60000);
+    }, 500);
+  }, [data, setDprIds]);
+
+  useEffect(() => {
+    // Auto-save draft to localStorage every 2 seconds
+    const localStorageInterval = setInterval(() => {
+      saveDraft();
+    }, 2000);
+
+    // Auto-save draft to database every 2.5 seconds (debounced to prevent too many API calls)
+    const databaseInterval = setInterval(() => {
+      saveToDatabase();
+    }, 2500);
 
     return () => {
       clearInterval(localStorageInterval);
       clearInterval(databaseInterval);
+      if (saveToDatabaseRef.current) {
+        clearTimeout(saveToDatabaseRef.current);
+      }
     };
-  }, [saveDraft, data]);
+  }, [saveDraft, saveToDatabase]);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < totalSteps) {
+      // Save to localStorage immediately
+      saveDraft();
+      
+      // Save to database before moving to next step
+      try {
+        if (data.step1?.clusterName) {
+          const response = await api.saveClusterDPRDraft(data);
+          if (response.success && response.data) {
+            // Store the dprId and projectId from the response
+            if (response.data.dprId && response.data.projectId) {
+              setDprIds(response.data.dprId, response.data.projectId);
+            }
+            console.log('💾 Saved cluster DPR draft before moving to next step');
+          }
+        }
+      } catch (error) {
+        console.error('Error saving draft before next step:', error);
+        // Continue to next step even if save fails
+      }
+      
       setCurrentStep(currentStep + 1);
       // Scroll to top of form
       document.getElementById('cluster-dpr-form')?.scrollIntoView({ behavior: 'smooth' });
