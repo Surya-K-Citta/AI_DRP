@@ -524,6 +524,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     );
   };
 
+  // Helper function to ensure array fields are always arrays
+  const ensureArray = (value: any): any[] => {
+    if (Array.isArray(value)) return value;
+    if (value === null || value === undefined) return [];
+    if (typeof value === 'string') return [value];
+    return [];
+  };
+
   const s1 = clusterData.step1 || {};
   const s2 = clusterData.step2 || {};
   const s3 = clusterData.step3 || {};
@@ -531,7 +539,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   const s5 = clusterData.step5 || {};
   const s6 = clusterData.step6 || {};
   const s7 = clusterData.step7 || {};
-  const s8 = clusterData.step8 || {};
+  const s8Raw = clusterData.step8 || {};
+  const s8 = {
+    ...s8Raw,
+    strengths: ensureArray(s8Raw.strengths),
+    weaknesses: ensureArray(s8Raw.weaknesses),
+    opportunities: ensureArray(s8Raw.opportunities),
+    threats: ensureArray(s8Raw.threats),
+  };
   const s9 = clusterData.step9 || {};
   const s10 = clusterData.step10 || {};
   const s11 = clusterData.step11 || {};
@@ -1145,90 +1160,55 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       )}
 
       {/* Section 1.5: District & Regional Profile */}
-      {(s3.geography || s3.climate || s3.infrastructure || s3.keyEconomicActivities || s3.rawMaterialAvailability || s3.industrialInfrastructure || s3.connectivity) && (
-        <div 
-          className="p-12 border-b-4 border-gray-800 page-break relative"
-          style={{ 
-            pageBreakAfter: 'always',
-            padding: '2cm',
-            minHeight: '29.7cm',
-            fontFamily: 'Times New Roman, serif',
-            border: '8px solid #2563EB',
-            borderStyle: 'double',
-            position: 'relative'
-          }}
-        >
-          {/* Decorative border effect */}
-          <div 
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              border: '2px solid #3B82F6',
-              margin: '8px',
-              borderRadius: '4px'
-            }}
-          />
-          <div className="relative z-10">
-            {renderSectionTitle('1.5 DISTRICT & REGIONAL PROFILE', 3)}
+      {renderPageWrapper(
+        <div>
+          {renderSectionTitle('1.5 DISTRICT & REGIONAL PROFILE', 3)}
           <div className="space-y-6 text-sm">
-            {s3.geography && (
-              <div>
-                <h3 className="text-xl font-semibold mb-3">1.5.1 Geography</h3>
-                {renderEnhancedSubsection('districtProfile-geography', s3.geography)}
-              </div>
-            )}
-            {s3.climate && (
-              <div>
-                <h3 className="text-xl font-semibold mb-3">1.5.2 Climate</h3>
-                {renderEnhancedSubsection('districtProfile-climate', s3.climate)}
-              </div>
-            )}
-            {s3.infrastructure && (
-              <div>
-                <h3 className="text-xl font-semibold mb-3">1.5.3 Infrastructure</h3>
-                {renderEnhancedSubsection('districtProfile-infrastructure', s3.infrastructure)}
-              </div>
-            )}
-            {s3.keyEconomicActivities && (
-              <div>
-                <h3 className="text-xl font-semibold mb-3">1.5.4 Key Economic Activities</h3>
-                {renderEnhancedSubsection('districtProfile-keyEconomicActivities', s3.keyEconomicActivities)}
-              </div>
-            )}
-            {(s3.rawMaterialAvailability || s3.rawMaterialQuantity) && (
-              <div>
-                <h3 className="text-xl font-semibold mb-3">1.5.5 Raw Material Availability</h3>
-                {renderTable(
-                  ['Parameter', 'Details'],
-                  [
-                    ['Availability', s3.rawMaterialAvailability || 'N/A'],
-                    ['Quantity', s3.rawMaterialQuantity || 'N/A'],
-                  ]
-                )}
-              </div>
-            )}
-            {s3.industrialInfrastructure && (
-              <div>
-                <h3 className="text-xl font-semibold mb-3">1.5.6 Industrial Infrastructure</h3>
-                {renderEnhancedSubsection('districtProfile-industrialInfrastructure', s3.industrialInfrastructure)}
-              </div>
-            )}
-            {(s3.connectivity?.road || s3.connectivity?.rail || s3.connectivity?.port) && (
-              <div>
-                <h3 className="text-xl font-semibold mb-3">1.5.7 Connectivity</h3>
-                {renderTable(
-                  ['Mode', 'Details'],
-                  [
-                    ['Road', s3.connectivity?.road || 'N/A'],
-                    ['Rail', s3.connectivity?.rail || 'N/A'],
-                    ['Port', s3.connectivity?.port || 'N/A'],
-                  ]
-                )}
-              </div>
-            )}
-          </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-3">1.5.1 Geography</h3>
+              {renderEnhancedSubsection('districtProfile-geography', s3.geography || 'N/A')}
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-3">1.5.2 Climate</h3>
+              {renderEnhancedSubsection('districtProfile-climate', s3.climate || 'N/A')}
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-3">1.5.3 Infrastructure</h3>
+              {renderEnhancedSubsection('districtProfile-infrastructure', s3.infrastructure || 'N/A')}
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-3">1.5.4 Key Economic Activities</h3>
+              {renderEnhancedSubsection('districtProfile-keyEconomicActivities', s3.keyEconomicActivities || 'N/A')}
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-3">1.5.5 Raw Material Availability</h3>
+              {renderTable(
+                ['Parameter', 'Details'],
+                [
+                  ['Availability', s3.rawMaterialAvailability || 'N/A'],
+                  ['Quantity', s3.rawMaterialQuantity || 'N/A'],
+                ]
+              )}
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-3">1.5.6 Industrial Infrastructure</h3>
+              {renderEnhancedSubsection('districtProfile-industrialInfrastructure', s3.industrialInfrastructure || 'N/A')}
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-3">1.5.7 Connectivity</h3>
+              {renderTable(
+                ['Mode', 'Details'],
+                [
+                  ['Road', s3.connectivity?.road || 'N/A'],
+                  ['Rail', s3.connectivity?.rail || 'N/A'],
+                  ['Port', s3.connectivity?.port || 'N/A'],
+                ]
+              )}
+            </div>
           </div>
         </div>
       )}
+
 
       {/* Section 2: Cluster Profile */}
       <div 
@@ -1492,36 +1472,36 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           <div>
             <h3 className="text-lg font-semibold mb-3 text-green-700">Strengths</h3>
             <ul className="list-disc list-inside space-y-1">
-              {(s8.strengths || []).map((s: string, idx: number) => (
+              {s8.strengths.length > 0 ? s8.strengths.map((s: string, idx: number) => (
                 <li key={idx}>{s}</li>
-              ))}
+              )) : <li>N/A</li>}
             </ul>
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-3 text-orange-700">Weaknesses</h3>
             <ul className="list-disc list-inside space-y-1">
-              {(s8.weaknesses || []).map((w: string, idx: number) => (
+              {s8.weaknesses.length > 0 ? s8.weaknesses.map((w: string, idx: number) => (
                 <li key={idx}>{w}</li>
-              ))}
+              )) : <li>N/A</li>}
             </ul>
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-3 text-blue-700">Opportunities</h3>
             <ul className="list-disc list-inside space-y-1">
-              {(s8.opportunities || []).map((o: string, idx: number) => (
+              {s8.opportunities.length > 0 ? s8.opportunities.map((o: string, idx: number) => (
                 <li key={idx}>{o}</li>
-              ))}
+              )) : <li>N/A</li>}
             </ul>
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-3 text-red-700">Threats</h3>
             <ul className="list-disc list-inside space-y-1">
-              {(s8.threats || []).map((t: string, idx: number) => (
+              {s8.threats.length > 0 ? s8.threats.map((t: string, idx: number) => (
                 <li key={idx}>{t}</li>
-              ))}
+              )) : <li>N/A</li>}
             </ul>
-            </div>
           </div>
+        </div>
         </div>
       </div>
 
@@ -1568,7 +1548,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       </div>
 
       {/* Section 7: CFC Details - Split into 2 pages if needed */}
-      {(s10.name || s10.location || s10.plantAndMachinery || s10.manufacturingProcess || s10.capacity) && (
+      {true && (
         <>
           {/* Page 1: CFC Overview, Plant & Machinery, Process, Capacity, Requirements */}
           {renderPageWrapper(
@@ -1655,7 +1635,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       )}
 
       {/* Section 8: SPV Details - Split into 2 pages */}
-      {(s11.spvName || s11.legalStatus || s11.memberUnits?.length > 0) && (
+      {true && (
         <>
           {/* Page 1: SPV Profile and Shareholding Pattern */}
           {renderPageWrapper(
@@ -1880,36 +1860,15 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       </div>
 
       {/* Section 9.5: Operating Cost & Revenue */}
-      {(s14.rawMaterialCost || s14.powerCost || s14.wages || s14.maintenance || s14.administrativeExpenses || s14.marketingExpenses || s14.annualProductionVolume || s14.annualSalesRealization) && (
-        <div 
-          className="p-12 border-b-4 border-gray-800 page-break relative"
-          style={{ 
-            pageBreakAfter: 'always',
-            padding: '2cm',
-            minHeight: '29.7cm',
-            fontFamily: 'Times New Roman, serif',
-            border: '8px solid #2563EB',
-            borderStyle: 'double',
-            position: 'relative'
-          }}
-        >
-          {/* Decorative border effect */}
-          <div 
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              border: '2px solid #3B82F6',
-              margin: '8px',
-              borderRadius: '4px'
-            }}
-          />
-          <div className="relative z-10">
-            {renderSectionTitle('9.5 OPERATING COST & REVENUE', 14)}
-            {renderEnhancedContent('operatingCostRevenue')}
+      {renderPageWrapper(
+        <div>
+          {renderSectionTitle('9.5 OPERATING COST & REVENUE', 14)}
+          {renderEnhancedContent('operatingCostRevenue')}
           <div className="space-y-6 text-sm">
             <div>
-              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.5.1 Operating Costs</h3>
+              <h3 className="text-xl font-semibold mb-3">Operating Costs</h3>
               {renderTable(
-                ['Cost Component', 'Amount (₹ Lakhs)'],
+                ['Item', 'Amount (₹ Lakhs)'],
                 [
                   ['Raw Material Cost', s14.rawMaterialCost ? ((s14.rawMaterialCost / 100000).toFixed(2)) : 'N/A'],
                   ['Power Cost', s14.powerCost ? ((s14.powerCost / 100000).toFixed(2)) : 'N/A'],
@@ -1917,29 +1876,23 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   ['Maintenance', s14.maintenance ? ((s14.maintenance / 100000).toFixed(2)) : 'N/A'],
                   ['Administrative Expenses', s14.administrativeExpenses ? ((s14.administrativeExpenses / 100000).toFixed(2)) : 'N/A'],
                   ['Marketing Expenses', s14.marketingExpenses ? ((s14.marketingExpenses / 100000).toFixed(2)) : 'N/A'],
-                  ['Total Operating Cost', 
-                   ((s14.rawMaterialCost || 0) + (s14.powerCost || 0) + (s14.wages || 0) + 
-                    (s14.maintenance || 0) + (s14.administrativeExpenses || 0) + (s14.marketingExpenses || 0)) > 0
-                    ? (((s14.rawMaterialCost || 0) + (s14.powerCost || 0) + (s14.wages || 0) + 
-                        (s14.maintenance || 0) + (s14.administrativeExpenses || 0) + (s14.marketingExpenses || 0)) / 100000).toFixed(2)
-                    : 'N/A'],
                 ]
               )}
             </div>
             <div>
-              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.5.2 Revenue Projections</h3>
+              <h3 className="text-xl font-semibold mb-3">Revenue</h3>
               {renderTable(
-                ['Parameter', 'Value'],
+                ['Item', 'Details'],
                 [
-                  ['Annual Production Volume', s14.annualProductionVolume ? `${s14.annualProductionVolume.toLocaleString('en-IN')} units` : 'N/A'],
-                  ['Annual Sales Realization', s14.annualSalesRealization ? `₹${((s14.annualSalesRealization) / 100000).toFixed(2)} Lakhs` : 'N/A'],
+                  ['Annual Production Volume', s14.annualProductionVolume || 'N/A'],
+                  ['Annual Sales Realization', s14.annualSalesRealization ? `₹${(s14.annualSalesRealization / 100000).toFixed(2)} Lakhs` : 'N/A'],
                 ]
               )}
             </div>
           </div>
-          </div>
         </div>
       )}
+
 
       {/* Section 10: Financial Viability */}
       <div 
@@ -2105,61 +2058,44 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       </div>
 
       {/* Section 10.5: Project Implementation Schedule */}
-      {(s16.startDate || (s16.milestones && s16.milestones.length > 0) || s16.totalImplementationPeriod) && (
-        <div 
-          className="p-12 border-b-4 border-gray-800 page-break relative"
-          style={{ 
-            pageBreakAfter: 'always',
-            padding: '2cm',
-            minHeight: '29.7cm',
-            fontFamily: 'Times New Roman, serif',
-            border: '8px solid #2563EB',
-            borderStyle: 'double',
-            position: 'relative'
-          }}
-        >
-          {/* Decorative border effect */}
-          <div 
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              border: '2px solid #3B82F6',
-              margin: '8px',
-              borderRadius: '4px'
-            }}
-          />
-          <div className="relative z-10">
-            {renderSectionTitle('10.5 PROJECT IMPLEMENTATION SCHEDULE', 16)}
-            <div className="space-y-6 text-sm">
+      {renderPageWrapper(
+        <div>
+          {renderSectionTitle('10.5 PROJECT IMPLEMENTATION SCHEDULE', 16)}
+          <div className="space-y-6 text-sm">
             {s16.startDate && (
               <div>
-                <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.5.1 Project Start Date</h3>
-                <p className="text-justify leading-relaxed">{s16.startDate}</p>
+                <h3 className="text-xl font-semibold mb-3">Start Date</h3>
+                <p>{s16.startDate || 'N/A'}</p>
               </div>
             )}
             {s16.milestones && s16.milestones.length > 0 && (
               <div>
-                <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.5.2 Implementation Milestones</h3>
+                <h3 className="text-xl font-semibold mb-3">Implementation Milestones</h3>
                 {renderTable(
                   ['Activity', 'Time Required', 'Start Date', 'End Date'],
                   s16.milestones.map((m: any) => [
                     m.activity || 'N/A',
                     m.timeRequired || 'N/A',
                     m.startDate || 'N/A',
-                    m.endDate || 'N/A',
+                    m.endDate || 'N/A'
                   ])
                 )}
               </div>
             )}
-            {s16.totalImplementationPeriod && (
+            {!s16.milestones || s16.milestones.length === 0 && (
               <div>
-                <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.5.3 Total Implementation Period</h3>
-                <p className="text-justify leading-relaxed">{s16.totalImplementationPeriod}</p>
+                <h3 className="text-xl font-semibold mb-3">Implementation Milestones</h3>
+                <p>No milestones defined yet.</p>
               </div>
             )}
-          </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-3">Total Implementation Period</h3>
+              <p>{s16.totalImplementationPeriod || 'N/A'}</p>
+            </div>
           </div>
         </div>
       )}
+
 
       {/* Section 11: Expected Impact */}
       <div 
@@ -2434,9 +2370,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       </div>
 
       {/* Annexures Cover Page */}
-      {(clusterData.step18?.spvRegistration || clusterData.step18?.landDocuments || clusterData.step18?.buildingEstimates || 
-        clusterData.step18?.machineryQuotations || clusterData.step18?.memberRegistrations || 
-        (clusterData.step18?.supportingDocuments && clusterData.step18.supportingDocuments.length > 0)) && (
+      {true && (
         <>
           {/* Annexures Cover Page */}
           <div 

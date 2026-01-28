@@ -3,7 +3,7 @@ import React from 'react';
 import { useClusterDPRStore } from '@/store/clusterDPRStore';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Info } from 'lucide-react';
 
 interface ClusterDPRFormProps {
   currentStep: number;
@@ -17,39 +17,125 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   onPrevious,
 }) => {
   const { data, setStepData, getStepData } = useClusterDPRStore();
-  const stepData = getStepData(currentStep) || {};
+  const rawStepData = getStepData(currentStep) || {};
+  
+  // Helper function to ensure array fields are always arrays
+  const ensureArray = (value: any): any[] => {
+    if (Array.isArray(value)) return value;
+    if (value === null || value === undefined) return [];
+    if (typeof value === 'string') return [value];
+    return [];
+  };
+  
+  // Normalize step data to ensure array fields are arrays
+  const stepData = {
+    ...rawStepData,
+    // Step 2 arrays
+    keyProducts: ensureArray(rawStepData.keyProducts),
+    // Step 4 arrays
+    stakeholders: ensureArray(rawStepData.stakeholders),
+    // Step 5 arrays
+    rawMaterials: ensureArray(rawStepData.rawMaterials),
+    intermediateProducts: ensureArray(rawStepData.intermediateProducts),
+    finalProducts: ensureArray(rawStepData.finalProducts),
+    valueAdditionStages: ensureArray(rawStepData.valueAdditionStages),
+    majorBuyers: ensureArray(rawStepData.majorBuyers),
+    // Step 8 arrays (SWOT)
+    strengths: ensureArray(rawStepData.strengths),
+    weaknesses: ensureArray(rawStepData.weaknesses),
+    opportunities: ensureArray(rawStepData.opportunities),
+    threats: ensureArray(rawStepData.threats),
+    // Step 9 arrays
+    objectives: ensureArray(rawStepData.objectives),
+    expectedBenefits: ensureArray(rawStepData.expectedBenefits),
+    // Step 11 arrays
+    memberUnits: ensureArray(rawStepData.memberUnits),
+    boardOfDirectors: ensureArray(rawStepData.boardOfDirectors),
+    shareholdingPattern: ensureArray(rawStepData.shareholdingPattern),
+    statutoryRegistrations: ensureArray(rawStepData.statutoryRegistrations),
+    rolesAndResponsibilities: ensureArray(rawStepData.rolesAndResponsibilities),
+    // Step 17 arrays
+    sustainabilityOutcomes: ensureArray(rawStepData.sustainabilityOutcomes),
+  };
 
   const handleInputChange = (field: string, value: any) => {
     setStepData(currentStep, {
-      ...stepData,
+      ...rawStepData,
       [field]: value,
     });
   };
 
   const handleArrayAdd = (field: string, newItem: any) => {
-    const currentArray = stepData[field] || [];
+    const currentArray = ensureArray(rawStepData[field]);
     setStepData(currentStep, {
-      ...stepData,
+      ...rawStepData,
       [field]: [...currentArray, newItem],
     });
   };
 
   const handleArrayRemove = (field: string, index: number) => {
-    const currentArray = stepData[field] || [];
+    const currentArray = ensureArray(rawStepData[field]);
     setStepData(currentStep, {
-      ...stepData,
+      ...rawStepData,
       [field]: currentArray.filter((_: any, i: number) => i !== index),
     });
   };
 
   const handleArrayUpdate = (field: string, index: number, updatedItem: any) => {
-    const currentArray = stepData[field] || [];
+    const currentArray = ensureArray(rawStepData[field]);
     setStepData(currentStep, {
-      ...stepData,
+      ...rawStepData,
       [field]: currentArray.map((item: any, i: number) => 
         i === index ? { ...item, ...updatedItem } : item
       ),
     });
+  };
+
+  // Field help text definitions for mandatory/important fields
+  const getFieldHelpText = (step: number, field: string): string | null => {
+    const helpTexts: Record<string, Record<string, string>> = {
+      1: {
+        clusterName: 'Enter the official name of the cluster as registered or commonly known. This will appear on the cover page of your DPR.',
+        district: 'Specify the district where the cluster is located. This helps in regional analysis and scheme eligibility.',
+        location: 'Provide the specific location/village/town where the cluster operates. Include landmark details if available.',
+      },
+      2: {
+        sectorType: 'Select the primary industry sector that best describes your cluster\'s main business activity. This determines scheme eligibility.',
+        sectorDescription: 'Provide a detailed description of the sector, including industry trends, market size, and growth potential (300-400 words recommended).',
+      },
+      9: {
+        interventionType: 'Select the type of intervention: Hard (infrastructure, machinery) or Soft (training, marketing, skill development). You can select "Both" if applicable.',
+      },
+      10: {
+        name: 'Enter the official name of the Common Facility Centre (CFC) as it will be registered.',
+        location: 'Specify the exact location where the CFC will be established. Include address and landmark details.',
+      },
+      11: {
+        spvName: 'Enter the full legal name of the Special Purpose Vehicle (SPV) as registered. This should match your registration documents.',
+      },
+    };
+    return helpTexts[step]?.[field] || null;
+  };
+
+  // Component for label with info icon
+  const LabelWithInfo: React.FC<{ label: string; field: string; step: number }> = ({ label, field, step }) => {
+    const helpText = getFieldHelpText(step, field);
+    if (!helpText) {
+      return <label className="block text-sm font-medium mb-2">{label}</label>;
+    }
+
+    return (
+      <div className="flex items-start gap-2 mb-2">
+        <label className="block text-sm font-medium flex-1">{label}</label>
+        <div className="group relative flex-shrink-0">
+          <Info className="h-4 w-4 text-muted-foreground cursor-help hover:text-primary transition-colors mt-0.5" />
+          <div className="absolute right-0 top-full mt-2 w-80 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+            <p className="leading-relaxed">{helpText}</p>
+            <div className="absolute right-4 bottom-full w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Step 1: Executive Summary
@@ -58,7 +144,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Cluster Name *</label>
+            <LabelWithInfo label="Cluster Name *" field="clusterName" step={1} />
             <Input
               value={stepData.clusterName || ''}
               onChange={(e) => handleInputChange('clusterName', e.target.value)}
@@ -66,7 +152,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">District *</label>
+            <LabelWithInfo label="District *" field="district" step={1} />
             <Input
               value={stepData.district || ''}
               onChange={(e) => handleInputChange('district', e.target.value)}
@@ -76,7 +162,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-2">Location *</label>
+          <LabelWithInfo label="Location *" field="location" step={1} />
           <Input
             value={stepData.location || ''}
             onChange={(e) => handleInputChange('location', e.target.value)}
@@ -302,7 +388,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
     return (
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium mb-2">Sector / Industry Type *</label>
+          <LabelWithInfo label="Sector / Industry Type *" field="sectorType" step={2} />
           <Input
             value={stepData.sectorType || ''}
             onChange={(e) => handleInputChange('sectorType', e.target.value)}
@@ -311,7 +397,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-2">Sector Description *</label>
+          <LabelWithInfo label="Sector Description *" field="sectorDescription" step={2} />
           <textarea
             className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.sectorDescription || ''}
@@ -906,12 +992,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         <div>
           <label className="block text-sm font-medium mb-2">Strengths</label>
           <div className="space-y-2">
-            {(stepData.strengths || []).map((strength: string, index: number) => (
+            {(Array.isArray(stepData.strengths) ? stepData.strengths : (stepData.strengths ? [stepData.strengths] : [])).map((strength: string, index: number) => (
               <div key={index} className="flex items-center gap-2">
                 <Input
                   value={strength}
                   onChange={(e) => {
-                    const updated = [...(stepData.strengths || [])];
+                    const currentStrengths = Array.isArray(stepData.strengths) ? stepData.strengths : (stepData.strengths ? [stepData.strengths] : []);
+                    const updated = [...currentStrengths];
                     updated[index] = e.target.value;
                     handleInputChange('strengths', updated);
                   }}
@@ -940,12 +1027,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         <div>
           <label className="block text-sm font-medium mb-2">Weaknesses</label>
           <div className="space-y-2">
-            {(stepData.weaknesses || []).map((weakness: string, index: number) => (
+            {(Array.isArray(stepData.weaknesses) ? stepData.weaknesses : (stepData.weaknesses ? [stepData.weaknesses] : [])).map((weakness: string, index: number) => (
               <div key={index} className="flex items-center gap-2">
                 <Input
                   value={weakness}
                   onChange={(e) => {
-                    const updated = [...(stepData.weaknesses || [])];
+                    const currentWeaknesses = Array.isArray(stepData.weaknesses) ? stepData.weaknesses : (stepData.weaknesses ? [stepData.weaknesses] : []);
+                    const updated = [...currentWeaknesses];
                     updated[index] = e.target.value;
                     handleInputChange('weaknesses', updated);
                   }}
@@ -974,12 +1062,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         <div>
           <label className="block text-sm font-medium mb-2">Opportunities</label>
           <div className="space-y-2">
-            {(stepData.opportunities || []).map((opportunity: string, index: number) => (
+            {(Array.isArray(stepData.opportunities) ? stepData.opportunities : (stepData.opportunities ? [stepData.opportunities] : [])).map((opportunity: string, index: number) => (
               <div key={index} className="flex items-center gap-2">
                 <Input
                   value={opportunity}
                   onChange={(e) => {
-                    const updated = [...(stepData.opportunities || [])];
+                    const currentOpportunities = Array.isArray(stepData.opportunities) ? stepData.opportunities : (stepData.opportunities ? [stepData.opportunities] : []);
+                    const updated = [...currentOpportunities];
                     updated[index] = e.target.value;
                     handleInputChange('opportunities', updated);
                   }}
@@ -1008,12 +1097,13 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         <div>
           <label className="block text-sm font-medium mb-2">Threats</label>
           <div className="space-y-2">
-            {(stepData.threats || []).map((threat: string, index: number) => (
+            {(Array.isArray(stepData.threats) ? stepData.threats : (stepData.threats ? [stepData.threats] : [])).map((threat: string, index: number) => (
               <div key={index} className="flex items-center gap-2">
                 <Input
                   value={threat}
                   onChange={(e) => {
-                    const updated = [...(stepData.threats || [])];
+                    const currentThreats = Array.isArray(stepData.threats) ? stepData.threats : (stepData.threats ? [stepData.threats] : []);
+                    const updated = [...currentThreats];
                     updated[index] = e.target.value;
                     handleInputChange('threats', updated);
                   }}
@@ -1048,7 +1138,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
     return (
       <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium mb-2">Intervention Type *</label>
+          <LabelWithInfo label="Intervention Type *" field="interventionType" step={9} />
           <select
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.interventionType || ''}
@@ -1147,7 +1237,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">CFC Name *</label>
+            <LabelWithInfo label="CFC Name *" field="name" step={10} />
             <Input
               value={stepData.name || ''}
               onChange={(e) => handleInputChange('name', e.target.value)}
@@ -1155,7 +1245,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Location *</label>
+            <LabelWithInfo label="Location *" field="location" step={10} />
             <Input
               value={stepData.location || ''}
               onChange={(e) => handleInputChange('location', e.target.value)}
@@ -1243,7 +1333,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">SPV Name *</label>
+            <LabelWithInfo label="SPV Name *" field="spvName" step={11} />
             <Input
               value={stepData.spvName || ''}
               onChange={(e) => handleInputChange('spvName', e.target.value)}

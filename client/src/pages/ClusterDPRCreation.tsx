@@ -39,46 +39,81 @@ export const ClusterDPRCreation: React.FC = () => {
   // Auto-scroll preview to current step section
   useEffect(() => {
     if (previewMode === 'split' || previewMode === 'preview') {
-      // Small delay to ensure DOM is updated and content is rendered
+      // Delay to ensure DOM is updated and content is rendered
       const timer = setTimeout(() => {
-        const previewContainer = document.getElementById('dpr-preview-container');
+        const scrollWrapper = document.getElementById('dpr-preview-scroll-wrapper');
         const sectionElement = document.getElementById(`section-step-${currentStep}`);
         
-        if (previewContainer && sectionElement) {
-          // Get the preview element (the inner content)
-          const previewElement = document.getElementById('dpr-preview');
+        if (!scrollWrapper) {
+          console.warn('Scroll wrapper not found');
+          return;
+        }
+        
+        if (!sectionElement) {
+          console.warn(`Section element for step ${currentStep} not found`);
+          // Try to find it with a different selector
+          const allSections = document.querySelectorAll('[data-step]');
+          console.log('Available sections:', Array.from(allSections).map(el => ({
+            id: el.id,
+            step: el.getAttribute('data-step')
+          })));
+          return;
+        }
+        
+        // Get the preview container (scaled element)
+        const previewContainer = document.getElementById('dpr-preview-container');
+        const previewElement = document.getElementById('dpr-preview');
+        
+        if (previewContainer && previewElement) {
+          // Calculate the section's position relative to the preview element
+          // We need to account for the scaled container
+          let offsetTop = 0;
+          let element: HTMLElement | null = sectionElement;
           
-          if (previewElement && previewContainer) {
-            // Calculate the section's position relative to the preview element
-            const previewRect = previewElement.getBoundingClientRect();
-            const sectionRect = sectionElement.getBoundingClientRect();
+          // Walk up the DOM tree to calculate offsetTop relative to preview element
+          while (element && element !== previewElement && element.parentElement) {
+            offsetTop += element.offsetTop;
+            element = element.parentElement as HTMLElement | null;
+          }
+          
+          if (element === previewElement && offsetTop > 0) {
+            // Account for zoom level - the content is scaled
+            // The scroll position needs to be adjusted for the scale
+            const offset = 80; // Offset from top in pixels
+            // Since the container is scaled, we need to divide by zoom to get correct scroll position
+            const targetScrollTop = (offsetTop - offset) / previewZoom;
             
-            // Get the current scroll position of the container
-            const currentScrollTop = previewContainer.scrollTop;
-            
-            // Calculate the section's position relative to the preview element's top
-            // Since both are children of the scaled container, we can use their relative positions
-            const sectionOffsetFromPreview = sectionRect.top - previewRect.top;
-            
-            // Calculate the target scroll position
-            // The section should be positioned near the top of the visible area (with some offset)
-            const offset = 100; // Offset from top in pixels (before scaling)
-            const targetScrollTop = currentScrollTop + sectionOffsetFromPreview - (offset / previewZoom);
-            
-            previewContainer.scrollTo({
+            scrollWrapper.scrollTo({
               top: Math.max(0, targetScrollTop),
               behavior: 'smooth'
             });
           } else {
-            // Fallback: use scrollIntoView with options
-            sectionElement.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start',
-              inline: 'nearest'
+            // Fallback: use getBoundingClientRect method
+            const wrapperRect = scrollWrapper.getBoundingClientRect();
+            const sectionRect = sectionElement.getBoundingClientRect();
+            const containerRect = previewContainer.getBoundingClientRect();
+            
+            // Calculate relative position accounting for zoom
+            const relativeTop = sectionRect.top - containerRect.top;
+            const offset = 80;
+            
+            // The scroll position needs to account for the current scroll and zoom
+            const targetScrollTop = scrollWrapper.scrollTop + (relativeTop / previewZoom) - (offset / previewZoom);
+            
+            scrollWrapper.scrollTo({
+              top: Math.max(0, targetScrollTop),
+              behavior: 'smooth'
             });
           }
+        } else {
+          // Final fallback: use scrollIntoView
+          sectionElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+            inline: 'nearest'
+          });
         }
-      }, 500); // Delay to ensure DOM and content are ready
+      }, 800); // Increased delay to ensure content is fully rendered
 
       return () => clearTimeout(timer);
     }
@@ -517,7 +552,26 @@ JSON only.`;
     const suggestions = aiSuggestions[step];
     if (suggestions && typeof suggestions === 'object') {
       const currentStepData = getStepData(step) || {};
-      setStepData(step, { ...currentStepData, ...suggestions });
+      
+      // Normalize array fields for step 8 (SWOT Analysis)
+      const normalizedSuggestions = { ...suggestions };
+      if (step === 8) {
+        // Ensure SWOT fields are arrays
+        if (normalizedSuggestions.strengths && !Array.isArray(normalizedSuggestions.strengths)) {
+          normalizedSuggestions.strengths = [normalizedSuggestions.strengths];
+        }
+        if (normalizedSuggestions.weaknesses && !Array.isArray(normalizedSuggestions.weaknesses)) {
+          normalizedSuggestions.weaknesses = [normalizedSuggestions.weaknesses];
+        }
+        if (normalizedSuggestions.opportunities && !Array.isArray(normalizedSuggestions.opportunities)) {
+          normalizedSuggestions.opportunities = [normalizedSuggestions.opportunities];
+        }
+        if (normalizedSuggestions.threats && !Array.isArray(normalizedSuggestions.threats)) {
+          normalizedSuggestions.threats = [normalizedSuggestions.threats];
+        }
+      }
+      
+      setStepData(step, { ...currentStepData, ...normalizedSuggestions });
       clearAISuggestions(step);
       toast.success('AI suggestions applied!');
     }
@@ -862,26 +916,67 @@ JSON only.`;
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 overflow-hidden p-0 bg-gray-100 relative">
+                    <style>{`
+                      #dpr-preview-scroll-wrapper {
+                        scrollbar-width: auto !important;
+                        scrollbar-color: #64748b #f1f5f9 !important;
+                        overflow-y: scroll !important;
+                        overflow-x: hidden !important;
+                      }
+                      #dpr-preview-scroll-wrapper::-webkit-scrollbar {
+                        width: 16px !important;
+                        display: block !important;
+                        -webkit-appearance: none;
+                      }
+                      #dpr-preview-scroll-wrapper::-webkit-scrollbar-track {
+                        background: #f1f5f9 !important;
+                        border-left: 1px solid #e2e8f0 !important;
+                        display: block !important;
+                      }
+                      #dpr-preview-scroll-wrapper::-webkit-scrollbar-thumb {
+                        background: #64748b !important;
+                        border-radius: 8px !important;
+                        border: 3px solid #f1f5f9 !important;
+                        min-height: 40px !important;
+                        display: block !important;
+                      }
+                      #dpr-preview-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+                        background: #475569 !important;
+                      }
+                      #dpr-preview-scroll-wrapper::-webkit-scrollbar-corner {
+                        background: #f1f5f9 !important;
+                      }
+                    `}</style>
                     <div 
-                      id="dpr-preview-container"
-                      className="w-full h-full overflow-auto"
-                      style={{ 
-                        transform: `scale(${previewZoom})`,
-                        transformOrigin: 'top left',
-                        width: `${100 / previewZoom}%`,
-                        height: `${100 / previewZoom}%`,
+                      id="dpr-preview-scroll-wrapper"
+                      className="w-full h-full"
+                      style={{
+                        overflowY: 'scroll',
+                        overflowX: 'hidden',
+                        scrollbarWidth: 'auto',
+                        scrollbarColor: '#64748b #f1f5f9',
+                        position: 'relative',
                       }}
                     >
                       <div 
-                        id="dpr-preview" 
-                        className="bg-white mx-auto shadow-lg" 
+                        id="dpr-preview-container"
+                        className="w-full"
                         style={{ 
-                          minHeight: '100%', 
-                          width: '21cm',
-                          padding: '2rem',
-                          cursor: 'pointer'
+                          transform: `scale(${previewZoom})`,
+                          transformOrigin: 'top left',
+                          width: `${100 / previewZoom}%`,
                         }}
                       >
+                        <div 
+                          id="dpr-preview" 
+                          className="bg-white mx-auto shadow-lg" 
+                          style={{ 
+                            minHeight: '100%', 
+                            width: '21cm',
+                            padding: '2rem',
+                            cursor: 'pointer'
+                          }}
+                        >
                         <ClusterDPRDocumentView 
                           dpr={{
                             content: {
@@ -905,6 +1000,7 @@ JSON only.`;
                             document.getElementById('cluster-dpr-form')?.scrollIntoView({ behavior: 'smooth' });
                           }}
                         />
+                        </div>
                       </div>
                     </div>
                   </CardContent>
