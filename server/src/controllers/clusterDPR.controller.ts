@@ -4,6 +4,8 @@ import { AuthRequest } from '../types';
 import { ClusterDPRService } from '../services/clusterDPR.service';
 import { GeminiService } from '../services/gemini.service';
 import { CloudinaryService } from '../services/cloudinary.service';
+import { Project } from '../models/Project.model';
+import { DPRVersion } from '../models/DPRVersion.model';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -342,6 +344,174 @@ export class ClusterDPRController {
   /**
    * Delete image from Cloudinary
    */
+  /**
+   * Save cluster DPR stepData to database (create/update project)
+   */
+  static async saveClusterDPRDraft(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const { clusterData } = req.body;
+
+      if (!clusterData || !clusterData.step1?.clusterName) {
+        res.status(400).json({
+          success: false,
+          message: 'Cluster data with step1.clusterName is required',
+        });
+        return;
+      }
+
+      // Find or create project for this cluster DPR
+      let project = await Project.findOne({
+        userId,
+        projectName: clusterData.step1.clusterName,
+        projectType: 'cluster',
+      });
+
+      // Calculate total cost from step 12 if available
+      const totalCost = clusterData.step12
+        ? (clusterData.step12.land || 0) +
+        (clusterData.step12.building || 0) +
+        (clusterData.step12.machinery || 0) +
+        (clusterData.step12.utilitiesAndInfrastructure || 0) +
+        (clusterData.step12.preliminaryAndPreOperative || 0) +
+        (clusterData.step12.workingCapitalMargin || 0)
+        : 0;
+
+      // Calculate own contribution from step 13 if available
+      const ownContribution = clusterData.step13?.spvContribution || 0;
+      const loanAmount = clusterData.step13?.bankLoan || 0;
+
+      if (!project) {
+        project = await Project.create({
+          userId,
+          projectName: clusterData.step1.clusterName,
+          industrySector: clusterData.step2?.sectorType || 'Cluster Development',
+          location: clusterData.step1?.location || '',
+          district: clusterData.step1?.district || '',
+          projectType: 'cluster',
+          totalCost: totalCost || 0,
+          ownContribution: ownContribution || 0,
+          loanAmount: loanAmount || 0,
+          status: 'draft',
+          stepData: clusterData,
+        });
+        console.log('✅ Created new cluster project for draft:', project._id);
+      } else {
+        // Update existing project
+        project.stepData = clusterData;
+        project.totalCost = totalCost || project.totalCost || 0;
+        project.ownContribution = ownContribution || project.ownContribution || 0;
+        project.loanAmount = loanAmount || project.loanAmount || 0;
+        project.status = project.status === 'completed' ? 'completed' : 'draft';
+        await project.save();
+        console.log('✅ Updated cluster project draft:', project._id);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Cluster DPR draft saved successfully',
+        data: {
+          projectId: project._id.toString(),
+          projectName: project.projectName,
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ Error saving cluster DPR draft:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to save cluster DPR draft',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Save enhanced content to DPR
+   */
+  static async saveEnhancedContent(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const { dprId } = req.params;
+      const { enhancedContent, language = 'english' } = req.body;
+
+      if (!dprId) {
+        res.status(400).json({
+          success: false,
+          message: 'DPR ID is required',
+        });
+        return;
+      }
+
+      if (!enhancedContent || Object.keys(enhancedContent).length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Enhanced content is required',
+        });
+        return;
+      }
+
+      // Find DPR version
+      const dprVersion = await DPRVersion.findOne({
+        dprId,
+        userId,
+      });
+
+      if (!dprVersion) {
+        res.status(404).json({
+          success: false,
+          message: 'DPR not found',
+        });
+        return;
+      }
+
+      // Update enhanced content in DPR content
+      const contentKey = language === 'telugu' ? 'telugu' : 'english';
+      if (!dprVersion.content[contentKey]) {
+        dprVersion.content[contentKey] = {};
+      }
+
+      dprVersion.content[contentKey].enhancedContent = {
+        ...(dprVersion.content[contentKey].enhancedContent || {}),
+        ...enhancedContent,
+      };
+
+      await dprVersion.save();
+      console.log(`✅ Saved ${Object.keys(enhancedContent).length} enhanced content sections to DPR ${dprId}`);
+
+      res.status(200).json({
+        success: true,
+        message: 'Enhanced content saved successfully',
+        data: {
+          dprId,
+          enhancedContentSections: Object.keys(enhancedContent).length,
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ Error saving enhanced content:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to save enhanced content',
+        error: error.message,
+      });
+    }
+  }
+
   static async deleteImage(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.userId;

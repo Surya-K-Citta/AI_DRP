@@ -54,52 +54,97 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   };
 
   const [enhancedContent, setEnhancedContent] = useState<Record<string, string>>(() => {
-    // Load from localStorage on mount
+    // First try to load from DPR content (from backend)
+    const dprEnhancedContent = content.enhancedContent || dpr.content?.english?.enhancedContent || dpr.content?.telugu?.enhancedContent || {};
+    
+    // Then try localStorage as fallback
     try {
       const storageKey = getStorageKey();
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         console.log('📥 Loaded enhanced content from localStorage:', parsed);
-        return parsed;
+        // Merge DPR content with localStorage (localStorage takes precedence for user edits)
+        return { ...dprEnhancedContent, ...parsed };
       }
     } catch (error) {
       console.error('Error loading enhanced content from localStorage:', error);
     }
+    
+    // Return DPR content if available, otherwise empty object
+    if (Object.keys(dprEnhancedContent).length > 0) {
+      console.log('📥 Loaded enhanced content from DPR:', Object.keys(dprEnhancedContent).length, 'sections');
+      return dprEnhancedContent;
+    }
+    
     return {};
   });
   const [enhancingSections, setEnhancingSections] = useState<Record<string, boolean>>({});
 
   // Reload enhanced content when DPR ID or language changes
   useEffect(() => {
+    // First try to load from DPR content (from backend)
+    const dprEnhancedContent = content.enhancedContent || dpr.content?.english?.enhancedContent || dpr.content?.telugu?.enhancedContent || {};
+    
+    // Then try localStorage as fallback
     try {
       const storageKey = getStorageKey();
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         console.log('📥 Reloaded enhanced content from localStorage:', parsed);
-        setEnhancedContent(parsed);
+        // Merge DPR content with localStorage (localStorage takes precedence for user edits)
+        setEnhancedContent({ ...dprEnhancedContent, ...parsed });
       } else {
-        setEnhancedContent({});
+        // Use DPR content if available
+        if (Object.keys(dprEnhancedContent).length > 0) {
+          console.log('📥 Reloaded enhanced content from DPR:', Object.keys(dprEnhancedContent).length, 'sections');
+          setEnhancedContent(dprEnhancedContent);
+        } else {
+          setEnhancedContent({});
+        }
       }
     } catch (error) {
       console.error('Error loading enhanced content from localStorage:', error);
-      setEnhancedContent({});
+      // Fallback to DPR content
+      if (Object.keys(dprEnhancedContent).length > 0) {
+        setEnhancedContent(dprEnhancedContent);
+      } else {
+        setEnhancedContent({});
+      }
     }
-  }, [dpr?._id || dpr?.id, viewLanguage]);
+  }, [dpr?._id || dpr?.id, viewLanguage, content]);
 
-  // Save to localStorage whenever enhancedContent changes
+  // Save to localStorage and database whenever enhancedContent changes
   useEffect(() => {
     try {
       const storageKey = getStorageKey();
       if (Object.keys(enhancedContent).length > 0) {
+        // Save to localStorage
         localStorage.setItem(storageKey, JSON.stringify(enhancedContent));
-        console.log('💾 Saved enhanced content to localStorage:', enhancedContent);
+        console.log('💾 Saved enhanced content to localStorage:', Object.keys(enhancedContent).length, 'sections');
+        
+        // Save to database if we have a DPR ID
+        const dprId = dpr?._id || dpr?.id;
+        if (dprId) {
+          // Debounce database saves (save after 2 seconds of no changes)
+          const timeoutId = setTimeout(async () => {
+            try {
+              await api.saveClusterDPREnhancedContent(dprId, enhancedContent, viewLanguage);
+              console.log('💾 Saved enhanced content to database:', Object.keys(enhancedContent).length, 'sections');
+            } catch (error) {
+              console.error('Error saving enhanced content to database:', error);
+              // Don't show error toast for background saves
+            }
+          }, 2000);
+          
+          return () => clearTimeout(timeoutId);
+        }
       }
     } catch (error) {
-      console.error('Error saving enhanced content to localStorage:', error);
+      console.error('Error saving enhanced content:', error);
     }
-  }, [enhancedContent]);
+  }, [enhancedContent, dpr?._id || dpr?.id, viewLanguage]);
 
   // Helper to render A4 page wrapper (21 x 29.7 cm)
   const renderPageWrapper = (children: React.ReactNode, additionalStyles?: React.CSSProperties) => {
@@ -395,6 +440,16 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           } catch (error) {
             console.error('Error saving to localStorage:', error);
           }
+          
+          // Also save to database if we have a DPR ID
+          const dprId = dpr?._id || dpr?.id;
+          if (dprId) {
+            // Save to database asynchronously (don't wait)
+            api.saveClusterDPREnhancedContent(dprId, updated, viewLanguage).catch((error) => {
+              console.error('Error saving enhanced content to database:', error);
+            });
+          }
+          
           return updated;
         });
         if (!silent) {

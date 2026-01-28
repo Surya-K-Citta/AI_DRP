@@ -38,13 +38,30 @@ export const ClusterDPRCreation: React.FC = () => {
   }, []); // Run only on mount
 
   useEffect(() => {
-    // Auto-save draft every 30 seconds
-    const interval = setInterval(() => {
+    // Auto-save draft to localStorage every 30 seconds
+    const localStorageInterval = setInterval(() => {
       saveDraft();
     }, 30000);
 
-    return () => clearInterval(interval);
-  }, [saveDraft]);
+    // Auto-save draft to database every 60 seconds (less frequent to reduce API calls)
+    const databaseInterval = setInterval(async () => {
+      try {
+        // Only save if we have at least step1 data
+        if (data.step1?.clusterName) {
+          await api.saveClusterDPRDraft(data);
+          console.log('💾 Auto-saved cluster DPR draft to database');
+        }
+      } catch (error) {
+        console.error('Error auto-saving draft to database:', error);
+        // Don't show error toast for background saves
+      }
+    }, 60000);
+
+    return () => {
+      clearInterval(localStorageInterval);
+      clearInterval(databaseInterval);
+    };
+  }, [saveDraft, data]);
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -67,9 +84,22 @@ export const ClusterDPRCreation: React.FC = () => {
     document.getElementById('cluster-dpr-form')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
+    // Save to localStorage
     saveDraft();
-    toast.success('Draft saved successfully!');
+    
+    // Also save to database
+    try {
+      if (data.step1?.clusterName) {
+        await api.saveClusterDPRDraft(data);
+        toast.success('Draft saved to database successfully!');
+      } else {
+        toast.success('Draft saved to local storage!');
+      }
+    } catch (error) {
+      console.error('Error saving draft to database:', error);
+      toast.success('Draft saved to local storage!');
+    }
   };
 
   const handleGenerateDPR = async () => {
@@ -82,9 +112,25 @@ export const ClusterDPRCreation: React.FC = () => {
         return;
       }
 
+      // Get enhanced content from localStorage (user-enhanced content from preview)
+      let enhancedContent: Record<string, string> = {};
+      try {
+        const clusterName = data.step1?.clusterName || '';
+        const storageKey = `cluster-dpr-enhanced-${clusterName.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          enhancedContent = JSON.parse(saved);
+          console.log('📥 Loaded enhanced content from localStorage:', Object.keys(enhancedContent).length, 'sections');
+        }
+      } catch (error) {
+        console.error('Error loading enhanced content:', error);
+      }
+
       // Prepare complete data - ensure all step data is included
       const completeData = {
         ...data,
+        // Include enhanced content so backend can use it
+        enhancedContent: enhancedContent,
         // Remove metadata fields that shouldn't be sent
         currentStep: undefined,
         isDraft: undefined,
@@ -97,6 +143,7 @@ export const ClusterDPRCreation: React.FC = () => {
       console.log('📤 Sending cluster data to backend:', {
         totalSteps: stepKeys.length,
         steps: stepKeys,
+        enhancedContentSections: Object.keys(enhancedContent).length,
         step1Data: completeData.step1,
         step11Data: completeData.step11,
         step12Data: completeData.step12,

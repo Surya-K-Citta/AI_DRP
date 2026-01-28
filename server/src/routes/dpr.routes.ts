@@ -54,6 +54,8 @@ router.get('/project/:projectId', DPRController.getProjectDPRs);
 
 // Cluster DPR generation
 router.post('/cluster/generate', ClusterDPRController.generateClusterDPR);
+router.post('/cluster/draft/save', ClusterDPRController.saveClusterDPRDraft);
+router.post('/cluster/:dprId/enhanced-content', ClusterDPRController.saveEnhancedContent);
 router.get('/cluster/:dprId', ClusterDPRController.getClusterDPR);
 
 // Image generation and upload for Cluster DPR

@@ -324,48 +324,130 @@ Return only valid JSON without markdown code blocks.`;
     language: 'english' | 'telugu' | 'bilingual' = 'bilingual'
   ): Promise<any> {
     try {
+      // Extract enhancedContent if provided (user-enhanced content from preview)
+      let providedEnhancedContent = clusterData.enhancedContent || {};
+      const enhancedContentKeys = Object.keys(providedEnhancedContent);
+      console.log(`📥 Received ${enhancedContentKeys.length} enhanced content sections from frontend`);
+      
+      // Remove enhancedContent from clusterData before processing
+      const { enhancedContent, ...cleanClusterData } = clusterData;
+      
       // Enhance data using OpenAI
       console.log('🤖 Enhancing cluster DPR data with OpenAI...');
-      const enhancedDPR = await this.enhanceClusterDPRData(clusterData);
+      const enhancedDPR = await this.enhanceClusterDPRData(cleanClusterData);
+      
+      // Merge provided enhanced content with generated content
+      // User-enhanced content takes precedence over AI-generated content
+      if (enhancedContentKeys.length > 0) {
+        console.log('🔄 Merging user-enhanced content with AI-generated content...');
+        
+        // Map enhanced content keys to DPR sections
+        // Enhanced content keys are like: 'executiveSummary', 'districtProfile-geography', 'marketAspects-demandSupplyGap', etc.
+        Object.keys(providedEnhancedContent).forEach(key => {
+          const enhancedText = providedEnhancedContent[key];
+          if (!enhancedText) return;
+          
+          // Direct section mapping (e.g., 'executiveSummary' -> sections.executiveSummary)
+          if (key.includes('-')) {
+            // Subsection mapping (e.g., 'districtProfile-geography' -> sections.districtProfile)
+            const [sectionName, subsection] = key.split('-');
+            if (enhancedDPR.sections && enhancedDPR.sections[sectionName]) {
+              // For subsections, we'll store them separately and use them in rendering
+              if (!enhancedDPR.sections[`${sectionName}-${subsection}`]) {
+                enhancedDPR.sections[`${sectionName}-${subsection}`] = enhancedText;
+              }
+            }
+          } else {
+            // Direct section replacement
+            if (enhancedDPR.sections && enhancedDPR.sections[key]) {
+              enhancedDPR.sections[key] = enhancedText;
+              console.log(`✅ Merged enhanced content for section: ${key}`);
+            }
+          }
+        });
+      }
 
       // Create or find a project for this cluster DPR
+      // First try to find by project name, then by stepData if available
       let project = await Project.findOne({
         userId,
-        projectName: clusterData.step1?.clusterName || 'Cluster DPR',
+        projectName: cleanClusterData.step1?.clusterName || 'Cluster DPR',
         projectType: 'cluster',
       });
 
+      // If project not found, try to find by matching stepData (for existing drafts)
+      if (!project && cleanClusterData.step1?.clusterName) {
+        const projects = await Project.find({
+          userId,
+          projectType: 'cluster',
+          'stepData.step1.clusterName': cleanClusterData.step1.clusterName,
+        }).sort({ updatedAt: -1 }).limit(1);
+        
+        if (projects.length > 0) {
+          project = projects[0];
+          console.log('📥 Found existing cluster project by stepData:', project._id);
+          
+          // Merge saved stepData with provided data (provided data takes precedence)
+          if (project.stepData) {
+            cleanClusterData = {
+              ...project.stepData,
+              ...cleanClusterData,
+            };
+            console.log('📥 Merged saved stepData with provided data');
+          }
+        }
+      }
+      
+      // If project exists, also check for existing DPR with enhancedContent
+      if (project) {
+        const existingDPR = await DPRVersion.findOne({
+          projectId: project._id.toString(),
+          userId,
+        }).sort({ createdAt: -1 });
+        
+        if (existingDPR && existingDPR.content?.english?.enhancedContent) {
+          // Merge existing enhancedContent with provided enhancedContent (provided takes precedence)
+          const existingEnhancedContent = existingDPR.content.english.enhancedContent || {};
+          const mergedEnhancedContent = {
+            ...existingEnhancedContent,
+            ...providedEnhancedContent,
+          };
+          providedEnhancedContent = mergedEnhancedContent;
+          console.log(`📥 Merged existing enhancedContent (${Object.keys(existingEnhancedContent).length} sections) with provided (${Object.keys(providedEnhancedContent).length} sections)`);
+        }
+      }
+
       // Calculate total cost from step 12 if available
-      const totalCost = clusterData.step12
-        ? (clusterData.step12.land || 0) +
-        (clusterData.step12.building || 0) +
-        (clusterData.step12.machinery || 0) +
-        (clusterData.step12.utilitiesAndInfrastructure || 0) +
-        (clusterData.step12.preliminaryAndPreOperative || 0) +
-        (clusterData.step12.workingCapitalMargin || 0)
+      const totalCost = cleanClusterData.step12
+        ? (cleanClusterData.step12.land || 0) +
+        (cleanClusterData.step12.building || 0) +
+        (cleanClusterData.step12.machinery || 0) +
+        (cleanClusterData.step12.utilitiesAndInfrastructure || 0) +
+        (cleanClusterData.step12.preliminaryAndPreOperative || 0) +
+        (cleanClusterData.step12.workingCapitalMargin || 0)
         : 0;
 
       // Calculate own contribution from step 13 if available
-      const ownContribution = clusterData.step13?.spvContribution || 0;
-      const loanAmount = clusterData.step13?.bankLoan || 0;
+      const ownContribution = cleanClusterData.step13?.spvContribution || 0;
+      const loanAmount = cleanClusterData.step13?.bankLoan || 0;
 
       if (!project) {
         project = await Project.create({
           userId,
-          projectName: clusterData.step1?.clusterName || 'Cluster DPR',
-          industrySector: clusterData.step2?.sectorType || 'Cluster Development',
-          location: clusterData.step1?.location || '',
-          district: clusterData.step1?.district || '',
+          projectName: cleanClusterData.step1?.clusterName || 'Cluster DPR',
+          industrySector: cleanClusterData.step2?.sectorType || 'Cluster Development',
+          location: cleanClusterData.step1?.location || '',
+          district: cleanClusterData.step1?.district || '',
           projectType: 'cluster',
           totalCost: totalCost || 100000, // Default to 1 lakh if not provided
           ownContribution: ownContribution || 0,
           loanAmount: loanAmount || 0,
           status: 'completed',
-          stepData: clusterData,
+          stepData: cleanClusterData,
         });
       } else {
         // Update existing project
-        project.stepData = clusterData;
+        project.stepData = cleanClusterData;
         project.totalCost = totalCost || project.totalCost || 100000;
         project.ownContribution = ownContribution || project.ownContribution || 0;
         project.loanAmount = loanAmount || project.loanAmount || 0;
@@ -406,7 +488,9 @@ Return only valid JSON without markdown code blocks.`;
             implementationSchedule: enhancedDPR.sections?.implementationSchedule || '',
             annexures: enhancedDPR.sections?.annexures || '',
             isClusterDPR: true,
-            clusterData: clusterData,
+            clusterData: cleanClusterData,
+            // Store all enhanced content (including subsections) for use in rendering
+            enhancedContent: providedEnhancedContent,
           },
           telugu: {
             executiveSummary: enhancedDPR.sections?.executiveSummary || '',
@@ -433,7 +517,9 @@ Return only valid JSON without markdown code blocks.`;
             implementationSchedule: enhancedDPR.sections?.implementationSchedule || '',
             annexures: enhancedDPR.sections?.annexures || '',
             isClusterDPR: true,
-            clusterData: clusterData,
+            clusterData: cleanClusterData,
+            // Store enhanced content for Telugu as well
+            enhancedContent: providedEnhancedContent,
           },
         },
         financials: {

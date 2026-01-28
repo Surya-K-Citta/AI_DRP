@@ -506,6 +506,31 @@ class APIClient {
     );
   }
 
+  async saveClusterDPRDraft(clusterData: any) {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/dpr/cluster/draft/save', {
+          clusterData,
+        });
+        return response.data;
+      },
+      () => Promise.resolve({ success: false, message: 'Failed to save draft' })
+    );
+  }
+
+  async saveClusterDPREnhancedContent(dprId: string, enhancedContent: Record<string, string>, language: string = 'english') {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post(`/dpr/cluster/${dprId}/enhanced-content`, {
+          enhancedContent,
+          language,
+        });
+        return response.data;
+      },
+      () => Promise.resolve({ success: false, message: 'Failed to save enhanced content' })
+    );
+  }
+
   // Image generation and upload for Cluster DPR
   async generateClusterDPRImage(prompt: string, sectionType: string, sectionInfo: any) {
     return this.handleRequest(
