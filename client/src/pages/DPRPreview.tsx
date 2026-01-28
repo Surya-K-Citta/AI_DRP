@@ -26,7 +26,7 @@ import {
 import { downloadBlob } from '@/lib/utils';
 import { FormattedText } from '@/utils/textFormatter';
 import { ClusterDPRDocumentView } from '@/components/cluster-dpr/ClusterDPRDocumentView';
-import { captureElementAsStandaloneHTML } from '@/lib/htmlCapture';
+import { captureElementAsStandaloneHTMLAsync } from '@/lib/htmlCapture';
 
 export const DPRPreview: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -78,17 +78,17 @@ export const DPRPreview: React.FC = () => {
         // If it's an array, take the first one (shouldn't happen for getDPR, but handle it)
         dprData = dprResponse.data[0] || dprResponse;
       }
-      
+
       setDpr(dprData);
-      
+
       // Check if this is a cluster DPR (will be updated when project loads)
-      const isCluster = dprData.content?.english?.isClusterDPR || 
-                       dprData.content?.telugu?.isClusterDPR ||
-                       dprData.metadata?.isClusterDPR ||
-                       dprData.content?.english?.clusterData ||
-                       dprData.metadata?.clusterData;
+      const isCluster = dprData.content?.english?.isClusterDPR ||
+        dprData.content?.telugu?.isClusterDPR ||
+        dprData.metadata?.isClusterDPR ||
+        dprData.content?.english?.clusterData ||
+        dprData.metadata?.clusterData;
       setIsClusterDPR(isCluster);
-      
+
       // Load project data
       if (dprData.projectId) {
         if (typeof dprData.projectId === 'string') {
@@ -138,7 +138,7 @@ export const DPRPreview: React.FC = () => {
       setHasTelugu(teluguContent && Object.keys(teluguContent).length > 0);
     } catch (error: any) {
       console.error('Failed to load DPR:', error);
-      
+
       // Check if it's a network error and try mock data fallback
       const isNetworkError = !error.response && (
         error.code === 'ERR_NETWORK' ||
@@ -146,16 +146,16 @@ export const DPRPreview: React.FC = () => {
         error.message?.includes('ERR_CONNECTION_REFUSED') ||
         error.message?.includes('Failed to fetch')
       );
-      
+
       if (isNetworkError) {
         console.log('🌐 Network error detected, trying to load mock DPR data...');
         try {
           const { MockDataService } = await import('@/lib/mockData');
           const mockDpr = await MockDataService.getDPR(dprId!);
           const mockQuality = await MockDataService.analyzeDPRQuality(dprId!);
-          
+
           setDpr(mockDpr);
-          
+
           // Load project from mock DPR
           if (mockDpr.projectId) {
             if (typeof mockDpr.projectId === 'string') {
@@ -165,23 +165,23 @@ export const DPRPreview: React.FC = () => {
               setProject(mockDpr.projectId);
             }
           }
-          
+
           // Set quality feedback
           if (mockQuality.data) {
             setQualityScore(mockQuality.data.score);
             setQualityFeedback(mockQuality.data);
           }
-          
+
           // Check Telugu content
           const teluguContent = mockDpr.content?.telugu;
           setHasTelugu(teluguContent && Object.keys(teluguContent).length > 0);
-          
+
           return; // Successfully loaded mock data
         } catch (mockError) {
           console.error('Failed to load mock DPR data:', mockError);
         }
       }
-      
+
       toast.error('Failed to load DPR');
     } finally {
       setLoading(false);
@@ -204,7 +204,7 @@ export const DPRPreview: React.FC = () => {
       };
 
       await api.updateDPRContent(dprId!, updateData, viewLanguage);
-      
+
       // Update local state
       setDpr({
         ...dpr,
@@ -220,7 +220,7 @@ export const DPRPreview: React.FC = () => {
       setEditingSection(null);
       setEditedContent('');
       toast.success('Content updated successfully');
-      
+
       // Reload quality score
       const qualityResponse = await api.analyzeDPRQuality(dprId!);
       if (qualityResponse?.data) {
@@ -264,7 +264,10 @@ export const DPRPreview: React.FC = () => {
           if (!root) {
             throw new Error('Preview root not found');
           }
-          const html = captureElementAsStandaloneHTML(root);
+          // Use async version to convert images to base64 before capturing
+          toast.loading('Preparing PDF with images...', { id: 'pdf-prep' });
+          const html = await captureElementAsStandaloneHTMLAsync(root);
+          toast.dismiss('pdf-prep');
           blob = await api.downloadPDFExactFromHTML(dprId!, html, viewLanguage);
           downloadBlob(blob, `DPR_${project?.projectName || 'Report'}_${viewLanguage}.pdf`);
         } else {
@@ -411,123 +414,123 @@ export const DPRPreview: React.FC = () => {
 
         {/* Header Section - Only show for non-cluster DPRs */}
         {!isClusterDPR && (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-secondary p-8 text-white mb-6">
-          <div className="relative z-10">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">{project?.projectName || t('dpr.preview.dprPreview')}</h1>
-                <p className="text-white/90">
-                  {new Date(dpr.generatedAt || dpr.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border ${getStatusColor(dpr.status || 'draft')} bg-white/10 backdrop-blur-sm`}>
-                  {getStatusIcon(dpr.status || 'draft')}
-                  {dpr.status ? t(`dpr.preview.${dpr.status}`) : t('dpr.preview.draft')}
-                </span>
-                {qualityScore !== null && (
-                  <div className={`px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20`}>
-                    <p className={`text-sm font-semibold ${getQualityColor(qualityScore)}`}>
-                      {t('dpr.preview.quality')}: {qualityScore}/100
-                    </p>
-                  </div>
-                )}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-secondary p-8 text-white mb-6">
+            <div className="relative z-10">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h1 className="text-3xl font-bold mb-2">{project?.projectName || t('dpr.preview.dprPreview')}</h1>
+                  <p className="text-white/90">
+                    {new Date(dpr.generatedAt || dpr.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border ${getStatusColor(dpr.status || 'draft')} bg-white/10 backdrop-blur-sm`}>
+                    {getStatusIcon(dpr.status || 'draft')}
+                    {dpr.status ? t(`dpr.preview.${dpr.status}`) : t('dpr.preview.draft')}
+                  </span>
+                  {qualityScore !== null && (
+                    <div className={`px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20`}>
+                      <p className={`text-sm font-semibold ${getQualityColor(qualityScore)}`}>
+                        {t('dpr.preview.quality')}: {qualityScore}/100
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
           </div>
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-        </div>
         )}
 
         {/* Action Bar - Only show for non-cluster DPRs or show simplified for cluster */}
         {!isClusterDPR && (
-        <Card className="border-2 shadow-lg">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              {/* Language Selector */}
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Languages className="h-5 w-5 text-primary" />
+          <Card className="border-2 shadow-lg">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                {/* Language Selector */}
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Languages className="h-5 w-5 text-primary" />
+                  </div>
+                  <select
+                    className="h-11 rounded-lg border-2 border-primary/20 bg-background px-4 py-2 text-sm font-medium focus:border-primary focus:outline-none"
+                    value={viewLanguage}
+                    onChange={(e) => {
+                      const newLang = e.target.value as 'english' | 'telugu';
+                      setViewLanguage(newLang);
+                      // Change i18n language immediately
+                      i18n.changeLanguage(newLang === 'telugu' ? 'te' : 'en');
+                    }}
+                  >
+                    <option value="english">{t('dpr.english')}</option>
+                    <option value="telugu" disabled={!hasTelugu}>
+                      {t('dpr.telugu')} {!hasTelugu && `(${t('dpr.notAvailable')})`}
+                    </option>
+                  </select>
+                  {!hasTelugu && viewLanguage === 'english' && (
+                    <Button
+                      variant="outline"
+                      onClick={handleTranslateToTelugu}
+                      disabled={translating}
+                      className="border-2 border-secondary text-secondary hover:bg-secondary hover:text-white"
+                    >
+                      {translating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {t('dpr.translating')}
+                        </>
+                      ) : (
+                        <>
+                          <Languages className="h-4 w-4 mr-2" />
+                          {t('dpr.translateToTelugu')}
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
-                <select
-                  className="h-11 rounded-lg border-2 border-primary/20 bg-background px-4 py-2 text-sm font-medium focus:border-primary focus:outline-none"
-                  value={viewLanguage}
-                  onChange={(e) => {
-                    const newLang = e.target.value as 'english' | 'telugu';
-                    setViewLanguage(newLang);
-                    // Change i18n language immediately
-                    i18n.changeLanguage(newLang === 'telugu' ? 'te' : 'en');
-                  }}
-                >
-                  <option value="english">{t('dpr.english')}</option>
-                  <option value="telugu" disabled={!hasTelugu}>
-                    {t('dpr.telugu')} {!hasTelugu && `(${t('dpr.notAvailable')})`}
-                  </option>
-                </select>
-                {!hasTelugu && viewLanguage === 'english' && (
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 flex-wrap">
                   <Button
                     variant="outline"
-                    onClick={handleTranslateToTelugu}
-                    disabled={translating}
-                    className="border-2 border-secondary text-secondary hover:bg-secondary hover:text-white"
+                    onClick={() => handleDownload('pdf')}
+                    className="border-2 hover:bg-primary/5 hover:border-primary"
                   >
-                    {translating ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        {t('dpr.translating')}
-                      </>
-                    ) : (
-                      <>
-                        <Languages className="h-4 w-4 mr-2" />
-                        {t('dpr.translateToTelugu')}
-                      </>
-                    )}
+                    <Download className="h-4 w-4 mr-2" />
+                    PDF
                   </Button>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <Button
-                  variant="outline"
-                  onClick={() => handleDownload('pdf')}
-                  className="border-2 hover:bg-primary/5 hover:border-primary"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  PDF
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleDownload('docx')}
-                  className="border-2 hover:bg-secondary/5 hover:border-secondary"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  DOCX
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleDownload('xls')}
-                  className="border-2 hover:bg-success/5 hover:border-success"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  XLS
-                </Button>
-                {dpr.status === 'draft' && (
                   <Button
-                    onClick={() => handleSubmit('admin')}
-                    disabled={submitting}
-                    className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
+                    variant="outline"
+                    onClick={() => handleDownload('docx')}
+                    className="border-2 hover:bg-secondary/5 hover:border-secondary"
                   >
-                    <Send className="h-4 w-4 mr-2" />
-                    {submitting ? t('dpr.preview.submitting') : t('dpr.preview.submitToAdmin')}
+                    <Download className="h-4 w-4 mr-2" />
+                    DOCX
                   </Button>
-                )}
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDownload('xls')}
+                    className="border-2 hover:bg-success/5 hover:border-success"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    XLS
+                  </Button>
+                  {dpr.status === 'draft' && (
+                    <Button
+                      onClick={() => handleSubmit('admin')}
+                      disabled={submitting}
+                      className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      {submitting ? t('dpr.preview.submitting') : t('dpr.preview.submitToAdmin')}
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
         )}
-        
+
         {/* Simplified action bar for cluster DPRs */}
         {isClusterDPR && (
           <Card className="border-2 shadow-lg mb-6">
@@ -574,13 +577,12 @@ export const DPRPreview: React.FC = () => {
 
         {/* Quality Score Card - Only for non-cluster DPRs */}
         {qualityFeedback && !isClusterDPR && (
-          <Card className={`border-2 shadow-lg ${
-            qualityScore && qualityScore >= 80 
-              ? 'bg-success/5 border-success/30' 
-              : qualityScore && qualityScore >= 60 
-              ? 'bg-warning/5 border-warning/30' 
-              : 'bg-destructive/5 border-destructive/30'
-          }`}>
+          <Card className={`border-2 shadow-lg ${qualityScore && qualityScore >= 80
+              ? 'bg-success/5 border-success/30'
+              : qualityScore && qualityScore >= 60
+                ? 'bg-warning/5 border-warning/30'
+                : 'bg-destructive/5 border-destructive/30'
+            }`}>
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -615,16 +617,14 @@ export const DPRPreview: React.FC = () => {
                           <p className="text-xs text-muted-foreground mb-1 capitalize">{key}</p>
                           <div className="flex items-center gap-2">
                             <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full ${
-                                  value >= 80 ? 'bg-success' : value >= 60 ? 'bg-warning' : 'bg-destructive'
-                                }`}
+                              <div
+                                className={`h-full ${value >= 80 ? 'bg-success' : value >= 60 ? 'bg-warning' : 'bg-destructive'
+                                  }`}
                                 style={{ width: `${value}%` }}
                               />
                             </div>
-                            <span className={`text-sm font-bold ${
-                              value >= 80 ? 'text-success' : value >= 60 ? 'text-warning' : 'text-destructive'
-                            }`}>
+                            <span className={`text-sm font-bold ${value >= 80 ? 'text-success' : value >= 60 ? 'text-warning' : 'text-destructive'
+                              }`}>
                               {value}%
                             </span>
                           </div>
@@ -650,10 +650,9 @@ export const DPRPreview: React.FC = () => {
                               </span>
                             </div>
                             <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full transition-all ${
-                                  score >= 80 ? 'bg-success' : score >= 60 ? 'bg-warning' : 'bg-destructive'
-                                }`}
+                              <div
+                                className={`h-full transition-all ${score >= 80 ? 'bg-success' : score >= 60 ? 'bg-warning' : 'bg-destructive'
+                                  }`}
                                 style={{ width: `${score}%` }}
                               />
                             </div>
@@ -782,97 +781,95 @@ export const DPRPreview: React.FC = () => {
         ) : (
           <div className="space-y-6">
             {sections.map((section) => {
-            const content = dpr.content[viewLanguage]?.[section.key] || '';
-            const isEditing = editingSection === section.key;
-            const sectionTitle = section.title || t(section.titleKey || '');
-            const isWeak = qualityFeedback?.weakSections?.some((s: string) => {
-              if (!s || typeof s !== 'string' || !sectionTitle) return false;
-              return s.toLowerCase().includes(sectionTitle.toLowerCase());
-            }) || false;
-            const SectionIcon = section.icon;
+              const content = dpr.content[viewLanguage]?.[section.key] || '';
+              const isEditing = editingSection === section.key;
+              const sectionTitle = section.title || t(section.titleKey || '');
+              const isWeak = qualityFeedback?.weakSections?.some((s: string) => {
+                if (!s || typeof s !== 'string' || !sectionTitle) return false;
+                return s.toLowerCase().includes(sectionTitle.toLowerCase());
+              }) || false;
+              const SectionIcon = section.icon;
 
-            return (
-              <Card 
-                key={section.key} 
-                className={`border-2 shadow-lg transition-all ${
-                  isWeak ? 'border-warning/30 bg-warning/5' : 'border-primary/10'
-                }`}
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                        isWeak ? 'bg-warning/10' : 'bg-primary/10'
-                      }`}>
-                        <SectionIcon className={`h-5 w-5 ${isWeak ? 'text-warning' : 'text-primary'}`} />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl">{t(section.titleKey)}</CardTitle>
-                        {isWeak && (
-                          <CardDescription className="text-warning">
-                            {t('dpr.preview.thisSectionNeedsImprovement')}
-                          </CardDescription>
-                        )}
-                      </div>
-                    </div>
-                    {!isEditing && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(section.key)}
-                        className="border-2 hover:bg-primary/5 hover:border-primary"
-                      >
-                        <Edit2 className="h-4 w-4 mr-2" />
-                        {t('dpr.preview.edit')}
-                      </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {isEditing ? (
-                    <div className="space-y-4">
-                      <textarea
-                        className="w-full p-4 border-2 rounded-xl min-h-[300px] focus:border-primary focus:outline-none resize-none"
-                        value={editedContent}
-                        onChange={(e) => setEditedContent(e.target.value)}
-                        placeholder={t('dpr.preview.enterContent', { section: t(section.titleKey) })}
-                      />
-                      <div className="flex justify-end gap-3">
-                        <Button 
-                          variant="outline" 
-                          onClick={handleCancel} 
-                          disabled={saving}
-                          className="border-2"
-                        >
-                          <X className="h-4 w-4 mr-2" />
-                          {t('dpr.preview.cancel')}
-                        </Button>
-                        <Button 
-                          onClick={handleSave} 
-                          disabled={saving}
-                          className="bg-primary hover:bg-primary/90 text-white"
-                        >
-                          <Save className="h-4 w-4 mr-2" />
-                          {saving ? t('dpr.preview.saving') : t('dpr.preview.saveChanges')}
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="prose max-w-none" style={{ textAlign: 'left' }}>
-                      {content ? (
-                        <FormattedText text={content} />
-                      ) : (
-                        <div className="text-center py-12 text-muted-foreground">
-                          <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>{t('dpr.preview.noContentAvailable')}</p>
+              return (
+                <Card
+                  key={section.key}
+                  className={`border-2 shadow-lg transition-all ${isWeak ? 'border-warning/30 bg-warning/5' : 'border-primary/10'
+                    }`}
+                >
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${isWeak ? 'bg-warning/10' : 'bg-primary/10'
+                          }`}>
+                          <SectionIcon className={`h-5 w-5 ${isWeak ? 'text-warning' : 'text-primary'}`} />
                         </div>
+                        <div>
+                          <CardTitle className="text-xl">{t(section.titleKey)}</CardTitle>
+                          {isWeak && (
+                            <CardDescription className="text-warning">
+                              {t('dpr.preview.thisSectionNeedsImprovement')}
+                            </CardDescription>
+                          )}
+                        </div>
+                      </div>
+                      {!isEditing && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(section.key)}
+                          className="border-2 hover:bg-primary/5 hover:border-primary"
+                        >
+                          <Edit2 className="h-4 w-4 mr-2" />
+                          {t('dpr.preview.edit')}
+                        </Button>
                       )}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+                  </CardHeader>
+                  <CardContent>
+                    {isEditing ? (
+                      <div className="space-y-4">
+                        <textarea
+                          className="w-full p-4 border-2 rounded-xl min-h-[300px] focus:border-primary focus:outline-none resize-none"
+                          value={editedContent}
+                          onChange={(e) => setEditedContent(e.target.value)}
+                          placeholder={t('dpr.preview.enterContent', { section: t(section.titleKey) })}
+                        />
+                        <div className="flex justify-end gap-3">
+                          <Button
+                            variant="outline"
+                            onClick={handleCancel}
+                            disabled={saving}
+                            className="border-2"
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            {t('dpr.preview.cancel')}
+                          </Button>
+                          <Button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="bg-primary hover:bg-primary/90 text-white"
+                          >
+                            <Save className="h-4 w-4 mr-2" />
+                            {saving ? t('dpr.preview.saving') : t('dpr.preview.saveChanges')}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="prose max-w-none" style={{ textAlign: 'left' }}>
+                        {content ? (
+                          <FormattedText text={content} />
+                        ) : (
+                          <div className="text-center py-12 text-muted-foreground">
+                            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>{t('dpr.preview.noContentAvailable')}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>

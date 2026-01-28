@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,7 +14,7 @@
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-    
+
     body {
       margin: 0;
       padding: 0;
@@ -21,12 +22,12 @@
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-    
+
     @page {
       size: A4;
       margin: 0;
     }
-    
+
     body {
       font-family: 'Times New Roman', serif;
       font-size: 11pt;
@@ -41,13 +42,13 @@
       width: 100%;
       box-sizing: border-box;
     }
-    
+
     .page {
       width: 21cm;
       min-height: 29.7cm;
       height: auto;
       max-height: none;
-      padding: 1.5cm;
+      padding: 2cm;
       margin: 0 auto;
       margin-bottom: 0;
       page-break-after: always;
@@ -65,13 +66,13 @@
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-    
+
     .cover-page.page {
-      padding: 1.5cm;
+      padding: 2cm;
       display: flex;
       flex-direction: column;
     }
-    
+
     .cover-page .page-content {
       display: flex;
       flex-direction: column;
@@ -79,24 +80,24 @@
       height: 100%;
       justify-content: space-between;
     }
-    
-    /* Inner decorative border for enhanced double-line effect */
+
+    /* Inner decorative border for enhanced double-line effect - matching preview */
     .page::before {
       content: '';
       position: absolute;
-      top: 10px;
-      left: 10px;
-      right: 10px;
-      bottom: 10px;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
       border: 2px solid #3B82F6 !important;
-      border-radius: 3px;
+      border-radius: 4px;
       pointer-events: none;
       z-index: 1;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-    
+
     .page-content {
       position: relative;
       z-index: 10;
@@ -113,7 +114,7 @@
       align-items: stretch;
       justify-content: flex-start;
     }
-    
+
     /* Cover Page Styles */
     .cover-page {
       display: flex;
@@ -123,19 +124,17 @@
       min-height: 100%;
       height: 100%;
     }
-    
+
     .title-box {
       width: 100%;
       max-width: 16cm;
       padding: 0.8cm;
       background-color: #F3F4F6 !important;
-      background-image: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 10px,
-        rgba(0, 0, 0, 0.02) 10px,
-        rgba(0, 0, 0, 0.02) 20px
-      ) !important;
+      background-image: repeating-linear-gradient(45deg,
+          transparent,
+          transparent 10px,
+          rgba(0, 0, 0, 0.02) 10px,
+          rgba(0, 0, 0, 0.02) 20px) !important;
       border: 1px solid #D1D5DB !important;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
       border-radius: 8px;
@@ -146,7 +145,7 @@
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-    
+
     .title-box h1 {
       font-size: 28pt;
       font-weight: bold;
@@ -156,7 +155,7 @@
       font-family: 'Times New Roman', serif;
       line-height: 1.2;
     }
-    
+
     .title-box h2 {
       font-size: 14pt;
       font-weight: 600;
@@ -165,7 +164,7 @@
       font-family: 'Times New Roman', serif;
       line-height: 1.3;
     }
-    
+
     .title-box .cluster-name {
       font-size: 22pt;
       font-size: 22pt;
@@ -178,7 +177,7 @@
       font-family: 'Times New Roman', serif;
       line-height: 1.2;
     }
-    
+
     .title-box .programme {
       font-size: 14pt;
       font-weight: 600;
@@ -187,7 +186,7 @@
       font-family: 'Times New Roman', serif;
       line-height: 1.3;
     }
-    
+
     .cover-image-placeholder {
       width: 100%;
       max-width: 10cm;
@@ -204,14 +203,14 @@
       flex: 1;
       flex-shrink: 0;
     }
-    
+
     .cover-image-placeholder img {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
       display: block;
     }
-    
+
     .cover-image-placeholder .placeholder-text {
       color: #9CA3AF;
       font-size: 9pt;
@@ -219,14 +218,14 @@
       text-align: center;
       font-style: italic;
     }
-    
+
     .cover-image-placeholder .placeholder-icon {
       width: 64px;
       height: 64px;
       margin-bottom: 0.5cm;
       opacity: 0.5;
     }
-    
+
     .submission-details {
       width: 100%;
       max-width: 16cm;
@@ -234,7 +233,7 @@
       font-size: 10pt;
       flex-shrink: 0;
     }
-    
+
     .submission-row {
       display: flex;
       border-top: 2px solid #1F2937;
@@ -243,7 +242,7 @@
       margin-bottom: 0.4cm;
       align-items: flex-start;
     }
-    
+
     .submission-label {
       font-weight: bold;
       width: 3.5cm;
@@ -252,7 +251,7 @@
       color: #1F2937;
       line-height: 1.4;
     }
-    
+
     .submission-value {
       flex: 1;
       font-size: 10pt;
@@ -260,18 +259,18 @@
       min-height: 1cm;
       line-height: 1.5;
     }
-    
+
     .submission-row-simple {
       display: flex;
       padding: 0.4cm 0;
       border-bottom: 2px solid #1F2937;
       align-items: flex-start;
     }
-    
+
     .submission-row-simple:last-child {
       border-bottom: none;
     }
-    
+
     .submission-row-simple .submission-label {
       font-weight: bold;
       width: 3.5cm;
@@ -280,14 +279,14 @@
       color: #1F2937;
       line-height: 1.4;
     }
-    
+
     .submission-row-simple .submission-content {
       flex: 1;
       font-size: 10pt;
       color: #1F2937;
       line-height: 1.5;
     }
-    
+
     /* Table of Contents */
     .toc-section {
       display: flex;
@@ -297,18 +296,18 @@
       border-bottom: 1px dotted #9CA3AF;
       font-family: 'Times New Roman', serif;
     }
-    
+
     .toc-title {
       flex: 1;
       color: #1F2937;
     }
-    
+
     .toc-page-number {
       width: 2cm;
       text-align: right;
       color: #1F2937;
     }
-    
+
     /* Section Headers - Matching preview */
     .section-header {
       font-size: 20pt;
@@ -320,7 +319,7 @@
       text-align: center;
       font-family: 'Times New Roman', serif;
     }
-    
+
     /* Section Title Box (like CONTENTS, EXECUTIVE SUMMARY) */
     .section-title-box {
       margin-bottom: 0.8cm;
@@ -332,16 +331,14 @@
       margin-right: 0;
       padding: 0;
     }
-    
+
     .section-title-box-inner {
       background-color: #F3F4F6 !important;
-      background-image: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 10px,
-        rgba(0, 0, 0, 0.02) 10px,
-        rgba(0, 0, 0, 0.02) 20px
-      ) !important;
+      background-image: repeating-linear-gradient(45deg,
+          transparent,
+          transparent 10px,
+          rgba(0, 0, 0, 0.02) 10px,
+          rgba(0, 0, 0, 0.02) 20px) !important;
       border: 1px solid #D1D5DB !important;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
       border-radius: 8px;
@@ -352,7 +349,7 @@
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-    
+
     .section-title-box-inner h2 {
       font-size: 18pt;
       font-weight: bold;
@@ -364,7 +361,7 @@
       text-align: center;
       width: 100%;
     }
-    
+
     /* Content Styles */
     .content {
       font-size: 11pt;
@@ -375,7 +372,7 @@
       color: #1F2937;
       font-family: 'Times New Roman', serif;
     }
-    
+
     .content p {
       margin-bottom: 0.5cm;
       margin-top: 0;
@@ -384,17 +381,17 @@
       line-height: 1.8;
       text-align: justify;
     }
-    
+
     .content strong {
       font-weight: bold;
       color: #1F2937;
     }
-    
+
     .content em {
       font-style: italic;
       color: #1F2937;
     }
-    
+
     .content h3 {
       font-size: 14pt;
       font-weight: bold;
@@ -405,7 +402,7 @@
       color: #1F2937;
       font-family: 'Times New Roman', serif;
     }
-    
+
     .content h4 {
       font-size: 12pt;
       font-weight: bold;
@@ -416,7 +413,7 @@
       color: #1F2937;
       font-family: 'Times New Roman', serif;
     }
-    
+
     .content ul {
       list-style-type: disc;
       padding-left: 1.5cm;
@@ -424,7 +421,7 @@
       margin-top: 0.3cm;
       color: #1F2937;
     }
-    
+
     .content ol {
       list-style-type: decimal;
       padding-left: 1.5cm;
@@ -437,7 +434,7 @@
       overflow-wrap: break-word;
       word-wrap: break-word;
     }
-    
+
     .content ol {
       list-style-type: decimal;
       padding-left: 1.5cm;
@@ -452,7 +449,7 @@
       overflow-wrap: break-word;
       word-wrap: break-word;
     }
-    
+
     .content li {
       margin-bottom: 0.3cm;
       margin-top: 0;
@@ -460,12 +457,12 @@
       line-height: 1.8;
       text-align: left;
     }
-    
+
     .content table {
       margin-top: 0.5cm;
       margin-bottom: 0.5cm;
     }
-    
+
     /* Tables - Matching preview styling */
     table {
       width: 100%;
@@ -478,7 +475,7 @@
       border: 1px solid #1F2937 !important;
       font-family: 'Times New Roman', serif;
     }
-    
+
     table th {
       background-color: #E5E7EB !important;
       border: 1px solid #1F2937 !important;
@@ -492,7 +489,7 @@
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-    
+
     table td {
       border: 1px solid #1F2937 !important;
       padding: 0.3cm;
@@ -501,28 +498,28 @@
       font-family: 'Times New Roman', serif;
       line-height: 1.6;
     }
-    
+
     table tr:nth-child(even) {
       background-color: #F9FAFB !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-    
+
     table tr:nth-child(odd) {
       background-color: #FFFFFF !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-    
+
     table tr:first-child {
       background-color: #E5E7EB !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-    
+
     /* Table of Contents specific styling */
     .toc-table {
       width: 100%;
@@ -531,7 +528,7 @@
       font-size: 11pt;
       border: 1px solid #1F2937 !important;
     }
-    
+
     .toc-table th {
       background-color: #E5E7EB !important;
       border: 1px solid #1F2937 !important;
@@ -545,7 +542,7 @@
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-    
+
     .toc-table td {
       border: 1px solid #1F2937 !important;
       padding: 0.3cm;
@@ -553,77 +550,78 @@
       line-height: 1.5;
       vertical-align: middle;
     }
-    
+
     .toc-table tr:nth-child(even) {
       background-color: #F9FAFB !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-    
+
     .toc-table tr:nth-child(odd) {
       background-color: #FFFFFF !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-    
+
     /* Additional styling improvements */
     .content br {
       line-height: 1.8;
     }
-    
+
     .content * {
       max-width: 100%;
     }
-    
+
     /* Fix for nested lists */
     .content ul ul,
     .content ol ol {
       margin-top: 0.2cm;
       margin-bottom: 0.2cm;
     }
-    
+
     /* Better spacing for paragraphs */
-    .content p + p {
+    .content p+p {
       margin-top: 0.3cm;
     }
-    
+
     /* Fix table cell text wrapping */
     table td,
     table th {
       word-wrap: break-word;
       overflow-wrap: break-word;
     }
-    
+
     /* Ensure proper text rendering */
     .content {
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
-    
+
     /* Print styles */
     @media print {
       body {
         margin: 0;
         padding: 0;
       }
-      
+
       .page {
         margin: 0 auto;
         padding: 2cm;
       }
-      
+
       .page {
         break-after: page;
       }
-      
+
       .page:last-child {
         break-after: auto;
       }
     }
   </style>
 </head>
+
 <body>
   <!-- Cover Page -->
   <div class="page cover-page">
@@ -635,12 +633,12 @@
         <div class="cluster-name">{{CLUSTER_NAME}}</div>
         <p class="programme">under 'Micro Cluster Development Programme'</p>
       </div>
-      
+
       <div class="cover-image-placeholder">
         {{COVER_IMAGE}}
         <div class="placeholder-text" id="cover-image-placeholder-text">No image</div>
       </div>
-      
+
       <div class="submission-details">
         <div class="submission-row">
           <div class="submission-label">Submitted to:</div>
@@ -660,7 +658,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Table of Contents -->
   <div class="page toc-page">
     <div class="page-content">
@@ -674,7 +672,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Executive Summary -->
   <div class="page">
     <div class="page-content">
@@ -688,7 +686,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Project Snapshot -->
   <div class="page">
     <div class="page-content">
@@ -702,7 +700,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Introduction -->
   <div class="page">
     <div class="page-content">
@@ -716,7 +714,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- District Profile -->
   <div class="page">
     <div class="page-content">
@@ -730,7 +728,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Cluster Profile -->
   <div class="page">
     <div class="page-content">
@@ -741,34 +739,39 @@
       </div>
       <div class="content">
         {{CLUSTER_PROFILE}}
-        
+
         <!-- Cluster Photos Section -->
         <div style="margin-top: 1cm;">
-          <h4 style="margin-top: 0.5cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937; font-size: 12pt; display: flex; align-items: center;">
+          <h4
+            style="margin-top: 0.5cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937; font-size: 12pt; display: flex; align-items: center;">
             <span style="margin-right: 0.3cm; font-size: 14pt;">📷</span>
             Cluster Photos
           </h4>
           <div style="display: flex; gap: 1cm; margin-top: 0.5cm;">
             <!-- Sample Cluster Unit Image -->
-            <div style="flex: 1; border: 2px dashed #9CA3AF; border-radius: 4px; padding: 0.8cm; text-align: center; background-color: #F9FAFB; min-height: 4cm; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;">
+            <div
+              style="flex: 1; border: 2px dashed #9CA3AF; border-radius: 4px; padding: 0.8cm; text-align: center; background-color: #F9FAFB; min-height: 4cm; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;">
               <div id="cluster-unit-image-container">
                 {{CLUSTER_UNIT_IMAGE}}
               </div>
-              <div style="margin-top: 0.5cm; color: #9CA3AF; font-size: 10pt; font-weight: 500;">Sample cluster unit</div>
+              <div style="margin-top: 0.5cm; color: #9CA3AF; font-size: 10pt; font-weight: 500;">Sample cluster unit
+              </div>
             </div>
             <!-- Production Process Image -->
-            <div style="flex: 1; border: 2px dashed #9CA3AF; border-radius: 4px; padding: 0.8cm; text-align: center; background-color: #F9FAFB; min-height: 4cm; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;">
+            <div
+              style="flex: 1; border: 2px dashed #9CA3AF; border-radius: 4px; padding: 0.8cm; text-align: center; background-color: #F9FAFB; min-height: 4cm; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;">
               <div id="production-process-image-container">
                 {{PRODUCTION_PROCESS_IMAGE}}
               </div>
-              <div style="margin-top: 0.5cm; color: #9CA3AF; font-size: 10pt; font-weight: 500;">Production process</div>
+              <div style="margin-top: 0.5cm; color: #9CA3AF; font-size: 10pt; font-weight: 500;">Production process
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-  
+
   <!-- Value Chain -->
   <div class="page">
     <div class="page-content">
@@ -779,23 +782,25 @@
       </div>
       <div class="content">
         {{VALUE_CHAIN}}
-        
+
         <!-- Value Chain Flow Diagram Section -->
         <div style="margin-top: 1cm;">
           <h4 style="margin-top: 0.5cm; margin-bottom: 0.5cm; font-weight: bold; color: #1F2937; font-size: 12pt;">
             Value Chain Flow Diagram
           </h4>
-          <div style="border: 2px dashed #3B82F6; border-radius: 4px; padding: 1cm; text-align: center; background-color: #F9FAFB; min-height: 5cm; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;">
+          <div
+            style="border: 2px dashed #3B82F6; border-radius: 4px; padding: 1cm; text-align: center; background-color: #F9FAFB; min-height: 5cm; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;">
             <div id="value-chain-diagram-container">
               {{VALUE_CHAIN_DIAGRAM}}
             </div>
-            <div style="margin-top: 0.5cm; color: #6B7280; font-size: 10pt; font-style: italic;">Value chain flow from raw material to end customer</div>
+            <div style="margin-top: 0.5cm; color: #6B7280; font-size: 10pt; font-style: italic;">Value chain flow from
+              raw material to end customer</div>
           </div>
         </div>
       </div>
     </div>
   </div>
-  
+
   <!-- Market Aspects -->
   <div class="page">
     <div class="page-content">
@@ -809,7 +814,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- SWOT Analysis -->
   <div class="page">
     <div class="page-content">
@@ -823,7 +828,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Gap Analysis -->
   <div class="page">
     <div class="page-content">
@@ -837,7 +842,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- CFC Details -->
   <div class="page">
     <div class="page-content">
@@ -851,7 +856,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- SPV Details -->
   <div class="page">
     <div class="page-content">
@@ -865,7 +870,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Project Cost -->
   <div class="page">
     <div class="page-content">
@@ -879,7 +884,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Operating Cost & Revenue -->
   <div class="page">
     <div class="page-content">
@@ -893,7 +898,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Financial Viability -->
   <div class="page">
     <div class="page-content">
@@ -907,7 +912,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Implementation Schedule -->
   <div class="page">
     <div class="page-content">
@@ -921,7 +926,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Expected Impact -->
   <div class="page">
     <div class="page-content">
@@ -935,7 +940,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Financial Statements -->
   <div class="page">
     <div class="page-content">
@@ -949,7 +954,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Conclusion -->
   <div class="page">
     <div class="page-content">
@@ -963,7 +968,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Annexures -->
   <div class="page">
     <div class="page-content">
@@ -978,4 +983,5 @@
     </div>
   </div>
 </body>
+
 </html>

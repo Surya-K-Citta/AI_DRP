@@ -4182,7 +4182,64 @@ export class DPRService {
             waitUntil: ['load', 'networkidle0'],
             timeout: 90000,
           });
-          // Give layout a moment
+          // Give layout a moment to render
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          
+          // Inject additional CSS to ensure proper page breaks and borders on ALL pages
+          await page.addStyleTag({
+            content: `
+              @page {
+                size: A4;
+                margin: 0;
+              }
+              /* Ensure all page containers match preview measurements EXACTLY */
+              div.page-break,
+              div[class*="page-break"],
+              div[style*="pageBreakAfter"],
+              div[style*="21cm"],
+              div[style*="minHeight: '29.7cm'"],
+              div[style*="min-height: 29.7cm"] {
+                width: 21cm !important;
+                min-height: 29.7cm !important;
+                padding: 2cm !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+                margin-top: 0 !important;
+                margin-bottom: 0 !important;
+                border: 8px solid #2563EB !important;
+                border-style: double !important;
+                box-sizing: border-box !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: visible !important;
+                position: relative !important;
+              }
+              /* Ensure inner content containers match preview */
+              div[style*="minHeight: '29.7cm'"] > div[class*="relative z-10"],
+              div[style*="min-height: 29.7cm"] > div[class*="relative z-10"],
+              div.page-break > div[class*="relative z-10"] {
+                width: 100% !important;
+                min-height: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+                display: flex !important;
+                flex-direction: column !important;
+                box-sizing: border-box !important;
+              }
+              /* Ensure decorative inner borders match preview */
+              div[style*="border: '2px solid #3B82F6'"],
+              div[style*="border: 2px solid #3B82F6"] {
+                border: 2px solid #3B82F6 !important;
+                margin: 8px !important;
+              }
+              /* Prevent empty pages */
+              div:empty {
+                display: none !important;
+              }
+            `
+          });
+          
+          // Wait a bit more for styles to apply
           await new Promise((resolve) => setTimeout(resolve, 500));
         } catch (contentError: any) {
           console.warn('⚠️  networkidle0 failed, trying domcontentloaded:', contentError.message);
@@ -4190,7 +4247,7 @@ export class DPRService {
             waitUntil: 'domcontentloaded',
             timeout: 90000,
           });
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         }
 
         // Ensure fonts are ready (may no-op if JS is disabled / fonts API unsupported)
@@ -4209,6 +4266,8 @@ export class DPRService {
           preferCSSPageSize: true,
           timeout: 120000,
           scale: 1.0,
+          // Ensure page breaks are respected
+          pageRanges: '',
         });
 
         const buffer = Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer);

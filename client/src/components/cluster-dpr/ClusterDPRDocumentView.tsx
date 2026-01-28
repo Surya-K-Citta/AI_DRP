@@ -101,7 +101,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     }
   }, [enhancedContent]);
 
-  // Helper to render A4 page wrapper (21 x 29.7 cm)
+  // Helper to render A4 page wrapper (21 x 29.7 cm) - matching PDF template exactly
   const renderPageWrapper = (children: React.ReactNode, additionalStyles?: React.CSSProperties) => {
     return (
       <div 
@@ -113,31 +113,37 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           maxHeight: 'none',
           padding: '2cm',
           margin: '0 auto',
-          marginBottom: '1cm',
+          marginBottom: '0', // Match PDF: no margin between pages for print
           pageBreakAfter: 'always',
           pageBreakInside: 'avoid',
           fontFamily: 'Times New Roman, serif',
-          border: '8px solid #2563EB',
-          borderStyle: 'double',
+          border: '8px double #2563EB', // Match PDF: double border style
           position: 'relative',
           overflow: 'visible',
           boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
+          background: 'white', // Match PDF: white background
+          WebkitPrintColorAdjust: 'exact',
+          printColorAdjust: 'exact',
           ...additionalStyles
         }}
       >
-        {/* Decorative border effect */}
+        {/* Decorative inner border effect - matching PDF ::before pseudo-element */}
         <div 
-          className="absolute inset-0 pointer-events-none"
+          className="absolute pointer-events-none"
           style={{
+            top: '8px',
+            left: '8px',
+            right: '8px',
+            bottom: '8px',
             border: '2px solid #3B82F6',
-            margin: '8px',
-            borderRadius: '4px'
+            borderRadius: '4px',
+            zIndex: 1
           }}
         />
         <div 
-          className="relative z-10" 
+          className="relative" 
           style={{ 
             width: '100%',
             minHeight: '100%',
@@ -145,7 +151,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             overflow: 'visible',
             display: 'flex',
             flexDirection: 'column',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
+            zIndex: 10
           }}
         >
           {children}
