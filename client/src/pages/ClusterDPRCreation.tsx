@@ -112,18 +112,34 @@ export const ClusterDPRCreation: React.FC = () => {
         return;
       }
 
-      // Get enhanced content from localStorage (user-enhanced content from preview)
+      // Get enhanced content from database if DPR already exists
+      // Otherwise, enhanced content will be empty and backend will generate it
       let enhancedContent: Record<string, string> = {};
+      
+      // Try to find existing DPR for this project to get enhanced content
       try {
-        const clusterName = data.step1?.clusterName || '';
-        const storageKey = `cluster-dpr-enhanced-${clusterName.replace(/[^a-zA-Z0-9]/g, '-')}`;
-        const saved = localStorage.getItem(storageKey);
-        if (saved) {
-          enhancedContent = JSON.parse(saved);
-          console.log('📥 Loaded enhanced content from localStorage:', Object.keys(enhancedContent).length, 'sections');
+        // First, try to find existing project
+        const existingProjects = await api.getProjects({ 
+          projectName: data.step1?.clusterName,
+          projectType: 'cluster'
+        });
+        
+        if (existingProjects.data && existingProjects.data.length > 0) {
+          const project = existingProjects.data[0];
+          // Try to get existing DPRs for this project
+          const projectDPRs = await api.getProjectDPRs(project._id || project.id);
+          
+          if (projectDPRs.data && projectDPRs.data.length > 0) {
+            // Get the most recent DPR
+            const latestDPR = projectDPRs.data[0];
+            const dprContent = latestDPR.content?.english || latestDPR.content?.telugu || {};
+            enhancedContent = dprContent.enhancedContent || {};
+            console.log('📥 Loaded enhanced content from database:', Object.keys(enhancedContent).length, 'sections');
+          }
         }
       } catch (error) {
-        console.error('Error loading enhanced content:', error);
+        console.error('Error loading enhanced content from database:', error);
+        // Continue without enhanced content - backend will generate it
       }
 
       // Prepare complete data - ensure all step data is included

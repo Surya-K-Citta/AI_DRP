@@ -245,18 +245,14 @@ export const DPRPreview: React.FC = () => {
 
   const handleDownload = async (format: 'pdf' | 'docx' | 'xls') => {
     try {
-      // Get enhanced paragraphs from localStorage for cluster DPRs
+      // Get enhanced paragraphs from database (DPR content) for cluster DPRs
       let enhancedParagraphs: Record<string, string> | undefined;
-      if (isClusterDPR && dprId) {
-        try {
-          const storageKey = `cluster-dpr-enhanced-${dprId}-${viewLanguage}`;
-          const saved = localStorage.getItem(storageKey);
-          if (saved) {
-            enhancedParagraphs = JSON.parse(saved);
-            console.log('📥 Loaded enhanced paragraphs from localStorage for download:', Object.keys(enhancedParagraphs || {}).length, 'sections');
-          }
-        } catch (error) {
-          console.warn('Could not load enhanced paragraphs from localStorage:', error);
+      if (isClusterDPR && dpr) {
+        // Get enhanced content from DPR content (from database)
+        const dprContent = dpr.content?.[viewLanguage] || dpr.content?.english || dpr.content?.telugu || {};
+        enhancedParagraphs = dprContent.enhancedContent || {};
+        if (Object.keys(enhancedParagraphs).length > 0) {
+          console.log('📥 Loaded enhanced paragraphs from database for download:', Object.keys(enhancedParagraphs).length, 'sections');
         }
       }
 

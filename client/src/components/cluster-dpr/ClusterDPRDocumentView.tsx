@@ -47,33 +47,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   const [generatingImages, setGeneratingImages] = useState<Record<string, boolean>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  // Enhanced content state management with localStorage persistence
-  const getStorageKey = () => {
-    const dprId = dpr?._id || dpr?.id || 'default';
-    return `cluster-dpr-enhanced-${dprId}-${viewLanguage}`;
-  };
-
+  // Enhanced content state management (database only)
   const [enhancedContent, setEnhancedContent] = useState<Record<string, string>>(() => {
-    // First try to load from DPR content (from backend)
+    // Load only from DPR content (from backend/database)
     const dprEnhancedContent = content.enhancedContent || dpr.content?.english?.enhancedContent || dpr.content?.telugu?.enhancedContent || {};
-    
-    // Then try localStorage as fallback
-    try {
-      const storageKey = getStorageKey();
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        console.log('📥 Loaded enhanced content from localStorage:', parsed);
-        // Merge DPR content with localStorage (localStorage takes precedence for user edits)
-        return { ...dprEnhancedContent, ...parsed };
-      }
-    } catch (error) {
-      console.error('Error loading enhanced content from localStorage:', error);
-    }
     
     // Return DPR content if available, otherwise empty object
     if (Object.keys(dprEnhancedContent).length > 0) {
-      console.log('📥 Loaded enhanced content from DPR:', Object.keys(dprEnhancedContent).length, 'sections');
+      console.log('📥 Loaded enhanced content from database:', Object.keys(dprEnhancedContent).length, 'sections');
       return dprEnhancedContent;
     }
     
@@ -81,69 +62,38 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   });
   const [enhancingSections, setEnhancingSections] = useState<Record<string, boolean>>({});
 
-  // Reload enhanced content when DPR ID or language changes
+  // Reload enhanced content when DPR ID or language changes (from database only)
   useEffect(() => {
-    // First try to load from DPR content (from backend)
+    // Load only from DPR content (from backend/database)
     const dprEnhancedContent = content.enhancedContent || dpr.content?.english?.enhancedContent || dpr.content?.telugu?.enhancedContent || {};
     
-    // Then try localStorage as fallback
-    try {
-      const storageKey = getStorageKey();
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        console.log('📥 Reloaded enhanced content from localStorage:', parsed);
-        // Merge DPR content with localStorage (localStorage takes precedence for user edits)
-        setEnhancedContent({ ...dprEnhancedContent, ...parsed });
-      } else {
-        // Use DPR content if available
-        if (Object.keys(dprEnhancedContent).length > 0) {
-          console.log('📥 Reloaded enhanced content from DPR:', Object.keys(dprEnhancedContent).length, 'sections');
-          setEnhancedContent(dprEnhancedContent);
-        } else {
-          setEnhancedContent({});
-        }
-      }
-    } catch (error) {
-      console.error('Error loading enhanced content from localStorage:', error);
-      // Fallback to DPR content
-      if (Object.keys(dprEnhancedContent).length > 0) {
-        setEnhancedContent(dprEnhancedContent);
-      } else {
-        setEnhancedContent({});
-      }
+    if (Object.keys(dprEnhancedContent).length > 0) {
+      console.log('📥 Reloaded enhanced content from database:', Object.keys(dprEnhancedContent).length, 'sections');
+      setEnhancedContent(dprEnhancedContent);
+    } else {
+      setEnhancedContent({});
     }
   }, [dpr?._id || dpr?.id, viewLanguage, content]);
 
-  // Save to localStorage and database whenever enhancedContent changes
+  // Save to database whenever enhancedContent changes (removed localStorage dependency)
   useEffect(() => {
-    try {
-      const storageKey = getStorageKey();
-      if (Object.keys(enhancedContent).length > 0) {
-        // Save to localStorage
-        localStorage.setItem(storageKey, JSON.stringify(enhancedContent));
-        console.log('💾 Saved enhanced content to localStorage:', Object.keys(enhancedContent).length, 'sections');
-        
-        // Save to database if we have a DPR ID
-        const dprId = dpr?._id || dpr?.id;
-        if (dprId) {
-          // Debounce database saves (save after 2 seconds of no changes)
-          const timeoutId = setTimeout(async () => {
-            try {
-              await api.saveClusterDPREnhancedContent(dprId, enhancedContent, viewLanguage);
-              console.log('💾 Saved enhanced content to database:', Object.keys(enhancedContent).length, 'sections');
-            } catch (error) {
-              console.error('Error saving enhanced content to database:', error);
-              // Don't show error toast for background saves
-            }
-          }, 2000);
-          
-          return () => clearTimeout(timeoutId);
-        }
-      }
-    } catch (error) {
-      console.error('Error saving enhanced content:', error);
+    const dprId = dpr?._id || dpr?.id;
+    if (!dprId || Object.keys(enhancedContent).length === 0) {
+      return;
     }
+
+    // Debounce database saves (save after 1 second of no changes)
+    const timeoutId = setTimeout(async () => {
+      try {
+        await api.saveClusterDPREnhancedContent(dprId, enhancedContent, viewLanguage);
+        console.log('💾 Saved enhanced content to database:', Object.keys(enhancedContent).length, 'sections');
+      } catch (error) {
+        console.error('Error saving enhanced content to database:', error);
+        // Don't show error toast for background saves
+      }
+    }, 1000);
+    
+    return () => clearTimeout(timeoutId);
   }, [enhancedContent, dpr?._id || dpr?.id, viewLanguage]);
 
   // Helper to render A4 page wrapper (21 x 29.7 cm)
@@ -427,33 +377,36 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       const result = await api.enhanceClusterDPRSection(sectionName, sectionData, clusterData);
       if (result.success && result.data?.enhancedParagraph) {
         console.log(`✨ Enhanced section ${sectionName}:`, result.data.enhancedParagraph.substring(0, 100) + '...');
-        setEnhancedContent((prev) => {
-          const updated = {
-            ...prev,
-            [sectionName]: result.data.enhancedParagraph,
-          };
-          // Save to localStorage immediately
+        
+        // Update state first
+        const updated = {
+          ...enhancedContent,
+          [sectionName]: result.data.enhancedParagraph,
+        };
+        setEnhancedContent(updated);
+        
+        // Save directly to database immediately (wait for completion)
+        const dprId = dpr?._id || dpr?.id;
+        if (dprId) {
           try {
-            const storageKey = getStorageKey();
-            localStorage.setItem(storageKey, JSON.stringify(updated));
-            console.log(`💾 Saved enhanced content for ${sectionName} to localStorage. Total keys:`, Object.keys(updated).length);
+            await api.saveClusterDPREnhancedContent(dprId, updated, viewLanguage);
+            console.log(`💾 Saved enhanced content for ${sectionName} to database. Total keys:`, Object.keys(updated).length);
           } catch (error) {
-            console.error('Error saving to localStorage:', error);
+            console.error('Error saving enhanced content to database:', error);
+            if (!silent) {
+              toast.error('Failed to save to database. Please try again.');
+            }
+            throw error;
           }
-          
-          // Also save to database if we have a DPR ID
-          const dprId = dpr?._id || dpr?.id;
-          if (dprId) {
-            // Save to database asynchronously (don't wait)
-            api.saveClusterDPREnhancedContent(dprId, updated, viewLanguage).catch((error) => {
-              console.error('Error saving enhanced content to database:', error);
-            });
+        } else {
+          console.warn('⚠️ No DPR ID found, cannot save enhanced content to database');
+          if (!silent) {
+            toast.error('DPR not found. Please generate DPR first.');
           }
-          
-          return updated;
-        });
+        }
+        
         if (!silent) {
-          toast.success('Section enhanced successfully!');
+          toast.success('Section enhanced and saved successfully!');
         }
       } else {
         if (!silent) {
@@ -2827,14 +2780,30 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
 
               const totalSections = validSections.length;
               let enhancedCount = 0;
+              const dprId = dpr?._id || dpr?.id;
               
               toast.loading(`Enhancing sections: 0/${totalSections}`, { id: 'enhance-all', duration: Infinity });
               
               try {
+                // Track enhanced content as we go
+                let currentEnhancedContent = { ...enhancedContent };
+                
                 // Enhance all sections sequentially to show progress
                 for (const section of validSections) {
                   try {
-                    await handleEnhanceSection(section.name, section.data, true); // Silent mode
+                    // handleEnhanceSection already saves to database, but we need to track the content
+                    const result = await api.enhanceClusterDPRSection(section.name, section.data, clusterData);
+                    if (result.success && result.data?.enhancedParagraph) {
+                      // Update state
+                      currentEnhancedContent[section.name] = result.data.enhancedParagraph;
+                      setEnhancedContent({ ...currentEnhancedContent });
+                      
+                      // Save directly to database immediately
+                      if (dprId) {
+                        await api.saveClusterDPREnhancedContent(dprId, currentEnhancedContent, viewLanguage);
+                        console.log(`💾 Saved enhanced content for ${section.name} to database`);
+                      }
+                    }
                     enhancedCount++;
                     toast.loading(`Enhancing sections: ${enhancedCount}/${totalSections}`, { id: 'enhance-all', duration: Infinity });
                   } catch (error: any) {
@@ -2842,7 +2811,18 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                     // Continue with next section even if one fails
                   }
                 }
-                toast.success(`Successfully enhanced ${enhancedCount}/${totalSections} sections!`, { id: 'enhance-all' });
+                
+                // Final save to ensure all enhanced content is in database
+                if (dprId && Object.keys(currentEnhancedContent).length > 0) {
+                  try {
+                    await api.saveClusterDPREnhancedContent(dprId, currentEnhancedContent, viewLanguage);
+                    console.log('💾 Final save: Saved all enhanced content to database');
+                  } catch (error) {
+                    console.error('Error in final save of enhanced content to database:', error);
+                  }
+                }
+                
+                toast.success(`Successfully enhanced ${enhancedCount}/${totalSections} sections and saved to database!`, { id: 'enhance-all' });
               } catch (error: any) {
                 toast.error(`Enhanced ${enhancedCount}/${totalSections} sections. Some failed.`, { id: 'enhance-all' });
               }
