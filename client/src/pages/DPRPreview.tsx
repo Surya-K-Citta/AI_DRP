@@ -26,6 +26,7 @@ import {
 import { downloadBlob } from '@/lib/utils';
 import { FormattedText } from '@/utils/textFormatter';
 import { ClusterDPRDocumentView } from '@/components/cluster-dpr/ClusterDPRDocumentView';
+import { captureElementAsStandaloneHTML } from '@/lib/htmlCapture';
 
 export const DPRPreview: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -257,8 +258,19 @@ export const DPRPreview: React.FC = () => {
 
       let blob;
       if (format === 'pdf') {
-        blob = await api.downloadPDF(dprId!, viewLanguage, enhancedParagraphs);
-        downloadBlob(blob, `DPR_${project?.projectName || 'Report'}_${viewLanguage}.pdf`);
+        // For Cluster DPRs: generate PDF from the actual rendered DOM + CSS so download matches preview 1:1
+        if (isClusterDPR) {
+          const root = document.querySelector('.dpr-document');
+          if (!root) {
+            throw new Error('Preview root not found');
+          }
+          const html = captureElementAsStandaloneHTML(root);
+          blob = await api.downloadPDFExactFromHTML(dprId!, html, viewLanguage);
+          downloadBlob(blob, `DPR_${project?.projectName || 'Report'}_${viewLanguage}.pdf`);
+        } else {
+          blob = await api.downloadPDF(dprId!, viewLanguage, enhancedParagraphs);
+          downloadBlob(blob, `DPR_${project?.projectName || 'Report'}_${viewLanguage}.pdf`);
+        }
       } else if (format === 'docx') {
         blob = await api.downloadDOCX(dprId!, viewLanguage);
         downloadBlob(blob, `DPR_${project?.projectName || 'Report'}_${viewLanguage}.docx`);

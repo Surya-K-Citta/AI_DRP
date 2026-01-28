@@ -402,6 +402,22 @@ class APIClient {
     }
   }
 
+  /**
+   * Download PDF generated from client-rendered HTML (exact match with preview).
+   * Primarily used for Cluster DPRs rendered by `ClusterDPRDocumentView`.
+   */
+  async downloadPDFExactFromHTML(dprId: string, html: string, language: string = 'english') {
+    const response = await this.client.post(
+      `/dpr/${dprId}/download/pdf/html`,
+      { html },
+      {
+        params: { language },
+        responseType: 'blob',
+      }
+    );
+    return response.data;
+  }
+
   async downloadDOCX(dprId: string, language: string = 'english') {
     const response = await this.client.get(`/dpr/${dprId}/download/docx`, {
       params: { language },

@@ -1582,11 +1582,11 @@ export class DPRService {
     }
     
     // Proposed Intervention
-    if (contentLang.proposedIntervention || sections.proposedIntervention || s9.interventionType) {
-      tocSections.push({ chapter: '7.', title: 'Proposed Intervention', page: String(pageNum++) });
-    }
+    // if (contentLang.proposedIntervention || sections.proposedIntervention || s9.interventionType) {
+    //   tocSections.push({ chapter: '7.', title: 'Proposed Intervention', page: String(pageNum++) });
+    // }
     
-    // CFC Details - Section 7
+    // CFC Details - Section 7.5
     if (contentLang.cfcDetails || sections.cfcDetails || s10.name) {
       tocSections.push({ chapter: '7.', title: 'CFC - Operation & Management', page: String(pageNum++) });
     }
@@ -1603,22 +1603,22 @@ export class DPRService {
     
     // Operating Cost & Revenue
     if (contentLang.operatingCostRevenue || sections.operatingCostRevenue || s14.rawMaterialCost) {
-      tocSections.push({ chapter: '10.5', title: 'Operating Cost & Revenue', page: String(pageNum++) });
+      tocSections.push({ chapter: '9.5', title: 'Operating Cost & Revenue', page: String(pageNum++) });
     }
     
     // Financial Viability
     if (contentLang.financialProjections || sections.financialViability || s15.irr || s15.npv) {
-      tocSections.push({ chapter: '11.', title: 'Financial Viability', page: String(pageNum++) });
+      tocSections.push({ chapter: '10.', title: 'Financial Viability', page: String(pageNum++) });
     }
     
     // Implementation Schedule
     if (contentLang.implementationSchedule || sections.implementationSchedule || s16.startDate) {
-      tocSections.push({ chapter: '11.5', title: 'Project Implementation Schedule', page: String(pageNum++) });
+      tocSections.push({ chapter: '10.5', title: 'Project Implementation Schedule', page: String(pageNum++) });
     }
     
     // Expected Impact
     if (contentLang.conclusion || sections.expectedImpact || s17.employmentGeneration) {
-      tocSections.push({ chapter: '12.', title: 'Expected Impact', page: String(pageNum++) });
+      tocSections.push({ chapter: '11.', title: 'Expected Impact', page: String(pageNum++) });
     }
     
     // Financial Statements
@@ -1914,14 +1914,13 @@ export class DPRService {
       '{{MARKET_ASPECTS}}': '4. MARKET ASPECTS',
       '{{SWOT_ANALYSIS}}': '5. SWOT ANALYSIS',
       '{{GAP_ANALYSIS}}': '6. NEED GAP ANALYSIS',
-      '{{PROPOSED_INTERVENTION}}': '7. PROPOSED INTERVENTION',
       '{{CFC_DETAILS}}': '7. CFC - OPERATION & MANAGEMENT',
       '{{SPV_DETAILS}}': '8. SPV MEMBER UNITS',
       '{{PROJECT_COST}}': '9. PROJECT COST & MEANS OF FINANCE',
-      '{{OPERATING_COST_REVENUE}}': '10.5 OPERATING COST & REVENUE',
-      '{{FINANCIAL_VIABILITY}}': '11. FINANCIAL VIABILITY',
-      '{{IMPLEMENTATION_SCHEDULE}}': '11.5 PROJECT IMPLEMENTATION SCHEDULE',
-      '{{EXPECTED_IMPACT}}': '12. EXPECTED IMPACT',
+      '{{OPERATING_COST_REVENUE}}': '9.5 OPERATING COST & REVENUE',
+      '{{FINANCIAL_VIABILITY}}': '10. FINANCIAL VIABILITY',
+      '{{IMPLEMENTATION_SCHEDULE}}': '10.5 PROJECT IMPLEMENTATION SCHEDULE',
+      '{{EXPECTED_IMPACT}}': '11. EXPECTED IMPACT',
       '{{CONCLUSION}}': 'CONCLUSION'
     };
     
@@ -2575,6 +2574,45 @@ export class DPRService {
             }
           });
           
+          // Add Enterprise Distribution Chart if available
+          if (s1.enterpriseCount && (s1.enterpriseCount.micro || s1.enterpriseCount.small || s1.enterpriseCount.medium)) {
+            const enterpriseData = [
+              { name: 'Micro', value: s1.enterpriseCount.micro || 0 },
+              { name: 'Small', value: s1.enterpriseCount.small || 0 },
+              { name: 'Medium', value: s1.enterpriseCount.medium || 0 }
+            ].filter(item => item.value > 0);
+            
+            if (enterpriseData.length > 0) {
+              const maxValue = Math.max(...enterpriseData.map(d => d.value));
+              const chartWidth = 400;
+              const chartHeight = 250;
+              const barWidth = 60;
+              const barSpacing = 80;
+              const chartStartX = 50;
+              const chartStartY = chartHeight - 30;
+              const maxBarHeight = chartHeight - 80;
+              
+              clusterSubsections += '<div style="margin: 0.5cm 0; text-align: center;">';
+              clusterSubsections += '<h4 style="margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 11pt;">Enterprise Distribution</h4>';
+              clusterSubsections += `<svg width="${chartWidth}" height="${chartHeight}" style="display: block; margin: 0 auto;">`;
+              
+              // Draw bars
+              enterpriseData.forEach((item, idx) => {
+                const barHeight = (item.value / maxValue) * maxBarHeight;
+                const x = chartStartX + (idx * barSpacing);
+                const y = chartStartY - barHeight;
+                const color = ['#0088FE', '#00C49F', '#FFBB28'][idx % 3];
+                
+                clusterSubsections += `<rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" fill="${color}" stroke="#FFFFFF" stroke-width="2"/>`;
+                clusterSubsections += `<text x="${x + barWidth / 2}" y="${chartStartY + 15}" text-anchor="middle" font-size="10" fill="#1F2937">${item.name}</text>`;
+                clusterSubsections += `<text x="${x + barWidth / 2}" y="${y - 5}" text-anchor="middle" font-size="10" font-weight="bold" fill="#1F2937">${item.value}</text>`;
+              });
+              
+              clusterSubsections += '</svg>';
+              clusterSubsections += '</div>';
+            }
+          }
+          
           // Append sub-sections AFTER enhanced content
           if (clusterSubsections) {
             if (finalContent && finalContent.trim()) {
@@ -2663,6 +2701,73 @@ export class DPRService {
               }
             }
           });
+          
+          // Add Market Served Distribution Chart if available
+          if (s1.marketServed && (s1.marketServed.domestic || s1.marketServed.export)) {
+            const marketData = [
+              { name: 'Domestic', value: s1.marketServed.domestic || 0 },
+              { name: 'Export', value: s1.marketServed.export || 0 }
+            ].filter(item => item.value > 0);
+            
+            if (marketData.length > 0) {
+              const total = marketData.reduce((sum, item) => sum + item.value, 0);
+              const colors = ['#0088FE', '#00C49F'];
+              const radius = 80;
+              const centerX = 150;
+              const centerY = 150;
+              
+              marketSubsections += '<div style="margin: 0.5cm 0; text-align: center;">';
+              marketSubsections += '<h4 style="margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 11pt;">Market Served Distribution</h4>';
+              marketSubsections += '<svg width="300" height="300" style="display: block; margin: 0 auto;">';
+              
+              let currentAngle = -90;
+              marketData.forEach((item, idx) => {
+                const percentage = (item.value / total) * 100;
+                const angle = (item.value / total) * 360;
+                const startAngle = currentAngle;
+                const endAngle = currentAngle + angle;
+                
+                const startRad = (startAngle * Math.PI) / 180;
+                const endRad = (endAngle * Math.PI) / 180;
+                
+                const x1 = centerX + radius * Math.cos(startRad);
+                const y1 = centerY + radius * Math.sin(startRad);
+                const x2 = centerX + radius * Math.cos(endRad);
+                const y2 = centerY + radius * Math.sin(endRad);
+                
+                const largeArcFlag = angle > 180 ? 1 : 0;
+                const path = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+                
+                const color = colors[idx % colors.length];
+                marketSubsections += `<path d="${path}" fill="${color}" stroke="#FFFFFF" stroke-width="2"/>`;
+                
+                const labelAngle = (startAngle + endAngle) / 2;
+                const labelRad = (labelAngle * Math.PI) / 180;
+                const labelRadius = radius * 0.7;
+                const labelX = centerX + labelRadius * Math.cos(labelRad);
+                const labelY = centerY + labelRadius * Math.sin(labelRad);
+                
+                marketSubsections += `<text x="${labelX}" y="${labelY}" text-anchor="middle" dominant-baseline="middle" font-size="10" font-weight="bold" fill="#FFFFFF">${percentage.toFixed(0)}%</text>`;
+                
+                currentAngle = endAngle;
+              });
+              
+              marketSubsections += '</svg>';
+              
+              // Add legend
+              marketSubsections += '<div style="margin-top: 0.3cm; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5cm;">';
+              marketData.forEach((item, idx) => {
+                const percentage = ((item.value / total) * 100).toFixed(1);
+                const color = colors[idx % colors.length];
+                marketSubsections += `<div style="display: flex; align-items: center; margin: 0.1cm;">`;
+                marketSubsections += `<span style="display: inline-block; width: 12px; height: 12px; background-color: ${color}; margin-right: 0.2cm; border: 1px solid #1F2937;"></span>`;
+                marketSubsections += `<span style="font-size: 9pt; color: #1F2937;">${item.name}: ${percentage}%</span>`;
+                marketSubsections += `</div>`;
+              });
+              marketSubsections += '</div>';
+              marketSubsections += '</div>';
+            }
+          }
           
           // Append sub-sections AFTER enhanced content
           if (marketSubsections) {
@@ -3028,6 +3133,120 @@ export class DPRService {
                 costTables += `<tr style="background-color: #E5E7EB; font-weight: bold;"><td style="border: 1px solid #1F2937; padding: 0.3cm;">Total</td><td style="border: 1px solid #1F2937; padding: 0.3cm;">₹${mofTotal.toLocaleString('en-IN')}</td></tr>`;
               }
               costTables += '</tbody></table>';
+            }
+          }
+          
+          // Add Project Cost Breakdown Pie Chart
+          const costData = [
+            { name: 'Land', value: s12.land || 0 },
+            { name: 'Building', value: s12.building || 0 },
+            { name: 'Machinery', value: s12.machinery || 0 },
+            { name: 'Utilities', value: s12.utilities || 0 },
+            { name: 'Preliminary', value: s12.preliminary || 0 },
+            { name: 'Working Capital', value: s12.workingCapital || 0 }
+          ].filter(item => item.value > 0);
+          
+          if (costData.length > 0) {
+            const total = costData.reduce((sum, item) => sum + item.value, 0);
+            const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82CA9D'];
+            const radius = 80;
+            const centerX = 150;
+            const centerY = 150;
+            
+            costTables += '<div style="margin: 0.5cm 0; text-align: center;">';
+            costTables += '<h4 style="margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 11pt;">Project Cost Breakdown</h4>';
+            costTables += '<svg width="300" height="300" style="display: block; margin: 0 auto;">';
+            
+            let currentAngle = -90;
+            costData.forEach((item, idx) => {
+              const percentage = (item.value / total) * 100;
+              const angle = (item.value / total) * 360;
+              const startAngle = currentAngle;
+              const endAngle = currentAngle + angle;
+              
+              const startRad = (startAngle * Math.PI) / 180;
+              const endRad = (endAngle * Math.PI) / 180;
+              
+              const x1 = centerX + radius * Math.cos(startRad);
+              const y1 = centerY + radius * Math.sin(startRad);
+              const x2 = centerX + radius * Math.cos(endRad);
+              const y2 = centerY + radius * Math.sin(endRad);
+              
+              const largeArcFlag = angle > 180 ? 1 : 0;
+              const path = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+              
+              const color = colors[idx % colors.length];
+              costTables += `<path d="${path}" fill="${color}" stroke="#FFFFFF" stroke-width="2"/>`;
+              
+              const labelAngle = (startAngle + endAngle) / 2;
+              const labelRad = (labelAngle * Math.PI) / 180;
+              const labelRadius = radius * 0.7;
+              const labelX = centerX + labelRadius * Math.cos(labelRad);
+              const labelY = centerY + labelRadius * Math.sin(labelRad);
+              
+              costTables += `<text x="${labelX}" y="${labelY}" text-anchor="middle" dominant-baseline="middle" font-size="9" font-weight="bold" fill="#FFFFFF">${percentage.toFixed(0)}%</text>`;
+              
+              currentAngle = endAngle;
+            });
+            
+            costTables += '</svg>';
+            
+            // Add legend
+            costTables += '<div style="margin-top: 0.3cm; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5cm;">';
+            costData.forEach((item, idx) => {
+              const percentage = ((item.value / total) * 100).toFixed(1);
+              const color = colors[idx % colors.length];
+              const displayName = item.name.length > 15 ? item.name.substring(0, 12) + '...' : item.name;
+              costTables += `<div style="display: flex; align-items: center; margin: 0.1cm;">`;
+              costTables += `<span style="display: inline-block; width: 12px; height: 12px; background-color: ${color}; margin-right: 0.2cm; border: 1px solid #1F2937;"></span>`;
+              costTables += `<span style="font-size: 9pt; color: #1F2937;">${displayName}: ${percentage}%</span>`;
+              costTables += `</div>`;
+            });
+            costTables += '</div>';
+            costTables += '</div>';
+          }
+          
+          // Add Means of Finance Bar Chart
+          if (s12.meansOfFinance) {
+            const mof = s12.meansOfFinance;
+            const financeData = [
+              { name: 'SPV Contribution', value: mof.spvContribution || 0 },
+              { name: 'Government Grant', value: mof.governmentGrant || 0 },
+              { name: 'Bank Loan', value: mof.bankLoan || 0 },
+              { name: 'Other Sources', value: mof.otherSources || 0 }
+            ].filter(item => item.value > 0);
+            
+            if (financeData.length > 0) {
+              const maxValue = Math.max(...financeData.map(d => d.value));
+              const chartWidth = 400;
+              const chartHeight = 250;
+              const barWidth = 60;
+              const barSpacing = 80;
+              const chartStartX = 50;
+              const chartStartY = chartHeight - 30;
+              const maxBarHeight = chartHeight - 80;
+              const colors = ['#00C49F', '#0088FE', '#FFBB28', '#FF8042'];
+              
+              costTables += '<div style="margin: 0.5cm 0; text-align: center;">';
+              costTables += '<h4 style="margin-bottom: 0.3cm; font-weight: bold; color: #1F2937; font-size: 11pt;">Means of Finance</h4>';
+              costTables += `<svg width="${chartWidth}" height="${chartHeight}" style="display: block; margin: 0 auto;">`;
+              
+              // Draw bars
+              financeData.forEach((item, idx) => {
+                const barHeight = maxValue > 0 ? (item.value / maxValue) * maxBarHeight : 0;
+                const x = chartStartX + (idx * barSpacing);
+                const y = chartStartY - barHeight;
+                const color = colors[idx % colors.length];
+                
+                costTables += `<rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" fill="${color}" stroke="#FFFFFF" stroke-width="2"/>`;
+                const displayName = item.name.length > 12 ? item.name.substring(0, 10) + '...' : item.name;
+                costTables += `<text x="${x + barWidth / 2}" y="${chartStartY + 15}" text-anchor="middle" font-size="9" fill="#1F2937">${displayName}</text>`;
+                const valueStr = item.value >= 1000000 ? `₹${(item.value / 1000000).toFixed(1)}M` : item.value >= 1000 ? `₹${(item.value / 1000).toFixed(0)}K` : `₹${item.value}`;
+                costTables += `<text x="${x + barWidth / 2}" y="${y - 5}" text-anchor="middle" font-size="9" font-weight="bold" fill="#1F2937">${valueStr}</text>`;
+              });
+              
+              costTables += '</svg>';
+              costTables += '</div>';
             }
           }
           
@@ -3488,11 +3707,6 @@ export class DPRService {
     console.log(`📋 Conclusion - contentLang.conclusion: ${!!contentLang.conclusion}, will include: ${!!conclusionContent}`);
     replaceSection('{{CONCLUSION}}', conclusionContent, sectionHeaders['{{CONCLUSION}}']);
     
-    // Proposed Intervention - Section 7 (BEFORE CFC Details)
-    const proposedIntervention = contentLang.proposedIntervention || contentLang.proposedInterventions || sections.proposedIntervention || s9.interventionType || '';
-    console.log(`📋 Proposed Intervention - contentLang.proposedIntervention: ${!!contentLang.proposedIntervention}, contentLang.proposedInterventions: ${!!contentLang.proposedInterventions}, sections: ${!!sections.proposedIntervention}, step9: ${Object.keys(s9).length > 0}`);
-    replaceSection('{{PROPOSED_INTERVENTION}}', proposedIntervention, sectionHeaders['{{PROPOSED_INTERVENTION}}'], s9);
-    
     console.log('\n✅ All sections processed');
     
     // Generate Financial Statements section - ENSURE ALL DATA IS INCLUDED
@@ -3923,6 +4137,107 @@ export class DPRService {
         stack: error.stack
       });
       throw new Error(`Failed to generate Cluster DPR PDF: ${error.message}`);
+    }
+  }
+
+  /**
+   * Generate a PDF directly from a full HTML document string.
+   * Used to ensure the downloaded PDF matches the client preview 1:1 (Cluster DPR React view).
+   */
+  static async generatePDFFromHTML(html: string): Promise<Buffer> {
+    if (!html || typeof html !== 'string') {
+      throw new Error('HTML must be a string');
+    }
+
+    // Try to use Puppeteer for HTML-to-PDF conversion
+    try {
+      const puppeteer = require('puppeteer');
+      console.log('🔄 Launching Puppeteer for exact HTML-to-PDF...');
+
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--disable-gpu',
+        ],
+        timeout: 30000,
+      });
+
+      try {
+        const page = await browser.newPage();
+
+        // For safety: we don't need JS execution for printing static HTML
+        // (prevents accidental/injected script execution from user-provided HTML)
+        await page.setJavaScriptEnabled(false);
+
+        // Set viewport for A4 (96 DPI)
+        await page.setViewport({ width: 794, height: 1123 });
+
+        console.log('🔄 Setting client-rendered HTML content...');
+        try {
+          await page.setContent(html, {
+            waitUntil: ['load', 'networkidle0'],
+            timeout: 90000,
+          });
+          // Give layout a moment
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        } catch (contentError: any) {
+          console.warn('⚠️  networkidle0 failed, trying domcontentloaded:', contentError.message);
+          await page.setContent(html, {
+            waitUntil: 'domcontentloaded',
+            timeout: 90000,
+          });
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+
+        // Ensure fonts are ready (may no-op if JS is disabled / fonts API unsupported)
+        try {
+          await page.evaluateHandle(() => (document as any).fonts?.ready);
+        } catch {
+          // ignore
+        }
+
+        console.log('🔄 Generating PDF...');
+        const pdfBuffer = await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          displayHeaderFooter: false,
+          margin: { top: '0', right: '0', bottom: '0', left: '0' },
+          preferCSSPageSize: true,
+          timeout: 120000,
+          scale: 1.0,
+        });
+
+        const buffer = Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer);
+
+        // Validate header
+        const isValidPDF =
+          buffer.length >= 4 &&
+          buffer[0] === 0x25 &&
+          buffer[1] === 0x50 &&
+          buffer[2] === 0x44 &&
+          buffer[3] === 0x46;
+
+        if (!isValidPDF) {
+          const headerBytes = buffer.slice(0, 4);
+          throw new Error(
+            `Generated buffer does not appear to be a valid PDF. Header bytes: ${Array.from(headerBytes).join(',')}`
+          );
+        }
+
+        console.log(`✅ Exact PDF generated successfully: ${buffer.length} bytes`);
+        await browser.close();
+        return buffer;
+      } catch (pageError: any) {
+        await browser.close().catch(() => {});
+        throw pageError;
+      }
+    } catch (error: any) {
+      console.error('❌ Error generating PDF from HTML:', error);
+      throw new Error(`Failed to generate PDF from HTML: ${error.message}`);
     }
   }
 

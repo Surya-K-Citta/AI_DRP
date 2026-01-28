@@ -772,6 +772,73 @@ export class DPRController {
   }
 
   /**
+   * Download DPR as PDF generated from client-rendered HTML (exact match with preview)
+   * Intended mainly for Cluster DPRs where the React preview should match the downloaded PDF 1:1.
+   */
+  static async downloadPDFHtml(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { dprId } = req.params;
+      const { language = 'english' } = req.query;
+      const html = req.body?.html;
+
+      if (!html || typeof html !== 'string' || html.trim().length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Missing required field: html',
+        });
+        return;
+      }
+
+      // Basic safety limits
+      if (html.length > 20_000_000) {
+        res.status(413).json({
+          success: false,
+          message: 'HTML payload too large',
+        });
+        return;
+      }
+
+      console.log(`📥 Downloading EXACT PDF (from HTML) for DPR ${dprId} in ${language}...`);
+      console.log(`   HTML length: ${html.length} chars`);
+
+      const pdfBuffer = await DPRService.generatePDFFromHTML(html);
+
+      // Validate PDF header (PDF files start with %PDF)
+      if (!pdfBuffer || !Buffer.isBuffer(pdfBuffer) || pdfBuffer.length < 4) {
+        throw new Error('Invalid PDF buffer received');
+      }
+      if (pdfBuffer[0] !== 0x25 || pdfBuffer[1] !== 0x50 || pdfBuffer[2] !== 0x44 || pdfBuffer[3] !== 0x46) {
+        throw new Error('Generated file is not a valid PDF');
+      }
+
+      // Get project name for filename (same logic as standard download)
+      const dpr = await DPRService.getDPR(dprId);
+      const project = dpr?.projectId;
+      const projectName = project?.projectName || dprId;
+      const safeProjectName = projectName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="DPR_${safeProjectName}_${language}_exact.pdf"`
+      );
+      res.setHeader('Content-Length', pdfBuffer.length.toString());
+      res.setHeader('Cache-Control', 'no-cache');
+
+      res.send(pdfBuffer);
+      console.log(`✅ EXACT PDF sent successfully: ${pdfBuffer.length} bytes`);
+    } catch (error: any) {
+      console.error('❌ Error downloading EXACT PDF:', error);
+      console.error('Error stack:', error.stack);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to download PDF',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
    * Download DPR as DOCX
    */
   static async downloadDOCX(req: AuthRequest, res: Response): Promise<void> {

@@ -609,10 +609,10 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       className="text-sm font-semibold w-32"
       style={{ color: '#1F2937' }}
     >
-      Submitted to:
+      Submitted to: 
     </p>
     <p className="text-sm" style={{ color: '#1F2937' }}>
-      {s11.submittedTo || ''}
+      {s11.submittedTo || 'DIC, District'}
     </p>
   </div>
 
@@ -2642,7 +2642,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
 
       {/* Enhance DPR Button - Fixed at bottom */}
       <div 
-        className="sticky bottom-0 bg-white border-t-4 border-blue-500 p-6 shadow-lg z-50"
+        className="sticky bottom-0 bg-white border-t-4 border-blue-500 p-6 shadow-lg z-50 no-print"
         style={{ 
           borderTop: '4px solid #2563EB',
           boxShadow: '0 -4px 6px rgba(0, 0, 0, 0.1)'

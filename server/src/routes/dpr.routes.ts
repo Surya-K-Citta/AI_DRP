@@ -78,6 +78,7 @@ router.post('/cluster/sections/enhance', ClusterDPRController.enhanceSection);
 router.get('/:dprId', DPRController.getDPR);
 router.get('/:dprId/download/pdf', DPRController.downloadPDF); // GET for backward compatibility
 router.post('/:dprId/download/pdf', DPRController.downloadPDF); // POST to accept enhanced paragraphs
+router.post('/:dprId/download/pdf/html', DPRController.downloadPDFHtml); // POST to accept rendered HTML for exact PDF
 router.get('/:dprId/download/docx', DPRController.downloadDOCX);
 router.get('/:dprId/download/xls', DPRController.downloadXLS);
 
