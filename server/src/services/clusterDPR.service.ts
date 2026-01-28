@@ -704,6 +704,95 @@ Return only valid JSON without markdown code blocks.`;
   }
 
   /**
+   * Regenerate/expand a specific section using the currently applied content + a user instruction.
+   * This is used for "compare current vs new" workflows; caller is responsible for storing the result.
+   */
+  static async regenerateSectionWithInstruction(
+    sectionName: string,
+    currentContent: string,
+    instruction: string,
+    clusterData: any,
+    language: 'english' | 'telugu' = 'english'
+  ): Promise<string> {
+    try {
+      const clusterName = clusterData?.step1?.clusterName || 'the cluster';
+      const district = clusterData?.step1?.district || '';
+      const location = clusterData?.step1?.location || '';
+      const majorProducts = clusterData?.step1?.majorProducts || '';
+
+      const systemMessage =
+        language === 'telugu'
+          ? 'మీరు ప్రభుత్వ సమర్పణల కోసం క్లస్టర్ డెవలప్‌మెంట్ DPRలను రాసే నిపుణ రచయిత. ఇచ్చిన సందర్భం మరియు సూచన ఆధారంగా ఉన్న పాఠ్యాన్ని మెరుగుపరచండి. అధికారిక, ప్రభుత్వ-సిద్ధమైన శైలిలో రాయండి.'
+          : 'You are an expert DPR writer specializing in Cluster Development Projects for government submissions. Improve and expand the given section based on the instruction and context. Write in a formal, government-ready style.';
+
+      const prompt =
+        language === 'telugu'
+          ? [
+              `విభాగం: ${sectionName}`,
+              `క్లస్టర్: ${clusterName} (${district} ${location})`,
+              majorProducts ? `ప్రధాన ఉత్పత్తులు: ${majorProducts}` : '',
+              '',
+              'ప్రస్తుత (Applied) కంటెంట్:',
+              '"""',
+              currentContent || '(ఖాళీ)',
+              '"""',
+              '',
+              'యూజర్ అవసరం / మార్పుల సూచన:',
+              '"""',
+              instruction,
+              '"""',
+              '',
+              'నిబంధనలు:',
+              '- ప్రస్తుత అర్థాన్ని కాపాడుతూ, అవసరమైన మేరకు విస్తరించండి/సరిచేయండి',
+              '- పునరావృత శీర్షికలు/అదనపు subsection headings చేర్చవద్దు',
+              '- అవసరమైన చోట సంఖ్యలు/వాస్తవాలు clusterData నుండి మాత్రమే ఉపయోగించండి; ఊహించవద్దు',
+              '- ఫలితం ఒకే విభాగం కంటెంట్‌గా ఇవ్వండి (మార్క్‌డౌన్ హెడ్డింగ్స్ లేకుండా)',
+            ]
+              .filter(Boolean)
+              .join('\n')
+          : [
+              `Section: ${sectionName}`,
+              `Cluster: ${clusterName} (${district} ${location})`,
+              majorProducts ? `Major products: ${majorProducts}` : '',
+              '',
+              'CURRENT (applied) content:',
+              '"""',
+              currentContent || '(empty)',
+              '"""',
+              '',
+              'USER REQUIREMENT / CHANGE INSTRUCTION:',
+              '"""',
+              instruction,
+              '"""',
+              '',
+              'Rules:',
+              '- Preserve intent, expand/improve as needed',
+              '- Do not add redundant subsection headings; write as a continuous section narrative',
+              '- Use numbers/facts only if present in the provided context; do not hallucinate',
+              '- Output only the rewritten section content (no markdown headings)',
+            ]
+              .filter(Boolean)
+              .join('\n');
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.6,
+        max_tokens: 900,
+      });
+
+      const regenerated = response.choices[0]?.message?.content || '';
+      return regenerated.trim();
+    } catch (error: any) {
+      console.error(`Error regenerating section ${sectionName}:`, error);
+      throw new Error(`Failed to regenerate section: ${error.message}`);
+    }
+  }
+
+  /**
    * Get AI suggestions for a specific step based on previous steps data
    */
   static async getAISuggestionsForStep(

@@ -433,6 +433,158 @@ export class ClusterDPRController {
   }
 
   /**
+   * Regenerate/expand a specific section using current applied content + user instruction.
+   * Stores the result as a candidate (generatedContent/enhancedContent) WITHOUT creating new DPRVersion records.
+   */
+  static async regenerateClusterSection(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const { dprId } = req.params;
+      const { sectionName, instruction, language = 'english', mode = 'generated' } = req.body;
+
+      if (!dprId || !sectionName || !instruction) {
+        res.status(400).json({
+          success: false,
+          message: 'DPR ID, section name, and instruction are required',
+        });
+        return;
+      }
+
+      const dprVersion = await DPRVersion.findOne({
+        _id: dprId,
+        userId,
+      });
+
+      if (!dprVersion) {
+        res.status(404).json({
+          success: false,
+          message: 'DPR not found',
+        });
+        return;
+      }
+
+      const lang = language === 'telugu' ? 'telugu' : 'english';
+
+      // Find the section record (if it exists) to get current applied content
+      let clusterSection = await ClusterSection.findOne({
+        dprId,
+        userId,
+        sectionType: sectionName,
+        language: lang,
+      });
+
+      // Fallback to DPRVersion content if ClusterSection.content is not available
+      const sectionMapping: Record<string, string> = {
+        executiveSummary: 'executiveSummary',
+        introduction: 'businessProfile',
+        districtProfile: 'districtProfile',
+        clusterProfile: 'clusterProfile',
+        valueChain: 'valueChain',
+        marketAspects: 'marketAnalysis',
+        gapAnalysis: 'gapAnalysis',
+        swotAnalysis: 'swotAnalysis',
+        proposedInterventions: 'proposedInterventions',
+        cfcDetails: 'technicalFeasibility',
+        spvDetails: 'spvDetails',
+        projectCost: 'projectCost',
+        meansOfFinance: 'meansOfFinance',
+        operatingCostRevenue: 'operatingCostRevenue',
+        financialViability: 'financialProjections',
+        implementationSchedule: 'implementationSchedule',
+        expectedImpact: 'conclusion',
+        annexures: 'annexures',
+      };
+
+      const contentField = sectionMapping[sectionName] || sectionName;
+      const currentFromDPRVersion = dprVersion.content?.[lang]?.[contentField] || '';
+      const currentContent = (clusterSection?.content || '').trim() || (currentFromDPRVersion || '').trim();
+
+      // Extract clusterData context from DPRVersion
+      const clusterData =
+        dprVersion.content?.[lang]?.clusterData ||
+        dprVersion.content?.english?.clusterData ||
+        dprVersion.content?.telugu?.clusterData ||
+        {};
+
+      const regenerated = await ClusterDPRService.regenerateSectionWithInstruction(
+        sectionName,
+        currentContent,
+        instruction,
+        clusterData,
+        lang
+      );
+
+      // Upsert ClusterSection: update candidate field only (no new DPRVersion record)
+      if (!clusterSection) {
+        clusterSection = await ClusterSection.create({
+          userId,
+          dprId,
+          sectionType: sectionName,
+          language: lang,
+          content: currentContent || '',
+          generatedContent: mode === 'generated' ? regenerated : '',
+          enhancedContent: mode === 'enhanced' ? regenerated : '',
+          isApplied: !!currentContent,
+          version: 1,
+        });
+      } else {
+        if (mode === 'enhanced') {
+          clusterSection.enhancedContent = regenerated;
+        } else {
+          clusterSection.generatedContent = regenerated;
+        }
+        clusterSection.version += 1;
+        await clusterSection.save();
+      }
+
+      // Update DPRVersion candidate buckets for UI persistence (Mixed fields)
+      if (!dprVersion.content[lang]) {
+        dprVersion.content[lang] = {};
+      }
+      if (mode === 'enhanced') {
+        dprVersion.content[lang].enhancedContent = {
+          ...(dprVersion.content[lang].enhancedContent || {}),
+          [sectionName]: regenerated,
+        };
+      } else {
+        dprVersion.content[lang].generatedSections = {
+          ...(dprVersion.content[lang].generatedSections || {}),
+          [sectionName]: regenerated,
+        };
+      }
+      await dprVersion.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'Section regenerated successfully',
+        data: {
+          dprId,
+          sectionName,
+          mode,
+          language: lang,
+          currentContent,
+          candidateContent: regenerated,
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ Error regenerating cluster section:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to regenerate section',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
    * Delete image from Cloudinary
    */
   /**

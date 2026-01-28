@@ -570,6 +570,27 @@ class APIClient {
     );
   }
 
+  async regenerateClusterDPRSection(
+    dprId: string,
+    sectionName: string,
+    instruction: string,
+    mode: 'generated' | 'enhanced' = 'generated',
+    language: string = 'english'
+  ) {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post(`/dpr/cluster/${dprId}/sections/regenerate`, {
+          sectionName,
+          instruction,
+          mode,
+          language,
+        });
+        return response.data;
+      },
+      () => Promise.resolve({ success: false, message: 'Failed to regenerate section' })
+    );
+  }
+
   // Image generation and upload for Cluster DPR
   async generateClusterDPRImage(prompt: string, sectionType: string, sectionInfo: any) {
     return this.handleRequest(

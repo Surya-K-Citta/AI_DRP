@@ -72,6 +72,43 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     return {};
   });
   const [applyingSections, setApplyingSections] = useState<Record<string, boolean>>({});
+  const [regeneratingSections, setRegeneratingSections] = useState<Record<string, boolean>>({});
+  const [regenerateInstructions, setRegenerateInstructions] = useState<Record<string, string>>({});
+
+  const getCurrentSectionContent = (sectionName: string) => {
+    // Prefer ClusterSection applied content (works for subsections too)
+    const fromClusterSections = dpr?.clusterSections?.[viewLanguage]?.[sectionName]?.content;
+    if (typeof fromClusterSections === 'string' && fromClusterSections.trim()) {
+      return fromClusterSections;
+    }
+
+    // Fallback to DPRVersion content mapping (main sections)
+    const sectionMapping: Record<string, string> = {
+      executiveSummary: 'executiveSummary',
+      introduction: 'businessProfile',
+      districtProfile: 'districtProfile',
+      clusterProfile: 'clusterProfile',
+      valueChain: 'valueChain',
+      marketAspects: 'marketAnalysis',
+      gapAnalysis: 'gapAnalysis',
+      swotAnalysis: 'swotAnalysis',
+      proposedInterventions: 'proposedInterventions',
+      cfcDetails: 'technicalFeasibility',
+      spvDetails: 'spvDetails',
+      projectCost: 'projectCost',
+      meansOfFinance: 'meansOfFinance',
+      operatingCostRevenue: 'operatingCostRevenue',
+      financialViability: 'financialProjections',
+      implementationSchedule: 'implementationSchedule',
+      expectedImpact: 'conclusion',
+      annexures: 'annexures',
+    };
+
+    const contentField = sectionMapping[sectionName] || sectionName;
+    const fromContent = content?.[contentField];
+    if (typeof fromContent === 'string') return fromContent;
+    return '';
+  };
 
   // Reload enhanced content and generated sections when DPR ID or language changes (from database only)
   useEffect(() => {
@@ -496,12 +533,51 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     }
   };
 
+  const handleRegenerateSection = async (sectionName: string, mode: 'generated' | 'enhanced') => {
+    const dprId = dpr?._id || dpr?.id;
+    if (!dprId) {
+      toast.error('DPR not found. Please generate DPR first.');
+      return;
+    }
+
+    const instruction = (regenerateInstructions[sectionName] || '').trim();
+    if (!instruction) {
+      toast.error('Please enter what you want to change/improve.');
+      return;
+    }
+
+    setRegeneratingSections((prev) => ({ ...prev, [`${mode}-${sectionName}`]: true }));
+    try {
+      const result = await api.regenerateClusterDPRSection(dprId, sectionName, instruction, mode, viewLanguage);
+      if (result.success && result.data?.candidateContent) {
+        const candidate = result.data.candidateContent;
+
+        if (mode === 'enhanced') {
+          setEnhancedContent((prev) => ({ ...prev, [sectionName]: candidate }));
+        } else {
+          setGeneratedSections((prev) => ({ ...prev, [sectionName]: candidate }));
+        }
+
+        toast.success('New version generated. Compare and click Apply when ready.');
+      } else {
+        toast.error(result.message || 'Failed to regenerate section');
+      }
+    } catch (error: any) {
+      console.error('Error regenerating section:', error);
+      toast.error(error.message || 'Failed to regenerate section');
+    } finally {
+      setRegeneratingSections((prev) => ({ ...prev, [`${mode}-${sectionName}`]: false }));
+    }
+  };
+
   // Helper to render generated section with Apply button
   const renderGeneratedSection = (sectionName: string, sectionTitle: string) => {
     const generatedText = generatedSections[sectionName];
     if (!generatedText) return null;
     
     const isApplying = applyingSections[sectionName];
+    const isRegenerating = regeneratingSections[`generated-${sectionName}`];
+    const currentText = getCurrentSectionContent(sectionName);
     
     return (
       <div className="mb-6 p-4 border-2 border-blue-300 rounded-lg bg-blue-50/30">
@@ -527,10 +603,49 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             )}
           </Button>
         </div>
+        {currentText?.trim() ? (
+          <div className="mb-3 p-3 bg-white rounded border border-blue-200">
+            <div className="text-xs font-semibold text-blue-700 mb-2">Current (Applied)</div>
+            <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+              {currentText}
+            </p>
+          </div>
+        ) : null}
         <div className="p-3 bg-white rounded border border-blue-200 max-h-60 overflow-y-auto">
           <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
             {generatedText}
           </p>
+        </div>
+        <div className="mt-3">
+          <div className="text-xs font-semibold text-blue-700 mb-2">What should be improved/expanded?</div>
+          <textarea
+            className="w-full border border-blue-200 rounded p-2 text-sm"
+            rows={3}
+            value={regenerateInstructions[sectionName] || ''}
+            onChange={(e) => setRegenerateInstructions((prev) => ({ ...prev, [sectionName]: e.target.value }))}
+            placeholder="e.g., Add more details, include implementation timeline, clarify costs, improve clarity..."
+          />
+          <div className="mt-2 flex justify-end">
+            <Button
+              onClick={() => handleRegenerateSection(sectionName, 'generated')}
+              disabled={isRegenerating}
+              className="gap-2"
+              variant="secondary"
+              size="sm"
+            >
+              {isRegenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Regenerating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Regenerate
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -542,6 +657,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     if (!hasEnhancedContent) return null;
     
     const isApplying = applyingSections[`enhanced-${sectionName}`];
+    const isRegenerating = regeneratingSections[`enhanced-${sectionName}`];
+    const currentText = getCurrentSectionContent(sectionName);
     
     return (
       <div className="mb-6 p-4 border-2 border-purple-300 rounded-lg bg-purple-50/30">
@@ -569,10 +686,49 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             )}
           </Button>
         </div>
+        {currentText?.trim() ? (
+          <div className="mb-3 p-3 bg-white rounded border border-purple-200">
+            <div className="text-xs font-semibold text-purple-700 mb-2">Current (Applied)</div>
+            <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+              {currentText}
+            </p>
+          </div>
+        ) : null}
         <div className="p-3 bg-white rounded border border-purple-200 max-h-60 overflow-y-auto">
           <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
             {hasEnhancedContent}
           </p>
+        </div>
+        <div className="mt-3">
+          <div className="text-xs font-semibold text-purple-700 mb-2">What should be improved/expanded?</div>
+          <textarea
+            className="w-full border border-purple-200 rounded p-2 text-sm"
+            rows={3}
+            value={regenerateInstructions[sectionName] || ''}
+            onChange={(e) => setRegenerateInstructions((prev) => ({ ...prev, [sectionName]: e.target.value }))}
+            placeholder="e.g., Add more details, refine language, include specific impacts, make it more formal..."
+          />
+          <div className="mt-2 flex justify-end">
+            <Button
+              onClick={() => handleRegenerateSection(sectionName, 'enhanced')}
+              disabled={isRegenerating}
+              className="gap-2"
+              variant="secondary"
+              size="sm"
+            >
+              {isRegenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Regenerating...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4" />
+                  Regenerate
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     );
