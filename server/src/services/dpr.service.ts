@@ -2167,10 +2167,11 @@ export class DPRService {
         }
       }
       
-      // Combine content intelligently - ENHANCED CONTENT FIRST, THEN STEPDATA
+      // Combine content intelligently - ENHANCED CONTENT FIRST, THEN ORIGINAL CONTENT, THEN STEPDATA
       // 1. Use enhanced content if available (most comprehensive) - THIS COMES FIRST
-      // 2. Append stepData content AFTER enhanced content (never replace it)
-      // 3. Fall back to original content if no enhanced content
+      // 2. Append original content AFTER enhanced content (to match preview behavior)
+      // 3. Append stepData content AFTER both (never replace it)
+      // 4. Fall back to original content if no enhanced content
       
       // Format enhanced content if it exists
       if (enhancedContent && enhancedContent.trim()) {
@@ -2178,6 +2179,31 @@ export class DPRService {
         // Format the enhanced content properly (convert markdown, preserve HTML)
         finalContent = formatContent(enhancedContent, sectionKey);
         console.log(`   ✅ Formatted enhanced content (${finalContent.length} chars)`);
+        
+        // For Introduction and other sections, also include original content if it exists and is different
+        // This matches the preview behavior where both enhanced and original content are shown
+        // The preview shows enhanced content first, then original content separately
+        if (content && content.trim() && content !== enhancedContent) {
+          // Check if original content is already included in enhanced content (avoid duplication)
+          // Only skip if the enhanced content clearly contains the entire original content
+          const contentPreview = content.substring(0, Math.min(100, content.length)).toLowerCase();
+          const contentKeyWords = content.toLowerCase().split(/\s+/).slice(0, 10).join(' ');
+          
+          // More thorough check for duplication - only skip if original is clearly a subset
+          // Be more permissive - only skip if original content is very short and clearly contained
+          const isDuplicate = (content.length < 300 && enhancedContent.toLowerCase().includes(content.toLowerCase())) ||
+                             (content.length < 500 && enhancedContent.toLowerCase().includes(contentPreview) && 
+                              enhancedContent.length > content.length * 1.5); // Enhanced is significantly longer
+          
+          if (!isDuplicate) {
+            console.log(`   ➕ Appending original content (${content.length} chars) AFTER enhanced content`);
+            const formattedOriginalContent = formatContent(content, sectionKey);
+            // Add spacing between enhanced and original content to match preview
+            finalContent += '<div style="margin-top: 0.5cm;"></div>' + formattedOriginalContent;
+          } else {
+            console.log(`   ℹ️  Original content already included in enhanced content - skipping to avoid duplication`);
+          }
+        }
       } else if (content && content.trim()) {
         // Use original content if no enhanced content
         console.log(`   ✅ Using original content (${content.length} chars)`);
