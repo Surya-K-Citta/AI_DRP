@@ -835,6 +835,177 @@ export class ClusterDPRController {
   }
 
   /**
+   * Enhance and directly apply paragraphs to all sections (no separate panel)
+   * This adds intro paragraphs directly to each section's content
+   */
+  static async enhanceAndApplyAllSections(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const { dprId } = req.params;
+      const { sections, language = 'english' } = req.body;
+
+      if (!dprId) {
+        res.status(400).json({
+          success: false,
+          message: 'DPR ID is required',
+        });
+        return;
+      }
+
+      if (!sections || !Array.isArray(sections) || sections.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Sections array is required',
+        });
+        return;
+      }
+
+      // Find DPR version
+      const dprVersion = await DPRVersion.findOne({
+        _id: dprId,
+        userId,
+      });
+
+      if (!dprVersion) {
+        res.status(404).json({
+          success: false,
+          message: 'DPR not found',
+        });
+        return;
+      }
+
+      const lang = language === 'telugu' ? 'telugu' : 'english';
+      const clusterData = dprVersion.content?.[lang]?.clusterData || 
+                         dprVersion.content?.english?.clusterData ||
+                         dprVersion.metadata?.clusterData || {};
+
+      // Section mapping for content fields
+      const sectionMapping: Record<string, string> = {
+        'executiveSummary': 'executiveSummary',
+        'introduction': 'businessProfile',
+        'districtProfile': 'districtProfile',
+        'clusterProfile': 'clusterProfile',
+        'valueChain': 'valueChain',
+        'marketAspects': 'marketAnalysis',
+        'gapAnalysis': 'gapAnalysis',
+        'swotAnalysis': 'swotAnalysis',
+        'proposedInterventions': 'proposedInterventions',
+        'cfcDetails': 'technicalFeasibility',
+        'spvDetails': 'spvDetails',
+        'projectCost': 'projectCost',
+        'meansOfFinance': 'meansOfFinance',
+        'operatingCostRevenue': 'operatingCostRevenue',
+        'financialViability': 'financialProjections',
+        'implementationSchedule': 'implementationSchedule',
+        'expectedImpact': 'conclusion',
+        'conclusion': 'conclusion',
+        'projectSnapshot': 'projectSnapshot',
+      };
+
+      const appliedSections: string[] = [];
+      const failedSections: string[] = [];
+
+      // Process each section
+      for (const section of sections) {
+        try {
+          const { name: sectionName, data: sectionData } = section;
+          
+          // Generate enhanced paragraph
+          const enhancedParagraph = await ClusterDPRService.enhanceSection(
+            sectionName,
+            sectionData,
+            clusterData
+          );
+
+          if (!enhancedParagraph || !enhancedParagraph.trim()) {
+            console.warn(`⚠️ No enhanced content generated for ${sectionName}`);
+            failedSections.push(sectionName);
+            continue;
+          }
+
+          // Find or create cluster section
+          let clusterSection = await ClusterSection.findOne({
+            dprId,
+            userId,
+            sectionType: sectionName,
+            language: lang,
+          });
+
+          const contentField = sectionMapping[sectionName] || sectionName;
+
+          if (clusterSection) {
+            // Update existing section - prepend intro paragraph to existing content
+            const existingContent = clusterSection.content || '';
+            clusterSection.content = existingContent 
+              ? `${enhancedParagraph}\n\n${existingContent}`
+              : enhancedParagraph;
+            clusterSection.isApplied = true;
+            clusterSection.version += 1;
+            await clusterSection.save();
+          } else {
+            // Create new section with enhanced content directly in content field
+            clusterSection = await ClusterSection.create({
+              userId,
+              dprId,
+              sectionType: sectionName,
+              language: lang,
+              content: enhancedParagraph, // Directly save to content
+              generatedContent: '',
+              enhancedContent: '',
+              isApplied: true,
+              version: 1,
+            });
+          }
+
+          // Update DPRVersion content - prepend intro paragraph
+          if (!dprVersion.content[lang]) {
+            dprVersion.content[lang] = {};
+          }
+          const existingDPRContent = dprVersion.content[lang][contentField] || '';
+          dprVersion.content[lang][contentField] = existingDPRContent
+            ? `${enhancedParagraph}\n\n${existingDPRContent}`
+            : enhancedParagraph;
+
+          appliedSections.push(sectionName);
+          console.log(`✅ Enhanced and applied paragraph for section "${sectionName}"`);
+        } catch (error: any) {
+          console.error(`❌ Error enhancing section ${section.name}:`, error);
+          failedSections.push(section.name);
+        }
+      }
+
+      // Save DPRVersion
+      await dprVersion.save();
+
+      res.status(200).json({
+        success: true,
+        message: `Enhanced and applied ${appliedSections.length} sections`,
+        data: {
+          dprId,
+          appliedSections,
+          failedSections,
+          totalProcessed: sections.length,
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ Error enhancing and applying all sections:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to enhance and apply sections',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
    * Store generated sections separately (for user review before applying)
    */
   static async storeGeneratedSections(req: AuthRequest, res: Response): Promise<void> {
@@ -1111,6 +1282,8 @@ export class ClusterDPRController {
       // Apply enhanced content to the section
       clusterSection.content = clusterSection.enhancedContent;
       clusterSection.isApplied = true;
+      // Clear enhancedContent since it's now applied (user can regenerate if needed)
+      clusterSection.enhancedContent = '';
       clusterSection.version += 1;
       await clusterSection.save();
 
@@ -1139,11 +1312,21 @@ export class ClusterDPRController {
         'financialViability': 'financialProjections',
         'implementationSchedule': 'implementationSchedule',
         'expectedImpact': 'conclusion',
+        'conclusion': 'conclusion', // Direct mapping for conclusion section
         'annexures': 'annexures',
+        'projectSnapshot': 'projectSnapshot',
       };
 
       const contentField = sectionMapping[sectionName] || sectionName;
       dprVersion.content[contentKey][contentField] = clusterSection.content;
+      
+      // Clear enhancedContent from DPRVersion since it's now applied
+      if (dprVersion.content[contentKey].enhancedContent) {
+        const updatedEnhancedContent = { ...dprVersion.content[contentKey].enhancedContent };
+        delete updatedEnhancedContent[sectionName];
+        dprVersion.content[contentKey].enhancedContent = updatedEnhancedContent;
+      }
+      
       await dprVersion.save();
 
       console.log(`✅ Applied enhanced content for section "${sectionName}" to DPR ${dprId}`);
@@ -1154,7 +1337,9 @@ export class ClusterDPRController {
         data: {
           dprId,
           sectionName,
-          appliedContent: clusterSection.content.substring(0, 100) + '...',
+          contentField, // Return the mapped content field name
+          appliedContent: clusterSection.content, // Return full content, not truncated
+          sectionType: sectionName,
         },
       });
     } catch (error: any) {

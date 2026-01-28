@@ -75,9 +75,11 @@ Please generate a complete, professional DPR document matching the standard gove
 COVER PAGE (USE EXACT VALUES FROM DATA - NO PLACEHOLDERS):
 - Title: "DETAILED PROJECT REPORT"
 - Subtitle: "On Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'"
-- Submitted to: ${submittedTo}
-- Submitted by: ${spvName}
+- Submitted to: ${submittedTo} (MUST be a single line, typically "DIC, [District Name]" or similar - NO paragraphs or explanations)
+- Submitted by: ${clusterName} (MUST be the cluster name only - single line, NO paragraphs or explanations)
 - Prepared by: ${spvName} (or use step11 data if available)
+
+CRITICAL: "Submitted to" and "Submitted by" MUST be simple single-line entries. DO NOT write paragraphs or explanations for these fields. Just use the exact values provided above.
 
 TABLE OF CONTENTS:
 - Executive Summary (i-iv)
@@ -136,7 +138,8 @@ SPECIFIC SECTION REQUIREMENTS:
 - **Conclusion**: 400-600 words summarizing project rationale and expected benefits
 
 CRITICAL FORMATTING REQUIREMENTS:
-- Cover Page MUST include: "DETAILED PROJECT REPORT\nOn Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\nSubmitted to: ${submittedTo}\nSubmitted by: ${spvName}\nPrepared by: ${spvName}"
+- Cover Page MUST include: "DETAILED PROJECT REPORT\nOn Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\nSubmitted to: ${submittedTo}\nSubmitted by: ${clusterName}\nPrepared by: ${spvName}"
+CRITICAL: "Submitted to" and "Submitted by" must be simple single-line entries only. NO paragraphs or explanations.
 - Project Snapshot tables MUST use actual data values from step1, step4, step5, step6, step11
 - All sections MUST reference actual data values, not placeholders
 
@@ -223,7 +226,7 @@ Return only valid JSON without markdown code blocks.`;
     const submittedTo = clusterData.step11?.submittedTo || 'DIC, District';
 
     return {
-      coverPage: `# DETAILED PROJECT REPORT\n\n## On Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\n\n### ${district}, ${location}\n\n---\n\n**Submitted to:** ${submittedTo}\n**Submitted by:** ${spvName}\n**Prepared by:** ${spvName}\n**Date:** ${new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}\n\n---\n\n*This Detailed Project Report has been prepared in accordance with the guidelines for Cluster Development Projects.*`,
+      coverPage: `# DETAILED PROJECT REPORT\n\n## On Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\n\n### ${district}, ${location}\n\n---\n\n**Submitted to:** ${submittedTo}\n**Submitted by:** ${clusterName}\n**Prepared by:** ${spvName}\n**Date:** ${new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}\n\n---\n\n*This Detailed Project Report has been prepared in accordance with the guidelines for Cluster Development Projects.*`,
       tableOfContents: `# Table of Contents\n\n1. Executive Summary – Basic Cluster Details\n2. Introduction & Sector Overview\n3. District & Regional Profile\n4. Cluster Profile\n5. Value Chain Details\n6. Market Assessment\n7. Gap Analysis\n8. SWOT Analysis\n9. Proposed Interventions\n10. Common Facility Centre (CFC) Details\n11. SPV Details\n12. Project Cost Details\n13. Means of Finance\n14. Operating Cost & Revenue\n15. Financial Viability\n16. Project Implementation Schedule\n17. Expected Impact\n18. Annexures & Document Uploads`,
       sections: {
         executiveSummary: this.generateSectionContent(clusterData, 1, clusterName, location, district),
@@ -258,6 +261,12 @@ Return only valid JSON without markdown code blocks.`;
    */
   private static generateSectionContent(clusterData: any, step: number, clusterName?: string, location?: string, district?: string): string {
     const stepData = clusterData[`step${step}` as keyof typeof clusterData];
+    
+    // Special handling for Executive Summary (step 1) - generate as paragraph
+    if (step === 1) {
+      return this.generateExecutiveSummaryParagraph(clusterData, clusterName, location, district);
+    }
+    
     if (!stepData) {
       return `Section ${step} content will be generated based on provided data for ${clusterName || 'the cluster'} in ${location || 'the location'}, ${district || 'the district'}.`;
     }
@@ -280,6 +289,52 @@ Return only valid JSON without markdown code blocks.`;
     content += this.formatStepDataAsText(stepData);
 
     return content;
+  }
+
+  /**
+   * Generate Executive Summary as a comprehensive paragraph
+   */
+  private static generateExecutiveSummaryParagraph(clusterData: any, clusterName?: string, location?: string, district?: string): string {
+    const s1 = clusterData.step1 || {};
+    const s11 = clusterData.step11 || {};
+    
+    const clusterNameValue = clusterName || s1.clusterName || 'the Cluster';
+    const locationValue = location || s1.location || 'the location';
+    const districtValue = district || s1.district || 'the district';
+    const geographicalSpread = s1.geographicalSpread || 'multiple villages';
+    const natureOfBusiness = s1.natureOfBusiness || 'business activities';
+    const majorProducts = s1.majorProducts || 'products';
+    
+    const enterpriseCount = s1.enterpriseCount || {};
+    const micro = enterpriseCount.micro || 0;
+    const small = enterpriseCount.small || 0;
+    const medium = enterpriseCount.medium || 0;
+    const totalEnterprises = micro + small + medium;
+    
+    const ageOfEnterprises = s1.ageOfEnterprises || {};
+    const employmentPerUnit = s1.employmentPerUnit || {};
+    const investmentPerUnit = s1.investmentPerUnit || 0;
+    const turnoverPerUnit = s1.turnoverPerUnit || 0;
+    const marketServed = s1.marketServed || {};
+    const domestic = marketServed.domestic || 0;
+    const exportShare = marketServed.export || 0;
+    
+    const spvName = s11.spvName || 'the Special Purpose Vehicle';
+    const projectCost = clusterData.step12?.totalCost || 0;
+    const expectedEmployment = clusterData.step17?.employmentGeneration || 0;
+    
+    // Generate comprehensive paragraph
+    const paragraph = `The ${clusterNameValue} located in ${locationValue}, ${districtValue}, represents a significant initiative under the Micro Cluster Development Programme. The cluster encompasses ${geographicalSpread} and focuses on ${natureOfBusiness}, with primary products including ${majorProducts}. The cluster comprises a total of ${totalEnterprises} enterprises, including ${micro} micro enterprises, ${small} small enterprises, and ${medium} medium enterprises, demonstrating a diverse and robust industrial ecosystem. ` +
+      `The cluster's enterprises have varying operational histories, with ${ageOfEnterprises.lessThan5 || 0} enterprises operating for less than 5 years, ${ageOfEnterprises.between5And10 || 0} enterprises between 5-10 years, and ${ageOfEnterprises.moreThan10 || 0} enterprises with over 10 years of experience. ` +
+      `In terms of employment generation, the cluster provides substantial employment opportunities across different scales, with ${employmentPerUnit.lessThan5 || 0} units employing less than 5 workers, ${employmentPerUnit.between5And10 || 0} units employing 5-10 workers, and ${employmentPerUnit.moreThan10 || 0} units employing more than 10 workers. ` +
+      `The average investment per unit stands at ₹${investmentPerUnit.toLocaleString('en-IN')}, while the average turnover per unit is ₹${turnoverPerUnit.toLocaleString('en-IN')}, indicating strong economic activity and growth potential. ` +
+      `The market served by the cluster is distributed with ${domestic}% domestic market share and ${exportShare}% export orientation, showcasing both local market strength and international competitiveness. ` +
+      `${spvName} has been established as the implementing agency for this cluster development initiative. ` +
+      (projectCost > 0 ? `The total project cost is estimated at ₹${projectCost.toLocaleString('en-IN')}, ` : '') +
+      (expectedEmployment > 0 ? `with an expected employment generation of ${expectedEmployment} persons. ` : '') +
+      `This comprehensive development project aims to enhance the cluster's competitiveness, improve production capabilities, strengthen market linkages, and create sustainable employment opportunities, thereby contributing significantly to the regional economic development and the overall growth of the MSME sector.`;
+
+    return paragraph;
   }
 
   /**
@@ -567,8 +622,8 @@ Return only valid JSON without markdown code blocks.`;
           'valueChain', 'marketAspects', 'marketAssessment', 'gapAnalysis', 'swotAnalysis',
           'proposedInterventions', 'cfcDetails', 'spvDetails', 'projectCost',
           'meansOfFinance', 'operatingCostRevenue', 'financialViability',
-          'implementationSchedule', 'expectedImpact', 'annexures',
-          'coverPage', 'tableOfContents',
+          'implementationSchedule', 'expectedImpact', 'conclusion', 'annexures',
+          'coverPage', 'tableOfContents', 'projectSnapshot',
           // Subsections
           'districtProfile-geography', 'districtProfile-climate',
           'districtProfile-infrastructure', 'districtProfile-keyEconomicActivities',
@@ -636,39 +691,61 @@ Return only valid JSON without markdown code blocks.`;
       const location = clusterData.step1?.location || '';
       const district = clusterData.step1?.district || '';
 
-      // Create section-specific prompts
+      // Create section-specific prompts - Generate intro paragraphs for each section
       const sectionPrompts: Record<string, string> = {
-        'projectSnapshot': `Generate a comprehensive paragraph (150-200 words) for the Project Snapshot section. Use the following data: Cluster Name: ${clusterName}, Location: ${location}, District: ${district}, Enterprise Count: ${JSON.stringify(clusterData.step1?.enterpriseCount || {})}, SPV Name: ${clusterData.step11?.spvName || 'N/A'}, Major Products: ${clusterData.step1?.majorProducts || 'N/A'}. Write a professional, government-ready paragraph summarizing the project overview, cluster characteristics, and key highlights.`,
+        'executiveSummary': `Generate an introductory paragraph (150-200 words) for the Executive Summary section that provides an overview and context. Use the following data: Cluster Name: ${clusterName}, Location: ${location}, District: ${district}, Enterprise Count: ${JSON.stringify(clusterData.step1?.enterpriseCount || {})}, Major Products: ${clusterData.step1?.majorProducts || 'N/A'}. Write a professional, government-ready introductory paragraph that summarizes the project overview, cluster characteristics, and key highlights. This paragraph will serve as an introduction to the section.`,
+        'projectSnapshot': `Generate an introductory paragraph (150-200 words) for the Project Snapshot section that provides an overview and context. Use the following data: Cluster Name: ${clusterName}, Location: ${location}, District: ${district}, Enterprise Count: ${JSON.stringify(clusterData.step1?.enterpriseCount || {})}, SPV Name: ${clusterData.step11?.spvName || 'N/A'}, Major Products: ${clusterData.step1?.majorProducts || 'N/A'}. Write a professional, government-ready introductory paragraph that summarizes the project overview, cluster characteristics, and key highlights. This paragraph will serve as an introduction to the section.`,
 
-        'operatingCostRevenue': `Generate a comprehensive paragraph (150-200 words) for the Operating Cost & Revenue section. Use the following data: ${JSON.stringify(sectionData)}. Calculate and mention: Total annual operating cost, breakdown of major cost components (raw material, power, wages, etc.), annual production volume, annual sales realization, and operating surplus. Write a professional paragraph explaining the operational viability and financial sustainability of the project.`,
+        'operatingCostRevenue': `Generate an introductory paragraph (150-200 words) for the Operating Cost & Revenue section that provides context and overview. Use the following data: ${JSON.stringify(sectionData)}. Calculate and mention: Total annual operating cost, breakdown of major cost components (raw material, power, wages, etc.), annual production volume, annual sales realization, and operating surplus. Write a professional introductory paragraph explaining the operational viability and financial sustainability of the project. This paragraph will serve as an introduction to the section.`,
 
-        'projectCost': `Generate a comprehensive paragraph (150-200 words) for the Project Cost & Means of Finance section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Total project cost, cost breakdown (land, building, machinery, etc.), means of finance (SPV contribution, government grant, bank loan, etc.), and financial structure. Write a professional paragraph explaining the project investment and financing plan.`,
+        'projectCost': `Generate an introductory paragraph (150-200 words) for the Project Cost & Means of Finance section that provides context and overview. Use the following data: ${JSON.stringify(sectionData)}. Mention: Total project cost, cost breakdown (land, building, machinery, etc.), means of finance (SPV contribution, government grant, bank loan, etc.), and financial structure. Write a professional introductory paragraph explaining the project investment and financing plan. This paragraph will serve as an introduction to the section.`,
 
-        'financialViability': `Generate a comprehensive paragraph (150-200 words) for the Financial Viability section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Profit & Loss projections, cash flow, balance sheet, break-even point, IRR, NPV, and overall financial viability. Write a professional paragraph explaining the financial sustainability and profitability of the project.`,
+        'financialViability': `Generate an introductory paragraph (150-200 words) for the Financial Viability section that provides context and overview. Use the following data: ${JSON.stringify(sectionData)}. Mention: Profit & Loss projections, cash flow, balance sheet, break-even point, IRR, NPV, and overall financial viability. Write a professional introductory paragraph explaining the financial sustainability and profitability of the project. This paragraph will serve as an introduction to the section.`,
 
-        'expectedImpact': `Generate a comprehensive paragraph (150-200 words) for the Expected Impact section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Employment generation, turnover growth, export growth, income enhancement, and sustainability outcomes. Write a professional paragraph explaining the socio-economic impact and benefits of the project.`,
+        'expectedImpact': `Generate an introductory paragraph (150-200 words) for the Expected Impact section that provides context and overview. Use the following data: ${JSON.stringify(sectionData)}. Mention: Employment generation, turnover growth, export growth, income enhancement, and sustainability outcomes. Write a professional introductory paragraph explaining the socio-economic impact and benefits of the project. This paragraph will serve as an introduction to the section.`,
 
-        'clusterProfile': `Generate a comprehensive paragraph (150-200 words) for the Cluster Profile section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Cluster evolution, present status, number of units, production capacity, technology level, and key stakeholders. Write a professional paragraph describing the cluster's current state and characteristics.`,
+        'clusterProfile': `Generate an introductory paragraph (150-200 words) for the Cluster Profile section that provides context and overview. Use the following data: ${JSON.stringify(sectionData)}. Mention: Cluster evolution, present status, number of units, production capacity, technology level, and key stakeholders. Write a professional introductory paragraph describing the cluster's current state and characteristics. This paragraph will serve as an introduction to the section.`,
 
-        'valueChain': `Generate a comprehensive paragraph (150-200 words) for the Value Chain Mapping section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Raw materials, value addition stages, intermediate products, final products, and major buyers. Write a professional paragraph explaining the complete value chain structure.`,
+        'valueChain': `Generate an introductory paragraph (150-200 words) for the Value Chain Mapping section that provides context and overview. Use the following data: ${JSON.stringify(sectionData)}. Mention: Raw materials, value addition stages, intermediate products, final products, and major buyers. Write a professional introductory paragraph explaining the complete value chain structure. This paragraph will serve as an introduction to the section.`,
 
-        'marketAspects': `Generate a comprehensive paragraph (150-200 words) for the Market Aspects section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Existing demand, demand-supply gap, competition analysis, price trends, export potential, and target market. Write a professional paragraph analyzing the market scenario and opportunities.`,
+        'marketAspects': `Generate an introductory paragraph (150-200 words) for the Market Aspects section that provides context and overview. Use the following data: ${JSON.stringify(sectionData)}. Mention: Existing demand, demand-supply gap, competition analysis, price trends, export potential, and target market. Write a professional introductory paragraph analyzing the market scenario and opportunities. This paragraph will serve as an introduction to the section.`,
 
-        'swotAnalysis': `Generate a comprehensive paragraph (150-200 words) for the SWOT Analysis section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Key strengths, weaknesses, opportunities, and threats. Write a professional paragraph summarizing the SWOT analysis and strategic implications.`,
+        'swotAnalysis': `Generate an introductory paragraph (150-200 words) for the SWOT Analysis section that provides context and overview. Use the following data: ${JSON.stringify(sectionData)}. Mention: Key strengths, weaknesses, opportunities, and threats. Write a professional introductory paragraph summarizing the SWOT analysis and strategic implications. This paragraph will serve as an introduction to the section.`,
 
-        'gapAnalysis': `Generate a comprehensive paragraph (150-200 words) for the Gap Analysis section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Technology gaps, infrastructure gaps, skill gaps, marketing gaps, financial gaps, and justification for intervention. Write a professional paragraph explaining the identified gaps and need for intervention.`,
+        'gapAnalysis': `Generate an introductory paragraph (150-200 words) for the Gap Analysis section that provides context and overview. Use the following data: ${JSON.stringify(sectionData)}. Mention: Technology gaps, infrastructure gaps, skill gaps, marketing gaps, financial gaps, and justification for intervention. Write a professional introductory paragraph explaining the identified gaps and need for intervention. This paragraph will serve as an introduction to the section.`,
 
-        'cfcDetails': `Generate a comprehensive paragraph (150-200 words) for the CFC Operation & Management section. Use the following data: ${JSON.stringify(sectionData)}. Mention: CFC name, location, plant & machinery, manufacturing process, capacity, and requirements (power, water, manpower). Write a professional paragraph describing the CFC setup and operations.`,
+        'cfcDetails': `Generate an introductory paragraph (150-200 words) for the CFC Operation & Management section that provides context and overview. Use the following data: ${JSON.stringify(sectionData)}. Mention: CFC name, location, plant & machinery, manufacturing process, capacity, and requirements (power, water, manpower). Write a professional introductory paragraph describing the CFC setup and operations. This paragraph will serve as an introduction to the section.`,
 
-        'spvDetails': `Generate a comprehensive paragraph (150-200 words) for the SPV Member Units section. Use the following data: ${JSON.stringify(sectionData)}. Mention: SPV name, legal status, member units, shareholding pattern, objectives, and roles. Write a professional paragraph describing the SPV structure and governance.`,
+        'spvDetails': `Generate an introductory paragraph (150-200 words) for the SPV Member Units section that provides context and overview. Use the following data: ${JSON.stringify(sectionData)}. Mention: SPV name, legal status, member units, shareholding pattern, objectives, and roles. Write a professional introductory paragraph describing the SPV structure and governance. This paragraph will serve as an introduction to the section.`,
 
-        'implementationSchedule': `Generate a comprehensive paragraph (150-200 words) for the Project Implementation Schedule section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Project start date, key milestones, timeline, and total implementation period. Write a professional paragraph explaining the project timeline and implementation plan.`,
+        'implementationSchedule': `Generate an introductory paragraph (150-200 words) for the Project Implementation Schedule section that provides context and overview. Use the following data: ${JSON.stringify(sectionData)}. Mention: Project start date, key milestones, timeline, and total implementation period. Write a professional introductory paragraph explaining the project timeline and implementation plan. This paragraph will serve as an introduction to the section.`,
 
-        'conclusion': `Generate a comprehensive conclusion paragraph (200-250 words) for the DPR. Summarize: Project rationale, key highlights, expected benefits, financial viability, expected impact, and recommendation. Use data from the entire cluster DPR. Write a professional, government-ready conclusion that ties together all aspects of the project.`,
+        'conclusion': `Generate a comprehensive conclusion paragraph (200-250 words) for the DPR. 
 
-        'introduction': `Generate a comprehensive paragraph (150-200 words) for the Introduction section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Sector/Industry type, sector description, national importance, and state-level importance. Write a professional paragraph explaining the sector context and significance.`,
+PROJECT SUMMARY:
+- Cluster Name: ${clusterName}
+- Location: ${location}, District: ${district}
+- Major Products: ${clusterData.step1?.majorProducts || 'N/A'}
+- Total Enterprises: ${(clusterData.step1?.enterpriseCount?.micro || 0) + (clusterData.step1?.enterpriseCount?.small || 0) + (clusterData.step1?.enterpriseCount?.medium || 0)}
+- SPV Name: ${clusterData.step11?.spvName || 'N/A'}
+- Project Cost: ₹${(clusterData.step12?.totalCost || 0).toLocaleString('en-IN')}
+- Expected Employment Generation: ${clusterData.step17?.employmentGeneration || 0}
+- Expected Turnover Growth: ${clusterData.step17?.turnoverGrowth || 0}%
+- Expected Export Growth: ${clusterData.step17?.exportGrowth || 0}%
+- Expected Income Enhancement: ₹${(clusterData.step17?.incomeEnhancement || 0).toLocaleString('en-IN')}
 
-        'districtProfile': `Generate a comprehensive paragraph (150-200 words) for the District & Regional Profile section. Use the following data: ${JSON.stringify(sectionData)}. Mention: Geography, climate, infrastructure, key economic activities, raw material availability, industrial infrastructure, and connectivity. Write a professional paragraph describing the district's characteristics and advantages.`,
+Write a professional, government-ready conclusion paragraph (200-250 words) that:
+1. Summarizes the project rationale and key highlights
+2. Highlights expected benefits (employment, turnover, export, income)
+3. Mentions financial viability and project sustainability
+4. Provides a strong recommendation for approval
+5. Ties together all aspects of the cluster development project
+
+Use exact values from the data above. Write in a formal, persuasive tone suitable for government submission.`,
+
+        'introduction': `Generate an introductory paragraph (150-200 words) for the Introduction section that provides context and overview. Use the following data: ${JSON.stringify(sectionData)}. Mention: Sector/Industry type, sector description, national importance, and state-level importance. Write a professional introductory paragraph explaining the sector context and significance. This paragraph will serve as an introduction to the section.`,
+
+        'districtProfile': `Generate an introductory paragraph (150-200 words) for the District & Regional Profile section that provides context and overview. Use the following data: ${JSON.stringify(sectionData)}. Mention: Geography, climate, infrastructure, key economic activities, raw material availability, industrial infrastructure, and connectivity. Write a professional introductory paragraph describing the district's characteristics and advantages. This paragraph will serve as an introduction to the section.`,
 
         'tableExplanation': `Generate a comprehensive explanation paragraph (100-150 words) for the following table data: ${JSON.stringify(sectionData)}. Explain what the table shows, key findings, trends, and implications. Write a professional paragraph that provides context and analysis for the table.`,
 

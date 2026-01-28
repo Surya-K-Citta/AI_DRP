@@ -60,6 +60,7 @@ router.post('/cluster/:dprId/generated-sections', ClusterDPRController.storeGene
 router.post('/cluster/:dprId/sections/regenerate', ClusterDPRController.regenerateClusterSection);
 router.post('/cluster/:dprId/apply-generated-section', ClusterDPRController.applyGeneratedSection);
 router.post('/cluster/:dprId/apply-enhanced-content', ClusterDPRController.applyEnhancedContent);
+router.post('/cluster/:dprId/enhance-and-apply-all', ClusterDPRController.enhanceAndApplyAllSections);
 router.get('/cluster/:dprId', ClusterDPRController.getClusterDPR);
 router.get('/cluster/:dprId/sections', ClusterDPRController.getClusterSections);
 

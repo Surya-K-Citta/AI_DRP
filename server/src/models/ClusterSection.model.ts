@@ -51,9 +51,11 @@ const clusterSectionSchema = new Schema<IClusterSection>(
         'financialViability',
         'implementationSchedule',
         'expectedImpact',
+        'conclusion', // Conclusion section
         'annexures',
         'coverPage',
         'tableOfContents',
+        'projectSnapshot', // Project snapshot section
         // Subsection types
         'districtProfile-geography',
         'districtProfile-climate',

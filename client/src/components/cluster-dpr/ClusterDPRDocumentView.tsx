@@ -28,7 +28,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     project?.stepData ||
     {};
   
-  const content = dpr.content?.[viewLanguage] || dpr.content?.english || {};
+  // Use contentRefreshKey to force re-read of content when it changes
+  const content = (dpr.content?.[viewLanguage] || dpr.content?.english || {});
   
   // Debug logging
   console.log('📊 ClusterDPRDocumentView - Data extraction:', {
@@ -74,6 +75,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   const [applyingSections, setApplyingSections] = useState<Record<string, boolean>>({});
   const [regeneratingSections, setRegeneratingSections] = useState<Record<string, boolean>>({});
   const [regenerateInstructions, setRegenerateInstructions] = useState<Record<string, string>>({});
+  const [contentRefreshKey, setContentRefreshKey] = useState(0); // Force re-render when content changes
 
   const getCurrentSectionContent = (sectionName: string) => {
     // Prefer ClusterSection applied content (works for subsections too)
@@ -101,7 +103,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       financialViability: 'financialProjections',
       implementationSchedule: 'implementationSchedule',
       expectedImpact: 'conclusion',
+      conclusion: 'conclusion',
       annexures: 'annexures',
+      projectSnapshot: 'projectSnapshot',
     };
 
     const contentField = sectionMapping[sectionName] || sectionName;
@@ -116,9 +120,25 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     const dprEnhancedContent = content.enhancedContent || dpr.content?.english?.enhancedContent || dpr.content?.telugu?.enhancedContent || {};
     const dprGeneratedSections = content.generatedSections || dpr.content?.english?.generatedSections || dpr.content?.telugu?.generatedSections || {};
     
-    if (Object.keys(dprEnhancedContent).length > 0) {
-      console.log('📥 Reloaded enhanced content from database:', Object.keys(dprEnhancedContent).length, 'sections');
-      setEnhancedContent(dprEnhancedContent);
+    // Filter out sections that have been applied (check ClusterSection isApplied flag)
+    const filteredEnhancedContent: Record<string, string> = {};
+    if (dpr?.clusterSections?.[viewLanguage]) {
+      Object.entries(dprEnhancedContent).forEach(([sectionName, content]) => {
+        const section = dpr.clusterSections[viewLanguage][sectionName];
+        // Only include enhanced content if section exists and is NOT applied
+        // If section doesn't exist in clusterSections, include it (might be from DPRVersion)
+        if (!section || !section.isApplied) {
+          filteredEnhancedContent[sectionName] = content as string;
+        }
+      });
+    } else {
+      // Fallback: use all enhanced content if clusterSections not available
+      Object.assign(filteredEnhancedContent, dprEnhancedContent);
+    }
+    
+    if (Object.keys(filteredEnhancedContent).length > 0) {
+      console.log('📥 Reloaded enhanced content from database:', Object.keys(filteredEnhancedContent).length, 'sections');
+      setEnhancedContent(filteredEnhancedContent);
     } else {
       setEnhancedContent({});
     }
@@ -129,7 +149,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     } else {
       setGeneratedSections({});
     }
-  }, [dpr?._id || dpr?.id, viewLanguage, content]);
+  }, [dpr?._id || dpr?.id, viewLanguage, content, contentRefreshKey]);
 
   // Save to database whenever enhancedContent changes (removed localStorage dependency)
   useEffect(() => {
@@ -517,11 +537,72 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
 
     setApplyingSections((prev) => ({ ...prev, [`enhanced-${sectionName}`]: true }));
     try {
+      // Get the enhanced content before applying (in case it gets removed)
+      const enhancedContentToApply = enhancedContent[sectionName];
+      
       const result = await api.applyClusterDPREnhancedContent(dprId, sectionName, viewLanguage);
-      if (result.success) {
+      if (result.success && result.data) {
+        // Use the applied content from the response (full content from database)
+        const appliedContent = result.data.appliedContent || enhancedContentToApply;
+        const contentField = result.data.contentField || sectionName;
+        
+        if (!appliedContent) {
+          toast.error('No content to apply');
+          return;
+        }
+        
+        // Immediately remove enhanced content from state since it's now applied
+        setEnhancedContent((prev) => {
+          const updated = { ...prev };
+          delete updated[sectionName];
+          return updated;
+        });
+        
+        // Also clear from DPR content's enhancedContent field
+        if (dpr?.content?.[viewLanguage]?.enhancedContent) {
+          const updatedEnhanced = { ...dpr.content[viewLanguage].enhancedContent };
+          delete updatedEnhanced[sectionName];
+          dpr.content[viewLanguage].enhancedContent = updatedEnhanced;
+        }
+        if (dpr?.content?.english?.enhancedContent) {
+          const updatedEnhanced = { ...dpr.content.english.enhancedContent };
+          delete updatedEnhanced[sectionName];
+          dpr.content.english.enhancedContent = updatedEnhanced;
+        }
+        
         toast.success(`Enhanced content for "${sectionName}" applied successfully!`);
-        // Reload the page or refresh content
-        window.location.reload();
+        
+        // Reload DPR data from database to ensure we have the latest state with applied content
+        try {
+          const reloadedDPRResponse = await api.getClusterDPR(dprId);
+          if (reloadedDPRResponse.success && reloadedDPRResponse.data) {
+            const reloadedDPR = reloadedDPRResponse.data;
+            
+            // Update the dpr object with reloaded data (mutating prop since it's passed from parent)
+            // This ensures the parent component sees the updated content
+            if (dpr) {
+              Object.assign(dpr, reloadedDPR);
+              // Specifically update content to ensure it's reflected
+              if (reloadedDPR.content) {
+                dpr.content = reloadedDPR.content;
+              }
+              // Update clusterSections if available
+              if (reloadedDPR.clusterSections) {
+                dpr.clusterSections = reloadedDPR.clusterSections;
+              }
+            }
+            
+            // Force re-render by updating refresh key
+            setContentRefreshKey(prev => prev + 1);
+            
+            console.log(`✅ Reloaded DPR after applying enhanced content for "${sectionName}"`);
+          }
+        } catch (reloadError) {
+          console.error('Failed to reload DPR after applying:', reloadError);
+          // Still show success - content is saved in database
+          // Force re-render anyway to update UI
+          setContentRefreshKey(prev => prev + 1);
+        }
       } else {
         toast.error(result.message || 'Failed to apply enhanced content');
       }
@@ -969,7 +1050,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       Submitted to: 
     </p>
     <p className="text-sm" style={{ color: '#1F2937' }}>
-      {s11.submittedTo || 'DIC, District'}
+      { 'DIC, District'}
     </p>
   </div>
 
@@ -987,7 +1068,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       </p>
       <div>
         <p className="text-sm" style={{ color: '#1F2937' }}>
-          {s11.spvName || 'SPV Name'}
+          {s1.clusterName || 'Cluster Name'}
         </p>
         <p className="text-sm" style={{ color: '#1F2937' }}>
           {s1.location || 'Location'}
@@ -1415,8 +1496,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       {renderPageWrapper(
         <div>
           {renderSectionTitle('EXECUTIVE SUMMARY', 1)}
-          {renderGeneratedSection('executiveSummary', 'Executive Summary')}
-          {renderEnhancedContent('executiveSummary', 'Executive Summary')}
         {content.executiveSummary ? (
           <div className="prose max-w-none text-sm leading-relaxed">
             <FormattedText text={content.executiveSummary} />
@@ -1483,8 +1562,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       {renderPageWrapper(
         <div>
           {renderSectionTitle('1. INTRODUCTION', 2)}
-          {renderGeneratedSection('introduction', 'Introduction & Sector Overview')}
-          {renderEnhancedContent('introduction', 'Introduction & Sector Overview')}
         {content.introduction ? (
           <div className="prose max-w-none text-sm leading-relaxed">
             <FormattedText text={content.introduction} />
@@ -1613,8 +1690,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('2. CLUSTER PROFILE', 4)}
-          {renderGeneratedSection('clusterProfile', 'Cluster Profile')}
-          {renderEnhancedContent('clusterProfile', 'Cluster Profile')}
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">2.1 Evolution of the Cluster</h3>
@@ -1696,8 +1771,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('3. CLUSTER VALUE CHAIN MAPPING', 5)}
-          {renderGeneratedSection('valueChain', 'Value Chain Mapping')}
-          {renderEnhancedContent('valueChain', 'Value Chain Mapping')}
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">3.1 Value Chain Stages</h3>
@@ -1793,8 +1866,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('4. MARKET ASPECTS', 6)}
-          {renderGeneratedSection('marketAspects', 'Market Aspects')}
-          {renderEnhancedContent('marketAspects', 'Market Aspects')}
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">4.1 Demand–Supply Analysis</h3>
@@ -1851,7 +1922,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('5. SWOT ANALYSIS', 8)}
-          {renderEnhancedContent('swotAnalysis')}
         <div className="grid grid-cols-2 gap-6 text-sm">
           <div>
             <h3 className="text-lg font-semibold mb-3 text-green-700">Strengths</h3>
@@ -1913,7 +1983,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('6. NEED GAP ANALYSIS', 7)}
-          {renderEnhancedContent('gapAnalysis')}
         {renderTable(
           ['Area', 'Existing Gap'],
           [
@@ -1938,7 +2007,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           {renderPageWrapper(
             <div>
               {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT', 10)}
-              {renderEnhancedContent('cfcDetails')}
               <div className="space-y-6 text-sm">
                 <div>
                   <h3 className="text-xl font-semibold mb-3">7.1 CFC Overview</h3>
@@ -2025,7 +2093,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           {renderPageWrapper(
             <div>
               {renderSectionTitle('8. SPV MEMBER UNITS', 11)}
-              {renderEnhancedContent('spvDetails')}
               <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3">8.1 SPV Profile</h3>
@@ -2165,7 +2232,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('9. PROJECT COST & MEANS OF FINANCE', 12)}
-          {renderEnhancedContent('projectCost')}
         <div className="space-y-6 text-sm">
           <div>
             <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.1 Project Cost</h3>
@@ -2268,7 +2334,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           />
           <div className="relative z-10">
             {renderSectionTitle('9.5 OPERATING COST & REVENUE', 14)}
-            {renderEnhancedContent('operatingCostRevenue')}
           <div className="space-y-6 text-sm">
             <div>
               <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.5.1 Operating Costs</h3>
@@ -2329,7 +2394,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('10. FINANCIAL VIABILITY', 15)}
-          {renderEnhancedContent('financialViability')}
         <div className="space-y-6 text-sm">
           {/* Profit & Loss Statement */}
           {s15.profitAndLossProjections && s15.profitAndLossProjections.length > 0 && (
@@ -2549,7 +2613,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('11. EXPECTED IMPACT', 17)}
-          {renderEnhancedContent('expectedImpact')}
         {renderTable(
           ['Parameter', 'Before', 'After'],
           [
@@ -2785,8 +2848,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {renderSectionTitle('CONCLUSION')}
-          {renderEnhancedContent('conclusion')}
-          {!enhancedContent['conclusion'] && content.conclusion ? (
+          {content.conclusion ? (
           <div className="prose max-w-none text-sm leading-relaxed">
             <FormattedText text={content.conclusion} />
           </div>
@@ -3082,52 +3144,53 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               });
 
               const totalSections = validSections.length;
-              let enhancedCount = 0;
               const dprId = dpr?._id || dpr?.id;
               
-              toast.loading(`Enhancing sections: 0/${totalSections}`, { id: 'enhance-all', duration: Infinity });
+              if (!dprId) {
+                toast.error('DPR not found. Please generate DPR first.');
+                return;
+              }
+              
+              toast.loading(`Enhancing and applying paragraphs to all sections: 0/${totalSections}`, { id: 'enhance-all', duration: Infinity });
               
               try {
-                // Track enhanced content as we go
-                let currentEnhancedContent = { ...enhancedContent };
+                // Use the new endpoint that enhances and directly applies paragraphs to sections
+                const result = await api.enhanceAndApplyAllSections(dprId, validSections, viewLanguage);
                 
-                // Enhance all sections sequentially to show progress
-                for (const section of validSections) {
+                if (result.success && result.data) {
+                  const { appliedSections, failedSections, totalProcessed } = result.data;
+                  
+                  // Reload DPR to get updated content
                   try {
-                    // handleEnhanceSection already saves to database, but we need to track the content
-                    const result = await api.enhanceClusterDPRSection(section.name, section.data, clusterData);
-                    if (result.success && result.data?.enhancedParagraph) {
-                      // Update state
-                      currentEnhancedContent[section.name] = result.data.enhancedParagraph;
-                      setEnhancedContent({ ...currentEnhancedContent });
-                      
-                      // Save directly to database immediately
-                      if (dprId) {
-                        await api.saveClusterDPREnhancedContent(dprId, currentEnhancedContent, viewLanguage);
-                        console.log(`💾 Saved enhanced content for ${section.name} to database`);
+                    const reloadedDPRResponse = await api.getClusterDPR(dprId);
+                    if (reloadedDPRResponse.success && reloadedDPRResponse.data) {
+                      const reloadedDPR = reloadedDPRResponse.data;
+                      if (dpr) {
+                        Object.assign(dpr, reloadedDPR);
+                        if (reloadedDPR.content) {
+                          dpr.content = reloadedDPR.content;
+                        }
+                        if (reloadedDPR.clusterSections) {
+                          dpr.clusterSections = reloadedDPR.clusterSections;
+                        }
                       }
+                      setContentRefreshKey(prev => prev + 1);
                     }
-                    enhancedCount++;
-                    toast.loading(`Enhancing sections: ${enhancedCount}/${totalSections}`, { id: 'enhance-all', duration: Infinity });
-                  } catch (error: any) {
-                    console.error(`Failed to enhance ${section.name}:`, error);
-                    // Continue with next section even if one fails
+                  } catch (reloadError) {
+                    console.error('Failed to reload DPR after enhancing:', reloadError);
                   }
-                }
-                
-                // Final save to ensure all enhanced content is in database
-                if (dprId && Object.keys(currentEnhancedContent).length > 0) {
-                  try {
-                    await api.saveClusterDPREnhancedContent(dprId, currentEnhancedContent, viewLanguage);
-                    console.log('💾 Final save: Saved all enhanced content to database');
-                  } catch (error) {
-                    console.error('Error in final save of enhanced content to database:', error);
+                  
+                  if (failedSections.length === 0) {
+                    toast.success(`Successfully enhanced and applied paragraphs to ${appliedSections.length} sections!`, { id: 'enhance-all' });
+                  } else {
+                    toast.success(`Enhanced ${appliedSections.length}/${totalProcessed} sections. ${failedSections.length} failed.`, { id: 'enhance-all' });
                   }
+                } else {
+                  toast.error(result.message || 'Failed to enhance sections', { id: 'enhance-all' });
                 }
-                
-                toast.success(`Successfully enhanced ${enhancedCount}/${totalSections} sections and saved to database!`, { id: 'enhance-all' });
               } catch (error: any) {
-                toast.error(`Enhanced ${enhancedCount}/${totalSections} sections. Some failed.`, { id: 'enhance-all' });
+                console.error('Error enhancing and applying all sections:', error);
+                toast.error(error.message || 'Failed to enhance sections', { id: 'enhance-all' });
               }
             }}
             disabled={Object.values(enhancingSections).some(v => v)}

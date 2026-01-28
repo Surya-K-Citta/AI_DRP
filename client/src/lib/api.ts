@@ -591,6 +591,19 @@ class APIClient {
     );
   }
 
+  async enhanceAndApplyAllSections(dprId: string, sections: Array<{ name: string; data: any }>, language: string = 'english') {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post(`/dpr/cluster/${dprId}/enhance-and-apply-all`, {
+          sections,
+          language,
+        });
+        return response.data;
+      },
+      () => Promise.resolve({ success: false, message: 'Failed to enhance and apply sections' })
+    );
+  }
+
   // Image generation and upload for Cluster DPR
   async generateClusterDPRImage(prompt: string, sectionType: string, sectionInfo: any) {
     return this.handleRequest(
