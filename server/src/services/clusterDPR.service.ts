@@ -550,7 +550,43 @@ Return only valid JSON without markdown code blocks.`;
 
       // Store generated sections in ClusterSection model
       const sectionsToStore = enhancedDPR.sections || {};
+      
+      // Map section names to valid enum values
+      const sectionTypeMapping: Record<string, string> = {
+        'marketAssessment': 'marketAspects', // Map marketAssessment to marketAspects
+        // Add other mappings if needed
+      };
+      
       const sectionPromises = Object.entries(sectionsToStore).map(async ([sectionType, content]) => {
+        // Map section type to valid enum value
+        const mappedSectionType = sectionTypeMapping[sectionType] || sectionType;
+        
+        // Skip if section type is not in valid enum (after mapping)
+        const validSectionTypes = [
+          'executiveSummary', 'introduction', 'districtProfile', 'clusterProfile',
+          'valueChain', 'marketAspects', 'marketAssessment', 'gapAnalysis', 'swotAnalysis',
+          'proposedInterventions', 'cfcDetails', 'spvDetails', 'projectCost',
+          'meansOfFinance', 'operatingCostRevenue', 'financialViability',
+          'implementationSchedule', 'expectedImpact', 'annexures',
+          'coverPage', 'tableOfContents',
+          // Subsections
+          'districtProfile-geography', 'districtProfile-climate',
+          'districtProfile-infrastructure', 'districtProfile-keyEconomicActivities',
+          'districtProfile-industrialInfrastructure', 'clusterProfile-evolution',
+          'marketAspects-demandSupply', 'marketAspects-competition',
+          'marketAspects-priceTrends', 'marketAspects-exportPotential',
+          'marketAspects-targetMarket',
+        ];
+        
+        // Only process if it's a valid section type (including subsections that start with valid types)
+        const isValidSection = validSectionTypes.includes(mappedSectionType) ||
+          mappedSectionType.includes('-') && validSectionTypes.some(valid => mappedSectionType.startsWith(valid.split('-')[0]));
+        
+        if (!isValidSection) {
+          console.warn(`⚠️ Skipping invalid section type: ${sectionType} (mapped to: ${mappedSectionType})`);
+          return Promise.resolve([]);
+        }
+        
         // Store for both languages if bilingual
         const languages = language === 'bilingual' ? ['english', 'telugu'] : [language === 'telugu' ? 'telugu' : 'english'];
         
@@ -558,9 +594,9 @@ Return only valid JSON without markdown code blocks.`;
           await ClusterSection.create({
             userId,
             dprId: dprVersion._id.toString(),
-            sectionType,
+            sectionType: mappedSectionType,
             language: lang as 'english' | 'telugu',
-            content: '', // Empty initially, will be filled when applied
+            content: content as string || '', // Use generated content as initial content, or empty string
             generatedContent: content as string,
             isApplied: false,
             version: 1,

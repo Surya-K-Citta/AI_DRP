@@ -39,6 +39,7 @@ const clusterSectionSchema = new Schema<IClusterSection>(
         'clusterProfile',
         'valueChain',
         'marketAspects',
+        'marketAssessment', // Alias for marketAspects (for backward compatibility)
         'gapAnalysis',
         'swotAnalysis',
         'proposedInterventions',
@@ -77,7 +78,7 @@ const clusterSectionSchema = new Schema<IClusterSection>(
     },
     content: {
       type: String,
-      required: true,
+      required: false,
       default: '',
     },
     generatedContent: {

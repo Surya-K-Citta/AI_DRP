@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 export interface ClusterDPRData {
   // Step 1: Executive Summary
@@ -276,8 +275,7 @@ interface ClusterDPRState {
   setCurrentStep: (step: number) => void;
   setDprIds: (dprId: string, projectId: string) => void;
   resetData: () => void;
-  saveDraft: () => void;
-  loadDraft: (draft: ClusterDPRData) => void;
+  loadDataFromProject: (projectData: any, dprData?: any) => void;
 }
 
 const defaultData: ClusterDPRData = {
@@ -286,71 +284,88 @@ const defaultData: ClusterDPRData = {
   lastSaved: new Date(),
 };
 
-export const useClusterDPRStore = create<ClusterDPRState>()(
-  persist(
-    (set, get) => ({
-      data: defaultData,
-      
-      setStepData: (step, stepData) => {
-        set((state) => ({
-          data: {
-            ...state.data,
-            [`step${step}`]: stepData,
-            lastSaved: new Date(),
-          },
-        }));
+export const useClusterDPRStore = create<ClusterDPRState>()((set, get) => ({
+  data: defaultData,
+  
+  setStepData: (step, stepData) => {
+    set((state) => ({
+      data: {
+        ...state.data,
+        [`step${step}`]: stepData,
+        lastSaved: new Date(),
       },
-      
-      getStepData: (step) => {
-        const state = get();
-        return state.data[`step${step}` as keyof ClusterDPRData] || {};
+    }));
+  },
+  
+  getStepData: (step) => {
+    const state = get();
+    return state.data[`step${step}` as keyof ClusterDPRData] || {};
+  },
+  
+  setGeneratedDPR: (dpr) => {
+    set((state) => ({
+      data: {
+        ...state.data,
+        generatedDPR: dpr,
+        lastSaved: new Date(),
       },
-      
-      setGeneratedDPR: (dpr) => {
-        set((state) => ({
-          data: {
-            ...state.data,
-            generatedDPR: dpr,
-            lastSaved: new Date(),
-          },
-        }));
+    }));
+  },
+  
+  setCurrentStep: (step) => {
+    set((state) => ({
+      data: {
+        ...state.data,
+        currentStep: step,
       },
-      
-      setCurrentStep: (step) => {
-        set((state) => ({
-          data: {
-            ...state.data,
-            currentStep: step,
-          },
-        }));
+    }));
+  },
+  
+  setDprIds: (dprId, projectId) => {
+    set((state) => ({
+      data: {
+        ...state.data,
+        dprId,
+        projectId,
       },
-      
-      setDprIds: (dprId, projectId) => {
-        set((state) => ({
-          data: {
-            ...state.data,
-            dprId,
-            projectId,
-          },
-        }));
-      },
-      
-      resetData: () => {
-        set({ data: defaultData });
-      },
-      
-      saveDraft: () => {
-        const state = get();
-        localStorage.setItem('cluster-dpr-draft', JSON.stringify(state.data));
-      },
-      
-      loadDraft: (draft) => {
-        set({ data: draft });
-      },
-    }),
-    {
-      name: 'cluster-dpr-storage',
-      partialize: (state) => ({ data: state.data }),
-    }
-  )
-);
+    }));
+  },
+  
+  resetData: () => {
+    set({ data: defaultData });
+  },
+  
+  loadDataFromProject: (projectData: any, dprData?: any) => {
+    if (!projectData) return;
+    
+    // Load stepData from project
+    const stepData = projectData.stepData || {};
+    
+    // Load data from DPR if available (takes precedence)
+    const dprClusterData = dprData?.content?.english?.clusterData || 
+                          dprData?.content?.telugu?.clusterData ||
+                          dprData?.metadata?.clusterData;
+    
+    const clusterDataToLoad = dprClusterData || stepData;
+    
+    // Merge with existing data, preserving currentStep and other metadata
+    const currentState = get();
+    const loadedData: ClusterDPRData = {
+      ...currentState.data,
+      ...clusterDataToLoad,
+      // Preserve current step if user was on a specific step
+      currentStep: currentState.data.currentStep || clusterDataToLoad.currentStep || 1,
+      // Set IDs if available
+      dprId: dprData?._id || dprData?.id || currentState.data.dprId,
+      projectId: projectData._id || projectData.id || currentState.data.projectId,
+      lastSaved: new Date(),
+    };
+    
+    set({ data: loadedData });
+    console.log('📥 Loaded cluster DPR data from database:', {
+      projectId: loadedData.projectId,
+      dprId: loadedData.dprId,
+      stepsLoaded: Object.keys(clusterDataToLoad).filter(k => k.startsWith('step')).length,
+    });
+  },
+}));

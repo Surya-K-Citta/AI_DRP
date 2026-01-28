@@ -21,6 +21,15 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
 }) => {
   const { data, setStepData, getStepData } = useClusterDPRStore();
   const stepData = getStepData(currentStep) || {};
+  
+  // Debug: Log when step data changes
+  React.useEffect(() => {
+    console.log(`📋 Step ${currentStep} data loaded:`, {
+      stepData,
+      hasData: Object.keys(stepData).length > 0,
+      keys: Object.keys(stepData),
+    });
+  }, [currentStep, stepData, data]);
 
   // Helper function to render label with info icon
   const renderLabel = (fieldName: string, label: string, required: boolean = false) => {

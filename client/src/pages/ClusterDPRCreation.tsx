@@ -1,10 +1,10 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { ArrowLeft, Save, Download, Eye, ChevronRight, ChevronLeft, ZoomIn, ZoomOut, Maximize2, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Save, Download, Eye, ChevronRight, ChevronLeft, ZoomIn, ZoomOut, Maximize2, RotateCcw, Loader2 } from 'lucide-react';
 import { useClusterDPRStore } from '@/store/clusterDPRStore';
 import { ClusterDPRForm } from '@/components/cluster-dpr/ClusterDPRForm';
 import { ClusterDPRDocumentView } from '@/components/cluster-dpr/ClusterDPRDocumentView';
@@ -13,7 +13,9 @@ import { api } from '@/lib/api';
 
 export const ClusterDPRCreation: React.FC = () => {
   const navigate = useNavigate();
-  const { data, setCurrentStep, saveDraft, setGeneratedDPR, resetData, setDprIds } = useClusterDPRStore();
+  const params = useParams();
+  const [searchParams] = useSearchParams();
+  const { data, setCurrentStep, setGeneratedDPR, resetData, setDprIds, loadDataFromProject } = useClusterDPRStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewMode, setPreviewMode] = useState<'split' | 'form' | 'preview'>('split');
   const [viewLanguage, setViewLanguage] = useState<'english' | 'telugu'>('english');
@@ -22,20 +24,159 @@ export const ClusterDPRCreation: React.FC = () => {
 
   const currentStep = data.currentStep || 1;
   const totalSteps = 18;
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
-  // Clear old data when component mounts (when user navigates to create new cluster)
+  // Load existing draft data from database when component mounts
   useEffect(() => {
-    // Check if we're coming from DPR generation (has generatedDPR) or if there's existing data
-    // Only reset if there's a generatedDPR, meaning user just generated a DPR and is creating a new one
-    const hasGeneratedDPR = data.generatedDPR && Object.keys(data.generatedDPR).length > 0;
-    const hasStepData = Object.keys(data).some(key => key.startsWith('step') && data[key as keyof typeof data]);
+    const loadExistingDraft = async () => {
+      try {
+        setIsLoadingData(true);
+        
+        // Get projectId or dprId from URL params or search params
+        const projectIdFromUrl = params.projectId || searchParams.get('projectId');
+        const dprIdFromUrl = params.dprId || searchParams.get('dprId');
+        
+        // Also check store for existing IDs
+        const projectId = projectIdFromUrl || data.projectId;
+        const dprId = dprIdFromUrl || data.dprId;
+        
+        // If we have a projectId, load project data (which contains stepData)
+        if (projectId) {
+          try {
+            const projectResponse = await api.getProject(projectId);
+            const projectData = projectResponse.data || projectResponse;
+            
+            // If we also have a dprId, load DPR data
+            let dprData = null;
+            if (dprId) {
+              try {
+                const dprResponse = await api.getClusterDPR(dprId);
+                dprData = dprResponse.data || dprResponse;
+              } catch (dprError) {
+                console.warn('Failed to load DPR, using project data only:', dprError);
+              }
+            }
+            
+            // Load data into store
+            loadDataFromProject(projectData, dprData);
+            
+            // Update IDs in store and URL
+            if (projectData._id || projectData.id) {
+              const pid = projectData._id || projectData.id;
+              const did = dprData?._id || dprData?.id || dprId;
+              if (did) {
+                setDprIds(did, pid);
+                // Update URL to include IDs for future loads
+                const newUrl = `/cluster-dpr/create?projectId=${pid}&dprId=${did}`;
+                window.history.replaceState({}, '', newUrl);
+              } else if (pid) {
+                setDprIds('', pid);
+                // Update URL to include projectId
+                const newUrl = `/cluster-dpr/create?projectId=${pid}`;
+                window.history.replaceState({}, '', newUrl);
+              }
+            }
+            
+            console.log('✅ Loaded existing draft from database');
+          } catch (projectError) {
+            console.error('Failed to load project:', projectError);
+            // If loading fails and we have generatedDPR, reset
+            const hasGeneratedDPR = data.generatedDPR && Object.keys(data.generatedDPR).length > 0;
+            if (hasGeneratedDPR) {
+              resetData();
+              console.log('🔄 Cleared old cluster data - starting fresh cluster creation');
+            }
+          }
+        } else {
+          // No projectId in URL or store, try to find most recent draft project
+          try {
+            const projectsResponse = await api.getProjects({ status: 'draft', projectType: 'cluster', limit: 1 });
+            const projects = projectsResponse.data?.projects || projectsResponse.data || [];
+            
+            if (projects.length > 0) {
+              const latestProject = projects[0];
+              const projectData = latestProject;
+              
+              // Try to find associated DPR
+              let dprData = null;
+              try {
+                const dprsResponse = await api.getProjectDPRs(projectData._id || projectData.id);
+                const dprs = dprsResponse.data || dprsResponse;
+                if (Array.isArray(dprs) && dprs.length > 0) {
+                  // Find draft DPR
+                  const draftDpr = dprs.find((d: any) => d.status === 'draft');
+                  if (draftDpr) {
+                    try {
+                      const dprResponse = await api.getClusterDPR(draftDpr._id || draftDpr.id);
+                      dprData = dprResponse.data || dprResponse;
+                    } catch (dprError) {
+                      console.warn('Failed to load DPR:', dprError);
+                    }
+                  }
+                }
+              } catch (dprsError) {
+                console.warn('Failed to load DPRs for project:', dprsError);
+              }
+              
+              // Load data into store
+              loadDataFromProject(projectData, dprData);
+              
+              // Update IDs in store and URL
+              const pid = projectData._id || projectData.id;
+              const did = dprData?._id || dprData?.id;
+              if (pid) {
+                if (did) {
+                  setDprIds(did, pid);
+                  // Update URL to include IDs for future loads
+                  const newUrl = `/cluster-dpr/create?projectId=${pid}&dprId=${did}`;
+                  window.history.replaceState({}, '', newUrl);
+                } else {
+                  setDprIds('', pid);
+                  // Update URL to include projectId
+                  const newUrl = `/cluster-dpr/create?projectId=${pid}`;
+                  window.history.replaceState({}, '', newUrl);
+                }
+              }
+              
+              console.log('✅ Loaded most recent draft from database');
+            } else {
+              // No existing draft, check if we should reset
+              const hasGeneratedDPR = data.generatedDPR && Object.keys(data.generatedDPR).length > 0;
+              if (hasGeneratedDPR) {
+                resetData();
+                console.log('🔄 Cleared old cluster data - starting fresh cluster creation');
+              }
+            }
+          } catch (projectsError) {
+            console.error('Failed to load projects:', projectsError);
+            // If loading fails and we have generatedDPR, reset
+            const hasGeneratedDPR = data.generatedDPR && Object.keys(data.generatedDPR).length > 0;
+            if (hasGeneratedDPR) {
+              resetData();
+              console.log('🔄 Cleared old cluster data - starting fresh cluster creation');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading existing draft:', error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
     
-    // Reset if there's generated DPR data (user just generated DPR and wants to create new cluster)
-    if (hasGeneratedDPR) {
-      resetData();
-      console.log('🔄 Cleared old cluster data - starting fresh cluster creation');
-    }
+    loadExistingDraft();
   }, []); // Run only on mount
+  
+  // Force re-render when data loads to ensure form fields are populated
+  useEffect(() => {
+    if (!isLoadingData && data.step1) {
+      console.log('✅ Data loaded, form should now display:', {
+        hasStep1: !!data.step1,
+        step1Keys: Object.keys(data.step1 || {}),
+        currentStep: data.currentStep,
+      });
+    }
+  }, [isLoadingData, data]);
 
   // Debounce function to prevent too many rapid saves
   const saveToDatabaseRef = useRef<NodeJS.Timeout | null>(null);
@@ -56,6 +197,9 @@ export const ClusterDPRCreation: React.FC = () => {
             // Store the dprId and projectId from the response
             if (response.data.dprId && response.data.projectId) {
               setDprIds(response.data.dprId, response.data.projectId);
+              // Update URL to include IDs for future loads
+              const newUrl = `/cluster-dpr/create?projectId=${response.data.projectId}&dprId=${response.data.dprId}`;
+              window.history.replaceState({}, '', newUrl);
             }
             console.log('💾 Auto-saved cluster DPR draft to database');
           }
@@ -68,30 +212,21 @@ export const ClusterDPRCreation: React.FC = () => {
   }, [data, setDprIds]);
 
   useEffect(() => {
-    // Auto-save draft to localStorage every 2 seconds
-    const localStorageInterval = setInterval(() => {
-      saveDraft();
-    }, 2000);
-
     // Auto-save draft to database every 2.5 seconds (debounced to prevent too many API calls)
     const databaseInterval = setInterval(() => {
       saveToDatabase();
-    }, 2500);
+    }, 10000);
 
     return () => {
-      clearInterval(localStorageInterval);
       clearInterval(databaseInterval);
       if (saveToDatabaseRef.current) {
         clearTimeout(saveToDatabaseRef.current);
       }
     };
-  }, [saveDraft, saveToDatabase]);
+  }, [saveToDatabase]);
 
   const handleNext = async () => {
     if (currentStep < totalSteps) {
-      // Save to localStorage immediately
-      saveDraft();
-      
       // Save to database before moving to next step
       try {
         if (data.step1?.clusterName) {
@@ -100,6 +235,9 @@ export const ClusterDPRCreation: React.FC = () => {
             // Store the dprId and projectId from the response
             if (response.data.dprId && response.data.projectId) {
               setDprIds(response.data.dprId, response.data.projectId);
+              // Update URL to include IDs for future loads
+              const newUrl = `/cluster-dpr/create?projectId=${response.data.projectId}&dprId=${response.data.dprId}`;
+              window.history.replaceState({}, '', newUrl);
             }
             console.log('💾 Saved cluster DPR draft before moving to next step');
           }
@@ -129,10 +267,7 @@ export const ClusterDPRCreation: React.FC = () => {
   };
 
   const handleSaveDraft = async () => {
-    // Save to localStorage
-    saveDraft();
-    
-    // Also save to database
+    // Save to database
     try {
       if (data.step1?.clusterName) {
         const response = await api.saveClusterDPRDraft(data);
@@ -143,14 +278,14 @@ export const ClusterDPRCreation: React.FC = () => {
           }
           toast.success('Draft saved to database successfully!');
         } else {
-          toast.success('Draft saved to local storage!');
+          toast.error('Failed to save draft');
         }
       } else {
-        toast.success('Draft saved to local storage!');
+        toast.error('Please complete Step 1 (Cluster Name) before saving');
       }
     } catch (error) {
       console.error('Error saving draft to database:', error);
-      toast.success('Draft saved to local storage!');
+      toast.error('Failed to save draft to database');
     }
   };
 
@@ -376,37 +511,48 @@ export const ClusterDPRCreation: React.FC = () => {
             {/* Left Panel: Form */}
             {(previewMode === 'form' || previewMode === 'split') && (
               <div id="cluster-dpr-form" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      {currentStep === 1 && 'Step 1: Executive Summary – Basic Cluster Details'}
-                      {currentStep === 2 && 'Step 2: Introduction & Sector Overview'}
-                      {currentStep === 3 && 'Step 3: District & Regional Profile'}
-                      {currentStep === 4 && 'Step 4: Cluster Profile'}
-                      {currentStep === 5 && 'Step 5: Value Chain Details'}
-                      {currentStep === 6 && 'Step 6: Market Assessment'}
-                      {currentStep === 7 && 'Step 7: Gap Analysis'}
-                      {currentStep === 8 && 'Step 8: SWOT Analysis'}
-                      {currentStep === 9 && 'Step 9: Proposed Interventions'}
-                      {currentStep === 10 && 'Step 10: Common Facility Centre (CFC) Details'}
-                      {currentStep === 11 && 'Step 11: SPV Details'}
-                      {currentStep === 12 && 'Step 12: Project Cost Details'}
-                      {currentStep === 13 && 'Step 13: Means of Finance'}
-                      {currentStep === 14 && 'Step 14: Operating Cost & Revenue'}
-                      {currentStep === 15 && 'Step 15: Financial Viability'}
-                      {currentStep === 16 && 'Step 16: Project Implementation Schedule'}
-                      {currentStep === 17 && 'Step 17: Expected Impact'}
-                      {currentStep === 18 && 'Step 18: Annexures & Document Uploads'}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ClusterDPRForm 
-                      currentStep={currentStep}
-                      onNext={handleNext}
-                      onPrevious={handlePrevious}
-                    />
-                  </CardContent>
-                </Card>
+                {isLoadingData ? (
+                  <Card>
+                    <CardContent className="py-12">
+                      <div className="flex flex-col items-center justify-center gap-4">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm text-muted-foreground">Loading draft data from database...</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>
+                        {currentStep === 1 && 'Step 1: Executive Summary – Basic Cluster Details'}
+                        {currentStep === 2 && 'Step 2: Introduction & Sector Overview'}
+                        {currentStep === 3 && 'Step 3: District & Regional Profile'}
+                        {currentStep === 4 && 'Step 4: Cluster Profile'}
+                        {currentStep === 5 && 'Step 5: Value Chain Details'}
+                        {currentStep === 6 && 'Step 6: Market Assessment'}
+                        {currentStep === 7 && 'Step 7: Gap Analysis'}
+                        {currentStep === 8 && 'Step 8: SWOT Analysis'}
+                        {currentStep === 9 && 'Step 9: Proposed Interventions'}
+                        {currentStep === 10 && 'Step 10: Common Facility Centre (CFC) Details'}
+                        {currentStep === 11 && 'Step 11: SPV Details'}
+                        {currentStep === 12 && 'Step 12: Project Cost Details'}
+                        {currentStep === 13 && 'Step 13: Means of Finance'}
+                        {currentStep === 14 && 'Step 14: Operating Cost & Revenue'}
+                        {currentStep === 15 && 'Step 15: Financial Viability'}
+                        {currentStep === 16 && 'Step 16: Project Implementation Schedule'}
+                        {currentStep === 17 && 'Step 17: Expected Impact'}
+                        {currentStep === 18 && 'Step 18: Annexures & Document Uploads'}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ClusterDPRForm 
+                        currentStep={currentStep}
+                        onNext={handleNext}
+                        onPrevious={handlePrevious}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Navigation Buttons */}
                 <div className="flex items-center justify-between">
