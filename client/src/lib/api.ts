@@ -790,6 +790,37 @@ class APIClient {
     );
   }
 
+  async generateFinancialStatements(projectData: any) {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/dpr/cluster/financial-statements/generate', {
+          projectData,
+        });
+        return response.data;
+      },
+      () => {
+        // Mock fallback - return basic structure
+        return Promise.resolve({
+          success: true,
+          data: {
+            costOfProject: projectData?.step12?.totalProjectCost || 0,
+            spvShare: projectData?.step13?.spvContribution || 0,
+            stateGovtGrant: projectData?.step13?.governmentGrant || 0,
+            bankLoan: projectData?.step13?.bankLoan || 0,
+            workingCapital: {
+              rawMaterials: (projectData?.step12?.workingCapitalMargin || 0) * 0.4,
+              workInProgress: (projectData?.step12?.workingCapitalMargin || 0) * 0.2,
+              finishedGoods: (projectData?.step12?.workingCapitalMargin || 0) * 0.2,
+              debtors: (projectData?.step12?.workingCapitalMargin || 0) * 0.15,
+              cashBankBalance: (projectData?.step12?.workingCapitalMargin || 0) * 0.05,
+              creditors: (projectData?.step12?.workingCapitalMargin || 0) * 0.3,
+            },
+          },
+        });
+      }
+    );
+  }
+
   async getUserDPRs() {
     const cacheKey = this.getCacheKey('GET', '/dpr/user/list');
     return this.handleRequest(

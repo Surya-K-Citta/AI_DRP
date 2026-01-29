@@ -1810,4 +1810,47 @@ export class ClusterDPRController {
       });
     }
   }
+
+  /**
+   * Generate Financial Statements using AI
+   */
+  static async generateFinancialStatements(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { projectData } = req.body;
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      if (!projectData) {
+        res.status(400).json({
+          success: false,
+          message: 'Project data is required',
+        });
+        return;
+      }
+
+      console.log('📊 Generating financial statements with AI...');
+
+      // Generate financial statements using AI
+      const financialStatements = await ClusterDPRService.generateFinancialStatements(projectData);
+
+      res.status(200).json({
+        success: true,
+        data: financialStatements,
+      });
+    } catch (error: any) {
+      console.error('❌ Error generating financial statements:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to generate financial statements',
+        error: error.message,
+      });
+    }
+  }
 }

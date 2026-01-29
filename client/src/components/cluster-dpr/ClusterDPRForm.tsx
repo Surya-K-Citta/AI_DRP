@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import { AISuggestions } from './AISuggestions';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { FIELD_DESCRIPTIONS } from '@/data/fieldDescriptions';
+import { FinancialStatements } from './FinancialStatements';
 
 interface ClusterDPRFormProps {
   currentStep: number;
@@ -1664,48 +1665,63 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             handleInputChange(field, content);
           }}
         />
-        <div>
-          <label className="block text-sm font-medium mb-2">Break-even Point (₹ Lakhs)</label>
-          <Input
-            type="number"
-            value={stepData.breakEvenPoint || ''}
-            onChange={(e) => handleInputChange('breakEvenPoint', parseFloat(e.target.value) || 0)}
-            placeholder="0"
-          />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">IRR (%)</label>
-            <Input
-              type="number"
-              value={stepData.irr || ''}
-              onChange={(e) => handleInputChange('irr', parseFloat(e.target.value) || 0)}
-              placeholder="0"
-            />
+        
+        {/* Basic Financial Indicators */}
+        <div className="border rounded-lg p-6 space-y-4">
+          <h4 className="text-lg font-semibold">Basic Financial Indicators</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Break-even Point (₹ Lakhs)</label>
+              <Input
+                type="number"
+                value={stepData.breakEvenPoint || ''}
+                onChange={(e) => handleInputChange('breakEvenPoint', parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">IRR (%)</label>
+              <Input
+                type="number"
+                value={stepData.irr || ''}
+                onChange={(e) => handleInputChange('irr', parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">NPV (₹ Lakhs)</label>
+              <Input
+                type="number"
+                value={stepData.npv || ''}
+                onChange={(e) => handleInputChange('npv', parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">NPV (₹ Lakhs)</label>
-            <Input
-              type="number"
-              value={stepData.npv || ''}
-              onChange={(e) => handleInputChange('npv', parseFloat(e.target.value) || 0)}
-              placeholder="0"
+            <label className="block text-sm font-medium mb-2">Sensitivity Analysis</label>
+            <textarea
+              className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={stepData.sensitivityAnalysis || ''}
+              onChange={(e) => handleInputChange('sensitivityAnalysis', e.target.value)}
+              placeholder="Describe sensitivity analysis"
             />
           </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Sensitivity Analysis</label>
-          <textarea
-            className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-            value={stepData.sensitivityAnalysis || ''}
-            onChange={(e) => handleInputChange('sensitivityAnalysis', e.target.value)}
-            placeholder="Describe sensitivity analysis"
+
+        {/* Detailed Financial Statements */}
+        <div className="border-t pt-6">
+          <FinancialStatements
+            data={stepData.financialStatements || {}}
+            onChange={(field, value) => {
+              if (field === 'financialStatements') {
+                handleInputChange('financialStatements', value);
+              } else {
+                handleInputChange(field, value);
+              }
+            }}
+            projectData={data}
           />
-        </div>
-        <div className="border-t pt-4">
-          <p className="text-sm text-muted-foreground mb-4">
-            Note: Detailed Profit & Loss, Cash Flow, and Balance Sheet projections can be added in the generated DPR.
-          </p>
         </div>
       </div>
     );

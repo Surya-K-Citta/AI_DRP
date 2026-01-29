@@ -1512,4 +1512,319 @@ Return only the field content, no JSON wrapper or additional text.`;
       return null;
     }
   }
+
+  /**
+   * Generate Financial Statements using AI based on project data
+   */
+  static async generateFinancialStatements(projectData: any): Promise<any> {
+    try {
+      const step12 = projectData.step12 || {};
+      const step13 = projectData.step13 || {};
+      const step14 = projectData.step14 || {};
+      const step15 = projectData.step15 || {};
+
+      // Extract key financial data
+      const totalProjectCost = step12.totalProjectCost || 
+        ((step12.land || 0) + (step12.building || 0) + (step12.machinery || 0) + 
+         (step12.utilitiesAndInfrastructure || 0) + (step12.preliminaryAndPreOperative || 0) + 
+         (step12.workingCapitalMargin || 0));
+
+      const spvContribution = step13.spvContribution || 0;
+      const governmentGrant = step13.governmentGrant || 0;
+      const bankLoan = step13.bankLoan || 0;
+      const workingCapital = step12.workingCapitalMargin || 0;
+      const annualSales = step14.annualSalesRealization || 0;
+      const annualProduction = step14.annualProductionVolume || 0;
+      const rawMaterialCost = step14.rawMaterialCost || 0;
+      const powerCost = step14.powerCost || 0;
+      const wages = step14.wages || 0;
+
+      const prompt = `You are a financial analyst expert in generating comprehensive financial statements for Cluster Development Projects under the Micro Cluster Development Programme.
+
+Based on the following project data, generate all 12 financial statements with realistic, professional values:
+
+PROJECT DATA:
+- Total Project Cost: ₹${totalProjectCost.toFixed(2)} Lakhs
+- SPV Contribution: ₹${spvContribution.toFixed(2)} Lakhs
+- Government Grant: ₹${governmentGrant.toFixed(2)} Lakhs
+- Bank Loan: ₹${bankLoan.toFixed(2)} Lakhs
+- Working Capital: ₹${workingCapital.toFixed(2)} Lakhs
+- Annual Sales Realization: ₹${annualSales.toFixed(2)} Lakhs
+- Annual Production Volume: ${annualProduction} units
+- Raw Material Cost: ₹${rawMaterialCost.toFixed(2)} Lakhs
+- Power Cost: ₹${powerCost.toFixed(2)} Lakhs
+- Wages: ₹${wages.toFixed(2)} Lakhs
+
+Generate comprehensive financial statements for 5 years with the following structure:
+
+1. Cost of Project & Means of Finance
+2. Assessment of Working Capital (breakdown of working capital components)
+3. Cost of Production & Profitability (5 years with sales, costs, and profit)
+4. Assumptions for Cost of Production & Profitability
+5. Estimation of Power Cost
+6. Manpower Requirement & Estimation of Cost
+7. Estimation of Depreciation (for building and machinery)
+8. Calculation of Income Tax (5 years)
+9. Projected Cash Flow Statement (5 years)
+10. Projected Balance Sheet (5 years)
+11. Estimation of Break Even Point (5 years)
+12. Estimation of NPV & IRR
+
+IMPORTANT:
+- All values must be realistic and consistent
+- Use industry-standard assumptions (e.g., depreciation rates: Building 10%, Machinery 15%)
+- Show growth in sales and costs over 5 years (typically 5-10% growth)
+- Calculate tax based on profit brackets (20-30%)
+- Ensure all statements are mathematically consistent
+- Use the exact project cost and financing structure provided
+
+Return ONLY a valid JSON object with this structure:
+{
+  "costOfProject": number,
+  "spvShare": number,
+  "stateGovtGrant": number,
+  "bankLoan": number,
+  "workingCapital": {
+    "rawMaterials": number,
+    "workInProgress": number,
+    "finishedGoods": number,
+    "debtors": number,
+    "cashBankBalance": number,
+    "creditors": number
+  },
+  "costOfProduction": {
+    "year1": { "salesRealization": number, "totalCost": number, "profitBeforeTax": number },
+    "year2": { "salesRealization": number, "totalCost": number, "profitBeforeTax": number },
+    "year3": { "salesRealization": number, "totalCost": number, "profitBeforeTax": number },
+    "year4": { "salesRealization": number, "totalCost": number, "profitBeforeTax": number },
+    "year5": { "salesRealization": number, "totalCost": number, "profitBeforeTax": number }
+  },
+  "assumptions": {
+    "capacityUtilizationYear1": number,
+    "capacityUtilizationYear2": number,
+    "capacityUtilizationYear3Onwards": number,
+    "rawMaterialCostPercentage": number
+  },
+  "powerCost": {
+    "connectedLoad": number,
+    "monthlyConsumption": number,
+    "ratePerUnit": number,
+    "annualCost": number
+  },
+  "manpower": [
+    { "category": string, "count": number, "annualSalary": number, "totalCost": number }
+  ],
+  "depreciation": [
+    { "asset": string, "cost": number, "rate": number, "annualDepreciation": number }
+  ],
+  "incomeTax": {
+    "year1": { "profitBeforeTax": number, "taxRate": number, "taxAmount": number, "profitAfterTax": number },
+    "year2": { "profitBeforeTax": number, "taxRate": number, "taxAmount": number, "profitAfterTax": number },
+    "year3": { "profitBeforeTax": number, "taxRate": number, "taxAmount": number, "profitAfterTax": number },
+    "year4": { "profitBeforeTax": number, "taxRate": number, "taxAmount": number, "profitAfterTax": number },
+    "year5": { "profitBeforeTax": number, "taxRate": number, "taxAmount": number, "profitAfterTax": number }
+  },
+  "cashFlow": {
+    "year1": { "inflow": number, "outflow": number, "netCashFlow": number },
+    "year2": { "inflow": number, "outflow": number, "netCashFlow": number },
+    "year3": { "inflow": number, "outflow": number, "netCashFlow": number },
+    "year4": { "inflow": number, "outflow": number, "netCashFlow": number },
+    "year5": { "inflow": number, "outflow": number, "netCashFlow": number }
+  },
+  "balanceSheet": {
+    "year1": { "totalAssets": number, "totalLiabilities": number },
+    "year2": { "totalAssets": number, "totalLiabilities": number },
+    "year3": { "totalAssets": number, "totalLiabilities": number },
+    "year4": { "totalAssets": number, "totalLiabilities": number },
+    "year5": { "totalAssets": number, "totalLiabilities": number }
+  },
+  "breakEven": {
+    "year1": { "fixedExpenses": number, "variableExpenses": number, "breakEvenPoint": number },
+    "year2": { "fixedExpenses": number, "variableExpenses": number, "breakEvenPoint": number },
+    "year3": { "fixedExpenses": number, "variableExpenses": number, "breakEvenPoint": number },
+    "year4": { "fixedExpenses": number, "variableExpenses": number, "breakEvenPoint": number },
+    "year5": { "fixedExpenses": number, "variableExpenses": number, "breakEvenPoint": number }
+  },
+  "npvIrr": {
+    "npv": number,
+    "irr": number,
+    "discountRate": 8
+  }
+}
+
+Return ONLY the JSON object, no markdown, no explanations.`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a financial analyst expert in generating comprehensive financial statements for Cluster Development Projects. Generate realistic, mathematically consistent financial statements based on project data.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.3, // Lower temperature for more consistent financial calculations
+        max_tokens: 4000,
+      });
+
+      const content = response.choices[0]?.message?.content || '{}';
+
+      // Clean up the response
+      let cleanedContent = content
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+
+      // Try to parse JSON
+      let financialStatements;
+      try {
+        financialStatements = JSON.parse(cleanedContent);
+      } catch (parseError) {
+        console.error('Error parsing financial statements response:', parseError);
+        // Fallback: create basic structure with calculated values
+        financialStatements = this.createFallbackFinancialStatements(projectData);
+      }
+
+      return financialStatements;
+    } catch (error: any) {
+      console.error('Error generating financial statements:', error);
+      // Return fallback structure
+      return this.createFallbackFinancialStatements(projectData);
+    }
+  }
+
+  /**
+   * Create fallback financial statements structure
+   */
+  private static createFallbackFinancialStatements(projectData: any): any {
+    const step12 = projectData.step12 || {};
+    const step13 = projectData.step13 || {};
+    const step14 = projectData.step14 || {};
+
+    const totalProjectCost = step12.totalProjectCost || 
+      ((step12.land || 0) + (step12.building || 0) + (step12.machinery || 0) + 
+       (step12.utilitiesAndInfrastructure || 0) + (step12.preliminaryAndPreOperative || 0) + 
+       (step12.workingCapitalMargin || 0));
+
+    const workingCapital = step12.workingCapitalMargin || 0;
+    const annualSales = step14.annualSalesRealization || 0;
+    const buildingCost = step12.building || 0;
+    const machineryCost = step12.machinery || 0;
+
+    // Generate 5-year projections with growth
+    const costOfProduction: any = {};
+    const incomeTax: any = {};
+    const cashFlow: any = {};
+    const balanceSheet: any = {};
+    const breakEven: any = {};
+
+    for (let year = 1; year <= 5; year++) {
+      const growthFactor = 1 + (year - 1) * 0.05; // 5% growth per year
+      const sales = annualSales * growthFactor;
+      const cost = sales * 0.75; // 75% cost ratio
+      const profit = sales - cost;
+      
+      costOfProduction[`year${year}`] = {
+        salesRealization: sales,
+        totalCost: cost,
+        profitBeforeTax: profit,
+      };
+
+      const taxRate = profit > 100 ? 30 : profit > 50 ? 25 : 20;
+      const taxAmount = (profit * taxRate) / 100;
+      const profitAfterTax = profit - taxAmount;
+
+      incomeTax[`year${year}`] = {
+        profitBeforeTax: profit,
+        taxRate,
+        taxAmount,
+        profitAfterTax,
+      };
+
+      cashFlow[`year${year}`] = {
+        inflow: profitAfterTax + (buildingCost * 0.1 + machineryCost * 0.15), // Profit + Depreciation
+        outflow: cost * 0.2, // 20% of cost as outflow
+        netCashFlow: profitAfterTax + (buildingCost * 0.1 + machineryCost * 0.15) - (cost * 0.2),
+      };
+
+      balanceSheet[`year${year}`] = {
+        totalAssets: totalProjectCost + (profitAfterTax * year),
+        totalLiabilities: (step13.bankLoan || 0) * (1 - (year - 1) * 0.1), // Decreasing loan
+      };
+
+      breakEven[`year${year}`] = {
+        fixedExpenses: cost * 0.3,
+        variableExpenses: cost * 0.7,
+        breakEvenPoint: ((cost * 0.3) / (sales - cost * 0.7)) * 100,
+      };
+    }
+
+    return {
+      costOfProject: totalProjectCost,
+      spvShare: step13.spvContribution || 0,
+      stateGovtGrant: step13.governmentGrant || 0,
+      bankLoan: step13.bankLoan || 0,
+      workingCapital: {
+        rawMaterials: workingCapital * 0.4,
+        workInProgress: workingCapital * 0.2,
+        finishedGoods: workingCapital * 0.2,
+        debtors: workingCapital * 0.15,
+        cashBankBalance: workingCapital * 0.05,
+        creditors: workingCapital * 0.3,
+      },
+      costOfProduction,
+      assumptions: {
+        capacityUtilizationYear1: 60,
+        capacityUtilizationYear2: 75,
+        capacityUtilizationYear3Onwards: 85,
+        rawMaterialCostPercentage: 40,
+      },
+      powerCost: {
+        connectedLoad: 100,
+        monthlyConsumption: 10000,
+        ratePerUnit: 8,
+        annualCost: (step14.powerCost || 0),
+      },
+      manpower: [
+        {
+          category: 'Executives',
+          count: 2,
+          annualSalary: 600000,
+          totalCost: 1.2,
+        },
+        {
+          category: 'Workers',
+          count: 10,
+          annualSalary: 240000,
+          totalCost: 2.4,
+        },
+      ],
+      depreciation: [
+        {
+          asset: 'Building',
+          cost: buildingCost,
+          rate: 10,
+          annualDepreciation: buildingCost * 0.1,
+        },
+        {
+          asset: 'Machinery',
+          cost: machineryCost,
+          rate: 15,
+          annualDepreciation: machineryCost * 0.15,
+        },
+      ],
+      incomeTax,
+      cashFlow,
+      balanceSheet,
+      breakEven,
+      npvIrr: {
+        npv: totalProjectCost * 0.1, // 10% of project cost as NPV
+        irr: 26,
+        discountRate: 8,
+      },
+    };
+  }
 }

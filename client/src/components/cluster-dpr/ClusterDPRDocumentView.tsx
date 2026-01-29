@@ -2666,12 +2666,12 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         <div className="relative z-10">
           {renderSectionTitle('11. EXPECTED IMPACT', 17)}
           {renderTable(
-            ['Parameter', 'Before', 'After'],
+            ['Parameter',  'Value'],
             [
-              ['Employment', 'N/A', s17.employmentGeneration || 0],
-              ['Turnover', 'N/A', `₹${(s17.turnoverGrowth || 0).toFixed(2)} Lakhs`],
-              ['Export Growth', 'N/A', `${s17.exportGrowth || 0}%`],
-              ['Income Enhancement', 'N/A', `${s17.incomeEnhancement || 0}%`],
+              ['Employment', s17.employmentGeneration || 0],
+              ['Turnover', `₹${(s17.turnoverGrowth || 0).toFixed(2)} Lakhs`],
+              ['Export Growth', `${s17.exportGrowth || 0}%`],
+              ['Income Enhancement', `${s17.incomeEnhancement || 0}%`],
             ]
           )}
           {s17.sustainabilityOutcomes && s17.sustainabilityOutcomes.length > 0 && (
@@ -2688,193 +2688,370 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       </div>
 
       {/* Financial Statements - Detailed Section */}
-      <div
-        className="p-12 border-b-4 border-gray-800 page-break relative"
-        style={{
-          pageBreakAfter: 'always',
-          padding: '2cm',
-          minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif',
-          border: '8px solid #2563EB',
-          borderStyle: 'double',
-          position: 'relative'
-        }}
-      >
-        {/* Decorative border effect */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            border: '2px solid #3B82F6',
-            margin: '8px',
-            borderRadius: '4px'
-          }}
-        />
-        <div className="relative z-10">
-          {renderSectionTitle('FINANCIAL STATEMENTS')}
+      {(() => {
+        const financialStatements = s15.financialStatements || {};
+        const hasFinancialStatements = Object.keys(financialStatements).length > 0 || 
+          s12.workingCapitalMargin || 
+          s14.powerCost || 
+          s15.profitAndLossProjections;
 
-          {/* Working Capital Assessment */}
-          {s12.workingCapitalMargin && s12.workingCapitalMargin > 0 && (
-            <div className="my-6">
-              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Assessment of Working Capital</h3>
-              {(() => {
-                const workingCapital = s12.workingCapitalMargin;
-                return renderTable(
-                  ['Particulars', 'Amount (₹ Lakhs)'],
-                  [
-                    ['Raw Materials', ((workingCapital * 0.4)).toFixed(2)],
-                    ['Work in Progress', ((workingCapital * 0.2)).toFixed(2)],
-                    ['Finished Goods', ((workingCapital * 0.2)).toFixed(2)],
-                    ['Debtors', ((workingCapital * 0.15)).toFixed(2)],
-                    ['Cash & Bank Balance', ((workingCapital * 0.05)).toFixed(2)],
-                    ['Total Current Assets', workingCapital.toFixed(2)],
-                    ['Creditors', ((workingCapital * 0.3)).toFixed(2)],
-                    ['Net Working Capital', ((workingCapital * 0.7)).toFixed(2)],
-                  ],
-                  'Assessment of Working Capital',
-                  '2'
-                );
-              })()}
-            </div>
-          )}
+        if (!hasFinancialStatements) return null;
 
-          {/* Assumptions for Cost of Production */}
-          {(s14.capacityUtilization || s14.rawMaterialCostPercentage || s14.powerCost || s14.depreciationRate || s14.interestRate) && (
-            <div className="my-6">
-              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Assumptions for Cost of Production & Profitability</h3>
-              {(() => {
-                const assumptions: any[][] = [];
-                if (s14.capacityUtilization) {
-                  if (s14.capacityUtilization.year1) assumptions.push(['Capacity Utilization (Year 1)', `${s14.capacityUtilization.year1}%`]);
-                  if (s14.capacityUtilization.year2) assumptions.push(['Capacity Utilization (Year 2)', `${s14.capacityUtilization.year2}%`]);
-                  if (s14.capacityUtilization.year3Onwards) assumptions.push(['Capacity Utilization (Year 3 onwards)', `${s14.capacityUtilization.year3Onwards}%`]);
-                }
-                if (s14.rawMaterialCostPercentage) assumptions.push(['Raw Material Cost (% of Revenue)', `${s14.rawMaterialCostPercentage}%`]);
-                if (s14.powerCost) assumptions.push(['Power Cost per Unit', `₹${s14.powerCost}`]);
-                if (s14.manpowerCost) assumptions.push(['Manpower Cost', s14.manpowerCost]);
-                if (s14.depreciationRate) assumptions.push(['Depreciation Rate', s14.depreciationRate]);
-                if (s14.interestRate) assumptions.push(['Interest Rate on Loan', `${s14.interestRate}% per annum`]);
+        return (
+          <div
+            className="p-12 border-b-4 border-gray-800 page-break relative"
+            style={{
+              pageBreakAfter: 'always',
+              padding: '2cm',
+              minHeight: '29.7cm',
+              fontFamily: 'Times New Roman, serif',
+              border: '8px solid #2563EB',
+              borderStyle: 'double',
+              position: 'relative'
+            }}
+          >
+            {/* Decorative border effect */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                border: '2px solid #3B82F6',
+                margin: '8px',
+                borderRadius: '4px'
+              }}
+            />
+            <div className="relative z-10">
+              {renderSectionTitle('FINANCIAL STATEMENTS')}
 
-                if (assumptions.length > 0) {
-                  return renderTable(
-                    ['Assumption', 'Value'],
-                    assumptions,
-                    'Assumptions for Cost of Production & Profitability',
-                    '4'
-                  );
-                }
-                return null;
-              })()}
-            </div>
-          )}
-
-          {/* Power Cost Estimation */}
-          {s14.powerCost && (
-            <div className="my-6">
-              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Estimation of Power Cost</h3>
-              {renderTable(
-                ['Particulars', 'Units', 'Rate (₹)', 'Amount (₹ Lakhs)'],
-                [
-                  ['Connected Load', s14.connectedLoad || 'N/A', s14.powerCost?.toString() || 'N/A',
-                    s14.connectedLoad && s14.powerCost ? ((s14.connectedLoad * s14.powerCost) / 100000).toFixed(2) : 'N/A'],
-                  ['Monthly Consumption', s14.monthlyConsumption || 'N/A', s14.powerCost?.toString() || 'N/A',
-                    s14.monthlyConsumption && s14.powerCost ? ((s14.monthlyConsumption * s14.powerCost) / 100000).toFixed(2) : 'N/A'],
-                  ['Annual Power Cost', 'N/A', 'N/A',
-                    s14.monthlyConsumption && s14.powerCost ? ((s14.monthlyConsumption * s14.powerCost * 12) / 100000).toFixed(2) : 'N/A'],
-                ],
-                'Estimation of Power cost',
-                '5'
-              )}
-            </div>
-          )}
-
-          {/* Manpower Requirement */}
-          {(s14.manpowerRequirement || (s17.employmentGeneration && s17.employmentGeneration > 0)) && (
-            <div className="my-6">
-              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Manpower Requirement & Estimation of Cost</h3>
-              {s14.manpowerRequirement && Array.isArray(s14.manpowerRequirement) && s14.manpowerRequirement.length > 0 ? (
-                renderTable(
-                  ['Category', 'No. of Employees', 'Annual Salary (₹)', 'Total Cost (₹ Lakhs)'],
-                  s14.manpowerRequirement.map((mp: any) => [
-                    mp.category || 'N/A',
-                    mp.count || 0,
-                    mp.annualSalary ? mp.annualSalary.toLocaleString('en-IN') : 'N/A',
-                    mp.totalCost ? mp.totalCost.toFixed(2) : 'N/A',
-                  ]),
-                  'Manpower requirement & estimation of cost',
-                  '6'
-                )
-              ) : (
-                <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>
-              )}
-            </div>
-          )}
-
-          {/* Depreciation Estimation */}
-          {((s12.building && s12.building > 0) || (s12.machinery && s12.machinery > 0) || s14.depreciationDetails) && (
-            <div className="my-6">
-              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Estimation of Depreciation</h3>
-              {s14.depreciationDetails && Array.isArray(s14.depreciationDetails) && s14.depreciationDetails.length > 0 ? (
-                renderTable(
-                  ['Asset', 'Cost (₹ Lakhs)', 'Depreciation Rate (%)', 'Annual Depreciation (₹ Lakhs)'],
-                  s14.depreciationDetails.map((dep: any) => [
-                    dep.asset || 'N/A',
-                    dep.cost ? dep.cost.toFixed(2) : 'N/A',
-                    dep.rate ? `${dep.rate}%` : 'N/A',
-                    dep.annualDepreciation ? dep.annualDepreciation.toFixed(2) : 'N/A',
-                  ]),
-                  'Estimation of Depreciation',
-                  '7'
-                )
-              ) : (s12.building && s12.building > 0) || (s12.machinery && s12.machinery > 0) ? (
-                (() => {
-                  const buildingCost = s12.building || 0;
-                  const machineryCost = s12.machinery || 0;
-                  const buildingDepRate = s14.buildingDepreciationRate || 10;
-                  const machineryDepRate = s14.machineryDepreciationRate || 15;
-                  return renderTable(
-                    ['Asset', 'Cost (₹ Lakhs)', 'Depreciation Rate (%)', 'Annual Depreciation (₹ Lakhs)'],
+              {/* Statement 1: Cost of Project & Means of Finance */}
+              {(financialStatements.costOfProject || financialStatements.spvShare || financialStatements.stateGovtGrant || financialStatements.bankLoan || s12.totalProjectCost || s13.spvContribution || s13.governmentGrant || s13.bankLoan) && (
+                <div className="my-6">
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 1: Cost of Project & Means of Finance</h3>
+                  {renderTable(
+                    ['Particulars', 'Amount (₹ Lakhs)'],
                     [
-                      buildingCost > 0 ? ['Building', buildingCost.toFixed(2), `${buildingDepRate}%`, ((buildingCost * buildingDepRate / 100)).toFixed(2)] : null,
-                      machineryCost > 0 ? ['Machinery', machineryCost.toFixed(2), `${machineryDepRate}%`, ((machineryCost * machineryDepRate / 100)).toFixed(2)] : null,
-                      ['Total', (buildingCost + machineryCost).toFixed(2), 'N/A',
-                        (((buildingCost * buildingDepRate / 100) + (machineryCost * machineryDepRate / 100))).toFixed(2)],
-                    ].filter(row => row !== null) as any[][],
-                    'Estimation of Depreciation',
-                    '7'
-                  );
-                })()
-              ) : (
-                <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>
+                      ['Cost of Project', (financialStatements.costOfProject || s12.totalProjectCost || 0).toFixed(2)],
+                      ['SPV Share', (financialStatements.spvShare || s13.spvContribution || 0).toFixed(2)],
+                      ['State Govt. Grant', (financialStatements.stateGovtGrant || s13.governmentGrant || 0).toFixed(2)],
+                      ['Bank Loan', (financialStatements.bankLoan || s13.bankLoan || 0).toFixed(2)],
+                      ['Total', ((financialStatements.costOfProject || s12.totalProjectCost || 0) + 
+                        (financialStatements.spvShare || s13.spvContribution || 0) + 
+                        (financialStatements.stateGovtGrant || s13.governmentGrant || 0) + 
+                        (financialStatements.bankLoan || s13.bankLoan || 0)).toFixed(2)],
+                    ],
+                    'Cost of Project & Means of Finance',
+                    '1'
+                  )}
+                </div>
+              )}
+
+              {/* Statement 2: Assessment of Working Capital */}
+              {(financialStatements.workingCapital || s12.workingCapitalMargin) && (
+                <div className="my-6">
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 2: Assessment of Working Capital</h3>
+                  {(() => {
+                    const wc = financialStatements.workingCapital || {};
+                    const workingCapital = s12.workingCapitalMargin || 0;
+                    return renderTable(
+                      ['Particulars', 'Amount (₹ Lakhs)'],
+                      [
+                        ['Raw Materials', (wc.rawMaterials || (workingCapital * 0.4)).toFixed(2)],
+                        ['Work in Progress', (wc.workInProgress || (workingCapital * 0.2)).toFixed(2)],
+                        ['Finished Goods', (wc.finishedGoods || (workingCapital * 0.2)).toFixed(2)],
+                        ['Debtors', (wc.debtors || (workingCapital * 0.15)).toFixed(2)],
+                        ['Cash & Bank Balance', (wc.cashBankBalance || (workingCapital * 0.05)).toFixed(2)],
+                        ['Total Current Assets', (workingCapital || Object.values(wc).reduce((sum: number, val: any) => sum + (val || 0), 0)).toFixed(2)],
+                        ['Creditors', (wc.creditors || (workingCapital * 0.3)).toFixed(2)],
+                        ['Net Working Capital', ((workingCapital * 0.7) || (workingCapital - (wc.creditors || 0))).toFixed(2)],
+                      ],
+                      'Assessment of Working Capital',
+                      '2'
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Statement 3: Cost of Production & Profitability */}
+              {(financialStatements.costOfProduction || s15.profitAndLossProjections) && (
+                <div className="my-6">
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 3: Cost of Production & Profitability</h3>
+                  {(() => {
+                    const cop = financialStatements.costOfProduction || {};
+                    const rows: any[][] = [];
+                    for (let year = 1; year <= 5; year++) {
+                      const yearData = cop[`year${year}`] || {};
+                      rows.push([
+                        `Year ${year}`,
+                        (yearData.salesRealization || 0).toFixed(2),
+                        (yearData.totalCost || 0).toFixed(2),
+                        (yearData.profitBeforeTax || 0).toFixed(2),
+                      ]);
+                    }
+                    return renderTable(
+                      ['Year', 'Sales Realization (₹ Lakhs)', 'Total Cost (₹ Lakhs)', 'Profit Before Tax (₹ Lakhs)'],
+                      rows,
+                      'Cost of Production & Profitability',
+                      '3'
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Statement 4: Assumptions for Cost of Production & Profitability */}
+              {(financialStatements.assumptions || s14.capacityUtilization || s14.rawMaterialCostPercentage) && (
+                <div className="my-6">
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 4: Assumptions for Cost of Production & Profitability</h3>
+                  {(() => {
+                    const assumptions: any[][] = [];
+                    const assump = financialStatements.assumptions || {};
+                    if (assump.capacityUtilizationYear1) assumptions.push(['Capacity Utilization (Year 1)', `${assump.capacityUtilizationYear1}%`]);
+                    if (assump.capacityUtilizationYear2) assumptions.push(['Capacity Utilization (Year 2)', `${assump.capacityUtilizationYear2}%`]);
+                    if (assump.capacityUtilizationYear3Onwards) assumptions.push(['Capacity Utilization (Year 3 onwards)', `${assump.capacityUtilizationYear3Onwards}%`]);
+                    if (assump.rawMaterialCostPercentage) assumptions.push(['Raw Material Cost (% of Revenue)', `${assump.rawMaterialCostPercentage}%`]);
+                    if (s14.capacityUtilization) {
+                      if (s14.capacityUtilization.year1) assumptions.push(['Capacity Utilization (Year 1)', `${s14.capacityUtilization.year1}%`]);
+                      if (s14.capacityUtilization.year2) assumptions.push(['Capacity Utilization (Year 2)', `${s14.capacityUtilization.year2}%`]);
+                      if (s14.capacityUtilization.year3Onwards) assumptions.push(['Capacity Utilization (Year 3 onwards)', `${s14.capacityUtilization.year3Onwards}%`]);
+                    }
+                    if (s14.rawMaterialCostPercentage) assumptions.push(['Raw Material Cost (% of Revenue)', `${s14.rawMaterialCostPercentage}%`]);
+                    if (assumptions.length > 0) {
+                      return renderTable(
+                        ['Assumption', 'Value'],
+                        assumptions,
+                        'Assumptions for Cost of Production & Profitability',
+                        '4'
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
+
+              {/* Statement 5: Estimation of Power Cost */}
+              {(financialStatements.powerCost || s14.powerCost) && (
+                <div className="my-6">
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 5: Estimation of Power Cost</h3>
+                  {(() => {
+                    const pc = financialStatements.powerCost || {};
+                    return renderTable(
+                      ['Particulars', 'Units', 'Rate (₹)', 'Amount (₹ Lakhs)'],
+                      [
+                        ['Connected Load', (pc.connectedLoad || s14.connectedLoad || 'N/A').toString(), 
+                          (pc.ratePerUnit || s14.powerCost || 'N/A').toString(),
+                          pc.annualCost ? pc.annualCost.toFixed(2) : (s14.monthlyConsumption && s14.powerCost ? ((s14.monthlyConsumption * s14.powerCost * 12) / 100000).toFixed(2) : 'N/A')],
+                        ['Monthly Consumption', (pc.monthlyConsumption || s14.monthlyConsumption || 'N/A').toString(), 
+                          (pc.ratePerUnit || s14.powerCost || 'N/A').toString(),
+                          pc.monthlyConsumption && pc.ratePerUnit ? ((pc.monthlyConsumption * pc.ratePerUnit) / 100000).toFixed(2) : 'N/A'],
+                        ['Annual Power Cost', 'N/A', 'N/A',
+                          (pc.annualCost || (s14.monthlyConsumption && s14.powerCost ? ((s14.monthlyConsumption * s14.powerCost * 12) / 100000) : 0)).toFixed(2)],
+                      ],
+                      'Estimation of Power cost',
+                      '5'
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Statement 6: Manpower Requirement & Estimation of Cost */}
+              {(financialStatements.manpower || s14.manpowerRequirement) && (
+                <div className="my-6">
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 6: Manpower Requirement & Estimation of Cost</h3>
+                  {(() => {
+                    const manpower = financialStatements.manpower || s14.manpowerRequirement || [];
+                    if (Array.isArray(manpower) && manpower.length > 0) {
+                      return renderTable(
+                        ['Category', 'No. of Employees', 'Annual Salary (₹)', 'Total Cost (₹ Lakhs)'],
+                        manpower.map((mp: any) => [
+                          mp.category || 'N/A',
+                          mp.count || 0,
+                          mp.annualSalary ? mp.annualSalary.toLocaleString('en-IN') : 'N/A',
+                          mp.totalCost ? mp.totalCost.toFixed(2) : 'N/A',
+                        ]),
+                        'Manpower requirement & estimation of cost',
+                        '6'
+                      );
+                    }
+                    return <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>;
+                  })()}
+                </div>
+              )}
+
+              {/* Statement 7: Estimation of Depreciation */}
+              {(financialStatements.depreciation || s14.depreciationDetails || (s12.building && s12.machinery)) && (
+                <div className="my-6">
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 7: Estimation of Depreciation</h3>
+                  {(() => {
+                    const dep = financialStatements.depreciation || s14.depreciationDetails || [];
+                    if (Array.isArray(dep) && dep.length > 0) {
+                      return renderTable(
+                        ['Asset', 'Cost (₹ Lakhs)', 'Depreciation Rate (%)', 'Annual Depreciation (₹ Lakhs)'],
+                        dep.map((d: any) => [
+                          d.asset || 'N/A',
+                          d.cost ? d.cost.toFixed(2) : 'N/A',
+                          d.rate ? `${d.rate}%` : 'N/A',
+                          d.annualDepreciation ? d.annualDepreciation.toFixed(2) : 'N/A',
+                        ]),
+                        'Estimation of Depreciation',
+                        '7'
+                      );
+                    } else if (s12.building || s12.machinery) {
+                      const buildingCost = s12.building || 0;
+                      const machineryCost = s12.machinery || 0;
+                      const buildingDepRate = s14.buildingDepreciationRate || 10;
+                      const machineryDepRate = s14.machineryDepreciationRate || 15;
+                      return renderTable(
+                        ['Asset', 'Cost (₹ Lakhs)', 'Depreciation Rate (%)', 'Annual Depreciation (₹ Lakhs)'],
+                        [
+                          buildingCost > 0 ? ['Building', buildingCost.toFixed(2), `${buildingDepRate}%`, ((buildingCost * buildingDepRate / 100)).toFixed(2)] : null,
+                          machineryCost > 0 ? ['Machinery', machineryCost.toFixed(2), `${machineryDepRate}%`, ((machineryCost * machineryDepRate / 100)).toFixed(2)] : null,
+                          ['Total', (buildingCost + machineryCost).toFixed(2), 'N/A',
+                            (((buildingCost * buildingDepRate / 100) + (machineryCost * machineryDepRate / 100))).toFixed(2)],
+                        ].filter(row => row !== null) as any[][],
+                        'Estimation of Depreciation',
+                        '7'
+                      );
+                    }
+                    return <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>;
+                  })()}
+                </div>
+              )}
+
+              {/* Statement 8: Calculation of Income Tax */}
+              {(financialStatements.incomeTax || s15.profitAndLossProjections) && (
+                <div className="my-6">
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 8: Calculation of Income Tax</h3>
+                  {(() => {
+                    const it = financialStatements.incomeTax || {};
+                    const rows: any[][] = [];
+                    for (let year = 1; year <= 5; year++) {
+                      const yearData = it[`year${year}`] || {};
+                      if (yearData.profitBeforeTax || (s15.profitAndLossProjections && s15.profitAndLossProjections[year - 1])) {
+                        const profitBeforeTax = yearData.profitBeforeTax || (s15.profitAndLossProjections[year - 1]?.profit || 0);
+                        const taxRate = yearData.taxRate || (profitBeforeTax > 1000000 ? 30 : profitBeforeTax > 500000 ? 25 : 20);
+                        const taxAmount = yearData.taxAmount || ((profitBeforeTax * taxRate) / 100);
+                        const profitAfterTax = yearData.profitAfterTax || (profitBeforeTax - taxAmount);
+                        rows.push([
+                          `Year ${year}`,
+                          profitBeforeTax.toFixed(2),
+                          `${taxRate}%`,
+                          taxAmount.toFixed(2),
+                          profitAfterTax.toFixed(2),
+                        ]);
+                      }
+                    }
+                    if (rows.length > 0) {
+                      return renderTable(
+                        ['Year', 'Profit Before Tax (₹ Lakhs)', 'Tax Rate (%)', 'Tax Amount (₹ Lakhs)', 'Profit After Tax (₹ Lakhs)'],
+                        rows,
+                        'Calculation of Income Tax',
+                        '8'
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
+
+              {/* Statement 9: Projected Cash Flow Statement */}
+              {(financialStatements.cashFlow || s15.cashFlowProjections) && (
+                <div className="my-6">
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 9: Projected Cash Flow Statement</h3>
+                  {(() => {
+                    const cf = financialStatements.cashFlow || {};
+                    const rows: any[][] = [];
+                    for (let year = 1; year <= 5; year++) {
+                      const yearData = cf[`year${year}`] || (s15.cashFlowProjections && s15.cashFlowProjections[year - 1]) || {};
+                      rows.push([
+                        `Year ${year}`,
+                        (yearData.inflow || 0).toFixed(2),
+                        (yearData.outflow || 0).toFixed(2),
+                        (yearData.netCashFlow || ((yearData.inflow || 0) - (yearData.outflow || 0))).toFixed(2),
+                      ]);
+                    }
+                    return renderTable(
+                      ['Year', 'Cash Inflow (₹ Lakhs)', 'Cash Outflow (₹ Lakhs)', 'Net Cash Flow (₹ Lakhs)'],
+                      rows,
+                      'Projected Cash Flow Statement',
+                      '9'
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Statement 10: Projected Balance Sheet */}
+              {(financialStatements.balanceSheet || s15.balanceSheetProjections) && (
+                <div className="my-6">
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 10: Projected Balance Sheet</h3>
+                  {(() => {
+                    const bs = financialStatements.balanceSheet || {};
+                    const rows: any[][] = [];
+                    for (let year = 1; year <= 5; year++) {
+                      const yearData = bs[`year${year}`] || (s15.balanceSheetProjections && s15.balanceSheetProjections[year - 1]) || {};
+                      rows.push([
+                        `Year ${year}`,
+                        (yearData.totalAssets || 0).toFixed(2),
+                        (yearData.totalLiabilities || 0).toFixed(2),
+                        ((yearData.totalAssets || 0) - (yearData.totalLiabilities || 0)).toFixed(2),
+                      ]);
+                    }
+                    return renderTable(
+                      ['Year', 'Total Assets (₹ Lakhs)', 'Total Liabilities (₹ Lakhs)', 'Equity (₹ Lakhs)'],
+                      rows,
+                      'Projected Balance Sheet',
+                      '10'
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Statement 11: Estimation of Break Even Point */}
+              {(financialStatements.breakEven || s15.breakEvenPoint) && (
+                <div className="my-6">
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 11: Estimation of Break Even Point</h3>
+                  {(() => {
+                    const be = financialStatements.breakEven || {};
+                    const rows: any[][] = [];
+                    for (let year = 1; year <= 5; year++) {
+                      const yearData = be[`year${year}`] || {};
+                      rows.push([
+                        `Year ${year}`,
+                        (yearData.fixedExpenses || 0).toFixed(2),
+                        (yearData.variableExpenses || 0).toFixed(2),
+                        (yearData.breakEvenPoint || s15.breakEvenPoint || 0).toFixed(2) + '%',
+                      ]);
+                    }
+                    return renderTable(
+                      ['Year', 'Fixed Expenses (₹ Lakhs)', 'Variable Expenses (₹ Lakhs)', 'Break Even Point (%)'],
+                      rows,
+                      'Estimation of Break Even Point',
+                      '11'
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Statement 12: Estimation of NPV & IRR */}
+              {(financialStatements.npvIrr || s15.npv || s15.irr) && (
+                <div className="my-6">
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 12: Estimation of NPV & IRR</h3>
+                  {(() => {
+                    const npvIrr = financialStatements.npvIrr || {};
+                    return renderTable(
+                      ['Particulars', 'Value'],
+                      [
+                        ['Net Present Value (NPV)', `Rs.${(npvIrr.npv || s15.npv || 0).toFixed(2)} lakhs`],
+                        ['at 8% discount rate', financialStatements.npvIrr?.discountRate ? `at ${npvIrr.discountRate}% discount rate` : 'at 8% discount rate'],
+                        ['Internal Rate of Return (IRR)', `${(npvIrr.irr || s15.irr || 0).toFixed(2)}%`],
+                      ],
+                      'Estimation of NET PRESENT VALUE AND INTERNAL RATE OF RETURN',
+                      '12'
+                    );
+                  })()}
+                </div>
               )}
             </div>
-          )}
-
-          {/* Income Tax Calculation */}
-          <div className="my-6">
-            <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Calculation of Income Tax</h3>
-            {s15.profitAndLossProjections && s15.profitAndLossProjections.length > 0 && (
-              renderTable(
-                ['Year', 'Profit Before Tax (₹ Lakhs)', 'Tax Rate (%)', 'Tax Amount (₹ Lakhs)', 'Profit After Tax (₹ Lakhs)'],
-                s15.profitAndLossProjections.map((p: any, idx: number) => {
-                  const profitBeforeTax = p.profit || 0;
-                  const taxRate = profitBeforeTax > 1000000 ? 30 : profitBeforeTax > 500000 ? 25 : 20; // Simplified tax calculation
-                  const taxAmount = (profitBeforeTax * taxRate) / 100;
-                  const profitAfterTax = profitBeforeTax - taxAmount;
-                  return [
-                    p.year || `Year ${idx + 1}`,
-                    profitBeforeTax.toFixed(2),
-                    `${taxRate}%`,
-                    taxAmount.toFixed(2),
-                    profitAfterTax.toFixed(2),
-                  ];
-                }),
-                'Calculation of Income Tax',
-                '8'
-              )
-            )}
           </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Conclusion */}
       <div
@@ -2951,7 +3128,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 )}
 
                 {/* Upload Section - Always show for uploading documents */}
-                <div className="mt-8 w-full max-w-2xl no-print">
+                {/* <div className="mt-8 w-full max-w-2xl no-print">
                   <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
                     <h3 className="text-lg font-semibold mb-4 text-blue-800">Upload Annexure Documents</h3>
                     <div className="grid grid-cols-2 gap-4">
@@ -3005,7 +3182,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                       })}
                     </div>
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
 
