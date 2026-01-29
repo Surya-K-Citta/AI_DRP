@@ -1680,7 +1680,7 @@ export class ClusterDPRController {
         return;
       }
 
-      const { currentStep, currentStepData, previousStepsData } = req.body;
+      const { currentStep, currentStepData, previousStepsData, excludeFields = [] } = req.body;
 
       if (currentStep === undefined || !currentStepData) {
         res.status(400).json({
@@ -1690,12 +1690,13 @@ export class ClusterDPRController {
         return;
       }
 
-      console.log(`🤖 Getting AI suggestions for step ${currentStep}`);
+      console.log(`🤖 Getting AI suggestions for step ${currentStep}${excludeFields.length > 0 ? ` (excluding: ${excludeFields.join(', ')})` : ''}`);
 
       const suggestions = await ClusterDPRService.getAISuggestionsForStep(
         currentStep,
         currentStepData,
-        previousStepsData || {}
+        previousStepsData || {},
+        excludeFields
       );
 
       res.status(200).json({

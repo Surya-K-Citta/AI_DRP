@@ -169,6 +169,16 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
 
+        {/* AI Suggestions - appears after the first three required fields */}
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+          excludeFields={['clusterName', 'location', 'district']}
+        />
+
         <div>
           <label className="block text-sm font-medium mb-2 flex items-center gap-2">
             Geographical Spread

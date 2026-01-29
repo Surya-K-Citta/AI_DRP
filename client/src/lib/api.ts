@@ -664,13 +664,14 @@ class APIClient {
     );
   }
 
-  async getAISuggestionsForClusterStep(currentStep: number, currentStepData: any, previousStepsData: Record<string, any>) {
+  async getAISuggestionsForClusterStep(currentStep: number, currentStepData: any, previousStepsData: Record<string, any>, excludeFields?: string[]) {
     return this.handleRequest(
       async () => {
         const response = await this.client.post('/dpr/cluster/ai/suggestions', {
           currentStep,
           currentStepData,
           previousStepsData,
+          excludeFields: excludeFields || [],
         });
         return response.data;
       },

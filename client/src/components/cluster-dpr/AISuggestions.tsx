@@ -9,12 +9,14 @@ interface AISuggestionsProps {
   currentStep: number;
   currentStepData: any;
   onApplySuggestion?: (field: string, content: string) => void;
+  excludeFields?: string[];
 }
 
 export const AISuggestions: React.FC<AISuggestionsProps> = ({
   currentStep,
   currentStepData,
   onApplySuggestion,
+  excludeFields = [],
 }) => {
   const { data, setStepData } = useClusterDPRStore();
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
@@ -24,10 +26,8 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
   const [applyingFields, setApplyingFields] = useState<Set<string>>(new Set());
   const [applyingAll, setApplyingAll] = useState(false);
 
-  // Only show AI suggestions from Step 2 onwards (Step 1 provides basic info)
-  if (currentStep < 2) {
-    return null;
-  }
+  // For Step 1, we'll show AI suggestions but exclude certain fields (clusterName, location, district)
+  // These are basic identifiers that users should enter manually
 
   // Collect previous steps data (in-memory) - use useMemo to avoid recalculating
   const previousStepsData = React.useMemo(() => {
@@ -51,7 +51,8 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
 
   // Function to generate AI suggestions
   const handleGenerateSuggestions = async () => {
-    if (!hasPreviousData) {
+    // For Step 1, we don't require previous data
+    if (currentStep > 1 && !hasPreviousData) {
       return;
     }
 
@@ -60,9 +61,14 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
       const aiSuggestions = await AISuggestionsService.getSuggestionsForStep(
         currentStep,
         currentStepData,
-        previousStepsData
+        previousStepsData,
+        excludeFields
       );
-      setSuggestions(aiSuggestions || []);
+      // Filter out excluded fields from suggestions
+      const filteredSuggestions = (aiSuggestions || []).filter(
+        (suggestion) => !excludeFields.includes(suggestion.field)
+      );
+      setSuggestions(filteredSuggestions);
       setHasGenerated(true);
     } catch (error) {
       console.error('Error loading AI suggestions:', error);
@@ -260,7 +266,8 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
 
   // Show button to generate suggestions if not generated yet
   if (!hasGenerated && !loading) {
-    if (!hasPreviousData) {
+    // For Step 1, we don't require previous data
+    if (currentStep > 1 && !hasPreviousData) {
       return (
         <div className="mb-4 p-3 bg-muted/50 border border-muted rounded-lg">
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -285,7 +292,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
           </div>
           <button
             onClick={handleGenerateSuggestions}
-            disabled={loading || !hasPreviousData}
+            disabled={loading || (currentStep > 1 && !hasPreviousData)}
             className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 text-sm font-medium"
           >
             <Sparkles className="h-4 w-4" />

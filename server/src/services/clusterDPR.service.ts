@@ -911,16 +911,13 @@ Use exact values from the data above. Write in a formal, persuasive tone suitabl
   static async getAISuggestionsForStep(
     currentStep: number,
     currentStepData: any,
-    previousStepsData: Record<string, any>
+    previousStepsData: Record<string, any>,
+    excludeFields: string[] = []
   ): Promise<Array<{ field: string; suggestion: string; reasoning?: string }>> {
     try {
-      // Only provide suggestions for steps >= 2
-      if (currentStep < 2) {
-        return [];
-      }
-
-      // Check if we have at least Step 1 data
-      if (!previousStepsData.step1 || Object.keys(previousStepsData.step1).length === 0) {
+      // For Step 1, we don't require previous data
+      // For other steps, check if we have at least Step 1 data
+      if (currentStep > 1 && (!previousStepsData.step1 || Object.keys(previousStepsData.step1).length === 0)) {
         console.log('No Step 1 data available for AI suggestions');
         return [];
       }
@@ -937,7 +934,8 @@ Use exact values from the data above. Write in a formal, persuasive tone suitabl
       const currentStepText = this.formatStepDataAsText({ [`step${currentStep}`]: currentStepData });
 
       // Extract key information from Step 1 for quick reference
-      const step1Data = previousStepsData.step1 || {};
+      // For Step 1, use currentStepData; for other steps, use previousStepsData.step1
+      const step1Data = currentStep === 1 ? currentStepData : (previousStepsData.step1 || {});
       const clusterName = step1Data.clusterName || '';
       const district = step1Data.district || '';
       const location = step1Data.location || '';
@@ -981,6 +979,26 @@ Use exact values from the data above. Write in a formal, persuasive tone suitabl
         }
       });
 
+      // Special handling for Step 1 - use clusterName, location, district as context
+      const step1Context = currentStep === 1 && clusterName
+        ? `\n═══════════════════════════════════════════════════════════════
+CLUSTER CONTEXT (Use this information to generate suggestions):
+═══════════════════════════════════════════════════════════════
+${clusterName ? `Cluster Name: ${clusterName}` : ''}
+${location ? `Location: ${location}` : ''}
+${district ? `District: ${district}` : ''}
+
+CRITICAL: Use the cluster name "${clusterName}"${location ? ` located in ${location}` : ''}${district ? `, ${district} district` : ''} as the PRIMARY CONTEXT for generating ALL suggestions. All field suggestions should be relevant and specific to this cluster.
+
+For example:
+- "Geographical Spread" should describe the geographical area covered by ${clusterName}${location ? ` in ${location}` : ''}${district ? `, ${district}` : ''}
+- "Nature of Business" should be inferred from the cluster name "${clusterName}" if not already provided
+- "Major Products" should be relevant to what "${clusterName}" typically produces
+- Enterprise counts, investment, turnover should be realistic estimates for a cluster named "${clusterName}"
+- Market served percentages should be appropriate for ${clusterName}${location ? ` in ${location}` : ''}${district ? `, ${district}` : ''}
+`
+        : '';
+
       const prompt = `You are an expert consultant helping create a Detailed Project Report (DPR) for an MSME cluster.
 
 ═══════════════════════════════════════════════════════════════
@@ -989,18 +1007,17 @@ CURRENT STEP TO COMPLETE:
 Step Number: ${currentStep}
 Step Name: "${stepMapping.stepName}"
 Required Fields: ${stepMapping.fields.map(f => f.name).join(', ')}
-
-═══════════════════════════════════════════════════════════════
+${step1Context}═══════════════════════════════════════════════════════════════
 COMPLETED PREVIOUS STEPS (${previousStepsSummary.length} steps):
 ═══════════════════════════════════════════════════════════════
-${previousStepsSummary.length > 0 ? previousStepsSummary.join('\n') : 'No previous steps completed'}
+${previousStepsSummary.length > 0 ? previousStepsSummary.join('\n') : currentStep === 1 ? 'This is Step 1 - no previous steps completed yet' : 'No previous steps completed'}
 
-═══════════════════════════════════════════════════════════════
+${currentStep > 1 ? `═══════════════════════════════════════════════════════════════
 COMPREHENSIVE DATA FROM ALL PREVIOUS STEPS:
 ═══════════════════════════════════════════════════════════════
 IMPORTANT: Read and analyze ALL the data below carefully. This contains complete information from Steps 1-${currentStep - 1}.
 
-${contextText}
+${contextText}` : ''}
 
 ═══════════════════════════════════════════════════════════════
 CURRENT STEP DATA (what user has filled so far):
@@ -1030,8 +1047,16 @@ CRITICAL REQUIREMENTS:
    - Provide ONE suggestion per field - NO EXCEPTIONS
    - If a field is already filled, suggest improvements or additional details based on previous steps
 
-2. **ANALYZE ALL PREVIOUS STEPS DATA COMPREHENSIVELY:**
-   - You have been provided with COMPLETE data from ALL previous steps (Steps 1-${currentStep - 1})
+2. **ANALYZE CONTEXT DATA COMPREHENSIVELY:**
+   ${currentStep === 1 
+     ? `   - This is STEP 1 - you have the CLUSTER CONTEXT provided above (Cluster Name: "${clusterName}"${location ? `, Location: ${location}` : ''}${district ? `, District: ${district}` : ''})
+   - Use the cluster name "${clusterName}" as the PRIMARY BASIS for generating ALL suggestions
+   - For each field, think: "What would be appropriate for a cluster named '${clusterName}'${location ? ` located in ${location}` : ''}${district ? `, ${district} district` : ''}?"
+   - Make suggestions SPECIFIC to "${clusterName}" - not generic
+   - If cluster name suggests a specific industry/product (e.g., "Cherry Farming", "Coir", "Handicrafts"), use that to infer nature of business, major products, etc.
+   - Use location and district to make geographical spread suggestions more accurate
+   - Generate realistic, context-appropriate suggestions based on the cluster name and location`
+     : `   - You have been provided with COMPLETE data from ALL previous steps (Steps 1-${currentStep - 1})
    - Read through ALL the "COMPREHENSIVE DATA FROM ALL PREVIOUS STEPS" section above
    - Extract and use relevant information from:
      * Step 1: Cluster basics (${clusterName}${district ? ` in ${district}` : ''}, ${natureOfBusiness}, ${majorProducts}, ${totalEnterprises} enterprises)
@@ -1043,7 +1068,7 @@ CRITICAL REQUIREMENTS:
      ${previousStepsData.step7 ? `     * Step 7: Gap analysis (technology, infrastructure, skills gaps)` : ''}
      ${previousStepsData.step8 ? `     * Step 8: SWOT analysis (strengths, weaknesses, opportunities, threats)` : ''}
    - DO NOT rely only on Step 1. Use information from ALL relevant previous steps
-   - Cross-reference data across steps to provide accurate suggestions
+   - Cross-reference data across steps to provide accurate suggestions`}
 
 3. **FIELD-SPECIFIC FOCUS:**
    - Focus ONLY on fields in Step ${currentStep}: ${stepMapping.fields.map(f => f.name).join(', ')}
@@ -1123,11 +1148,16 @@ Return suggestions in JSON format only.`,
           const jsonMatch = responseText.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            const aiSuggestions = parsed.suggestions || [];
+            let aiSuggestions = parsed.suggestions || [];
             
-            // Validate that we have suggestions for all fields
+            // Filter out excluded fields
+            if (excludeFields.length > 0) {
+              aiSuggestions = aiSuggestions.filter((s: any) => !excludeFields.includes(s.field));
+            }
+            
+            // Validate that we have suggestions for all fields (excluding excluded ones)
             const suggestedFields = new Set(aiSuggestions.map((s: any) => s.field));
-            const allFields = stepMapping.fields.map(f => f.name);
+            const allFields = stepMapping.fields.map(f => f.name).filter(f => !excludeFields.includes(f));
             const missingFields = allFields.filter(f => !suggestedFields.has(f));
             
             if (missingFields.length > 0) {
@@ -1180,9 +1210,9 @@ Return suggestions in JSON format only.`,
       // Generate field-specific fallback suggestions for ALL fields
       const fallbackSuggestions = [];
 
-      // Generate suggestions for ALL fields (not just empty ones)
+      // Generate suggestions for ALL fields (not just empty ones), excluding excluded fields
       // This ensures we always provide suggestions for every field
-      const fieldsToSuggest = stepMapping.fields.map(f => f.name);
+      const fieldsToSuggest = stepMapping.fields.map(f => f.name).filter(f => !excludeFields.includes(f));
 
       fieldsToSuggest.forEach(field => {
         let suggestion = '';
@@ -1190,7 +1220,40 @@ Return suggestions in JSON format only.`,
 
         // Field-specific suggestions based on step - use all previous step data
         // Reuse variables already declared above (clusterName, district, natureOfBusiness, majorProducts)
-        if (currentStep === 2) {
+        if (currentStep === 1) {
+          // Step 1 specific suggestions using clusterName, location, district as context
+          if (field === 'geographicalSpread') {
+            suggestion = `Describe the geographical spread of ${clusterName}${location ? ` located in ${location}` : ''}${district ? `, ${district} district` : ''}. Include the villages, towns, or areas covered by this cluster.`;
+            reasoning = `Based on the cluster name "${clusterName}"${location ? ` and location ${location}` : ''}${district ? ` in ${district} district` : ''}, provide a detailed geographical description.`;
+          } else if (field === 'natureOfBusiness') {
+            suggestion = `Based on the cluster name "${clusterName}", specify the nature of business. For example, if the name contains "Farming", it's likely agriculture-related; if "Coir", it's coir processing; if "Handicrafts", it's handicraft manufacturing.`;
+            reasoning = `The nature of business should align with what "${clusterName}" suggests.`;
+          } else if (field === 'majorProducts') {
+            suggestion = `Based on the cluster name "${clusterName}"${location ? ` in ${location}` : ''}${district ? `, ${district}` : ''}, list the major products this cluster typically produces. For example, "Cherry Farming Cluster" would produce cherries; "Coir Cluster" would produce coir products.`;
+            reasoning = `Major products should be relevant to what "${clusterName}" typically produces.`;
+          } else if (field === 'enterpriseCount') {
+            suggestion = `Provide realistic enterprise counts for ${clusterName}. Typical cluster sizes range from 10-50 micro enterprises, 5-20 small enterprises, and 0-10 medium enterprises.`;
+            reasoning = `Enterprise counts should be realistic for a cluster named "${clusterName}".`;
+          } else if (field === 'ageOfEnterprises') {
+            suggestion = `Provide age distribution of enterprises in ${clusterName}. Typically, clusters have a mix of new (<5 years), established (5-10 years), and mature (>10 years) enterprises.`;
+            reasoning = `Age distribution helps understand the cluster's maturity.`;
+          } else if (field === 'employmentPerUnit') {
+            suggestion = `Provide employment per unit for ${clusterName}. Micro enterprises typically employ <5 people, small enterprises 5-10, and medium enterprises >10.`;
+            reasoning = `Employment figures should be realistic for the cluster size.`;
+          } else if (field === 'investmentPerUnit') {
+            suggestion = `Provide investment per unit for ${clusterName}. Typical ranges: Micro (₹5-20 Lakhs), Small (₹20-50 Lakhs), Medium (₹50-200 Lakhs).`;
+            reasoning = `Investment should be appropriate for the cluster type.`;
+          } else if (field === 'turnoverPerUnit') {
+            suggestion = `Provide turnover per unit for ${clusterName}. Typical ranges: Micro (₹10-50 Lakhs), Small (₹50-200 Lakhs), Medium (₹200-500 Lakhs).`;
+            reasoning = `Turnover should be realistic for the cluster's scale.`;
+          } else if (field === 'marketServed') {
+            suggestion = `Provide market served percentages for ${clusterName}${location ? ` in ${location}` : ''}${district ? `, ${district}` : ''}. Most clusters serve 60-80% domestic and 20-40% export markets.`;
+            reasoning = `Market served should reflect typical patterns for this type of cluster.`;
+          } else {
+            suggestion = `Fill in the ${field} field based on ${clusterName}${location ? ` located in ${location}` : ''}${district ? `, ${district} district` : ''}. Use the cluster name as context to make appropriate suggestions.`;
+            reasoning = `Suggestions should be specific to "${clusterName}".`;
+          }
+        } else if (currentStep === 2) {
           if (field === 'sectorType') {
             suggestion = `Based on the nature of business "${natureOfBusiness}" from Step 1, specify the sector type (e.g., Agro-processing, Manufacturing, Handicrafts).`;
             reasoning = 'The sector type should align with the nature of business identified in Step 1.';
