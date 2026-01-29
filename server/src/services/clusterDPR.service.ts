@@ -327,10 +327,10 @@ Return only valid JSON without markdown code blocks.`;
     const paragraph = `The ${clusterNameValue} located in ${locationValue}, ${districtValue}, represents a significant initiative under the Micro Cluster Development Programme. The cluster encompasses ${geographicalSpread} and focuses on ${natureOfBusiness}, with primary products including ${majorProducts}. The cluster comprises a total of ${totalEnterprises} enterprises, including ${micro} micro enterprises, ${small} small enterprises, and ${medium} medium enterprises, demonstrating a diverse and robust industrial ecosystem. ` +
       `The cluster's enterprises have varying operational histories, with ${ageOfEnterprises.lessThan5 || 0} enterprises operating for less than 5 years, ${ageOfEnterprises.between5And10 || 0} enterprises between 5-10 years, and ${ageOfEnterprises.moreThan10 || 0} enterprises with over 10 years of experience. ` +
       `In terms of employment generation, the cluster provides substantial employment opportunities across different scales, with ${employmentPerUnit.lessThan5 || 0} units employing less than 5 workers, ${employmentPerUnit.between5And10 || 0} units employing 5-10 workers, and ${employmentPerUnit.moreThan10 || 0} units employing more than 10 workers. ` +
-      `The average investment per unit stands at ₹${investmentPerUnit.toLocaleString('en-IN')}, while the average turnover per unit is ₹${turnoverPerUnit.toLocaleString('en-IN')}, indicating strong economic activity and growth potential. ` +
+      `The average investment per unit stands at ₹${investmentPerUnit.toLocaleString('en-IN')} Lakhs, while the average turnover per unit is ₹${turnoverPerUnit.toLocaleString('en-IN')} Lakhs, indicating strong economic activity and growth potential. ` +
       `The market served by the cluster is distributed with ${domestic}% domestic market share and ${exportShare}% export orientation, showcasing both local market strength and international competitiveness. ` +
       `${spvName} has been established as the implementing agency for this cluster development initiative. ` +
-      (projectCost > 0 ? `The total project cost is estimated at ₹${projectCost.toLocaleString('en-IN')}, ` : '') +
+      (projectCost > 0 ? `The total project cost is estimated at ₹${projectCost.toLocaleString('en-IN')} Lakhs, ` : '') +
       (expectedEmployment > 0 ? `with an expected employment generation of ${expectedEmployment} persons. ` : '') +
       `This comprehensive development project aims to enhance the cluster's competitiveness, improve production capabilities, strengthen market linkages, and create sustainable employment opportunities, thereby contributing significantly to the regional economic development and the overall growth of the MSME sector.`;
 
@@ -728,7 +728,7 @@ PROJECT SUMMARY:
 - Major Products: ${clusterData.step1?.majorProducts || 'N/A'}
 - Total Enterprises: ${(clusterData.step1?.enterpriseCount?.micro || 0) + (clusterData.step1?.enterpriseCount?.small || 0) + (clusterData.step1?.enterpriseCount?.medium || 0)}
 - SPV Name: ${clusterData.step11?.spvName || 'N/A'}
-- Project Cost: ₹${(clusterData.step12?.totalCost || 0).toLocaleString('en-IN')}
+- Project Cost: ₹${(clusterData.step12?.totalCost || 0).toLocaleString('en-IN')} Lakhs
 - Expected Employment Generation: ${clusterData.step17?.employmentGeneration || 0}
 - Expected Turnover Growth: ${clusterData.step17?.turnoverGrowth || 0}%
 - Expected Export Growth: ${clusterData.step17?.exportGrowth || 0}%

@@ -54,8 +54,8 @@ The cluster comprises of:
 
 ### Financial Indicators
 
-- **Average Investment per Unit:** ₹${(s1.investmentPerUnit || 0).toLocaleString('en-IN')}
-- **Average Turnover per Unit:** ₹${(s1.turnoverPerUnit || 0).toLocaleString('en-IN')}
+- **Average Investment per Unit:** ₹${(s1.investmentPerUnit || 0).toLocaleString('en-IN')} Lakhs
+- **Average Turnover per Unit:** ₹${(s1.turnoverPerUnit || 0).toLocaleString('en-IN')} Lakhs
 
 ### Market Served
 

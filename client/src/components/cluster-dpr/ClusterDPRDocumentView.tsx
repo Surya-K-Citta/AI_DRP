@@ -1433,7 +1433,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   'Micro Enterprises',
                   s1.enterpriseCount.micro.toString(),
                   s4.productionCapacity || s14.annualProductionVolume ? `${s14.annualProductionVolume || 'N/A'}` : 'N/A',
-                  s1.turnoverPerUnit ? `₹${((s1.turnoverPerUnit * s1.enterpriseCount.micro) / 100000).toFixed(2)}` : 'N/A'
+                  s1.turnoverPerUnit ? `₹${((s1.turnoverPerUnit * s1.enterpriseCount.micro)).toFixed(2)} Lakhs` : 'N/A'
                 ]);
               }
               if (s1.enterpriseCount?.small && s1.enterpriseCount.small > 0) {
@@ -1441,7 +1441,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   'Small Enterprises',
                   s1.enterpriseCount.small.toString(),
                   'N/A',
-                  s1.turnoverPerUnit ? `₹${((s1.turnoverPerUnit * s1.enterpriseCount.small) / 100000).toFixed(2)}` : 'N/A'
+                  s1.turnoverPerUnit ? `₹${((s1.turnoverPerUnit * s1.enterpriseCount.small)).toFixed(2)} Lakhs` : 'N/A'
                 ]);
               }
               if (s1.enterpriseCount?.medium && s1.enterpriseCount.medium > 0) {
@@ -1449,7 +1449,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   'Medium Enterprises',
                   s1.enterpriseCount.medium.toString(),
                   'N/A',
-                  s1.turnoverPerUnit ? `₹${((s1.turnoverPerUnit * s1.enterpriseCount.medium) / 100000).toFixed(2)}` : 'N/A'
+                  s1.turnoverPerUnit ? `₹${((s1.turnoverPerUnit * s1.enterpriseCount.medium)).toFixed(2)} Lakhs` : 'N/A'
                 ]);
               }
               
@@ -1457,7 +1457,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               if (rows.length > 0) {
                 const totalProduction = s14.annualProductionVolume ? s14.annualProductionVolume.toString() : 'N/A';
                 const totalTurnover = s1.turnoverPerUnit && totalUnits > 0 
-                  ? `₹${((s1.turnoverPerUnit * totalUnits) / 100000).toFixed(2)}` 
+                  ? `₹${((s1.turnoverPerUnit * totalUnits)).toFixed(2)} Lakhs` 
                   : 'N/A';
                 rows.push(['Total', totalUnits.toString(), totalProduction, totalTurnover]);
               }
@@ -1598,8 +1598,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               {renderTable(
                 ['Indicator', 'Value'],
                 [
-                  ['Average Investment per Unit', s1.investmentPerUnit ? `₹${(s1.investmentPerUnit / 100000).toFixed(2)} Lakhs` : 'N/A'],
-                  ['Average Turnover per Unit', s1.turnoverPerUnit ? `₹${(s1.turnoverPerUnit / 100000).toFixed(2)} Lakhs` : 'N/A'],
+                  ['Average Investment per Unit', s1.investmentPerUnit ? `₹${s1.investmentPerUnit.toFixed(2)} Lakhs` : 'N/A'],
+                  ['Average Turnover per Unit', s1.turnoverPerUnit ? `₹${s1.turnoverPerUnit.toFixed(2)} Lakhs` : 'N/A'],
                   ['Market Served - Domestic', s1.marketServed?.domestic ? `${s1.marketServed.domestic}%` : 'N/A'],
                   ['Market Served - Export', s1.marketServed?.export ? `${s1.marketServed.export}%` : 'N/A'],
                 ]
@@ -1840,8 +1840,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               <div className="my-4">
                 <h4 className="font-semibold mb-2">Value Addition Stages:</h4>
                 {renderTable(
-                  ['Stage', 'Selling Price (₹)'],
-                  s5.valueAdditionStages.map((s: any) => [s.stage || 'N/A', (s.sellingPrice || 0).toLocaleString('en-IN')])
+                  ['Stage', 'Selling Price (₹ Lakhs)'],
+                  s5.valueAdditionStages.map((s: any) => [s.stage || 'N/A', `${(s.sellingPrice || 0).toLocaleString('en-IN')} Lakhs`])
                 )}
               </div>
             )}
@@ -2294,13 +2294,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               return renderTable(
                 ['Component', 'Cost (₹ Lakhs)'],
                 [
-                  ['Land', ((s12.land || 0) / 100000).toFixed(2)],
-                  ['Building', ((s12.building || 0) / 100000).toFixed(2)],
-                  ['Machinery', ((s12.machinery || 0) / 100000).toFixed(2)],
-                  ['Utilities & Infrastructure', ((s12.utilitiesAndInfrastructure || 0) / 100000).toFixed(2)],
-                  ['Preliminary & Pre-operative', ((s12.preliminaryAndPreOperative || 0) / 100000).toFixed(2)],
-                  ['Working Capital Margin', ((s12.workingCapitalMargin || 0) / 100000).toFixed(2)],
-                  ['Total Project Cost', (totalCost / 100000).toFixed(2)],
+                  ['Land', (s12.land || 0).toFixed(2)],
+                  ['Building', (s12.building || 0).toFixed(2)],
+                  ['Machinery', (s12.machinery || 0).toFixed(2)],
+                  ['Utilities & Infrastructure', (s12.utilitiesAndInfrastructure || 0).toFixed(2)],
+                  ['Preliminary & Pre-operative', (s12.preliminaryAndPreOperative || 0).toFixed(2)],
+                  ['Working Capital Margin', (s12.workingCapitalMargin || 0).toFixed(2)],
+                  ['Total Project Cost', totalCost.toFixed(2)],
                 ],
                 'Cost of Project & Means of Finance',
                 '1'
@@ -2315,11 +2315,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               return renderTable(
                 ['Source', 'Amount (₹ Lakhs)'],
                 [
-                  ['SPV Contribution', ((s13.spvContribution || 0) / 100000).toFixed(2)],
-                  ['Government Grant', ((s13.governmentGrant || 0) / 100000).toFixed(2)],
-                  ['Bank Loan', ((s13.bankLoan || 0) / 100000).toFixed(2)],
-                  ['Other Sources', ((s13.otherSources || 0) / 100000).toFixed(2)],
-                  ['Total', (totalFinance / 100000).toFixed(2)],
+                  ['SPV Contribution', (s13.spvContribution || 0).toFixed(2)],
+                  ['Government Grant', (s13.governmentGrant || 0).toFixed(2)],
+                  ['Bank Loan', (s13.bankLoan || 0).toFixed(2)],
+                  ['Other Sources', (s13.otherSources || 0).toFixed(2)],
+                  ['Total', totalFinance.toFixed(2)],
                 ],
                 undefined,
                 undefined
@@ -2353,7 +2353,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                     <Cell key={`cell-${idx}`} fill={color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => `₹${(value / 100000).toFixed(2)} Lakhs`} />
+                <Tooltip formatter={(value: number) => `₹${value.toFixed(2)} Lakhs`} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -2392,17 +2392,17 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               {renderTable(
                 ['Cost Component', 'Amount (₹ Lakhs)'],
                 [
-                  ['Raw Material Cost', s14.rawMaterialCost ? ((s14.rawMaterialCost / 100000).toFixed(2)) : 'N/A'],
-                  ['Power Cost', s14.powerCost ? ((s14.powerCost / 100000).toFixed(2)) : 'N/A'],
-                  ['Wages', s14.wages ? ((s14.wages / 100000).toFixed(2)) : 'N/A'],
-                  ['Maintenance', s14.maintenance ? ((s14.maintenance / 100000).toFixed(2)) : 'N/A'],
-                  ['Administrative Expenses', s14.administrativeExpenses ? ((s14.administrativeExpenses / 100000).toFixed(2)) : 'N/A'],
-                  ['Marketing Expenses', s14.marketingExpenses ? ((s14.marketingExpenses / 100000).toFixed(2)) : 'N/A'],
+                  ['Raw Material Cost', s14.rawMaterialCost ? (s14.rawMaterialCost.toFixed(2)) : 'N/A'],
+                  ['Power Cost', s14.powerCost ? (s14.powerCost.toFixed(2)) : 'N/A'],
+                  ['Wages', s14.wages ? (s14.wages.toFixed(2)) : 'N/A'],
+                  ['Maintenance', s14.maintenance ? (s14.maintenance.toFixed(2)) : 'N/A'],
+                  ['Administrative Expenses', s14.administrativeExpenses ? (s14.administrativeExpenses.toFixed(2)) : 'N/A'],
+                  ['Marketing Expenses', s14.marketingExpenses ? (s14.marketingExpenses.toFixed(2)) : 'N/A'],
                   ['Total Operating Cost', 
                    ((s14.rawMaterialCost || 0) + (s14.powerCost || 0) + (s14.wages || 0) + 
                     (s14.maintenance || 0) + (s14.administrativeExpenses || 0) + (s14.marketingExpenses || 0)) > 0
                     ? (((s14.rawMaterialCost || 0) + (s14.powerCost || 0) + (s14.wages || 0) + 
-                        (s14.maintenance || 0) + (s14.administrativeExpenses || 0) + (s14.marketingExpenses || 0)) / 100000).toFixed(2)
+                        (s14.maintenance || 0) + (s14.administrativeExpenses || 0) + (s14.marketingExpenses || 0))).toFixed(2)
                     : 'N/A'],
                 ]
               )}
@@ -2413,7 +2413,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 ['Parameter', 'Value'],
                 [
                   ['Annual Production Volume', s14.annualProductionVolume ? `${s14.annualProductionVolume.toLocaleString('en-IN')} units` : 'N/A'],
-                  ['Annual Sales Realization', s14.annualSalesRealization ? `₹${((s14.annualSalesRealization) / 100000).toFixed(2)} Lakhs` : 'N/A'],
+                  ['Annual Sales Realization', s14.annualSalesRealization ? `₹${s14.annualSalesRealization.toFixed(2)} Lakhs` : 'N/A'],
                 ]
               )}
             </div>
@@ -2455,9 +2455,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 ['Year', 'Revenue', 'Expenses', 'Profit'],
                 s15.profitAndLossProjections.map((p: any) => [
                   p.year || 'N/A',
-                  `₹${((p.revenue || 0) / 100000).toFixed(2)} Lakhs`,
-                  `₹${((p.expenses || 0) / 100000).toFixed(2)} Lakhs`,
-                  `₹${((p.profit || 0) / 100000).toFixed(2)} Lakhs`,
+                  `₹${(p.revenue || 0).toFixed(2)} Lakhs`,
+                  `₹${(p.expenses || 0).toFixed(2)} Lakhs`,
+                  `₹${(p.profit || 0).toFixed(2)} Lakhs`,
                 ]),
                 'Cost of Production & Profitability',
                 '3'
@@ -2473,7 +2473,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               [
                 ['Break-even Point', s15.breakEvenPoint ? `${s15.breakEvenPoint}%` : 'N/A'],
                 ['IRR', s15.irr ? `${s15.irr}%` : 'N/A'],
-                ['NPV', s15.npv ? `₹${((s15.npv) / 100000).toFixed(2)} Lakhs` : 'N/A'],
+                ['NPV', s15.npv ? `₹${s15.npv.toFixed(2)} Lakhs` : 'N/A'],
               ],
               'Estimation of Break Even Point',
               '11'
@@ -2488,9 +2488,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 ['Year', 'Inflow', 'Outflow', 'Net Cash Flow'],
                 s15.cashFlowProjections.map((c: any) => [
                   c.year || 'N/A',
-                  `₹${((c.inflow || 0) / 100000).toFixed(2)} Lakhs`,
-                  `₹${((c.outflow || 0) / 100000).toFixed(2)} Lakhs`,
-                  `₹${((c.netCashFlow || 0) / 100000).toFixed(2)} Lakhs`,
+                  `₹${(c.inflow || 0).toFixed(2)} Lakhs`,
+                  `₹${(c.outflow || 0).toFixed(2)} Lakhs`,
+                  `₹${(c.netCashFlow || 0).toFixed(2)} Lakhs`,
                 ]),
                 'Projected Cash Flow Statement',
                 '9'
@@ -2506,9 +2506,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 ['Year', 'Assets', 'Liabilities', 'Equity'],
                 s15.balanceSheetProjections.map((b: any) => [
                   b.year || 'N/A',
-                  `₹${((b.assets || 0) / 100000).toFixed(2)} Lakhs`,
-                  `₹${((b.liabilities || 0) / 100000).toFixed(2)} Lakhs`,
-                  `₹${((b.equity || 0) / 100000).toFixed(2)} Lakhs`,
+                  `₹${(b.assets || 0).toFixed(2)} Lakhs`,
+                  `₹${(b.liabilities || 0).toFixed(2)} Lakhs`,
+                  `₹${(b.equity || 0).toFixed(2)} Lakhs`,
                 ]),
                 'Projected Balance Sheet',
                 '10'
@@ -2528,10 +2528,10 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 
                 // Cash Out Flow
                 rows.push(['Cash Out Flow', '', '', '', '', '', '', '']);
-                rows.push(['Capital Expenditure', (totalProjectCost / 100000).toFixed(2), '', '', '', '', '', '']);
-                rows.push(['Preliminary & Preoperative Expenses', ((s12.preliminaryAndPreOperative || 0) / 100000).toFixed(2), '', '', '', '', '', '']);
-                rows.push(['Working Capital Margin', ((s12.workingCapitalMargin || 0) / 100000).toFixed(2), '', '', '', '', '', '']);
-                rows.push(['Total', ((totalProjectCost + (s12.preliminaryAndPreOperative || 0) + (s12.workingCapitalMargin || 0)) / 100000).toFixed(2), '0.00', '0.00', '0.00', '0.00', '0.00', '']);
+                rows.push(['Capital Expenditure', totalProjectCost.toFixed(2), '', '', '', '', '', '']);
+                rows.push(['Preliminary & Preoperative Expenses', (s12.preliminaryAndPreOperative || 0).toFixed(2), '', '', '', '', '', '']);
+                rows.push(['Working Capital Margin', (s12.workingCapitalMargin || 0).toFixed(2), '', '', '', '', '', '']);
+                rows.push(['Total', (totalProjectCost + (s12.preliminaryAndPreOperative || 0) + (s12.workingCapitalMargin || 0)).toFixed(2), '0.00', '0.00', '0.00', '0.00', '0.00', '']);
                 rows.push(['', '', '', '', '', '', '', '']);
                 
                 // Cash Inflow - use cash flow projections if available
@@ -2541,8 +2541,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   const profitRow = ['Profit After Tax', ''];
                   const depRow = ['Depreciation', ''];
                   projections.forEach((p: any, idx: number) => {
-                    profitRow.push(p.profitAfterTax ? ((p.profitAfterTax / 100000).toFixed(2)) : '');
-                    depRow.push(p.depreciation ? ((p.depreciation / 100000).toFixed(2)) : '');
+                    profitRow.push(p.profitAfterTax ? (p.profitAfterTax.toFixed(2)) : '');
+                    depRow.push(p.depreciation ? (p.depreciation.toFixed(2)) : '');
                   });
                   rows.push(profitRow);
                   rows.push(depRow);
@@ -2555,11 +2555,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 // Total and Net Cash Flow
                 rows.push(['Total', '0.00', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A']);
                 rows.push(['', '', '', '', '', '', '', '']);
-                rows.push(['Net Cash Flow', `-${((totalProjectCost + (s12.preliminaryAndPreOperative || 0) + (s12.workingCapitalMargin || 0)) / 100000).toFixed(2)}`, 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A']);
+                rows.push(['Net Cash Flow', `-${(totalProjectCost + (s12.preliminaryAndPreOperative || 0) + (s12.workingCapitalMargin || 0)).toFixed(2)}`, 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A']);
                 rows.push(['', '', '', '', '', '', '', '']);
                 
                 // NPV and IRR
-                rows.push(['Net Present Value', s15.npv ? `Rs.${(s15.npv / 100000).toFixed(2)} lakhs` : 'N/A', '', '', '', '', '', '']);
+                rows.push(['Net Present Value', s15.npv ? `Rs.${s15.npv.toFixed(2)} lakhs` : 'N/A', '', '', '', '', '', '']);
                 rows.push(['at 8% discount rate', '', '', '', '', '', '', '']);
                 rows.push(['Internal Rate of Return', s15.irr ? `${s15.irr}%` : 'N/A', '', '', '', '', '', '']);
                 
@@ -2669,7 +2669,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           ['Parameter', 'Before', 'After'],
           [
             ['Employment', 'N/A', s17.employmentGeneration || 0],
-            ['Turnover', 'N/A', `₹${((s17.turnoverGrowth || 0) / 100000).toFixed(2)} Lakhs`],
+            ['Turnover', 'N/A', `₹${(s17.turnoverGrowth || 0).toFixed(2)} Lakhs`],
             ['Export Growth', 'N/A', `${s17.exportGrowth || 0}%`],
             ['Income Enhancement', 'N/A', `${s17.incomeEnhancement || 0}%`],
           ]
@@ -2721,14 +2721,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               return renderTable(
                 ['Particulars', 'Amount (₹ Lakhs)'],
                 [
-                  ['Raw Materials', ((workingCapital * 0.4) / 100000).toFixed(2)],
-                  ['Work in Progress', ((workingCapital * 0.2) / 100000).toFixed(2)],
-                  ['Finished Goods', ((workingCapital * 0.2) / 100000).toFixed(2)],
-                  ['Debtors', ((workingCapital * 0.15) / 100000).toFixed(2)],
-                  ['Cash & Bank Balance', ((workingCapital * 0.05) / 100000).toFixed(2)],
-                  ['Total Current Assets', (workingCapital / 100000).toFixed(2)],
-                  ['Creditors', ((workingCapital * 0.3) / 100000).toFixed(2)],
-                  ['Net Working Capital', ((workingCapital * 0.7) / 100000).toFixed(2)],
+                  ['Raw Materials', ((workingCapital * 0.4)).toFixed(2)],
+                  ['Work in Progress', ((workingCapital * 0.2)).toFixed(2)],
+                  ['Finished Goods', ((workingCapital * 0.2)).toFixed(2)],
+                  ['Debtors', ((workingCapital * 0.15)).toFixed(2)],
+                  ['Cash & Bank Balance', ((workingCapital * 0.05)).toFixed(2)],
+                  ['Total Current Assets', workingCapital.toFixed(2)],
+                  ['Creditors', ((workingCapital * 0.3)).toFixed(2)],
+                  ['Net Working Capital', ((workingCapital * 0.7)).toFixed(2)],
                 ],
                 'Assessment of Working Capital',
                 '2'
@@ -2798,7 +2798,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   mp.category || 'N/A',
                   mp.count || 0,
                   mp.annualSalary ? mp.annualSalary.toLocaleString('en-IN') : 'N/A',
-                  mp.totalCost ? (mp.totalCost / 100000).toFixed(2) : 'N/A',
+                  mp.totalCost ? mp.totalCost.toFixed(2) : 'N/A',
                 ]),
                 'Manpower requirement & estimation of cost',
                 '6'
@@ -2818,9 +2818,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 ['Asset', 'Cost (₹ Lakhs)', 'Depreciation Rate (%)', 'Annual Depreciation (₹ Lakhs)'],
                 s14.depreciationDetails.map((dep: any) => [
                   dep.asset || 'N/A',
-                  dep.cost ? (dep.cost / 100000).toFixed(2) : 'N/A',
+                  dep.cost ? dep.cost.toFixed(2) : 'N/A',
                   dep.rate ? `${dep.rate}%` : 'N/A',
-                  dep.annualDepreciation ? (dep.annualDepreciation / 100000).toFixed(2) : 'N/A',
+                  dep.annualDepreciation ? dep.annualDepreciation.toFixed(2) : 'N/A',
                 ]),
                 'Estimation of Depreciation',
                 '7'
@@ -2834,10 +2834,10 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 return renderTable(
                   ['Asset', 'Cost (₹ Lakhs)', 'Depreciation Rate (%)', 'Annual Depreciation (₹ Lakhs)'],
                   [
-                    buildingCost > 0 ? ['Building', (buildingCost / 100000).toFixed(2), `${buildingDepRate}%`, ((buildingCost * buildingDepRate / 100) / 100000).toFixed(2)] : null,
-                    machineryCost > 0 ? ['Machinery', (machineryCost / 100000).toFixed(2), `${machineryDepRate}%`, ((machineryCost * machineryDepRate / 100) / 100000).toFixed(2)] : null,
-                    ['Total', ((buildingCost + machineryCost) / 100000).toFixed(2), 'N/A', 
-                     (((buildingCost * buildingDepRate / 100) + (machineryCost * machineryDepRate / 100)) / 100000).toFixed(2)],
+                    buildingCost > 0 ? ['Building', buildingCost.toFixed(2), `${buildingDepRate}%`, ((buildingCost * buildingDepRate / 100)).toFixed(2)] : null,
+                    machineryCost > 0 ? ['Machinery', machineryCost.toFixed(2), `${machineryDepRate}%`, ((machineryCost * machineryDepRate / 100)).toFixed(2)] : null,
+                    ['Total', (buildingCost + machineryCost).toFixed(2), 'N/A', 
+                     (((buildingCost * buildingDepRate / 100) + (machineryCost * machineryDepRate / 100))).toFixed(2)],
                   ].filter(row => row !== null) as any[][],
                   'Estimation of Depreciation',
                   '7'
@@ -2862,10 +2862,10 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 const profitAfterTax = profitBeforeTax - taxAmount;
                 return [
                   p.year || `Year ${idx + 1}`,
-                  (profitBeforeTax / 100000).toFixed(2),
+                  profitBeforeTax.toFixed(2),
                   `${taxRate}%`,
-                  (taxAmount / 100000).toFixed(2),
-                  (profitAfterTax / 100000).toFixed(2),
+                  taxAmount.toFixed(2),
+                  profitAfterTax.toFixed(2),
                 ];
               }),
               'Calculation of Income Tax',
