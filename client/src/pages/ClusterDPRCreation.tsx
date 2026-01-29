@@ -306,11 +306,12 @@ export const ClusterDPRCreation: React.FC = () => {
         return;
       }
 
-      // Get enhanced content from database if DPR already exists
+      // Get enhanced content and images from database if DPR/project already exists
       // Otherwise, enhanced content will be empty and backend will generate it
       let enhancedContent: Record<string, string> = {};
+      let projectImages: Record<string, string> = {};
       
-      // Try to find existing DPR for this project to get enhanced content
+      // Try to find existing project to get enhanced content and images
       try {
         // First, try to find existing project
         const existingProjects = await api.getProjects({ 
@@ -319,9 +320,16 @@ export const ClusterDPRCreation: React.FC = () => {
         });
         
         if (existingProjects.data && existingProjects.data.length > 0) {
-          const project = existingProjects.data[0];
+          const foundProject = existingProjects.data[0];
+          
+          // Get images from project
+          projectImages = foundProject.images || {};
+          if (Object.keys(projectImages).length > 0) {
+            console.log('📥 Loaded images from project:', Object.keys(projectImages).length, 'images');
+          }
+          
           // Try to get existing DPRs for this project
-          const projectDPRs = await api.getProjectDPRs(project._id || project.id);
+          const projectDPRs = await api.getProjectDPRs(foundProject._id || foundProject.id);
           
           if (projectDPRs.data && projectDPRs.data.length > 0) {
             // Get the most recent DPR
@@ -332,8 +340,13 @@ export const ClusterDPRCreation: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('Error loading enhanced content from database:', error);
-        // Continue without enhanced content - backend will generate it
+        console.error('Error loading enhanced content/images from database:', error);
+        // Continue without enhanced content/images - backend will generate content
+      }
+
+      // Also check if we have images in the current project state
+      if (project?.images && Object.keys(project.images).length > 0) {
+        projectImages = { ...projectImages, ...project.images };
       }
 
       // Prepare complete data - ensure all step data is included
@@ -341,6 +354,8 @@ export const ClusterDPRCreation: React.FC = () => {
         ...data,
         // Include enhanced content so backend can use it
         enhancedContent: enhancedContent,
+        // Include images from project so backend can use them
+        images: projectImages,
         // Remove metadata fields that shouldn't be sent
         currentStep: undefined,
         isDraft: undefined,
@@ -354,6 +369,8 @@ export const ClusterDPRCreation: React.FC = () => {
         totalSteps: stepKeys.length,
         steps: stepKeys,
         enhancedContentSections: Object.keys(enhancedContent).length,
+        imagesCount: Object.keys(projectImages).length,
+        imageIds: Object.keys(projectImages),
         step1Data: completeData.step1,
         step11Data: completeData.step11,
         step12Data: completeData.step12,

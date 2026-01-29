@@ -380,13 +380,18 @@ Return only valid JSON without markdown code blocks.`;
     language: 'english' | 'telugu' | 'bilingual' = 'bilingual'
   ): Promise<any> {
     try {
-      // Extract enhancedContent if provided (user-enhanced content from preview)
+      // Extract enhancedContent and images if provided (user-enhanced content/images from preview)
       let providedEnhancedContent = clusterData.enhancedContent || {};
       const enhancedContentKeys = Object.keys(providedEnhancedContent);
       console.log(`📥 Received ${enhancedContentKeys.length} enhanced content sections from frontend`);
       
-      // Remove enhancedContent from clusterData before processing
-      const { enhancedContent, ...cleanClusterData } = clusterData;
+      // Extract images from clusterData
+      const providedImages = clusterData.images || {};
+      const imageKeys = Object.keys(providedImages);
+      console.log(`📥 Received ${imageKeys.length} images from frontend:`, imageKeys);
+      
+      // Remove enhancedContent and images from clusterData before processing
+      const { enhancedContent, images, ...cleanClusterData } = clusterData;
       
       // Enhance data using OpenAI
       console.log('🤖 Enhancing cluster DPR data with OpenAI...');
@@ -500,6 +505,7 @@ Return only valid JSON without markdown code blocks.`;
           loanAmount: loanAmount || 0,
           status: 'completed',
           stepData: cleanClusterData,
+          images: providedImages, // Save images to project
         });
       } else {
         // Update existing project
@@ -508,6 +514,8 @@ Return only valid JSON without markdown code blocks.`;
         project.ownContribution = ownContribution || project.ownContribution || 0;
         project.loanAmount = loanAmount || project.loanAmount || 0;
         project.status = 'completed';
+        // Merge images (provided images take precedence)
+        project.images = { ...(project.images || {}), ...providedImages };
         await project.save();
       }
 
@@ -552,6 +560,8 @@ Return only valid JSON without markdown code blocks.`;
             generatedSections: generatedSections,
             // Store all enhanced content (including subsections) for use in rendering
             enhancedContent: providedEnhancedContent,
+            // Store images for use in rendering
+            images: providedImages,
           },
           telugu: {
             executiveSummary: enhancedDPR.sections?.executiveSummary || '',
@@ -583,6 +593,8 @@ Return only valid JSON without markdown code blocks.`;
             generatedSections: generatedSections,
             // Store enhanced content for Telugu as well
             enhancedContent: providedEnhancedContent,
+            // Store images for use in rendering
+            images: providedImages,
           },
         },
         financials: {

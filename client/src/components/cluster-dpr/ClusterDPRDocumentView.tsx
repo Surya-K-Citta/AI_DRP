@@ -49,6 +49,28 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   const [generatingImages, setGeneratingImages] = useState<Record<string, boolean>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  // Load images from project or DPR content when component mounts or project/DPR changes
+  useEffect(() => {
+    // First check DPR content for images (from generated DPR)
+    const dprImages = content.images || dpr.content?.english?.images || dpr.content?.telugu?.images || {};
+    
+    // Then check project for images (from preview/generation)
+    const projectImages = project?.images || {};
+    
+    // Merge both sources (DPR content takes precedence)
+    const allImages = { ...projectImages, ...dprImages };
+    
+    if (Object.keys(allImages).length > 0) {
+      console.log('📥 Loaded images:', {
+        fromDPR: Object.keys(dprImages).length,
+        fromProject: Object.keys(projectImages).length,
+        total: Object.keys(allImages).length,
+        imageIds: Object.keys(allImages)
+      });
+      setImages(allImages);
+    }
+  }, [project?._id || project?.id, project?.images, dpr?._id || dpr?.id, content.images]);
+
   // Enhanced content state management (database only)
   const [enhancedContent, setEnhancedContent] = useState<Record<string, string>>(() => {
     // Load only from DPR content (from backend/database)
@@ -401,7 +423,27 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     try {
       const result = await api.generateClusterDPRImage(prompt, sectionType, sectionInfo);
       if (result.success && result.data?.imageUrl) {
-        setImages({ ...images, [imageId]: result.data.imageUrl });
+        const imageUrl = result.data.imageUrl;
+        setImages({ ...images, [imageId]: imageUrl });
+        
+        // Save image to project database
+        const projectId = project?._id || project?.id;
+        if (projectId) {
+          try {
+            const currentImages = project?.images || {};
+            await api.updateProject(projectId, {
+              images: {
+                ...currentImages,
+                [imageId]: imageUrl
+              }
+            });
+            console.log(`💾 Saved image ${imageId} to project database`);
+          } catch (saveError) {
+            console.error('Error saving image to project:', saveError);
+            // Don't show error to user - image is still in state for preview
+          }
+        }
+        
         toast.success('Image generated successfully!');
       } else {
         toast.error(result.message || 'Failed to generate image');
@@ -433,6 +475,24 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         // Store Cloudinary public ID for future deletion if available
         if (result.data.cloudinaryPublicId) {
           console.log('Image uploaded with Cloudinary ID:', result.data.cloudinaryPublicId);
+        }
+
+        // Save image to project database
+        const projectId = project?._id || project?.id;
+        if (projectId) {
+          try {
+            const currentImages = project?.images || {};
+            await api.updateProject(projectId, {
+              images: {
+                ...currentImages,
+                [imageId]: imageUrl
+              }
+            });
+            console.log(`💾 Saved uploaded image ${imageId} to project database`);
+          } catch (saveError) {
+            console.error('Error saving image to project:', saveError);
+            // Don't show error to user - image is still in state for preview
+          }
         }
 
         toast.success('Image uploaded successfully!');
@@ -3903,21 +3963,80 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               });
               setEnhancingSections(enhancingState);
 
-              toast.loading(`Enhancing all sections for preview: 0/${totalSections}`, { id: 'enhance-all', duration: Infinity });
+              toast.loading(`Enhancing and applying all sections: 0/${totalSections}`, { id: 'enhance-all', duration: Infinity });
 
               try {
-                // Enhance all sections and store in enhancedContent state (for preview)
+                // Enhance all sections and automatically apply them
                 let successCount = 0;
                 let failedCount = 0;
+                let appliedCount = 0;
 
                 // Process sections sequentially to avoid overwhelming the API
                 for (let i = 0; i < validSections.length; i++) {
                   const section = validSections[i];
                   try {
-                    toast.loading(`Enhancing all sections for preview: ${i + 1}/${totalSections} - ${section.name}`, { id: 'enhance-all' });
+                    toast.loading(`Enhancing and applying: ${i + 1}/${totalSections} - ${section.name}`, { id: 'enhance-all' });
                     
-                    // handleEnhanceSection already updates enhancedContent state and saves to database
-                    await handleEnhanceSection(section.name, section.data, true); // silent mode
+                    // Step 1: Enhance the section and get the enhanced content
+                    const enhanceResult = await api.enhanceClusterDPRSection(section.name, section.data, clusterData);
+                    if (!enhanceResult.success || !enhanceResult.data?.enhancedParagraph) {
+                      throw new Error(enhanceResult.message || 'Failed to enhance section');
+                    }
+                    
+                    const enhancedParagraph = enhanceResult.data.enhancedParagraph;
+                    
+                    // Update state for preview (even if we're applying immediately)
+                    setEnhancedContent((prev) => ({
+                      ...prev,
+                      [section.name]: enhancedParagraph
+                    }));
+                    
+                    // Step 2: Automatically apply the enhanced content if DPR exists
+                    if (dprId) {
+                      try {
+                        // Save enhanced content to database first
+                        const contentToSave = {
+                          [section.name]: enhancedParagraph
+                        };
+                        await api.saveClusterDPREnhancedContent(dprId, contentToSave, viewLanguage);
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                        // Apply the enhanced content
+                        const applyResult = await api.applyClusterDPREnhancedContent(dprId, section.name, viewLanguage);
+                        if (applyResult.success) {
+                          // Remove from enhancedContent state since it's now applied
+                          setEnhancedContent((prev) => {
+                            const updated = { ...prev };
+                            delete updated[section.name];
+                            return updated;
+                          });
+                          appliedCount++;
+                          console.log(`✅ Applied enhanced content for ${section.name}`);
+                        } else {
+                          console.warn(`Failed to apply enhanced content for ${section.name}:`, applyResult.message);
+                          // Retry once
+                          try {
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                            const retryResult = await api.applyClusterDPREnhancedContent(dprId, section.name, viewLanguage);
+                            if (retryResult.success) {
+                              setEnhancedContent((prev) => {
+                                const updated = { ...prev };
+                                delete updated[section.name];
+                                return updated;
+                              });
+                              appliedCount++;
+                              console.log(`✅ Applied enhanced content for ${section.name} on retry`);
+                            }
+                          } catch (retryError) {
+                            console.error(`Retry failed for ${section.name}:`, retryError);
+                          }
+                        }
+                      } catch (applyError: any) {
+                        console.error(`Error applying enhanced content for ${section.name}:`, applyError);
+                        // Continue - content is still in preview
+                      }
+                    }
+                    
                     successCount++;
                   } catch (error: any) {
                     console.error(`Error enhancing section ${section.name}:`, error);
@@ -3925,20 +4044,45 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   }
                 }
 
+                // Reload DPR to show applied content
+                if (dprId && appliedCount > 0) {
+                  try {
+                    const reloadedDPRResponse = await api.getClusterDPR(dprId);
+                    if (reloadedDPRResponse.success && reloadedDPRResponse.data) {
+                      const reloadedDPR = reloadedDPRResponse.data;
+                      if (dpr) {
+                        Object.assign(dpr, reloadedDPR);
+                        if (reloadedDPR.content) {
+                          dpr.content = reloadedDPR.content;
+                        }
+                        if (reloadedDPR.clusterSections) {
+                          dpr.clusterSections = reloadedDPR.clusterSections;
+                        }
+                      }
+                      setContentRefreshKey(prev => prev + 1);
+                    }
+                  } catch (reloadError) {
+                    console.error('Failed to reload DPR after applying:', reloadError);
+                    setContentRefreshKey(prev => prev + 1);
+                  }
+                }
+
                 if (failedCount === 0) {
                   const message = dprId 
-                    ? `Successfully enhanced ${successCount} sections! Enhanced content is now visible in the preview. Review and apply them individually using the "Apply Enhanced" buttons.`
-                    : `Successfully enhanced ${successCount} sections! Enhanced content is now visible in the preview. Note: Generate DPR to save enhanced content permanently.`;
+                    ? `Successfully enhanced and applied ${appliedCount} sections! Enhanced content has been directly added to the DPR.`
+                    : `Successfully enhanced ${successCount} sections! Enhanced content is now visible in the preview. Note: Generate DPR to apply enhanced content permanently.`;
                   toast.success(message, { id: 'enhance-all', duration: 5000 });
                 } else {
                   const message = dprId
-                    ? `Enhanced ${successCount}/${totalSections} sections. ${failedCount} failed. Enhanced content is now visible in the preview. Review and apply them individually.`
-                    : `Enhanced ${successCount}/${totalSections} sections. ${failedCount} failed. Enhanced content is now visible in the preview. Note: Generate DPR to save enhanced content permanently.`;
+                    ? `Enhanced and applied ${appliedCount}/${totalSections} sections. ${failedCount} failed. Enhanced content has been directly added to the DPR.`
+                    : `Enhanced ${successCount}/${totalSections} sections. ${failedCount} failed. Enhanced content is now visible in the preview. Note: Generate DPR to apply enhanced content permanently.`;
                   toast.success(message, { id: 'enhance-all', duration: 5000 });
                 }
               } catch (error: any) {
                 console.error('Error enhancing all sections:', error);
                 toast.error(error.message || 'Failed to enhance sections', { id: 'enhance-all' });
+              } finally {
+                setEnhancingSections({});
               }
             }}
             disabled={Object.values(enhancingSections).some(v => v)}
