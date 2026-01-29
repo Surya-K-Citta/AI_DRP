@@ -1187,6 +1187,408 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         width: '100%'
       }}
     >
+      {/* Enhance DPR and Generate Images Buttons - Fixed at top */}
+      <div
+        className="sticky top-0 bg-white border-b-4 border-blue-500 p-6 shadow-lg z-50 no-print"
+        style={{
+          borderBottom: '4px solid #2563EB',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+        }}
+      >
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-1" style={{ color: '#1F2937' }}>
+                Enhance Complete DPR
+              </h3>
+              <p className="text-sm text-gray-600">
+                Generate comprehensive paragraphs for all sections and conclusion
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={async () => {
+                const sectionsToEnhance = [
+                  { name: 'projectSnapshot', data: { step1: s1, step11: s11 } },
+                  { name: 'introduction', data: s2 },
+                  { name: 'districtProfile', data: s3 },
+                  // District Profile Subsections - pass with context
+                  ...(s3.geography ? [{ name: 'districtProfile-geography', data: { text: s3.geography, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
+                  ...(s3.climate ? [{ name: 'districtProfile-climate', data: { text: s3.climate, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
+                  ...(s3.infrastructure ? [{ name: 'districtProfile-infrastructure', data: { text: s3.infrastructure, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
+                  ...(s3.keyEconomicActivities ? [{ name: 'districtProfile-keyEconomicActivities', data: { text: s3.keyEconomicActivities, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
+                  ...(s3.industrialInfrastructure ? [{ name: 'districtProfile-industrialInfrastructure', data: { text: s3.industrialInfrastructure, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
+                  { name: 'clusterProfile', data: s4 },
+                  // Cluster Profile Subsections - pass with context
+                  ...(s4.clusterEvolution ? [{ name: 'clusterProfile-evolution', data: { text: s4.clusterEvolution, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s4 } }] : []),
+                  { name: 'valueChain', data: s5 },
+                  { name: 'marketAspects', data: s6 },
+                  // Market Aspects Subsections - pass with context
+                  ...(s6.existingDemand ? [{ name: 'marketAspects-demandSupply', data: { text: s6.existingDemand, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                  ...(s6.demandSupplyGap ? [{ name: 'marketAspects-demandSupplyGap', data: { text: s6.demandSupplyGap, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                  ...(s6.competitorAnalysis ? [{ name: 'marketAspects-competition', data: { text: s6.competitorAnalysis, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                  ...(s6.priceTrends ? [{ name: 'marketAspects-priceTrends', data: { text: s6.priceTrends, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                  ...(s6.exportPotential ? [{ name: 'marketAspects-exportPotential', data: { text: s6.exportPotential, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                  ...(s6.targetMarket ? [{ name: 'marketAspects-targetMarket', data: { text: s6.targetMarket, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                  { name: 'swotAnalysis', data: s8 },
+                  { name: 'gapAnalysis', data: s7 },
+                  { name: 'cfcDetails', data: s10 },
+                  { name: 'spvDetails', data: s11 },
+                  { name: 'projectCost', data: { step12: s12, step13: s13 } },
+                  { name: 'operatingCostRevenue', data: s14 },
+                  { name: 'financialViability', data: s15 },
+                  { name: 'implementationSchedule', data: s16 },
+                  { name: 'expectedImpact', data: s17 },
+                  { name: 'conclusion', data: clusterData },
+                ];
+
+                // Filter out sections that don't have data
+                const validSections = sectionsToEnhance.filter(section => {
+                  if (section.name === 'projectSnapshot') return s1.clusterName || s11.spvName;
+                  if (section.name === 'introduction') return s2.sectorType || s2.sectorDescription;
+                  if (section.name === 'districtProfile') return s3.geography || s3.climate || s3.infrastructure;
+                  if (section.name === 'clusterProfile') return s4.clusterEvolution || s4.productionCapacity;
+                  if (section.name === 'valueChain') return s5.rawMaterials?.length > 0 || s5.valueAdditionStages?.length > 0;
+                  if (section.name === 'marketAspects') return s6.existingDemand || s6.competitorAnalysis;
+                  if (section.name === 'swotAnalysis') return (Array.isArray(s8.strengths) && s8.strengths.length > 0) || (Array.isArray(s8.weaknesses) && s8.weaknesses.length > 0);
+                  if (section.name === 'gapAnalysis') return s7.technologyGaps || s7.infrastructureGaps;
+                  if (section.name === 'cfcDetails') return s10.name || s10.location;
+                  if (section.name === 'spvDetails') return s11.spvName || s11.legalStatus;
+                  if (section.name === 'operatingCostRevenue') return s14.rawMaterialCost || s14.powerCost || s14.wages;
+                  if (section.name === 'projectCost') return s12.land || s12.building || s12.machinery;
+                  if (section.name === 'financialViability') return s15.profitAndLossProjections || s15.irr || s15.npv;
+                  if (section.name === 'implementationSchedule') return s16.startDate || (Array.isArray(s16.milestones) && s16.milestones.length > 0);
+                  if (section.name === 'expectedImpact') return s17.employmentGeneration || s17.turnoverGrowth;
+                  if (section.name === 'conclusion') return true; // Always enhance conclusion
+                  return false;
+                });
+
+                const totalSections = validSections.length;
+                let dprId = dpr?._id || dpr?.id;
+                const projectId = project?._id || project?.id;
+
+                // If DPR doesn't exist yet, try to get or create it using project ID
+                if (!dprId && projectId) {
+                  try {
+                    // Try to get existing DPRs for this project
+                    const dprsResponse = await api.getProjectDPRs(projectId);
+                    const dprs = dprsResponse.data || dprsResponse;
+                    if (Array.isArray(dprs) && dprs.length > 0) {
+                      // Find draft DPR
+                      const draftDpr = dprs.find((d: any) => d.status === 'draft');
+                      if (draftDpr) {
+                        dprId = draftDpr._id || draftDpr.id;
+                      }
+                    }
+                    
+                    // If still no DPR, we'll proceed without saving to database
+                    // The enhanced content will still be stored in state for preview
+                    if (!dprId) {
+                      console.warn('No DPR found for project. Enhanced content will be stored in preview only.');
+                    }
+                  } catch (error) {
+                    console.warn('Failed to get DPRs for project:', error);
+                    // Continue without DPR ID - enhanced content will still work in preview
+                  }
+                }
+
+                if (!dprId && !projectId) {
+                  toast.error('Project not found. Please save your project first.');
+                  return;
+                }
+
+                // Set all sections as enhancing
+                const enhancingState: Record<string, boolean> = {};
+                validSections.forEach(section => {
+                  enhancingState[section.name] = true;
+                });
+                setEnhancingSections(enhancingState);
+
+                toast.loading(`Enhancing and applying all sections: 0/${totalSections}`, { id: 'enhance-all', duration: Infinity });
+
+                try {
+                  // Enhance all sections and automatically apply them
+                  let successCount = 0;
+                  let failedCount = 0;
+                  let appliedCount = 0;
+
+                  // Process sections sequentially to avoid overwhelming the API
+                  for (let i = 0; i < validSections.length; i++) {
+                    const section = validSections[i];
+                    try {
+                      toast.loading(`Enhancing and applying: ${i + 1}/${totalSections} - ${section.name}`, { id: 'enhance-all' });
+                      
+                      // Step 1: Enhance the section and get the enhanced content
+                      const enhanceResult = await api.enhanceClusterDPRSection(section.name, section.data, clusterData);
+                      if (!enhanceResult.success || !enhanceResult.data?.enhancedParagraph) {
+                        throw new Error(enhanceResult.message || 'Failed to enhance section');
+                      }
+                      
+                      const enhancedParagraph = enhanceResult.data.enhancedParagraph;
+                      
+                      // Update state for preview (even if we're applying immediately)
+                      setEnhancedContent((prev) => ({
+                        ...prev,
+                        [section.name]: enhancedParagraph
+                      }));
+                      
+                      // Step 2: Automatically apply the enhanced content if DPR exists
+                      if (dprId) {
+                        try {
+                          // Save enhanced content to database first
+                          const contentToSave = {
+                            [section.name]: enhancedParagraph
+                          };
+                          await api.saveClusterDPREnhancedContent(dprId, contentToSave, viewLanguage);
+                          await new Promise(resolve => setTimeout(resolve, 100));
+                          
+                          // Apply the enhanced content
+                          const applyResult = await api.applyClusterDPREnhancedContent(dprId, section.name, viewLanguage);
+                          if (applyResult.success) {
+                            // Remove from enhancedContent state since it's now applied
+                            setEnhancedContent((prev) => {
+                              const updated = { ...prev };
+                              delete updated[section.name];
+                              return updated;
+                            });
+                            appliedCount++;
+                            console.log(`✅ Applied enhanced content for ${section.name}`);
+                          } else {
+                            console.warn(`Failed to apply enhanced content for ${section.name}:`, applyResult.message);
+                            // Retry once
+                            try {
+                              await new Promise(resolve => setTimeout(resolve, 200));
+                              const retryResult = await api.applyClusterDPREnhancedContent(dprId, section.name, viewLanguage);
+                              if (retryResult.success) {
+                                setEnhancedContent((prev) => {
+                                  const updated = { ...prev };
+                                  delete updated[section.name];
+                                  return updated;
+                                });
+                                appliedCount++;
+                                console.log(`✅ Applied enhanced content for ${section.name} on retry`);
+                              }
+                            } catch (retryError) {
+                              console.error(`Retry failed for ${section.name}:`, retryError);
+                            }
+                          }
+                        } catch (applyError: any) {
+                          console.error(`Error applying enhanced content for ${section.name}:`, applyError);
+                          // Continue - content is still in preview
+                        }
+                      }
+                      
+                      successCount++;
+                    } catch (error: any) {
+                      console.error(`Error enhancing section ${section.name}:`, error);
+                      failedCount++;
+                    }
+                  }
+
+                  // Reload DPR to show applied content
+                  if (dprId && appliedCount > 0) {
+                    try {
+                      const reloadedDPRResponse = await api.getClusterDPR(dprId);
+                      if (reloadedDPRResponse.success && reloadedDPRResponse.data) {
+                        const reloadedDPR = reloadedDPRResponse.data;
+                        if (dpr) {
+                          Object.assign(dpr, reloadedDPR);
+                          if (reloadedDPR.content) {
+                            dpr.content = reloadedDPR.content;
+                          }
+                          if (reloadedDPR.clusterSections) {
+                            dpr.clusterSections = reloadedDPR.clusterSections;
+                          }
+                        }
+                        setContentRefreshKey(prev => prev + 1);
+                      }
+                    } catch (reloadError) {
+                      console.error('Failed to reload DPR after applying:', reloadError);
+                      setContentRefreshKey(prev => prev + 1);
+                    }
+                  }
+
+                  if (failedCount === 0) {
+                    const message = dprId 
+                      ? `Successfully enhanced and applied ${appliedCount} sections! Enhanced content has been directly added to the DPR.`
+                      : `Successfully enhanced ${successCount} sections! Enhanced content is now visible in the preview. Note: Generate DPR to apply enhanced content permanently.`;
+                    toast.success(message, { id: 'enhance-all', duration: 5000 });
+                  } else {
+                    const message = dprId
+                      ? `Enhanced and applied ${appliedCount}/${totalSections} sections. ${failedCount} failed. Enhanced content has been directly added to the DPR.`
+                      : `Enhanced ${successCount}/${totalSections} sections. ${failedCount} failed. Enhanced content is now visible in the preview. Note: Generate DPR to apply enhanced content permanently.`;
+                    toast.success(message, { id: 'enhance-all', duration: 5000 });
+                  }
+                } catch (error: any) {
+                  console.error('Error enhancing all sections:', error);
+                  toast.error(error.message || 'Failed to enhance sections', { id: 'enhance-all' });
+                } finally {
+                  setEnhancingSections({});
+                }
+              }}
+              disabled={Object.values(enhancingSections).some(v => v)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-base font-semibold"
+            >
+              {Object.values(enhancingSections).some(v => v) ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Enhancing DPR...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-5 w-5 mr-2" />
+                  Enhance Complete DPR
+                </>
+              )}
+            </Button>
+          </div>
+          
+          {/* Generate All Images Button */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold mb-1" style={{ color: '#1F2937' }}>
+                Generate All Images
+              </h3>
+              <p className="text-sm text-gray-600">
+                Generate all images for cover page, cluster photos, value chain, and CFC diagrams
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={async () => {
+                const projectId = project?._id || project?.id;
+                if (!projectId) {
+                  toast.error('Project not found. Please save your project first.');
+                  return;
+                }
+
+                // Define all images to generate
+                const imagesToGenerate = [
+                  {
+                    imageId: 'cover-image',
+                    prompt: `Professional cover image showcasing the key products manufactured and developed by ${s1.clusterName || 'the cluster'} without text, labels, diagrams, or watermarks. The products and services list is: ${s1.majorProducts || 'N/A'}.`,
+                    sectionType: 'coverPage',
+                    sectionInfo: { clusterName: s1.clusterName, location: s1.location, district: s1.district }
+                  },
+                  {
+                    imageId: 'cluster-photo-1',
+                    prompt: `Professional photograph of ${s1.clusterName || 'a cluster'} unit showing ${s1.majorProducts || 'production facilities'} in ${s1.location || 'the cluster location'}. Realistic, documentary style, business document quality.`,
+                    sectionType: 'clusterProfile',
+                    sectionInfo: { clusterName: s1.clusterName, location: s1.location, majorProducts: s1.majorProducts }
+                  },
+                  {
+                    imageId: 'cluster-photo-2',
+                    prompt: `Professional photograph showing production process at ${s1.clusterName || 'the cluster'} unit. Workers engaged in manufacturing ${s1.majorProducts || 'products'}. Realistic, documentary style, business document quality.`,
+                    sectionType: 'clusterProfile',
+                    sectionInfo: { clusterName: s1.clusterName, productionProcess: s4.productionProcess }
+                  },
+                  {
+                    imageId: 'value-chain-diagram',
+                    prompt: `Create a professional flow diagram illustrating the value chain for ${s1.clusterName || 'the cluster'}, showing the process from raw materials through processing and value addition to the end customer. Use the following manufacturing process as a guide: ${s10.manufacturingProcess || 'N/A'}. The diagram should be clean, realistic, and professional, with clear visual flow, but absolutely no text, labels, diagrams, or watermarks visible.`,
+                    sectionType: 'valueChain',
+                    sectionInfo: { rawMaterials: s5.rawMaterials, valueAdditionStages: s5.valueAdditionStages, clusterName: s1.clusterName }
+                  },
+                  {
+                    imageId: 'process-flow-diagram',
+                    prompt: `Professional diagram showing manufacturing process flow for ${s10.name || 'the CFC'} at ${s1.clusterName || 'the cluster'}. Clean, professional business diagram style showing process steps.`,
+                    sectionType: 'cfcDetails',
+                    sectionInfo: { manufacturingProcess: s10.manufacturingProcess, cfcName: s10.name, clusterName: s1.clusterName }
+                  },
+                  {
+                    imageId: 'machinery-layout',
+                    prompt: `Professional photograph or diagram showing machinery layout at ${s10.name || 'the CFC'} for ${s1.clusterName || 'the cluster'}. Modern industrial equipment arranged in a facility. Realistic, documentary style, business document quality.`,
+                    sectionType: 'cfcDetails',
+                    sectionInfo: { plantAndMachinery: s10.plantAndMachinery, cfcName: s10.name, clusterName: s1.clusterName }
+                  }
+                ];
+
+                const totalImages = imagesToGenerate.length;
+                let successCount = 0;
+                let failedCount = 0;
+
+                // Set all images as generating
+                const generatingState: Record<string, boolean> = {};
+                imagesToGenerate.forEach(img => {
+                  generatingState[img.imageId] = true;
+                });
+                setGeneratingImages(generatingState);
+
+                toast.loading(`Generating all images: 0/${totalImages}`, { id: 'generate-all-images', duration: Infinity });
+
+                try {
+                  // Process images sequentially to avoid overwhelming the API
+                  for (let i = 0; i < imagesToGenerate.length; i++) {
+                    const imageConfig = imagesToGenerate[i];
+                    try {
+                      toast.loading(`Generating image ${i + 1}/${totalImages}: ${imageConfig.imageId}`, { id: 'generate-all-images' });
+                      
+                      const result = await api.generateClusterDPRImage(
+                        imageConfig.prompt,
+                        imageConfig.sectionType,
+                        imageConfig.sectionInfo
+                      );
+                      
+                      if (result.success && result.data?.imageUrl) {
+                        const imageUrl = result.data.imageUrl;
+                        setImages(prev => ({ ...prev, [imageConfig.imageId]: imageUrl }));
+                        
+                        // Save image to project database
+                        try {
+                          const currentImages = project?.images || {};
+                          await api.updateProject(projectId, {
+                            images: {
+                              ...currentImages,
+                              [imageConfig.imageId]: imageUrl
+                            }
+                          });
+                          console.log(`💾 Saved image ${imageConfig.imageId} to project database`);
+                        } catch (saveError) {
+                          console.error('Error saving image to project:', saveError);
+                        }
+                        
+                        successCount++;
+                      } else {
+                        throw new Error(result.message || 'Failed to generate image');
+                      }
+                    } catch (error: any) {
+                      console.error(`Error generating image ${imageConfig.imageId}:`, error);
+                      failedCount++;
+                    }
+                  }
+
+                  if (failedCount === 0) {
+                    toast.success(`Successfully generated ${successCount} images!`, { id: 'generate-all-images', duration: 5000 });
+                  } else {
+                    toast.success(`Generated ${successCount}/${totalImages} images. ${failedCount} failed.`, { id: 'generate-all-images', duration: 5000 });
+                  }
+                } catch (error: any) {
+                  console.error('Error generating all images:', error);
+                  toast.error(error.message || 'Failed to generate images', { id: 'generate-all-images' });
+                } finally {
+                  setGeneratingImages({});
+                }
+              }}
+              disabled={Object.values(generatingImages).some(v => v)}
+              className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-base font-semibold"
+            >
+              {Object.values(generatingImages).some(v => v) ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Generating Images...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Generate All Images
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Cover Page - Matching Template Design */}
       {renderPageWrapper(
         <div className="flex flex-col h-full">
@@ -3845,263 +4247,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           </>
         );
       })()}
-
-      {/* Enhance DPR Button - Fixed at bottom */}
-      <div
-        className="sticky bottom-0 bg-white border-t-4 border-blue-500 p-6 shadow-lg z-50 no-print"
-        style={{
-          borderTop: '4px solid #2563EB',
-          boxShadow: '0 -4px 6px rgba(0, 0, 0, 0.1)'
-        }}
-      >
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold mb-1" style={{ color: '#1F2937' }}>
-              Enhance Complete DPR
-            </h3>
-            <p className="text-sm text-gray-600">
-              Generate comprehensive paragraphs for all sections and conclusion
-            </p>
-          </div>
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={async () => {
-              const sectionsToEnhance = [
-                { name: 'projectSnapshot', data: { step1: s1, step11: s11 } },
-                { name: 'introduction', data: s2 },
-                { name: 'districtProfile', data: s3 },
-                // District Profile Subsections - pass with context
-                ...(s3.geography ? [{ name: 'districtProfile-geography', data: { text: s3.geography, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
-                ...(s3.climate ? [{ name: 'districtProfile-climate', data: { text: s3.climate, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
-                ...(s3.infrastructure ? [{ name: 'districtProfile-infrastructure', data: { text: s3.infrastructure, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
-                ...(s3.keyEconomicActivities ? [{ name: 'districtProfile-keyEconomicActivities', data: { text: s3.keyEconomicActivities, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
-                ...(s3.industrialInfrastructure ? [{ name: 'districtProfile-industrialInfrastructure', data: { text: s3.industrialInfrastructure, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
-                { name: 'clusterProfile', data: s4 },
-                // Cluster Profile Subsections - pass with context
-                ...(s4.clusterEvolution ? [{ name: 'clusterProfile-evolution', data: { text: s4.clusterEvolution, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s4 } }] : []),
-                { name: 'valueChain', data: s5 },
-                { name: 'marketAspects', data: s6 },
-                // Market Aspects Subsections - pass with context
-                ...(s6.existingDemand ? [{ name: 'marketAspects-demandSupply', data: { text: s6.existingDemand, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
-                ...(s6.demandSupplyGap ? [{ name: 'marketAspects-demandSupplyGap', data: { text: s6.demandSupplyGap, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
-                ...(s6.competitorAnalysis ? [{ name: 'marketAspects-competition', data: { text: s6.competitorAnalysis, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
-                ...(s6.priceTrends ? [{ name: 'marketAspects-priceTrends', data: { text: s6.priceTrends, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
-                ...(s6.exportPotential ? [{ name: 'marketAspects-exportPotential', data: { text: s6.exportPotential, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
-                ...(s6.targetMarket ? [{ name: 'marketAspects-targetMarket', data: { text: s6.targetMarket, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
-                { name: 'swotAnalysis', data: s8 },
-                { name: 'gapAnalysis', data: s7 },
-                { name: 'cfcDetails', data: s10 },
-                { name: 'spvDetails', data: s11 },
-                { name: 'projectCost', data: { step12: s12, step13: s13 } },
-                { name: 'operatingCostRevenue', data: s14 },
-                { name: 'financialViability', data: s15 },
-                { name: 'implementationSchedule', data: s16 },
-                { name: 'expectedImpact', data: s17 },
-                { name: 'conclusion', data: clusterData },
-              ];
-
-              // Filter out sections that don't have data
-              const validSections = sectionsToEnhance.filter(section => {
-                if (section.name === 'projectSnapshot') return s1.clusterName || s11.spvName;
-                if (section.name === 'introduction') return s2.sectorType || s2.sectorDescription;
-                if (section.name === 'districtProfile') return s3.geography || s3.climate || s3.infrastructure;
-                if (section.name === 'clusterProfile') return s4.clusterEvolution || s4.productionCapacity;
-                if (section.name === 'valueChain') return s5.rawMaterials?.length > 0 || s5.valueAdditionStages?.length > 0;
-                if (section.name === 'marketAspects') return s6.existingDemand || s6.competitorAnalysis;
-                if (section.name === 'swotAnalysis') return (Array.isArray(s8.strengths) && s8.strengths.length > 0) || (Array.isArray(s8.weaknesses) && s8.weaknesses.length > 0);
-                if (section.name === 'gapAnalysis') return s7.technologyGaps || s7.infrastructureGaps;
-                if (section.name === 'cfcDetails') return s10.name || s10.location;
-                if (section.name === 'spvDetails') return s11.spvName || s11.legalStatus;
-                if (section.name === 'operatingCostRevenue') return s14.rawMaterialCost || s14.powerCost || s14.wages;
-                if (section.name === 'projectCost') return s12.land || s12.building || s12.machinery;
-                if (section.name === 'financialViability') return s15.profitAndLossProjections || s15.irr || s15.npv;
-                if (section.name === 'implementationSchedule') return s16.startDate || (Array.isArray(s16.milestones) && s16.milestones.length > 0);
-                if (section.name === 'expectedImpact') return s17.employmentGeneration || s17.turnoverGrowth;
-                if (section.name === 'conclusion') return true; // Always enhance conclusion
-                return false;
-              });
-
-              const totalSections = validSections.length;
-              let dprId = dpr?._id || dpr?.id;
-              const projectId = project?._id || project?.id;
-
-              // If DPR doesn't exist yet, try to get or create it using project ID
-              if (!dprId && projectId) {
-                try {
-                  // Try to get existing DPRs for this project
-                  const dprsResponse = await api.getProjectDPRs(projectId);
-                  const dprs = dprsResponse.data || dprsResponse;
-                  if (Array.isArray(dprs) && dprs.length > 0) {
-                    // Find draft DPR
-                    const draftDpr = dprs.find((d: any) => d.status === 'draft');
-                    if (draftDpr) {
-                      dprId = draftDpr._id || draftDpr.id;
-                    }
-                  }
-                  
-                  // If still no DPR, we'll proceed without saving to database
-                  // The enhanced content will still be stored in state for preview
-                  if (!dprId) {
-                    console.warn('No DPR found for project. Enhanced content will be stored in preview only.');
-                  }
-                } catch (error) {
-                  console.warn('Failed to get DPRs for project:', error);
-                  // Continue without DPR ID - enhanced content will still work in preview
-                }
-              }
-
-              if (!dprId && !projectId) {
-                toast.error('Project not found. Please save your project first.');
-                return;
-              }
-
-              // Set all sections as enhancing
-              const enhancingState: Record<string, boolean> = {};
-              validSections.forEach(section => {
-                enhancingState[section.name] = true;
-              });
-              setEnhancingSections(enhancingState);
-
-              toast.loading(`Enhancing and applying all sections: 0/${totalSections}`, { id: 'enhance-all', duration: Infinity });
-
-              try {
-                // Enhance all sections and automatically apply them
-                let successCount = 0;
-                let failedCount = 0;
-                let appliedCount = 0;
-
-                // Process sections sequentially to avoid overwhelming the API
-                for (let i = 0; i < validSections.length; i++) {
-                  const section = validSections[i];
-                  try {
-                    toast.loading(`Enhancing and applying: ${i + 1}/${totalSections} - ${section.name}`, { id: 'enhance-all' });
-                    
-                    // Step 1: Enhance the section and get the enhanced content
-                    const enhanceResult = await api.enhanceClusterDPRSection(section.name, section.data, clusterData);
-                    if (!enhanceResult.success || !enhanceResult.data?.enhancedParagraph) {
-                      throw new Error(enhanceResult.message || 'Failed to enhance section');
-                    }
-                    
-                    const enhancedParagraph = enhanceResult.data.enhancedParagraph;
-                    
-                    // Update state for preview (even if we're applying immediately)
-                    setEnhancedContent((prev) => ({
-                      ...prev,
-                      [section.name]: enhancedParagraph
-                    }));
-                    
-                    // Step 2: Automatically apply the enhanced content if DPR exists
-                    if (dprId) {
-                      try {
-                        // Save enhanced content to database first
-                        const contentToSave = {
-                          [section.name]: enhancedParagraph
-                        };
-                        await api.saveClusterDPREnhancedContent(dprId, contentToSave, viewLanguage);
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        
-                        // Apply the enhanced content
-                        const applyResult = await api.applyClusterDPREnhancedContent(dprId, section.name, viewLanguage);
-                        if (applyResult.success) {
-                          // Remove from enhancedContent state since it's now applied
-                          setEnhancedContent((prev) => {
-                            const updated = { ...prev };
-                            delete updated[section.name];
-                            return updated;
-                          });
-                          appliedCount++;
-                          console.log(`✅ Applied enhanced content for ${section.name}`);
-                        } else {
-                          console.warn(`Failed to apply enhanced content for ${section.name}:`, applyResult.message);
-                          // Retry once
-                          try {
-                            await new Promise(resolve => setTimeout(resolve, 200));
-                            const retryResult = await api.applyClusterDPREnhancedContent(dprId, section.name, viewLanguage);
-                            if (retryResult.success) {
-                              setEnhancedContent((prev) => {
-                                const updated = { ...prev };
-                                delete updated[section.name];
-                                return updated;
-                              });
-                              appliedCount++;
-                              console.log(`✅ Applied enhanced content for ${section.name} on retry`);
-                            }
-                          } catch (retryError) {
-                            console.error(`Retry failed for ${section.name}:`, retryError);
-                          }
-                        }
-                      } catch (applyError: any) {
-                        console.error(`Error applying enhanced content for ${section.name}:`, applyError);
-                        // Continue - content is still in preview
-                      }
-                    }
-                    
-                    successCount++;
-                  } catch (error: any) {
-                    console.error(`Error enhancing section ${section.name}:`, error);
-                    failedCount++;
-                  }
-                }
-
-                // Reload DPR to show applied content
-                if (dprId && appliedCount > 0) {
-                  try {
-                    const reloadedDPRResponse = await api.getClusterDPR(dprId);
-                    if (reloadedDPRResponse.success && reloadedDPRResponse.data) {
-                      const reloadedDPR = reloadedDPRResponse.data;
-                      if (dpr) {
-                        Object.assign(dpr, reloadedDPR);
-                        if (reloadedDPR.content) {
-                          dpr.content = reloadedDPR.content;
-                        }
-                        if (reloadedDPR.clusterSections) {
-                          dpr.clusterSections = reloadedDPR.clusterSections;
-                        }
-                      }
-                      setContentRefreshKey(prev => prev + 1);
-                    }
-                  } catch (reloadError) {
-                    console.error('Failed to reload DPR after applying:', reloadError);
-                    setContentRefreshKey(prev => prev + 1);
-                  }
-                }
-
-                if (failedCount === 0) {
-                  const message = dprId 
-                    ? `Successfully enhanced and applied ${appliedCount} sections! Enhanced content has been directly added to the DPR.`
-                    : `Successfully enhanced ${successCount} sections! Enhanced content is now visible in the preview. Note: Generate DPR to apply enhanced content permanently.`;
-                  toast.success(message, { id: 'enhance-all', duration: 5000 });
-                } else {
-                  const message = dprId
-                    ? `Enhanced and applied ${appliedCount}/${totalSections} sections. ${failedCount} failed. Enhanced content has been directly added to the DPR.`
-                    : `Enhanced ${successCount}/${totalSections} sections. ${failedCount} failed. Enhanced content is now visible in the preview. Note: Generate DPR to apply enhanced content permanently.`;
-                  toast.success(message, { id: 'enhance-all', duration: 5000 });
-                }
-              } catch (error: any) {
-                console.error('Error enhancing all sections:', error);
-                toast.error(error.message || 'Failed to enhance sections', { id: 'enhance-all' });
-              } finally {
-                setEnhancingSections({});
-              }
-            }}
-            disabled={Object.values(enhancingSections).some(v => v)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-base font-semibold"
-          >
-            {Object.values(enhancingSections).some(v => v) ? (
-              <>
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                Enhancing DPR...
-              </>
-            ) : (
-              <>
-                <Wand2 className="h-5 w-5 mr-2" />
-                Enhance Complete DPR
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
     </div>
   );
 };
