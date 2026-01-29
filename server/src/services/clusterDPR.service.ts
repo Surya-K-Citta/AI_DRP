@@ -77,7 +77,7 @@ COVER PAGE (USE EXACT VALUES FROM DATA - NO PLACEHOLDERS):
 - Subtitle: "On Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'"
 - Submitted to: ${submittedTo} (MUST be a single line, typically "DIC, [District Name]" or similar - NO paragraphs or explanations)
 - Submitted by: ${clusterName} (MUST be the cluster name only - single line, NO paragraphs or explanations)
-- Prepared by: ${spvName} (or use step11 data if available)
+- Prepared by: CittaAI
 
 CRITICAL: "Submitted to" and "Submitted by" MUST be simple single-line entries. DO NOT write paragraphs or explanations for these fields. Just use the exact values provided above.
 
@@ -138,14 +138,14 @@ SPECIFIC SECTION REQUIREMENTS:
 - **Conclusion**: 400-600 words summarizing project rationale and expected benefits
 
 CRITICAL FORMATTING REQUIREMENTS:
-- Cover Page MUST include: "DETAILED PROJECT REPORT\nOn Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\nSubmitted to: ${submittedTo}\nSubmitted by: ${clusterName}\nPrepared by: ${spvName}"
+- Cover Page MUST include: "DETAILED PROJECT REPORT\nOn Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\nSubmitted to: ${submittedTo}\nSubmitted by: ${clusterName}\nPrepared by: CittaAI"
 CRITICAL: "Submitted to" and "Submitted by" must be simple single-line entries only. NO paragraphs or explanations.
 - Project Snapshot tables MUST use actual data values from step1, step4, step5, step6, step11
 - All sections MUST reference actual data values, not placeholders
 
 Return a JSON object with this structure:
 {
-  "coverPage": "Full cover page content with EXACT values: DETAILED PROJECT REPORT\nOn Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\nSubmitted to: ${submittedTo}\nSubmitted by: ${spvName}\nPrepared by: ${spvName}",
+  "coverPage": "Full cover page content with EXACT values: DETAILED PROJECT REPORT\nOn Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\nSubmitted to: ${submittedTo}\nSubmitted by: ${spvName}\nPrepared by: CittaAI",
   "tableOfContents": "Complete table of contents with page numbers",
   "sections": {
     "executiveSummary": "Comprehensive executive summary (600-800 words) covering all key aspects. MUST include actual cluster name: ${clusterName}, location: ${location}, district: ${district}, SPV: ${spvName}, and all key metrics from step1",
@@ -226,7 +226,7 @@ Return only valid JSON without markdown code blocks.`;
     const submittedTo = clusterData.step11?.submittedTo || 'DIC, District';
 
     return {
-      coverPage: `# DETAILED PROJECT REPORT\n\n## On Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\n\n### ${district}, ${location}\n\n---\n\n**Submitted to:** ${submittedTo}\n**Submitted by:** ${clusterName}\n**Prepared by:** ${spvName}\n**Date:** ${new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}\n\n---\n\n*This Detailed Project Report has been prepared in accordance with the guidelines for Cluster Development Projects.*`,
+      coverPage: `# DETAILED PROJECT REPORT\n\n## On Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\n\n### ${district}, ${location}\n\n---\n\n**Submitted to:** ${submittedTo}\n**Submitted by:** ${clusterName}\n**Prepared by:** CittaAI\n**Date:** ${new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}\n\n---\n\n*This Detailed Project Report has been prepared in accordance with the guidelines for Cluster Development Projects.*`,
       tableOfContents: `# Table of Contents\n\n1. Executive Summary – Basic Cluster Details\n2. Introduction & Sector Overview\n3. District & Regional Profile\n4. Cluster Profile\n5. Value Chain Details\n6. Market Assessment\n7. Gap Analysis\n8. SWOT Analysis\n9. Proposed Interventions\n10. Common Facility Centre (CFC) Details\n11. SPV Details\n12. Project Cost Details\n13. Means of Finance\n14. Operating Cost & Revenue\n15. Financial Viability\n16. Project Implementation Schedule\n17. Expected Impact\n18. Annexures & Document Uploads`,
       sections: {
         executiveSummary: this.generateSectionContent(clusterData, 1, clusterName, location, district),

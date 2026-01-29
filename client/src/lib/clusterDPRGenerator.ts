@@ -141,7 +141,7 @@ ${s3.industrialInfrastructure || 'N/A'}
 
 ---
 
-**Prepared by:** ${data.step11?.spvName || 'SPV Name'}
+**Prepared by:**CittaAI
 **Date:** ${new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}
 
 ---

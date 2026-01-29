@@ -1138,7 +1138,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       Prepared by:
     </p>
     <p className="text-sm" style={{ color: '#1F2937' }}>
-      M/s.ITCOT Limited, 50A Greams Road, Chennai.
+      CittaAI 
     </p>
   </div>
 </div>
