@@ -76,6 +76,58 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   const [regeneratingSections, setRegeneratingSections] = useState<Record<string, boolean>>({});
   const [regenerateInstructions, setRegenerateInstructions] = useState<Record<string, string>>({});
   const [contentRefreshKey, setContentRefreshKey] = useState(0); // Force re-render when content changes
+  const [uploadingDocuments, setUploadingDocuments] = useState<Record<string, boolean>>({});
+  const annexureFileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Handle annexure document upload
+  const handleAnnexureUpload = async (documentType: string, file: File) => {
+    setUploadingDocuments((prev) => ({ ...prev, [documentType]: true }));
+    try {
+      // Upload to Cloudinary
+      const uploadResult = await api.uploadClusterDPRDocument(file);
+      if (uploadResult.success && uploadResult.data?.documentUrl) {
+        // Update project step18
+        const projectId = project?._id || project?.id;
+        if (projectId) {
+          await api.updateAnnexureDocument(
+            projectId.toString(),
+            documentType,
+            uploadResult.data.documentUrl
+          );
+          
+          // Reload DPR to show updated files
+          const dprId = dpr?._id || dpr?.id;
+          if (dprId) {
+            const reloadedDPRResponse = await api.getClusterDPR(dprId);
+            if (reloadedDPRResponse.success && reloadedDPRResponse.data) {
+              const reloadedDPR = reloadedDPRResponse.data;
+              if (dpr) {
+                Object.assign(dpr, reloadedDPR);
+                if (reloadedDPR.content) {
+                  dpr.content = reloadedDPR.content;
+                }
+                if (reloadedDPR.clusterSections) {
+                  dpr.clusterSections = reloadedDPR.clusterSections;
+                }
+              }
+              setContentRefreshKey(prev => prev + 1);
+            }
+          }
+          
+          toast.success(`Document uploaded successfully!`);
+        } else {
+          toast.error('Project not found');
+        }
+      } else {
+        toast.error(uploadResult.message || 'Failed to upload document');
+      }
+    } catch (error: any) {
+      console.error('Error uploading document:', error);
+      toast.error(error.message || 'Failed to upload document');
+    } finally {
+      setUploadingDocuments((prev) => ({ ...prev, [documentType]: false }));
+    }
+  };
 
   const getCurrentSectionContent = (sectionName: string) => {
     // Prefer ClusterSection applied content (works for subsections too)
@@ -2859,42 +2911,103 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         </div>
       </div>
 
-      {/* Annexures Cover Page */}
-      {(clusterData.step18?.spvRegistration || clusterData.step18?.landDocuments || clusterData.step18?.buildingEstimates || 
-        clusterData.step18?.machineryQuotations || clusterData.step18?.memberRegistrations || 
-        (clusterData.step18?.supportingDocuments && clusterData.step18.supportingDocuments.length > 0)) && (
-        <>
-          {/* Annexures Cover Page */}
-          <div 
-            className="min-h-[29.7cm] flex flex-col justify-center items-center p-12 border-b-4 border-gray-800 page-break relative"
-            style={{ 
-              pageBreakAfter: 'always',
-              minHeight: '29.7cm',
-              padding: '3cm 2cm',
-              fontFamily: 'Times New Roman, serif',
-              border: '8px solid #2563EB',
-              borderStyle: 'double',
-              position: 'relative'
-            }}
-          >
-            {/* Decorative border effect */}
+      {/* Annexures Cover Page - Always show for upload functionality */}
+      {(() => {
+        const hasAnnexures = clusterData.step18?.spvRegistration || clusterData.step18?.landDocuments || 
+          clusterData.step18?.buildingEstimates || clusterData.step18?.machineryQuotations || 
+          clusterData.step18?.memberRegistrations || 
+          (clusterData.step18?.supportingDocuments && clusterData.step18.supportingDocuments.length > 0);
+        
+        return (
+          <>
+            {/* Annexures Cover Page */}
             <div 
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                border: '2px solid #3B82F6',
-                margin: '8px',
-                borderRadius: '4px'
+              className="min-h-[29.7cm] flex flex-col justify-center items-center p-12 border-b-4 border-gray-800 page-break relative"
+              style={{ 
+                pageBreakAfter: 'always',
+                minHeight: '29.7cm',
+                padding: '3cm 2cm',
+                fontFamily: 'Times New Roman, serif',
+                border: '8px solid #2563EB',
+                borderStyle: 'double',
+                position: 'relative'
               }}
-            />
-            <div className="relative z-10 w-full flex flex-col items-center justify-center">
-              {renderSectionTitle('ANNEXURES', 18)}
-              {s1.clusterName && (
-                <h2 className="text-3xl font-semibold mb-4 mt-4" style={{ color: '#059669', letterSpacing: '0.05em' }}>
-                  - {s1.clusterName.toUpperCase()} -
-                </h2>
-              )}
+            >
+              {/* Decorative border effect */}
+              <div 
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  border: '2px solid #3B82F6',
+                  margin: '8px',
+                  borderRadius: '4px'
+                }}
+              />
+              <div className="relative z-10 w-full flex flex-col items-center justify-center">
+                {renderSectionTitle('ANNEXURES', 18)}
+                {s1.clusterName && (
+                  <h2 className="text-3xl font-semibold mb-4 mt-4" style={{ color: '#059669', letterSpacing: '0.05em' }}>
+                    - {s1.clusterName.toUpperCase()} -
+                  </h2>
+                )}
+                
+                {/* Upload Section - Always show for uploading documents */}
+                <div className="mt-8 w-full max-w-2xl no-print">
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-blue-800">Upload Annexure Documents</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      {[
+                        { type: 'spvRegistration', label: 'SPV Registration', index: 1 },
+                        { type: 'landDocuments', label: 'Land Documents', index: 2 },
+                        { type: 'buildingEstimates', label: 'Building Estimates', index: 3 },
+                        { type: 'machineryQuotations', label: 'Machinery Quotations', index: 4 },
+                        { type: 'memberRegistrations', label: 'Member Registrations', index: 5 },
+                        { type: 'supportingDocuments', label: 'Supporting Documents', index: 6 },
+                      ].map(({ type, label }) => {
+                        const isUploading = uploadingDocuments[type];
+                        return (
+                          <div key={type} className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-gray-700">{label}</label>
+                            <input
+                              ref={(el) => (annexureFileInputRefs.current[type] = el)}
+                              type="file"
+                              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                await handleAnnexureUpload(type, file);
+                                if (annexureFileInputRefs.current[type]) {
+                                  annexureFileInputRefs.current[type]!.value = '';
+                                }
+                              }}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => annexureFileInputRefs.current[type]?.click()}
+                              disabled={isUploading}
+                              className="w-full"
+                            >
+                              {isUploading ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Upload {label}
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
 
           {/* Helper function to get file URL */}
           {(() => {
@@ -2903,8 +3016,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               
               // If it's already a URL string
               if (typeof file === 'string') {
-                // Check if it's a full URL
+                // Check if it's a full URL (including Cloudinary URLs)
                 if (file.startsWith('http://') || file.startsWith('https://')) {
+                  // For Cloudinary PDFs, ensure proper format for viewing
+                  if (file.includes('cloudinary.com') && file.includes('.pdf')) {
+                    // Cloudinary URLs work directly for PDF viewing
+                    return file;
+                  }
                   return file;
                 }
                 // Check if it's a relative path starting with /uploads/
@@ -2990,58 +3108,58 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                     <h3 className="text-2xl font-bold mb-2" style={{ color: '#1F2937' }}>
                       Annexure {annexure.index}: {annexure.title}
                     </h3>
-                    <p className="text-sm text-gray-600">{fileName}</p>
                   </div>
                   
                   {fileUrl ? (
-                    <div className="w-full h-full flex items-center justify-center" style={{ minHeight: 'calc(29.7cm - 8cm)' }}>
+                    <div className="w-full" style={{ minHeight: 'calc(29.7cm - 8cm)' }}>
                       {isImage ? (
-                        <img 
-                          src={fileUrl} 
-                          alt={annexure.title}
-                          className="max-w-full max-h-full object-contain"
-                          style={{ maxHeight: 'calc(29.7cm - 8cm)' }}
-                          onError={(e) => {
-                            console.error('Failed to load image:', fileUrl);
-                            e.currentTarget.style.display = 'none';
-                            const errorDiv = document.createElement('div');
-                            errorDiv.className = 'text-center text-gray-500';
-                            errorDiv.textContent = 'File could not be loaded. Please check the file path.';
-                            e.currentTarget.parentElement?.appendChild(errorDiv);
-                          }}
-                        />
+                        <div className="w-full h-full flex items-center justify-center">
+                          <img 
+                            src={fileUrl} 
+                            alt={annexure.title}
+                            className="max-w-full max-h-full object-contain"
+                            style={{ maxHeight: 'calc(29.7cm - 8cm)' }}
+                            onError={(e) => {
+                              console.error('Failed to load image:', fileUrl);
+                              e.currentTarget.style.display = 'none';
+                              const errorDiv = document.createElement('div');
+                              errorDiv.className = 'text-center text-gray-500';
+                              errorDiv.textContent = 'File could not be loaded. Please check the file path.';
+                              e.currentTarget.parentElement?.appendChild(errorDiv);
+                            }}
+                          />
+                        </div>
                       ) : isPdf ? (
-                        <div className="w-full flex flex-col items-center justify-center" style={{ minHeight: 'calc(29.7cm - 8cm)' }}>
-                          <div className="mb-4 text-center">
-                            <p className="text-sm text-gray-600 mb-2">PDF Document: {fileName}</p>
-                            <a 
-                              href={fileUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-block px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                            >
-                              Open PDF in New Tab
-                            </a>
-                          </div>
-                          <div className="w-full flex-1 border border-gray-300 rounded overflow-hidden">
-                            <embed
-                              src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                              type="application/pdf"
-                              className="w-full h-full"
-                              style={{ 
-                                minHeight: 'calc(29.7cm - 12cm)',
-                              }}
-                              onError={(e) => {
-                                console.error('Failed to load PDF embed:', fileUrl);
-                                // Hide embed and show link only
-                                const embedElement = e.currentTarget;
-                                embedElement.style.display = 'none';
-                              }}
-                            />
-                          </div>
+                        <div className="w-full h-full" style={{ minHeight: 'calc(29.7cm - 8cm)' }}>
+                          {/* Use iframe for better PDF display compatibility */}
+                          <iframe
+                            src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                            className="w-full border-0"
+                            style={{ 
+                              minHeight: 'calc(29.7cm - 8cm)',
+                              height: 'calc(29.7cm - 8cm)',
+                            }}
+                            title={`${annexure.title} PDF`}
+                            onError={(e) => {
+                              console.error('Failed to load PDF iframe:', fileUrl);
+                              // Fallback to embed if iframe fails
+                              const iframeElement = e.currentTarget;
+                              const parent = iframeElement.parentElement;
+                              if (parent) {
+                                iframeElement.style.display = 'none';
+                                const embedElement = document.createElement('embed');
+                                embedElement.src = `${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`;
+                                embedElement.type = 'application/pdf';
+                                embedElement.className = 'w-full';
+                                embedElement.style.minHeight = 'calc(29.7cm - 8cm)';
+                                embedElement.style.height = 'calc(29.7cm - 8cm)';
+                                parent.appendChild(embedElement);
+                              }
+                            }}
+                          />
                         </div>
                       ) : (
-                        <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                        <div className="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg" style={{ minHeight: 'calc(29.7cm - 8cm)' }}>
                           <p className="text-gray-500 mb-2">Document Preview</p>
                           <a 
                             href={fileUrl} 
@@ -3064,8 +3182,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               );
             });
           })()}
-        </>
-      )}
+          </>
+        );
+      })()}
 
       {/* Enhance DPR Button - Fixed at bottom */}
       <div 

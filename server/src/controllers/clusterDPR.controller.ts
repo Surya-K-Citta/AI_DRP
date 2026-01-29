@@ -251,6 +251,46 @@ export class ClusterDPRController {
   }
 
   /**
+   * Setup multer for document uploads (PDF, DOC, DOCX, etc.)
+   */
+  static getDocumentUploadMiddleware() {
+    return multer({
+      storage: multer.diskStorage({
+        destination: (req, file, cb) => {
+          const uploadDir = path.join(process.cwd(), 'uploads', 'documents');
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+          cb(null, uploadDir);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+          cb(null, uniqueSuffix + path.extname(file.originalname));
+        },
+      }),
+      limits: {
+        fileSize: 50 * 1024 * 1024, // 50MB limit
+      },
+      fileFilter: (req, file, cb) => {
+        const allowedTypes = [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'image/jpeg',
+          'image/jpg',
+          'image/png',
+          'text/plain',
+        ];
+        if (allowedTypes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Invalid file type. Only PDF, DOC, DOCX, images, and TXT files are allowed.'));
+        }
+      },
+    });
+  }
+
+  /**
    * Generate image using Gemini API
    */
   static async generateImage(req: AuthRequest, res: Response): Promise<void> {
@@ -1347,6 +1387,200 @@ export class ClusterDPRController {
       res.status(500).json({
         success: false,
         message: 'Failed to apply enhanced content',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Upload document (PDF, DOC, etc.) for annexures
+   */
+  static async uploadDocument(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const file = req.file;
+      if (!file) {
+        res.status(400).json({
+          success: false,
+          message: 'No file uploaded',
+        });
+        return;
+      }
+
+      // Upload to Cloudinary
+      let cloudinaryUrl = `/uploads/documents/${file.filename}`;
+      let cloudinaryPublicId = null;
+      try {
+        const cloudinaryResult = await CloudinaryService.uploadDocument(
+          file.path,
+          'msme-dpr/cluster-documents',
+          `document-${Date.now()}-${file.filename.replace(/\.[^/.]+$/, '')}`
+        );
+        cloudinaryUrl = cloudinaryResult.secureUrl;
+        cloudinaryPublicId = cloudinaryResult.publicId;
+        
+        // Delete local file after successful Cloudinary upload
+        fs.unlink(file.path, (err) => {
+          if (err) console.error('Error deleting local file:', err);
+        });
+        
+        console.log(`✅ Document uploaded to Cloudinary: ${cloudinaryPublicId}`);
+      } catch (cloudinaryError: any) {
+        console.error('⚠️ Failed to upload to Cloudinary, using local file:', cloudinaryError);
+        // Continue with local file path if Cloudinary upload fails
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Document uploaded successfully',
+        data: {
+          documentUrl: cloudinaryUrl,
+          cloudinaryPublicId,
+          filename: file.filename,
+          originalName: file.originalname,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ Error uploading document:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to upload document',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Update step18 annexures with uploaded document URLs
+   */
+  static async updateAnnexureDocument(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      const { projectId, documentType, documentUrl } = req.body;
+
+      if (!projectId || !documentType || !documentUrl) {
+        res.status(400).json({
+          success: false,
+          message: 'Project ID, document type, and document URL are required',
+        });
+        return;
+      }
+
+      // Find project
+      const project = await Project.findOne({
+        _id: projectId,
+        userId,
+      });
+
+      if (!project) {
+        res.status(404).json({
+          success: false,
+          message: 'Project not found',
+        });
+        return;
+      }
+
+      // Update step18 data
+      if (!project.stepData) {
+        project.stepData = {};
+      }
+      if (!project.stepData.step18) {
+        project.stepData.step18 = {};
+      }
+
+      // Map document types to step18 fields
+      const documentTypeMap: Record<string, string> = {
+        'spvRegistration': 'spvRegistration',
+        'landDocuments': 'landDocuments',
+        'buildingEstimates': 'buildingEstimates',
+        'machineryQuotations': 'machineryQuotations',
+        'memberRegistrations': 'memberRegistrations',
+        'supportingDocuments': 'supportingDocuments',
+      };
+
+      const step18Field = documentTypeMap[documentType];
+      if (!step18Field) {
+        res.status(400).json({
+          success: false,
+          message: `Invalid document type. Allowed types: ${Object.keys(documentTypeMap).join(', ')}`,
+        });
+        return;
+      }
+
+      // Handle supportingDocuments as array, others as single value
+      if (step18Field === 'supportingDocuments') {
+        if (!Array.isArray(project.stepData.step18.supportingDocuments)) {
+          project.stepData.step18.supportingDocuments = [];
+        }
+        project.stepData.step18.supportingDocuments.push(documentUrl);
+      } else {
+        (project.stepData.step18 as any)[step18Field] = documentUrl;
+      }
+
+      await project.save();
+
+      // Also update DPRVersion clusterData if it exists
+      const dprVersion = await DPRVersion.findOne({
+        projectId: project._id.toString(),
+        userId,
+      }).sort({ createdAt: -1 });
+
+      if (dprVersion) {
+        const lang = 'english'; // Default to english
+        if (!dprVersion.content[lang]) {
+          dprVersion.content[lang] = {};
+        }
+        if (!dprVersion.content[lang].clusterData) {
+          dprVersion.content[lang].clusterData = {};
+        }
+        if (!dprVersion.content[lang].clusterData.step18) {
+          dprVersion.content[lang].clusterData.step18 = {};
+        }
+
+        if (step18Field === 'supportingDocuments') {
+          if (!Array.isArray(dprVersion.content[lang].clusterData.step18.supportingDocuments)) {
+            dprVersion.content[lang].clusterData.step18.supportingDocuments = [];
+          }
+          dprVersion.content[lang].clusterData.step18.supportingDocuments.push(documentUrl);
+        } else {
+          dprVersion.content[lang].clusterData.step18[step18Field] = documentUrl;
+        }
+
+        await dprVersion.save();
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Annexure document updated successfully',
+        data: {
+          projectId,
+          documentType,
+          documentUrl,
+        },
+      });
+    } catch (error: any) {
+      console.error('❌ Error updating annexure document:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update annexure document',
         error: error.message,
       });
     }

@@ -750,6 +750,46 @@ class APIClient {
     );
   }
 
+  async uploadClusterDPRDocument(file: File) {
+    return this.handleRequest(
+      async () => {
+        const formData = new FormData();
+        formData.append('document', file);
+        const response = await this.client.post('/dpr/cluster/documents/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        return response.data;
+      },
+      () => {
+        return Promise.resolve({
+          success: false,
+          message: 'Document upload failed',
+        });
+      }
+    );
+  }
+
+  async updateAnnexureDocument(projectId: string, documentType: string, documentUrl: string) {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/dpr/cluster/annexures/update', {
+          projectId,
+          documentType,
+          documentUrl,
+        });
+        return response.data;
+      },
+      () => {
+        return Promise.resolve({
+          success: false,
+          message: 'Failed to update annexure document',
+        });
+      }
+    );
+  }
+
   async getUserDPRs() {
     const cacheKey = this.getCacheKey('GET', '/dpr/user/list');
     return this.handleRequest(

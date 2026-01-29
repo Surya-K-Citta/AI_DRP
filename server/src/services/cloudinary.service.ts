@@ -128,6 +128,53 @@ export class CloudinaryService {
   }
 
   /**
+   * Upload document (PDF, DOC, etc.) to Cloudinary
+   */
+  static async uploadDocument(
+    filePath: string,
+    folder: string = 'msme-dpr/cluster-documents',
+    publicId?: string
+  ): Promise<{ url: string; publicId: string; secureUrl: string }> {
+    try {
+      const options: any = {
+        folder,
+        resource_type: 'auto', // Auto-detect resource type (PDF, DOC, etc.)
+        overwrite: true,
+      };
+
+      if (publicId) {
+        options.public_id = publicId;
+      }
+
+      const result = await cloudinary.uploader.upload(filePath, options);
+
+      return {
+        url: result.url,
+        secureUrl: result.secure_url,
+        publicId: result.public_id,
+      };
+    } catch (error: any) {
+      console.error('Error uploading document to Cloudinary:', error);
+      throw new Error(`Failed to upload document: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete document from Cloudinary
+   */
+  static async deleteDocument(publicId: string): Promise<boolean> {
+    try {
+      const result = await cloudinary.uploader.destroy(publicId, {
+        resource_type: 'auto', // Support all resource types
+      });
+      return result.result === 'ok';
+    } catch (error: any) {
+      console.error('Error deleting document from Cloudinary:', error);
+      throw new Error(`Failed to delete document: ${error.message}`);
+    }
+  }
+
+  /**
    * Extract public ID from Cloudinary URL
    */
   static extractPublicId(url: string): string | null {
@@ -136,7 +183,7 @@ export class CloudinaryService {
       const match = url.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[^.]+)?$/);
       if (match && match[1]) {
         // Remove folder prefix if present
-        const publicId = match[1].replace(/^msme-dpr\/cluster-images\//, '');
+        const publicId = match[1].replace(/^msme-dpr\/(cluster-images|cluster-documents)\//, '');
         return publicId;
       }
       return null;

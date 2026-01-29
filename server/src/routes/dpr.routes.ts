@@ -90,6 +90,21 @@ router.post('/cluster/ai/generate-field-content', ClusterDPRController.generateF
 // Image deletion for Cluster DPR
 router.delete('/cluster/images/delete', ClusterDPRController.deleteImage);
 
+// Document upload for Cluster DPR Annexures
+router.post('/cluster/documents/upload', (req, res, next) => {
+  const upload = ClusterDPRController.getDocumentUploadMiddleware();
+  upload.single('document')(req, res, (err: any) => {
+    if (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'File upload error',
+      });
+    }
+    next();
+  });
+}, ClusterDPRController.uploadDocument);
+router.post('/cluster/annexures/update', ClusterDPRController.updateAnnexureDocument);
+
 // DPR retrieval and download
 router.get('/:dprId', DPRController.getDPR);
 router.get('/:dprId/download/pdf', DPRController.downloadPDF); // GET for backward compatibility

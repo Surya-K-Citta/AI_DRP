@@ -505,31 +505,15 @@ export const Dashboard: React.FC = () => {
                     return paginatedDPRs.map((dpr: DPR) => (
                   <div
                     key={dpr._id}
-                    className="group flex items-center justify-between p-5 border rounded-[14px] hover:border-primary/50 hover:shadow-md transition-all cursor-pointer bg-card"
-                    onClick={() => navigate(`/dpr/view/${dpr._id}`)}
+                    className="group flex items-center justify-between p-4 border rounded-lg hover:border-primary/50 hover:shadow-md transition-all bg-card"
                   >
-                    <div className="flex-1 flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                        <FileText className="h-6 w-6 text-primary" />
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                        <FileText className="h-5 w-5 text-primary" />
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                          <h4 className="font-semibold text-lg">
-                            {dpr.projectId?.projectName || t('dashboard.untitledProject')}
-                          </h4>
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(dpr.status)}`}>
-                            {getStatusIcon(dpr.status)}
-                            {dpr.status ? (dpr.status.charAt(0).toUpperCase() + dpr.status.slice(1)) : t('dashboard.unknown')}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{dpr.projectId?.industrySector || t('dashboard.unknownSector')}</span>
-                          <span>•</span>
-                          <span>{t('dashboard.version')} {dpr.versionNumber}</span>
-                          <span>•</span>
-                          <span>{formatDate(dpr.generatedAt || dpr.createdAt || new Date())}</span>
-                        </div>
-                      </div>
+                      <h4 className="font-semibold text-base">
+                        {dpr.projectId?.projectName || t('dashboard.untitledProject')}
+                      </h4>
                     </div>
                     <div className="flex items-center gap-4">
                       {dpr.qualityScore !== undefined && (
