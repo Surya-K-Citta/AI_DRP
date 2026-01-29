@@ -77,7 +77,7 @@ COVER PAGE (USE EXACT VALUES FROM DATA - NO PLACEHOLDERS):
 - Subtitle: "On Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'"
 - Submitted to: ${submittedTo} (MUST be a single line, typically "DIC, [District Name]" or similar - NO paragraphs or explanations)
 - Submitted by: ${clusterName} (MUST be the cluster name only - single line, NO paragraphs or explanations)
-- Prepared by: ${spvName} (or use step11 data if available)
+- Prepared by: CittaAI
 
 CRITICAL: "Submitted to" and "Submitted by" MUST be simple single-line entries. DO NOT write paragraphs or explanations for these fields. Just use the exact values provided above.
 
@@ -138,14 +138,14 @@ SPECIFIC SECTION REQUIREMENTS:
 - **Conclusion**: 400-600 words summarizing project rationale and expected benefits
 
 CRITICAL FORMATTING REQUIREMENTS:
-- Cover Page MUST include: "DETAILED PROJECT REPORT\nOn Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\nSubmitted to: ${submittedTo}\nSubmitted by: ${clusterName}\nPrepared by: ${spvName}"
+- Cover Page MUST include: "DETAILED PROJECT REPORT\nOn Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\nSubmitted to: ${submittedTo}\nSubmitted by: ${clusterName}\nPrepared by: CittaAI"
 CRITICAL: "Submitted to" and "Submitted by" must be simple single-line entries only. NO paragraphs or explanations.
 - Project Snapshot tables MUST use actual data values from step1, step4, step5, step6, step11
 - All sections MUST reference actual data values, not placeholders
 
 Return a JSON object with this structure:
 {
-  "coverPage": "Full cover page content with EXACT values: DETAILED PROJECT REPORT\nOn Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\nSubmitted to: ${submittedTo}\nSubmitted by: ${spvName}\nPrepared by: ${spvName}",
+  "coverPage": "Full cover page content with EXACT values: DETAILED PROJECT REPORT\nOn Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\nSubmitted to: ${submittedTo}\nSubmitted by: ${spvName}\nPrepared by: CittaAI",
   "tableOfContents": "Complete table of contents with page numbers",
   "sections": {
     "executiveSummary": "Comprehensive executive summary (600-800 words) covering all key aspects. MUST include actual cluster name: ${clusterName}, location: ${location}, district: ${district}, SPV: ${spvName}, and all key metrics from step1",
@@ -226,7 +226,7 @@ Return only valid JSON without markdown code blocks.`;
     const submittedTo = clusterData.step11?.submittedTo || 'DIC, District';
 
     return {
-      coverPage: `# DETAILED PROJECT REPORT\n\n## On Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\n\n### ${district}, ${location}\n\n---\n\n**Submitted to:** ${submittedTo}\n**Submitted by:** ${clusterName}\n**Prepared by:** ${spvName}\n**Date:** ${new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}\n\n---\n\n*This Detailed Project Report has been prepared in accordance with the guidelines for Cluster Development Projects.*`,
+      coverPage: `# DETAILED PROJECT REPORT\n\n## On Establishment of Common Facility Centre for ${clusterName} under 'Micro Cluster Development Programme'\n\n### ${district}, ${location}\n\n---\n\n**Submitted to:** ${submittedTo}\n**Submitted by:** ${clusterName}\n**Prepared by:** CittaAI\n**Date:** ${new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}\n\n---\n\n*This Detailed Project Report has been prepared in accordance with the guidelines for Cluster Development Projects.*`,
       tableOfContents: `# Table of Contents\n\n1. Executive Summary – Basic Cluster Details\n2. Introduction & Sector Overview\n3. District & Regional Profile\n4. Cluster Profile\n5. Value Chain Details\n6. Market Assessment\n7. Gap Analysis\n8. SWOT Analysis\n9. Proposed Interventions\n10. Common Facility Centre (CFC) Details\n11. SPV Details\n12. Project Cost Details\n13. Means of Finance\n14. Operating Cost & Revenue\n15. Financial Viability\n16. Project Implementation Schedule\n17. Expected Impact\n18. Annexures & Document Uploads`,
       sections: {
         executiveSummary: this.generateSectionContent(clusterData, 1, clusterName, location, district),
@@ -327,10 +327,10 @@ Return only valid JSON without markdown code blocks.`;
     const paragraph = `The ${clusterNameValue} located in ${locationValue}, ${districtValue}, represents a significant initiative under the Micro Cluster Development Programme. The cluster encompasses ${geographicalSpread} and focuses on ${natureOfBusiness}, with primary products including ${majorProducts}. The cluster comprises a total of ${totalEnterprises} enterprises, including ${micro} micro enterprises, ${small} small enterprises, and ${medium} medium enterprises, demonstrating a diverse and robust industrial ecosystem. ` +
       `The cluster's enterprises have varying operational histories, with ${ageOfEnterprises.lessThan5 || 0} enterprises operating for less than 5 years, ${ageOfEnterprises.between5And10 || 0} enterprises between 5-10 years, and ${ageOfEnterprises.moreThan10 || 0} enterprises with over 10 years of experience. ` +
       `In terms of employment generation, the cluster provides substantial employment opportunities across different scales, with ${employmentPerUnit.lessThan5 || 0} units employing less than 5 workers, ${employmentPerUnit.between5And10 || 0} units employing 5-10 workers, and ${employmentPerUnit.moreThan10 || 0} units employing more than 10 workers. ` +
-      `The average investment per unit stands at ₹${investmentPerUnit.toLocaleString('en-IN')}, while the average turnover per unit is ₹${turnoverPerUnit.toLocaleString('en-IN')}, indicating strong economic activity and growth potential. ` +
+      `The average investment per unit stands at ₹${investmentPerUnit.toLocaleString('en-IN')} Lakhs, while the average turnover per unit is ₹${turnoverPerUnit.toLocaleString('en-IN')} Lakhs, indicating strong economic activity and growth potential. ` +
       `The market served by the cluster is distributed with ${domestic}% domestic market share and ${exportShare}% export orientation, showcasing both local market strength and international competitiveness. ` +
       `${spvName} has been established as the implementing agency for this cluster development initiative. ` +
-      (projectCost > 0 ? `The total project cost is estimated at ₹${projectCost.toLocaleString('en-IN')}, ` : '') +
+      (projectCost > 0 ? `The total project cost is estimated at ₹${projectCost.toLocaleString('en-IN')} Lakhs, ` : '') +
       (expectedEmployment > 0 ? `with an expected employment generation of ${expectedEmployment} persons. ` : '') +
       `This comprehensive development project aims to enhance the cluster's competitiveness, improve production capabilities, strengthen market linkages, and create sustainable employment opportunities, thereby contributing significantly to the regional economic development and the overall growth of the MSME sector.`;
 
@@ -728,7 +728,7 @@ PROJECT SUMMARY:
 - Major Products: ${clusterData.step1?.majorProducts || 'N/A'}
 - Total Enterprises: ${(clusterData.step1?.enterpriseCount?.micro || 0) + (clusterData.step1?.enterpriseCount?.small || 0) + (clusterData.step1?.enterpriseCount?.medium || 0)}
 - SPV Name: ${clusterData.step11?.spvName || 'N/A'}
-- Project Cost: ₹${(clusterData.step12?.totalCost || 0).toLocaleString('en-IN')}
+- Project Cost: ₹${(clusterData.step12?.totalCost || 0).toLocaleString('en-IN')} Lakhs
 - Expected Employment Generation: ${clusterData.step17?.employmentGeneration || 0}
 - Expected Turnover Growth: ${clusterData.step17?.turnoverGrowth || 0}%
 - Expected Export Growth: ${clusterData.step17?.exportGrowth || 0}%

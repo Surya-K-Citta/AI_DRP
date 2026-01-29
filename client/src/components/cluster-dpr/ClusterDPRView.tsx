@@ -179,8 +179,8 @@ export { ClusterDPRViewComplete as ClusterDPRView } from './ClusterDPRViewComple
           <div>
             <h3 className="text-xl font-semibold mb-4">1.5 Investment & Market</h3>
             <div className="space-y-2 mb-4">
-              <p><strong>Average Investment per Unit:</strong> ₹{(s1.investmentPerUnit || 0).toLocaleString('en-IN')}</p>
-              <p><strong>Average Turnover per Unit:</strong> ₹{(s1.turnoverPerUnit || 0).toLocaleString('en-IN')}</p>
+              <p><strong>Average Investment per Unit:</strong> ₹{(s1.investmentPerUnit || 0).toLocaleString('en-IN')} Lakhs</p>
+              <p><strong>Average Turnover per Unit:</strong> ₹{(s1.turnoverPerUnit || 0).toLocaleString('en-IN')} Lakhs</p>
             </div>
             {renderTable(
               ['Market', 'Share (%)'],

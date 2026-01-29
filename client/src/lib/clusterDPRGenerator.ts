@@ -54,8 +54,8 @@ The cluster comprises of:
 
 ### Financial Indicators
 
-- **Average Investment per Unit:** ₹${(s1.investmentPerUnit || 0).toLocaleString('en-IN')}
-- **Average Turnover per Unit:** ₹${(s1.turnoverPerUnit || 0).toLocaleString('en-IN')}
+- **Average Investment per Unit:** ₹${(s1.investmentPerUnit || 0).toLocaleString('en-IN')} Lakhs
+- **Average Turnover per Unit:** ₹${(s1.turnoverPerUnit || 0).toLocaleString('en-IN')} Lakhs
 
 ### Market Served
 
@@ -141,7 +141,7 @@ ${s3.industrialInfrastructure || 'N/A'}
 
 ---
 
-**Prepared by:** ${data.step11?.spvName || 'SPV Name'}
+**Prepared by:**CittaAI
 **Date:** ${new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}
 
 ---

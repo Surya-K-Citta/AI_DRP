@@ -171,14 +171,14 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
           [suggestion.field]: parsedContent,
         };
         setStepData(currentStep, updatedStepData);
-        console.log(`✅ Updated step ${currentStep} data for field ${suggestion.field}:`, parsedContent);
+        console.log(`Updated step ${currentStep} data for field ${suggestion.field}:`, parsedContent);
 
         // Call the optional callback
         if (onApplySuggestion) {
           onApplySuggestion(suggestion.field, parsedContent);
         }
 
-        toast.success(`✅ Applied AI suggestion to ${suggestion.field}`);
+        toast.success(`Applied AI suggestion to ${suggestion.field}`);
       } else {
         toast.error('Failed to generate content for this field');
       }
@@ -251,7 +251,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
 
       // Single store update for the step (final state)
       setStepData(currentStep, updatedStepData);
-      toast.success(`✅ Applied ${appliedCount} suggestion${appliedCount !== 1 ? 's' : ''}`);
+      toast.success(`Applied ${appliedCount} suggestion${appliedCount !== 1 ? 's' : ''}`);
     } finally {
       setApplyingAll(false);
       setApplyingFields(new Set());

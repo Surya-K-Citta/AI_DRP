@@ -335,7 +335,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Investment per Unit (₹)</label>
+            <label className="block text-sm font-medium mb-2">Investment per Unit (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.investmentPerUnit || ''}
@@ -344,7 +344,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Turnover per Unit (₹)</label>
+            <label className="block text-sm font-medium mb-2">Turnover per Unit (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.turnoverPerUnit || ''}
@@ -794,7 +794,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
                     type="number"
                     value={stage.sellingPrice || ''}
                     onChange={(e) => handleArrayUpdate('valueAdditionStages', index, { sellingPrice: parseFloat(e.target.value) || 0 })}
-                    placeholder="Selling price (₹)"
+                    placeholder="Selling price (₹ Lakhs)"
                   />
                 </div>
               </div>
@@ -1427,7 +1427,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Land (₹)</label>
+            <label className="block text-sm font-medium mb-2">Land (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.land || ''}
@@ -1436,7 +1436,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Building (₹)</label>
+            <label className="block text-sm font-medium mb-2">Building (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.building || ''}
@@ -1445,7 +1445,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Machinery (₹)</label>
+            <label className="block text-sm font-medium mb-2">Machinery (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.machinery || ''}
@@ -1454,7 +1454,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Utilities & Infrastructure (₹)</label>
+            <label className="block text-sm font-medium mb-2">Utilities & Infrastructure (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.utilitiesAndInfrastructure || ''}
@@ -1463,7 +1463,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Preliminary & Pre-operative (₹)</label>
+            <label className="block text-sm font-medium mb-2">Preliminary & Pre-operative (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.preliminaryAndPreOperative || ''}
@@ -1472,7 +1472,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Working Capital Margin (₹)</label>
+            <label className="block text-sm font-medium mb-2">Working Capital Margin (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.workingCapitalMargin || ''}
@@ -1485,7 +1485,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           <div className="bg-primary/10 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <span className="text-lg font-semibold">Total Project Cost</span>
-              <span className="text-2xl font-bold text-primary">₹ {totalCost.toLocaleString('en-IN')}</span>
+              <span className="text-2xl font-bold text-primary">₹ {totalCost.toLocaleString('en-IN')} Lakhs</span>
             </div>
           </div>
         </div>
@@ -1511,7 +1511,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">SPV Contribution (₹)</label>
+            <label className="block text-sm font-medium mb-2">SPV Contribution (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.spvContribution || ''}
@@ -1520,7 +1520,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Government Grant (₹)</label>
+            <label className="block text-sm font-medium mb-2">Government Grant (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.governmentGrant || ''}
@@ -1529,7 +1529,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Bank Loan (₹)</label>
+            <label className="block text-sm font-medium mb-2">Bank Loan (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.bankLoan || ''}
@@ -1538,7 +1538,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Other Sources (₹)</label>
+            <label className="block text-sm font-medium mb-2">Other Sources (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.otherSources || ''}
@@ -1551,7 +1551,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           <div className="bg-primary/10 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <span className="text-lg font-semibold">Total Finance</span>
-              <span className="text-2xl font-bold text-primary">₹ {total.toLocaleString('en-IN')}</span>
+              <span className="text-2xl font-bold text-primary">₹ {total.toLocaleString('en-IN')} Lakhs</span>
             </div>
           </div>
         </div>
@@ -1572,7 +1572,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Raw Material Cost (₹)</label>
+            <label className="block text-sm font-medium mb-2">Raw Material Cost (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.rawMaterialCost || ''}
@@ -1581,7 +1581,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Power Cost (₹)</label>
+            <label className="block text-sm font-medium mb-2">Power Cost (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.powerCost || ''}
@@ -1590,7 +1590,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Wages (₹)</label>
+            <label className="block text-sm font-medium mb-2">Wages (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.wages || ''}
@@ -1599,7 +1599,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Maintenance (₹)</label>
+            <label className="block text-sm font-medium mb-2">Maintenance (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.maintenance || ''}
@@ -1608,7 +1608,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Administrative Expenses (₹)</label>
+            <label className="block text-sm font-medium mb-2">Administrative Expenses (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.administrativeExpenses || ''}
@@ -1617,7 +1617,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Marketing Expenses (₹)</label>
+            <label className="block text-sm font-medium mb-2">Marketing Expenses (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.marketingExpenses || ''}
@@ -1635,7 +1635,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Annual Sales Realization (₹)</label>
+            <label className="block text-sm font-medium mb-2">Annual Sales Realization (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.annualSalesRealization || ''}
@@ -1660,7 +1660,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           }}
         />
         <div>
-          <label className="block text-sm font-medium mb-2">Break-even Point (₹)</label>
+          <label className="block text-sm font-medium mb-2">Break-even Point (₹ Lakhs)</label>
           <Input
             type="number"
             value={stepData.breakEvenPoint || ''}
@@ -1679,7 +1679,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">NPV (₹)</label>
+            <label className="block text-sm font-medium mb-2">NPV (₹ Lakhs)</label>
             <Input
               type="number"
               value={stepData.npv || ''}

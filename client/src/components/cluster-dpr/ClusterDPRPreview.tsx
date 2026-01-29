@@ -111,8 +111,8 @@ Employment per Unit:
 - 5-10 employees: ${s1.employmentPerUnit?.between5And10 || 0}
 - > 10 employees: ${s1.employmentPerUnit?.moreThan10 || 0}
 
-Investment per Unit: ₹${(s1.investmentPerUnit || 0).toLocaleString('en-IN')}
-Turnover per Unit: ₹${(s1.turnoverPerUnit || 0).toLocaleString('en-IN')}
+Investment per Unit: ₹${(s1.investmentPerUnit || 0).toLocaleString('en-IN')} Lakhs
+Turnover per Unit: ₹${(s1.turnoverPerUnit || 0).toLocaleString('en-IN')} Lakhs
 
 Market Served:
 - Domestic: ${s1.marketServed?.domestic || 0}%
@@ -187,7 +187,7 @@ Final Products:
 ${(s5.finalProducts || []).map((p: string) => `- ${p}`).join('\n') || 'N/A'}
 
 Value Addition Stages:
-${(s5.valueAdditionStages || []).map((s: any) => `- ${s.stage || 'N/A'}: ₹${(s.sellingPrice || 0).toLocaleString('en-IN')}`).join('\n') || 'N/A'}
+${(s5.valueAdditionStages || []).map((s: any) => `- ${s.stage || 'N/A'}: ₹${(s.sellingPrice || 0).toLocaleString('en-IN')} Lakhs`).join('\n') || 'N/A'}
 
 Major Buyers:
 ${(s5.majorBuyers || []).map((b: string) => `- ${b}`).join('\n') || 'N/A'}`;
