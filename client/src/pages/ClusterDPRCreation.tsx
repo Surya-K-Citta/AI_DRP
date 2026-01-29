@@ -367,7 +367,7 @@ export const ClusterDPRCreation: React.FC = () => {
       if (response.success && response.data) {
         // Store the generated DPR in the store
         setGeneratedDPR(response.data.content);
-        
+        resetData();
         // Navigate to view the generated DPR
         toast.success('DPR generated successfully!', { id: 'generating-dpr' });
         navigate(`/dpr/view/${response.data.dprId}`);
