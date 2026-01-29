@@ -21,6 +21,7 @@ export const ClusterDPRCreation: React.FC = () => {
   const [viewLanguage, setViewLanguage] = useState<'english' | 'telugu'>('english');
   const [previewZoom, setPreviewZoom] = useState(0.6); // Default zoom set to 60%
   const [previewScroll, setPreviewScroll] = useState(0);
+  const [project, setProject] = useState<any>(null); // Store the actual project object
 
   const currentStep = data.currentStep || 1;
   const totalSteps = 18;
@@ -45,6 +46,9 @@ export const ClusterDPRCreation: React.FC = () => {
           try {
             const projectResponse = await api.getProject(projectId);
             const projectData = projectResponse.data || projectResponse;
+            
+            // Store the actual project object
+            setProject(projectData);
             
             // If we also have a dprId, load DPR data
             let dprData = null;
@@ -96,6 +100,9 @@ export const ClusterDPRCreation: React.FC = () => {
             if (projects.length > 0) {
               const latestProject = projects[0];
               const projectData = latestProject;
+              
+              // Store the actual project object
+              setProject(projectData);
               
               // Try to find associated DPR
               let dprData = null;
@@ -672,7 +679,9 @@ export const ClusterDPRCreation: React.FC = () => {
                               clusterData: data,
                             },
                           }}
-                          project={{
+                          project={project || {
+                            _id: data.projectId,
+                            id: data.projectId,
                             projectName: data.step1?.clusterName,
                             projectType: 'cluster',
                             stepData: data,

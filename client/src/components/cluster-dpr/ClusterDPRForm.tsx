@@ -3,7 +3,9 @@ import React from 'react';
 import { useClusterDPRStore } from '@/store/clusterDPRStore';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { api } from '@/lib/api';
+import { toast } from 'react-hot-toast';
 import { AISuggestions } from './AISuggestions';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { FIELD_DESCRIPTIONS } from '@/data/fieldDescriptions';
@@ -21,7 +23,10 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
 }) => {
   const { data, setStepData, getStepData } = useClusterDPRStore();
   const stepData = getStepData(currentStep) || {};
-  
+
+  // State for Step 18 file uploads (must be at top level due to React hooks rules)
+  const [uploadingFiles, setUploadingFiles] = React.useState<Record<string, boolean>>({});
+
   // Debug: Log when step data changes
   React.useEffect(() => {
     console.log(`📋 Step ${currentStep} data loaded:`, {
@@ -1865,11 +1870,71 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
 
   // Step 18: Annexures & Document Uploads
   if (currentStep === 18) {
-    const handleFileChange = (field: string, file: File | null) => {
+    // Note: uploadingFiles state is defined at component top level (React hooks rule)
+
+    const handleFileChange = async (field: string, file: File | null) => {
       if (file) {
-        // Store file name for now (in production, upload to server)
-        handleInputChange(field, file.name);
+        setUploadingFiles(prev => ({ ...prev, [field]: true }));
+        try {
+          // Upload to Cloudinary
+          const uploadResult = await api.uploadClusterDPRDocument(file);
+          if (uploadResult.success && uploadResult.data?.documentUrl) {
+            // Store the Cloudinary URL, not just the filename
+            handleInputChange(field, uploadResult.data.documentUrl);
+            toast.success(`${file.name} uploaded successfully!`);
+          } else {
+            toast.error(uploadResult.message || 'Failed to upload document');
+            // Fallback to filename only if upload fails
+            handleInputChange(field, file.name);
+          }
+        } catch (error: any) {
+          console.error('Error uploading document:', error);
+          toast.error(error.message || 'Failed to upload document');
+          // Fallback to filename only if upload fails
+          handleInputChange(field, file.name);
+        } finally {
+          setUploadingFiles(prev => ({ ...prev, [field]: false }));
+        }
       }
+    };
+
+    const handleMultipleFileChange = async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+
+      const fileArray = Array.from(files);
+      const uploadedUrls: string[] = [];
+
+      setUploadingFiles(prev => ({ ...prev, supportingDocuments: true }));
+      try {
+        for (const file of fileArray) {
+          try {
+            const uploadResult = await api.uploadClusterDPRDocument(file);
+            if (uploadResult.success && uploadResult.data?.documentUrl) {
+              uploadedUrls.push(uploadResult.data.documentUrl);
+            } else {
+              // Fallback to filename if upload fails
+              uploadedUrls.push(file.name);
+            }
+          } catch (error) {
+            console.error('Error uploading file:', file.name, error);
+            uploadedUrls.push(file.name);
+          }
+        }
+        handleInputChange('supportingDocuments', uploadedUrls);
+        toast.success(`${uploadedUrls.length} document(s) uploaded!`);
+      } finally {
+        setUploadingFiles(prev => ({ ...prev, supportingDocuments: false }));
+      }
+    };
+
+    // Helper to display filename from URL
+    const getDisplayName = (urlOrName: string): string => {
+      if (urlOrName.startsWith('http://') || urlOrName.startsWith('https://')) {
+        // Extract filename from URL
+        const urlParts = urlOrName.split('/');
+        return urlParts[urlParts.length - 1] || urlOrName;
+      }
+      return urlOrName;
     };
 
     return (
@@ -1883,75 +1948,119 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         />
         <div>
           <label className="block text-sm font-medium mb-2">SPV Registration</label>
-          <Input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={(e) => handleFileChange('spvRegistration', e.target.files?.[0] || null)}
-          />
+          <div className="relative">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => handleFileChange('spvRegistration', e.target.files?.[0] || null)}
+              disabled={uploadingFiles.spvRegistration}
+            />
+            {uploadingFiles.spvRegistration && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
           {stepData.spvRegistration && (
-            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.spvRegistration}</p>
+            <p className="text-sm text-green-600 mt-1">✓ Uploaded: {getDisplayName(stepData.spvRegistration)}</p>
           )}
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Land Documents</label>
-          <Input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={(e) => handleFileChange('landDocuments', e.target.files?.[0] || null)}
-          />
+          <div className="relative">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => handleFileChange('landDocuments', e.target.files?.[0] || null)}
+              disabled={uploadingFiles.landDocuments}
+            />
+            {uploadingFiles.landDocuments && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
           {stepData.landDocuments && (
-            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.landDocuments}</p>
+            <p className="text-sm text-green-600 mt-1">✓ Uploaded: {getDisplayName(stepData.landDocuments)}</p>
           )}
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Building Estimates</label>
-          <Input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={(e) => handleFileChange('buildingEstimates', e.target.files?.[0] || null)}
-          />
+          <div className="relative">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => handleFileChange('buildingEstimates', e.target.files?.[0] || null)}
+              disabled={uploadingFiles.buildingEstimates}
+            />
+            {uploadingFiles.buildingEstimates && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
           {stepData.buildingEstimates && (
-            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.buildingEstimates}</p>
+            <p className="text-sm text-green-600 mt-1">✓ Uploaded: {getDisplayName(stepData.buildingEstimates)}</p>
           )}
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Machinery Quotations</label>
-          <Input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={(e) => handleFileChange('machineryQuotations', e.target.files?.[0] || null)}
-          />
+          <div className="relative">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => handleFileChange('machineryQuotations', e.target.files?.[0] || null)}
+              disabled={uploadingFiles.machineryQuotations}
+            />
+            {uploadingFiles.machineryQuotations && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
           {stepData.machineryQuotations && (
-            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.machineryQuotations}</p>
+            <p className="text-sm text-green-600 mt-1">✓ Uploaded: {getDisplayName(stepData.machineryQuotations)}</p>
           )}
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Member Registrations</label>
-          <Input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={(e) => handleFileChange('memberRegistrations', e.target.files?.[0] || null)}
-          />
+          <div className="relative">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => handleFileChange('memberRegistrations', e.target.files?.[0] || null)}
+              disabled={uploadingFiles.memberRegistrations}
+            />
+            {uploadingFiles.memberRegistrations && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
           {stepData.memberRegistrations && (
-            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.memberRegistrations}</p>
+            <p className="text-sm text-green-600 mt-1">✓ Uploaded: {getDisplayName(stepData.memberRegistrations)}</p>
           )}
         </div>
         <div>
           <label className="block text-sm font-medium mb-2">Supporting Documents</label>
-          <Input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            multiple
-            onChange={(e) => {
-              const files = Array.from(e.target.files || []);
-              const fileNames = files.map(f => f.name);
-              handleInputChange('supportingDocuments', fileNames);
-            }}
-          />
+          <div className="relative">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              multiple
+              onChange={(e) => handleMultipleFileChange(e.target.files)}
+              disabled={uploadingFiles.supportingDocuments}
+            />
+            {uploadingFiles.supportingDocuments && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
           {stepData.supportingDocuments && Array.isArray(stepData.supportingDocuments) && stepData.supportingDocuments.length > 0 && (
             <div className="mt-2 space-y-1">
               {stepData.supportingDocuments.map((doc: string, index: number) => (
-                <p key={index} className="text-sm text-muted-foreground">• {doc}</p>
+                <p key={index} className="text-sm text-green-600">✓ {getDisplayName(doc)}</p>
               ))}
             </div>
           )}

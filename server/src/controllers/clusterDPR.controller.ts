@@ -331,7 +331,13 @@ export class ClusterDPRController {
         cloudinaryPublicId = cloudinaryResult.publicId;
         console.log(`✅ Image uploaded to Cloudinary: ${cloudinaryPublicId}`);
       } catch (cloudinaryError: any) {
-        console.error('⚠️ Failed to upload to Cloudinary, using original URL:', cloudinaryError);
+        // Check if it's a configuration error
+        if (cloudinaryError.message?.includes('not configured')) {
+          console.warn('⚠️ Cloudinary not configured. Using original image URL.');
+          console.warn('   To enable Cloudinary uploads, add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to your .env file');
+        } else {
+          console.error('⚠️ Failed to upload to Cloudinary, using original URL:', cloudinaryError.message || cloudinaryError);
+        }
         // Continue with original URL if Cloudinary upload fails
       }
 
@@ -397,7 +403,13 @@ export class ClusterDPRController {
         
         console.log(`✅ Image uploaded to Cloudinary: ${cloudinaryPublicId}`);
       } catch (cloudinaryError: any) {
-        console.error('⚠️ Failed to upload to Cloudinary, using local file:', cloudinaryError);
+        // Check if it's a configuration error
+        if (cloudinaryError.message?.includes('not configured')) {
+          console.warn('⚠️ Cloudinary not configured. Using local file storage.');
+          console.warn('   To enable Cloudinary uploads, add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to your .env file');
+        } else {
+          console.error('⚠️ Failed to upload to Cloudinary, using local file:', cloudinaryError.message || cloudinaryError);
+        }
         // Continue with local file path if Cloudinary upload fails
       }
 
@@ -1434,7 +1446,13 @@ export class ClusterDPRController {
         
         console.log(`✅ Document uploaded to Cloudinary: ${cloudinaryPublicId}`);
       } catch (cloudinaryError: any) {
-        console.error('⚠️ Failed to upload to Cloudinary, using local file:', cloudinaryError);
+        // Check if it's a configuration error
+        if (cloudinaryError.message?.includes('not configured')) {
+          console.warn('⚠️ Cloudinary not configured. Using local file storage.');
+          console.warn('   To enable Cloudinary uploads, add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to your .env file');
+        } else {
+          console.error('⚠️ Failed to upload to Cloudinary, using local file:', cloudinaryError.message || cloudinaryError);
+        }
         // Continue with local file path if Cloudinary upload fails
       }
 
