@@ -106,6 +106,19 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
       parsedContent = JSON.parse(content);
       console.log(`✅ Parsed JSON content for ${field}:`, parsedContent);
 
+      // Handle object fields (like connectivity)
+      if (typeof parsedContent === 'object' && !Array.isArray(parsedContent)) {
+        if (field === 'connectivity') {
+          // Ensure connectivity has all required fields with proper structure
+          parsedContent = {
+            road: parsedContent.road || parsedContent.Road || '',
+            rail: parsedContent.rail || parsedContent.Rail || '',
+            port: parsedContent.port || parsedContent.Port || '',
+          };
+          console.log(`✅ Formatted connectivity object:`, parsedContent);
+        }
+      }
+
       if (Array.isArray(parsedContent)) {
         if (field === 'valueAdditionStages') {
           if (parsedContent.length > 0 && typeof parsedContent[0] === 'string') {
@@ -172,26 +185,46 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
 
     // Try to find JSON objects/arrays in the suggestion text
     try {
-      // Look for JSON objects like {"micro": 10, "small": 5}
-      const jsonObjectMatch = suggestionText.match(/\{[^{}]*\}/);
-      if (jsonObjectMatch) {
-        const parsed = JSON.parse(jsonObjectMatch[0]);
-        // Validate the structure matches expected format
-        if (field === 'enterpriseCount' && parsed.micro !== undefined && parsed.small !== undefined && parsed.medium !== undefined) {
-          return parsed;
-        }
-        if (field === 'ageOfEnterprises' && parsed.lessThan5 !== undefined && parsed.between5And10 !== undefined && parsed.moreThan10 !== undefined) {
-          return parsed;
-        }
-        if (field === 'employmentPerUnit' && parsed.lessThan5 !== undefined && parsed.between5And10 !== undefined && parsed.moreThan10 !== undefined) {
-          return parsed;
-        }
-        if (field === 'marketServed' && parsed.domestic !== undefined && parsed.export !== undefined) {
-          return parsed;
-        }
-        // For other object fields, return if it's a valid object
-        if (typeof parsed === 'object' && !Array.isArray(parsed)) {
-          return parsed;
+      // Look for JSON objects like {"micro": 10, "small": 5} - handle nested objects
+      // Try to find complete JSON objects by looking for balanced braces
+      let braceCount = 0;
+      let startIndex = -1;
+      for (let i = 0; i < suggestionText.length; i++) {
+        if (suggestionText[i] === '{') {
+          if (startIndex === -1) startIndex = i;
+          braceCount++;
+        } else if (suggestionText[i] === '}') {
+          braceCount--;
+          if (braceCount === 0 && startIndex !== -1) {
+            const jsonStr = suggestionText.substring(startIndex, i + 1);
+            try {
+              const parsed = JSON.parse(jsonStr);
+              // Validate the structure matches expected format
+              if (field === 'enterpriseCount' && parsed.micro !== undefined && parsed.small !== undefined && parsed.medium !== undefined) {
+                return parsed;
+              }
+              if (field === 'ageOfEnterprises' && parsed.lessThan5 !== undefined && parsed.between5And10 !== undefined && parsed.moreThan10 !== undefined) {
+                return parsed;
+              }
+              if (field === 'employmentPerUnit' && parsed.lessThan5 !== undefined && parsed.between5And10 !== undefined && parsed.moreThan10 !== undefined) {
+                return parsed;
+              }
+              if (field === 'marketServed' && parsed.domestic !== undefined && parsed.export !== undefined) {
+                return parsed;
+              }
+              if (field === 'connectivity' && parsed.road !== undefined && parsed.rail !== undefined && parsed.port !== undefined) {
+                console.log('✅ Extracted connectivity object:', parsed);
+                return parsed;
+              }
+              // For other object fields, return if it's a valid object
+              if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+                return parsed;
+              }
+            } catch (e) {
+              // Continue searching
+            }
+            startIndex = -1;
+          }
         }
       }
 
@@ -264,13 +297,31 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
         return;
       }
 
+      // Special handling for connectivity - ensure it's properly structured
+      let finalContent = parsedContent;
+      if (suggestion.field === 'connectivity') {
+        // Ensure connectivity has all required fields
+        if (typeof parsedContent === 'object' && !Array.isArray(parsedContent)) {
+          finalContent = {
+            road: parsedContent.road || '',
+            rail: parsedContent.rail || '',
+            port: parsedContent.port || '',
+          };
+          console.log('✅ Formatted connectivity object:', finalContent);
+        } else {
+          console.error('❌ Connectivity content is not an object:', parsedContent);
+          toast.error('Connectivity data format is invalid. Please try again.');
+          return;
+        }
+      }
+
       // Update the form data
       const updatedStepData = {
         ...currentStepData,
-        [suggestion.field]: parsedContent,
+        [suggestion.field]: finalContent,
       };
       setStepData(currentStep, updatedStepData);
-      console.log(`✅ Applied suggestion to ${suggestion.field}:`, parsedContent);
+      console.log(`✅ Applied suggestion to ${suggestion.field}:`, finalContent);
 
       // Call the optional callback
       if (onApplySuggestion) {

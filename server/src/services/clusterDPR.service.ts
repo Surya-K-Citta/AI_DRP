@@ -1118,6 +1118,18 @@ CRITICAL REQUIREMENTS:
        - marketServed: MUST be {"domestic": <number>, "export": <number>} where numbers are percentages (0-100)
          Example: {"domestic": 75, "export": 25}
        DO NOT use alternative field names or structures. Use ONLY the exact field names specified above.` : ''}
+       ${currentStep === 3 ? `
+       CRITICAL FOR STEP 3 CONNECTIVITY FIELD - USE THIS EXACT FORMAT:
+       - connectivity: MUST be {"road": "<short fact>", "rail": "<short fact>", "port": "<short fact or 'Not applicable'>"}
+       - Road: Mention specific highway/national highway number and distance (10-15 words max)
+         Example: "Near NH-65, 5 km from Warangal city center"
+       - Rail: Mention specific railway station name and distance (10-15 words max)
+         Example: "Warangal Railway Station (5 km), on Secunderabad-Hyderabad line"
+       - Port: Mention specific port name and distance, or "Not applicable" if far from coast (10-15 words max)
+         Example: "Visakhapatnam Port (300 km)" or "Not applicable"
+       - Keep each value SHORT, FACTUAL, and SPECIFIC - no long sentences
+       - Example: {"road": "Near NH-65, 5 km from Warangal", "rail": "Warangal Railway Station (5 km)", "port": "Not applicable"}
+       DO NOT use alternative field names like "transport" or "proximity". Use ONLY "road", "rail", "port".` : ''}
 
 4. **PRIORITIZE EMPTY FIELDS:**
    - EMPTY fields (priority): ${emptyFields.length > 0 ? emptyFields.join(', ') : 'None - all fields are filled'}
@@ -1484,8 +1496,26 @@ Return only the suggestion text, no JSON or formatting.`;
       // Determine format instructions based on field type and sample value
       let formatInstructions = '';
       
-      // Special handling for Step 1 object fields
-      if (currentStep === 1 && fieldType === 'object') {
+      // Special handling for Step 3 connectivity field
+      if (currentStep === 3 && fieldName === 'connectivity') {
+        formatInstructions = `
+CRITICAL FORMAT FOR connectivity - FOLLOW EXACTLY:
+- Return ONLY a JSON object with EXACTLY these three keys: "road", "rail", "port"
+- DO NOT include any other keys like "transport" or "proximity"
+- Each value must be a SHORT, FACTUAL string (10-15 words maximum)
+- Road: MUST include specific highway/national highway number (e.g., NH-65, SH-1) and distance
+  Example: "Near NH-65, 5 km from Warangal"
+  BAD: "Well-developed road networks connecting villages" (too vague, no highway number)
+- Rail: MUST include specific railway station name and distance
+  Example: "Warangal Railway Station (5 km)"
+  BAD: "Access to local transport services" (too vague, no station name)
+- Port: MUST include specific port name and distance, OR "Not applicable" if far from coast
+  Example: "Visakhapatnam Port (300 km)" or "Not applicable"
+  BAD: "Close to major markets" (wrong field, should be port-specific)
+- NO long sentences, NO explanations, NO descriptive text
+- Return ONLY the JSON object in this exact format: {"road": "...", "rail": "...", "port": "..."}
+- Example output: {"road": "Near NH-65, 5 km from Warangal", "rail": "Warangal Railway Station (5 km)", "port": "Not applicable"}`;
+      } else if (currentStep === 1 && fieldType === 'object') {
         if (fieldName === 'enterpriseCount') {
           formatInstructions = `
 CRITICAL FORMAT FOR enterpriseCount:
@@ -1634,6 +1664,26 @@ TASK: Generate actual content for the field "${fieldName}" in Step ${currentStep
 1. The AI suggestion provided above
 2. All previous steps data (especially Step 1)
 3. The cluster context (${clusterName}${district ? ` in ${district}` : ''}${natureOfBusiness ? ` - ${natureOfBusiness}` : ''})
+
+${fieldName === 'connectivity' ? `
+SPECIAL INSTRUCTIONS FOR CONNECTIVITY - BE VERY SPECIFIC:
+- Location: ${location || district || 'the location'}
+- Research ACTUAL highways, railways, and ports near this location
+- Road: MUST include specific highway/national highway number (NH-XX or SH-XX format) and distance from location
+  - Look up actual highways passing through/near ${district || 'the district'}
+  - Format: "Near [Highway Number], [distance] from [location]"
+  - Example: "Near NH-65, 5 km from Warangal" or "Near SH-1, 10 km from cluster location"
+- Rail: MUST include actual railway station name and distance
+  - Look up actual railway stations in/near ${district || 'the district'}
+  - Format: "[Station Name] ([distance])"
+  - Example: "Warangal Railway Station (5 km)" or "Kazipet Junction (8 km)"
+- Port: MUST include actual port name and distance, OR "Not applicable"
+  - If near coast: "Visakhapatnam Port (300 km)" or "Chennai Port (400 km)"
+  - If far from coast: "Not applicable"
+- Each value MUST be 10-15 words maximum
+- NO descriptive sentences, NO explanations, JUST FACTS
+- Return format: {"road": "Near NH-XX, X km from location", "rail": "Station Name (X km)", "port": "Port Name (X km)" or "Not applicable"}
+` : ''}
 
 ${formatInstructions}
 
