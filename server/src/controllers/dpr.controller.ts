@@ -1185,8 +1185,9 @@ export class DPRController {
         return;
       }
 
-      // Find DPRs for user's projects
+      // Find DPRs for user's projects - only select essential fields for dashboard
       const dprs = await DPRVersion.find({ projectId: { $in: projectIds } })
+        .select('_id projectId versionNumber status qualityScore generatedAt createdAt updatedAt')
         .sort({ createdAt: -1 })
         .lean(); // Use lean() for faster queries
 
@@ -1204,12 +1205,18 @@ export class DPRController {
           }
           
           return {
-            ...dpr,
+            _id: dpr._id,
             projectId: {
               projectName: project.projectName || 'Unknown Project',
               industrySector: project.industrySector || 'Unknown',
               location: project.location || 'Unknown',
             },
+            versionNumber: dpr.versionNumber,
+            status: dpr.status,
+            qualityScore: dpr.qualityScore,
+            generatedAt: dpr.generatedAt,
+            createdAt: dpr.createdAt,
+            updatedAt: dpr.updatedAt,
           };
         })
       );
