@@ -32,8 +32,8 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "frame-ancestors": ["'self'", "http://localhost:5000", "http://localhost:5173", "http://localhost:3000"],
-      "frame-src": ["'self'", "http://localhost:5000", "blob:", "data:"],
+      "frame-ancestors": ["'self'", "http://localhost:5000", "http://localhost:5173", "http://localhost:3000", "https://ai-dpr.up.railway.app"],
+      "frame-src": ["'self'", "http://localhost:5000", "https://dpr-server.up.railway.app", "blob:", "data:"],
     },
   },
 })); // Security headers
