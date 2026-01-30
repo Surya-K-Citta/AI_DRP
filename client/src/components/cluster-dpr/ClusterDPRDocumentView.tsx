@@ -1195,20 +1195,29 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
         }}
       >
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold mb-1" style={{ color: '#1F2937' }}>
-                Enhance Complete DPR
-              </h3>
-              <p className="text-sm text-gray-600">
-                Generate comprehensive paragraphs for all sections and conclusion
-              </p>
-            </div>
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={async () => {
+        <div className="max-w-6xl mx-auto">
+          <div className="flex gap-6">
+            {/* Enhance Complete DPR Card */}
+            <div className="flex-1 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border-2 border-blue-200 shadow-md hover:shadow-lg transition-shadow">
+              <div className="flex flex-col h-full">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold mb-2" style={{ color: '#1E40AF' }}>
+                      Enhance Complete DPR
+                    </h3>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      Generate comprehensive paragraphs for all sections and conclusion
+                    </p>
+                  </div>
+                  <div className="ml-4">
+                    <Wand2 className="h-8 w-8 text-blue-600" />
+                  </div>
+                </div>
+                <div className="mt-auto">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    onClick={async () => {
                 const sectionsToEnhance = [
                   { name: 'projectSnapshot', data: { step1: s1, step11: s11 } },
                   { name: 'introduction', data: s2 },
@@ -1427,37 +1436,47 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   setEnhancingSections({});
                 }
               }}
-              disabled={Object.values(enhancingSections).some(v => v)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-base font-semibold"
-            >
-              {Object.values(enhancingSections).some(v => v) ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Enhancing DPR...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="h-5 w-5 mr-2" />
-                  Enhance Complete DPR
-                </>
-              )}
-            </Button>
-          </div>
-          
-          {/* Generate All Images Button */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold mb-1" style={{ color: '#1F2937' }}>
-                Generate All Images
-              </h3>
-              <p className="text-sm text-gray-600">
-                Generate all images for cover page, cluster photos, value chain, and CFC diagrams
-              </p>
+                    disabled={Object.values(enhancingSections).some(v => v)}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-base font-semibold rounded-lg transition-all"
+                  >
+                    {Object.values(enhancingSections).some(v => v) ? (
+                      <>
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                        Enhancing DPR...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="h-5 w-5 mr-2" />
+                        Enhance Complete DPR
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+              
+              
             </div>
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={async () => {
+            {/* Generate All Images Card */}
+            <div className="flex-1 bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg p-6 border-2 border-green-200 shadow-md hover:shadow-lg transition-shadow">
+                <div className="flex flex-col h-full">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold mb-2" style={{ color: '#047857' }}>
+                        Generate All Images
+                      </h3>
+                      <p className="text-sm text-gray-700 leading-relaxed">
+                        Generate all images for cover page, cluster photos, value chain, and CFC diagrams
+                      </p>
+                    </div>
+                    <div className="ml-4">
+                      <Sparkles className="h-8 w-8 text-green-600" />
+                    </div>
+                  </div>
+                  <div className="mt-auto">
+                    <Button
+                      variant="secondary"
+                      size="lg"
+                      onClick={async () => {
                 const projectId = project?._id || project?.id;
                 if (!projectId) {
                   toast.error('Project not found. Please save your project first.');
@@ -1569,22 +1588,25 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 } finally {
                   setGeneratingImages({});
                 }
-              }}
-              disabled={Object.values(generatingImages).some(v => v)}
-              className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-base font-semibold"
-            >
-              {Object.values(generatingImages).some(v => v) ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Generating Images...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-5 w-5 mr-2" />
-                  Generate All Images
-                </>
-              )}
-            </Button>
+                      }}
+                      disabled={Object.values(generatingImages).some(v => v)}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 text-base font-semibold rounded-lg transition-all"
+                    >
+                      {Object.values(generatingImages).some(v => v) ? (
+                        <>
+                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                          Generating Images...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-5 w-5 mr-2" />
+                          Generate All Images
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
           </div>
         </div>
       </div>
