@@ -331,7 +331,13 @@ export class ClusterDPRController {
         cloudinaryPublicId = cloudinaryResult.publicId;
         console.log(`✅ Image uploaded to Cloudinary: ${cloudinaryPublicId}`);
       } catch (cloudinaryError: any) {
-        console.error('⚠️ Failed to upload to Cloudinary, using original URL:', cloudinaryError);
+        // Check if it's a configuration error
+        if (cloudinaryError.message?.includes('not configured')) {
+          console.warn('⚠️ Cloudinary not configured. Using original image URL.');
+          console.warn('   To enable Cloudinary uploads, add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to your .env file');
+        } else {
+          console.error('⚠️ Failed to upload to Cloudinary, using original URL:', cloudinaryError.message || cloudinaryError);
+        }
         // Continue with original URL if Cloudinary upload fails
       }
 
@@ -397,7 +403,13 @@ export class ClusterDPRController {
         
         console.log(`✅ Image uploaded to Cloudinary: ${cloudinaryPublicId}`);
       } catch (cloudinaryError: any) {
-        console.error('⚠️ Failed to upload to Cloudinary, using local file:', cloudinaryError);
+        // Check if it's a configuration error
+        if (cloudinaryError.message?.includes('not configured')) {
+          console.warn('⚠️ Cloudinary not configured. Using local file storage.');
+          console.warn('   To enable Cloudinary uploads, add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to your .env file');
+        } else {
+          console.error('⚠️ Failed to upload to Cloudinary, using local file:', cloudinaryError.message || cloudinaryError);
+        }
         // Continue with local file path if Cloudinary upload fails
       }
 
@@ -1434,7 +1446,13 @@ export class ClusterDPRController {
         
         console.log(`✅ Document uploaded to Cloudinary: ${cloudinaryPublicId}`);
       } catch (cloudinaryError: any) {
-        console.error('⚠️ Failed to upload to Cloudinary, using local file:', cloudinaryError);
+        // Check if it's a configuration error
+        if (cloudinaryError.message?.includes('not configured')) {
+          console.warn('⚠️ Cloudinary not configured. Using local file storage.');
+          console.warn('   To enable Cloudinary uploads, add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to your .env file');
+        } else {
+          console.error('⚠️ Failed to upload to Cloudinary, using local file:', cloudinaryError.message || cloudinaryError);
+        }
         // Continue with local file path if Cloudinary upload fails
       }
 
@@ -1662,7 +1680,7 @@ export class ClusterDPRController {
         return;
       }
 
-      const { currentStep, currentStepData, previousStepsData } = req.body;
+      const { currentStep, currentStepData, previousStepsData, excludeFields = [] } = req.body;
 
       if (currentStep === undefined || !currentStepData) {
         res.status(400).json({
@@ -1672,12 +1690,13 @@ export class ClusterDPRController {
         return;
       }
 
-      console.log(`🤖 Getting AI suggestions for step ${currentStep}`);
+      console.log(`🤖 Getting AI suggestions for step ${currentStep}${excludeFields.length > 0 ? ` (excluding: ${excludeFields.join(', ')})` : ''}`);
 
       const suggestions = await ClusterDPRService.getAISuggestionsForStep(
         currentStep,
         currentStepData,
-        previousStepsData || {}
+        previousStepsData || {},
+        excludeFields
       );
 
       res.status(200).json({
@@ -1788,6 +1807,49 @@ export class ClusterDPRController {
       res.status(500).json({
         success: false,
         message: 'Failed to generate field content',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Generate Financial Statements using AI
+   */
+  static async generateFinancialStatements(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { projectData } = req.body;
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+        });
+        return;
+      }
+
+      if (!projectData) {
+        res.status(400).json({
+          success: false,
+          message: 'Project data is required',
+        });
+        return;
+      }
+
+      console.log('📊 Generating financial statements with AI...');
+
+      // Generate financial statements using AI
+      const financialStatements = await ClusterDPRService.generateFinancialStatements(projectData);
+
+      res.status(200).json({
+        success: true,
+        data: financialStatements,
+      });
+    } catch (error: any) {
+      console.error('❌ Error generating financial statements:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to generate financial statements',
         error: error.message,
       });
     }

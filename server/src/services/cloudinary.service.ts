@@ -4,12 +4,26 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// Check if Cloudinary is configured
+const isCloudinaryConfigured = () => {
+  return !!(
+    process.env.CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET
+  );
+};
+
+// Configure Cloudinary only if credentials are available
+if (isCloudinaryConfigured()) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+} else {
+  console.warn('⚠️ Cloudinary not configured. Document uploads will use local storage.');
+  console.warn('   To enable Cloudinary, set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file');
+}
 
 export class CloudinaryService {
   /**
@@ -20,6 +34,11 @@ export class CloudinaryService {
     folder: string = 'msme-dpr/cluster-images',
     publicId?: string
   ): Promise<{ url: string; publicId: string; secureUrl: string }> {
+    // Check if Cloudinary is configured
+    if (!isCloudinaryConfigured()) {
+      throw new Error('Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file');
+    }
+
     try {
       const options: any = {
         folder,
@@ -52,6 +71,11 @@ export class CloudinaryService {
     folder: string = 'msme-dpr/cluster-images',
     filename?: string
   ): Promise<{ url: string; publicId: string; secureUrl: string }> {
+    // Check if Cloudinary is configured
+    if (!isCloudinaryConfigured()) {
+      throw new Error('Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file');
+    }
+
     try {
       return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
@@ -91,6 +115,11 @@ export class CloudinaryService {
     folder: string = 'msme-dpr/cluster-images',
     publicId?: string
   ): Promise<{ url: string; publicId: string; secureUrl: string }> {
+    // Check if Cloudinary is configured
+    if (!isCloudinaryConfigured()) {
+      throw new Error('Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file');
+    }
+
     try {
       const options: any = {
         folder,
@@ -135,11 +164,18 @@ export class CloudinaryService {
     folder: string = 'msme-dpr/cluster-documents',
     publicId?: string
   ): Promise<{ url: string; publicId: string; secureUrl: string }> {
+    // Check if Cloudinary is configured
+    if (!isCloudinaryConfigured()) {
+      throw new Error('Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file');
+    }
+
     try {
       const options: any = {
         folder,
-        resource_type: 'auto', // Auto-detect resource type (PDF, DOC, etc.)
+        resource_type: 'image', // Use 'image' for PDFs to enable transformations (page to image)
         overwrite: true,
+        access_mode: 'public', // Make files publicly accessible (fixes 401 errors)
+        type: 'upload', // Public upload type
       };
 
       if (publicId) {

@@ -14,14 +14,16 @@ export class AISuggestionsService {
   static async getSuggestionsForStep(
     currentStep: number,
     currentStepData: any,
-    previousStepsData: Record<string, any>
+    previousStepsData: Record<string, any>,
+    excludeFields?: string[]
   ): Promise<AISuggestion[]> {
     try {
       // Call backend API to get AI suggestions
       const response = await api.getAISuggestionsForClusterStep(
         currentStep,
         currentStepData,
-        previousStepsData
+        previousStepsData,
+        excludeFields
       );
       
       if (response.success && response.data?.suggestions) {

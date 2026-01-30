@@ -380,13 +380,18 @@ Return only valid JSON without markdown code blocks.`;
     language: 'english' | 'telugu' | 'bilingual' = 'bilingual'
   ): Promise<any> {
     try {
-      // Extract enhancedContent if provided (user-enhanced content from preview)
+      // Extract enhancedContent and images if provided (user-enhanced content/images from preview)
       let providedEnhancedContent = clusterData.enhancedContent || {};
       const enhancedContentKeys = Object.keys(providedEnhancedContent);
       console.log(`📥 Received ${enhancedContentKeys.length} enhanced content sections from frontend`);
       
-      // Remove enhancedContent from clusterData before processing
-      const { enhancedContent, ...cleanClusterData } = clusterData;
+      // Extract images from clusterData
+      const providedImages = clusterData.images || {};
+      const imageKeys = Object.keys(providedImages);
+      console.log(`📥 Received ${imageKeys.length} images from frontend:`, imageKeys);
+      
+      // Remove enhancedContent and images from clusterData before processing
+      const { enhancedContent, images, ...cleanClusterData } = clusterData;
       
       // Enhance data using OpenAI
       console.log('🤖 Enhancing cluster DPR data with OpenAI...');
@@ -500,6 +505,7 @@ Return only valid JSON without markdown code blocks.`;
           loanAmount: loanAmount || 0,
           status: 'completed',
           stepData: cleanClusterData,
+          images: providedImages, // Save images to project
         });
       } else {
         // Update existing project
@@ -508,6 +514,8 @@ Return only valid JSON without markdown code blocks.`;
         project.ownContribution = ownContribution || project.ownContribution || 0;
         project.loanAmount = loanAmount || project.loanAmount || 0;
         project.status = 'completed';
+        // Merge images (provided images take precedence)
+        project.images = { ...(project.images || {}), ...providedImages };
         await project.save();
       }
 
@@ -552,6 +560,8 @@ Return only valid JSON without markdown code blocks.`;
             generatedSections: generatedSections,
             // Store all enhanced content (including subsections) for use in rendering
             enhancedContent: providedEnhancedContent,
+            // Store images for use in rendering
+            images: providedImages,
           },
           telugu: {
             executiveSummary: enhancedDPR.sections?.executiveSummary || '',
@@ -583,6 +593,8 @@ Return only valid JSON without markdown code blocks.`;
             generatedSections: generatedSections,
             // Store enhanced content for Telugu as well
             enhancedContent: providedEnhancedContent,
+            // Store images for use in rendering
+            images: providedImages,
           },
         },
         financials: {
@@ -911,16 +923,13 @@ Use exact values from the data above. Write in a formal, persuasive tone suitabl
   static async getAISuggestionsForStep(
     currentStep: number,
     currentStepData: any,
-    previousStepsData: Record<string, any>
+    previousStepsData: Record<string, any>,
+    excludeFields: string[] = []
   ): Promise<Array<{ field: string; suggestion: string; reasoning?: string }>> {
     try {
-      // Only provide suggestions for steps >= 2
-      if (currentStep < 2) {
-        return [];
-      }
-
-      // Check if we have at least Step 1 data
-      if (!previousStepsData.step1 || Object.keys(previousStepsData.step1).length === 0) {
+      // For Step 1, we don't require previous data
+      // For other steps, check if we have at least Step 1 data
+      if (currentStep > 1 && (!previousStepsData.step1 || Object.keys(previousStepsData.step1).length === 0)) {
         console.log('No Step 1 data available for AI suggestions');
         return [];
       }
@@ -937,7 +946,8 @@ Use exact values from the data above. Write in a formal, persuasive tone suitabl
       const currentStepText = this.formatStepDataAsText({ [`step${currentStep}`]: currentStepData });
 
       // Extract key information from Step 1 for quick reference
-      const step1Data = previousStepsData.step1 || {};
+      // For Step 1, use currentStepData; for other steps, use previousStepsData.step1
+      const step1Data = currentStep === 1 ? currentStepData : (previousStepsData.step1 || {});
       const clusterName = step1Data.clusterName || '';
       const district = step1Data.district || '';
       const location = step1Data.location || '';
@@ -981,6 +991,41 @@ Use exact values from the data above. Write in a formal, persuasive tone suitabl
         }
       });
 
+      // Special handling for Step 1 - use clusterName, location, district as context
+      // Generate context if ANY of the three key fields are present
+      const hasStep1Context = currentStep === 1 && (clusterName || location || district);
+      const step1Context = hasStep1Context
+        ? `\n═══════════════════════════════════════════════════════════════
+CLUSTER CONTEXT (Use this information to generate suggestions):
+═══════════════════════════════════════════════════════════════
+${clusterName ? `Cluster Name: ${clusterName}` : 'Cluster Name: (not provided)'}
+${location ? `Location: ${location}` : 'Location: (not provided)'}
+${district ? `District: ${district}` : 'District: (not provided)'}
+
+CRITICAL: Use the provided cluster information as the PRIMARY CONTEXT for generating ALL suggestions. All field suggestions should be relevant and specific to this cluster.
+${clusterName ? `The cluster name is "${clusterName}"` : 'Use the location and district information'}${location ? ` located in ${location}` : ''}${district ? `, ${district} district` : ''}.
+
+For example:
+- "Geographical Spread" should describe the geographical area covered by ${clusterName || 'the cluster'}${location ? ` in ${location}` : ''}${district ? `, ${district}` : ''}
+- "Nature of Business" should be inferred from ${clusterName ? `the cluster name "${clusterName}"` : 'the location and district context'} if not already provided
+- "Major Products" should be relevant to what ${clusterName || 'this cluster'} typically produces
+- Enterprise counts, investment, turnover should be realistic estimates for ${clusterName ? `a cluster named "${clusterName}"` : 'this type of cluster'}
+- Market served percentages should be appropriate for ${clusterName || 'the cluster'}${location ? ` in ${location}` : ''}${district ? `, ${district}` : ''}
+`
+        : '';
+      
+      // Debug logging for Step 1
+      if (currentStep === 1) {
+        console.log('🔍 Step 1 AI Suggestions Debug:', {
+          hasStep1Context,
+          clusterName: clusterName || '(empty)',
+          location: location || '(empty)',
+          district: district || '(empty)',
+          currentStepDataKeys: Object.keys(currentStepData || {}),
+          step1ContextLength: step1Context.length,
+        });
+      }
+
       const prompt = `You are an expert consultant helping create a Detailed Project Report (DPR) for an MSME cluster.
 
 ═══════════════════════════════════════════════════════════════
@@ -989,18 +1034,17 @@ CURRENT STEP TO COMPLETE:
 Step Number: ${currentStep}
 Step Name: "${stepMapping.stepName}"
 Required Fields: ${stepMapping.fields.map(f => f.name).join(', ')}
-
-═══════════════════════════════════════════════════════════════
+${step1Context}═══════════════════════════════════════════════════════════════
 COMPLETED PREVIOUS STEPS (${previousStepsSummary.length} steps):
 ═══════════════════════════════════════════════════════════════
-${previousStepsSummary.length > 0 ? previousStepsSummary.join('\n') : 'No previous steps completed'}
+${previousStepsSummary.length > 0 ? previousStepsSummary.join('\n') : currentStep === 1 ? 'This is Step 1 - no previous steps completed yet' : 'No previous steps completed'}
 
-═══════════════════════════════════════════════════════════════
+${currentStep > 1 ? `═══════════════════════════════════════════════════════════════
 COMPREHENSIVE DATA FROM ALL PREVIOUS STEPS:
 ═══════════════════════════════════════════════════════════════
 IMPORTANT: Read and analyze ALL the data below carefully. This contains complete information from Steps 1-${currentStep - 1}.
 
-${contextText}
+${contextText}` : ''}
 
 ═══════════════════════════════════════════════════════════════
 CURRENT STEP DATA (what user has filled so far):
@@ -1030,8 +1074,16 @@ CRITICAL REQUIREMENTS:
    - Provide ONE suggestion per field - NO EXCEPTIONS
    - If a field is already filled, suggest improvements or additional details based on previous steps
 
-2. **ANALYZE ALL PREVIOUS STEPS DATA COMPREHENSIVELY:**
-   - You have been provided with COMPLETE data from ALL previous steps (Steps 1-${currentStep - 1})
+2. **ANALYZE CONTEXT DATA COMPREHENSIVELY:**
+   ${currentStep === 1 
+     ? `   - This is STEP 1 - you have the CLUSTER CONTEXT provided above (Cluster Name: "${clusterName}"${location ? `, Location: ${location}` : ''}${district ? `, District: ${district}` : ''})
+   - Use the cluster name "${clusterName}" as the PRIMARY BASIS for generating ALL suggestions
+   - For each field, think: "What would be appropriate for a cluster named '${clusterName}'${location ? ` located in ${location}` : ''}${district ? `, ${district} district` : ''}?"
+   - Make suggestions SPECIFIC to "${clusterName}" - not generic
+   - If cluster name suggests a specific industry/product (e.g., "Cherry Farming", "Coir", "Handicrafts"), use that to infer nature of business, major products, etc.
+   - Use location and district to make geographical spread suggestions more accurate
+   - Generate realistic, context-appropriate suggestions based on the cluster name and location`
+     : `   - You have been provided with COMPLETE data from ALL previous steps (Steps 1-${currentStep - 1})
    - Read through ALL the "COMPREHENSIVE DATA FROM ALL PREVIOUS STEPS" section above
    - Extract and use relevant information from:
      * Step 1: Cluster basics (${clusterName}${district ? ` in ${district}` : ''}, ${natureOfBusiness}, ${majorProducts}, ${totalEnterprises} enterprises)
@@ -1043,7 +1095,7 @@ CRITICAL REQUIREMENTS:
      ${previousStepsData.step7 ? `     * Step 7: Gap analysis (technology, infrastructure, skills gaps)` : ''}
      ${previousStepsData.step8 ? `     * Step 8: SWOT analysis (strengths, weaknesses, opportunities, threats)` : ''}
    - DO NOT rely only on Step 1. Use information from ALL relevant previous steps
-   - Cross-reference data across steps to provide accurate suggestions
+   - Cross-reference data across steps to provide accurate suggestions`}
 
 3. **FIELD-SPECIFIC FOCUS:**
    - Focus ONLY on fields in Step ${currentStep}: ${stepMapping.fields.map(f => f.name).join(', ')}
@@ -1054,7 +1106,30 @@ CRITICAL REQUIREMENTS:
      * For ARRAY fields (stakeholders, keyProducts, rawMaterials, valueAdditionStages, etc.): Suggest list items based on data from previous steps
      * For TEXT fields: Suggest detailed paragraphs derived from previous step information
      * For SHORTTEXT fields: Suggest concise phrases (10-15 words max) based on previous steps
-     * For OBJECT fields: Suggest structured data matching the expected format, derived from previous steps
+     * For OBJECT fields: Suggest structured data matching the EXACT expected format, derived from previous steps
+       ${currentStep === 1 ? `
+       CRITICAL FOR STEP 1 OBJECT FIELDS - USE THESE EXACT FORMATS:
+       - enterpriseCount: MUST be {"micro": <number>, "small": <number>, "medium": <number>}
+         Example: {"micro": 15, "small": 8, "medium": 2}
+       - ageOfEnterprises: MUST be {"lessThan5": <number>, "between5And10": <number>, "moreThan10": <number>}
+         Example: {"lessThan5": 10, "between5And10": 8, "moreThan10": 5}
+       - employmentPerUnit: MUST be {"lessThan5": <number>, "between5And10": <number>, "moreThan10": <number>}
+         Example: {"lessThan5": 12, "between5And10": 8, "moreThan10": 5}
+       - marketServed: MUST be {"domestic": <number>, "export": <number>} where numbers are percentages (0-100)
+         Example: {"domestic": 75, "export": 25}
+       DO NOT use alternative field names or structures. Use ONLY the exact field names specified above.` : ''}
+       ${currentStep === 3 ? `
+       CRITICAL FOR STEP 3 CONNECTIVITY FIELD - USE THIS EXACT FORMAT:
+       - connectivity: MUST be {"road": "<short fact>", "rail": "<short fact>", "port": "<short fact or 'Not applicable'>"}
+       - Road: Mention specific highway/national highway number and distance (10-15 words max)
+         Example: "Near NH-65, 5 km from Warangal city center"
+       - Rail: Mention specific railway station name and distance (10-15 words max)
+         Example: "Warangal Railway Station (5 km), on Secunderabad-Hyderabad line"
+       - Port: Mention specific port name and distance, or "Not applicable" if far from coast (10-15 words max)
+         Example: "Visakhapatnam Port (300 km)" or "Not applicable"
+       - Keep each value SHORT, FACTUAL, and SPECIFIC - no long sentences
+       - Example: {"road": "Near NH-65, 5 km from Warangal", "rail": "Warangal Railway Station (5 km)", "port": "Not applicable"}
+       DO NOT use alternative field names like "transport" or "proximity". Use ONLY "road", "rail", "port".` : ''}
 
 4. **PRIORITIZE EMPTY FIELDS:**
    - EMPTY fields (priority): ${emptyFields.length > 0 ? emptyFields.join(', ') : 'None - all fields are filled'}
@@ -1123,11 +1198,16 @@ Return suggestions in JSON format only.`,
           const jsonMatch = responseText.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            const aiSuggestions = parsed.suggestions || [];
+            let aiSuggestions = parsed.suggestions || [];
             
-            // Validate that we have suggestions for all fields
+            // Filter out excluded fields
+            if (excludeFields.length > 0) {
+              aiSuggestions = aiSuggestions.filter((s: any) => !excludeFields.includes(s.field));
+            }
+            
+            // Validate that we have suggestions for all fields (excluding excluded ones)
             const suggestedFields = new Set(aiSuggestions.map((s: any) => s.field));
-            const allFields = stepMapping.fields.map(f => f.name);
+            const allFields = stepMapping.fields.map(f => f.name).filter(f => !excludeFields.includes(f));
             const missingFields = allFields.filter(f => !suggestedFields.has(f));
             
             if (missingFields.length > 0) {
@@ -1166,11 +1246,18 @@ Return suggestions in JSON format only.`,
               return orderA - orderB;
             });
             
-            return normalizedSuggestions;
+            // If we have suggestions, return them; otherwise fall through to fallback
+            if (normalizedSuggestions.length > 0) {
+              console.log(`✅ Returning ${normalizedSuggestions.length} AI suggestions for step ${currentStep}`);
+              return normalizedSuggestions;
+            } else {
+              console.log(`⚠️ AI returned empty suggestions for step ${currentStep}, using fallback`);
+            }
           }
         }
       } catch (parseError) {
         console.error('Error parsing AI suggestions:', parseError);
+        console.log(`⚠️ Failed to parse AI response for step ${currentStep}, using fallback`);
       }
 
       // Fallback: return field-specific suggestions based on all previous step data
@@ -1180,9 +1267,9 @@ Return suggestions in JSON format only.`,
       // Generate field-specific fallback suggestions for ALL fields
       const fallbackSuggestions = [];
 
-      // Generate suggestions for ALL fields (not just empty ones)
+      // Generate suggestions for ALL fields (not just empty ones), excluding excluded fields
       // This ensures we always provide suggestions for every field
-      const fieldsToSuggest = stepMapping.fields.map(f => f.name);
+      const fieldsToSuggest = stepMapping.fields.map(f => f.name).filter(f => !excludeFields.includes(f));
 
       fieldsToSuggest.forEach(field => {
         let suggestion = '';
@@ -1190,7 +1277,40 @@ Return suggestions in JSON format only.`,
 
         // Field-specific suggestions based on step - use all previous step data
         // Reuse variables already declared above (clusterName, district, natureOfBusiness, majorProducts)
-        if (currentStep === 2) {
+        if (currentStep === 1) {
+          // Step 1 specific suggestions using clusterName, location, district as context
+          if (field === 'geographicalSpread') {
+            suggestion = `Describe the geographical spread of ${clusterName}${location ? ` located in ${location}` : ''}${district ? `, ${district} district` : ''}. Include the villages, towns, or areas covered by this cluster.`;
+            reasoning = `Based on the cluster name "${clusterName}"${location ? ` and location ${location}` : ''}${district ? ` in ${district} district` : ''}, provide a detailed geographical description.`;
+          } else if (field === 'natureOfBusiness') {
+            suggestion = `Based on the cluster name "${clusterName}", specify the nature of business. For example, if the name contains "Farming", it's likely agriculture-related; if "Coir", it's coir processing; if "Handicrafts", it's handicraft manufacturing.`;
+            reasoning = `The nature of business should align with what "${clusterName}" suggests.`;
+          } else if (field === 'majorProducts') {
+            suggestion = `Based on the cluster name "${clusterName}"${location ? ` in ${location}` : ''}${district ? `, ${district}` : ''}, list the major products this cluster typically produces. For example, "Cherry Farming Cluster" would produce cherries; "Coir Cluster" would produce coir products.`;
+            reasoning = `Major products should be relevant to what "${clusterName}" typically produces.`;
+          } else if (field === 'enterpriseCount') {
+            suggestion = `Provide realistic enterprise counts for ${clusterName}. Typical cluster sizes range from 10-50 micro enterprises, 5-20 small enterprises, and 0-10 medium enterprises.`;
+            reasoning = `Enterprise counts should be realistic for a cluster named "${clusterName}".`;
+          } else if (field === 'ageOfEnterprises') {
+            suggestion = `Provide age distribution of enterprises in ${clusterName}. Typically, clusters have a mix of new (<5 years), established (5-10 years), and mature (>10 years) enterprises.`;
+            reasoning = `Age distribution helps understand the cluster's maturity.`;
+          } else if (field === 'employmentPerUnit') {
+            suggestion = `Provide employment per unit for ${clusterName}. Micro enterprises typically employ <5 people, small enterprises 5-10, and medium enterprises >10.`;
+            reasoning = `Employment figures should be realistic for the cluster size.`;
+          } else if (field === 'investmentPerUnit') {
+            suggestion = `Provide investment per unit for ${clusterName}. Typical ranges: Micro (₹5-20 Lakhs), Small (₹20-50 Lakhs), Medium (₹50-200 Lakhs).`;
+            reasoning = `Investment should be appropriate for the cluster type.`;
+          } else if (field === 'turnoverPerUnit') {
+            suggestion = `Provide turnover per unit for ${clusterName}. Typical ranges: Micro (₹10-50 Lakhs), Small (₹50-200 Lakhs), Medium (₹200-500 Lakhs).`;
+            reasoning = `Turnover should be realistic for the cluster's scale.`;
+          } else if (field === 'marketServed') {
+            suggestion = `Provide market served percentages for ${clusterName}${location ? ` in ${location}` : ''}${district ? `, ${district}` : ''}. Most clusters serve 60-80% domestic and 20-40% export markets.`;
+            reasoning = `Market served should reflect typical patterns for this type of cluster.`;
+          } else {
+            suggestion = `Fill in the ${field} field based on ${clusterName}${location ? ` located in ${location}` : ''}${district ? `, ${district} district` : ''}. Use the cluster name as context to make appropriate suggestions.`;
+            reasoning = `Suggestions should be specific to "${clusterName}".`;
+          }
+        } else if (currentStep === 2) {
           if (field === 'sectorType') {
             suggestion = `Based on the nature of business "${natureOfBusiness}" from Step 1, specify the sector type (e.g., Agro-processing, Manufacturing, Handicrafts).`;
             reasoning = 'The sector type should align with the nature of business identified in Step 1.';
@@ -1375,7 +1495,67 @@ Return only the suggestion text, no JSON or formatting.`;
 
       // Determine format instructions based on field type and sample value
       let formatInstructions = '';
-      if (fieldType === 'array') {
+      
+      // Special handling for Step 3 connectivity field
+      if (currentStep === 3 && fieldName === 'connectivity') {
+        formatInstructions = `
+CRITICAL FORMAT FOR connectivity - FOLLOW EXACTLY:
+- Return ONLY a JSON object with EXACTLY these three keys: "road", "rail", "port"
+- DO NOT include any other keys like "transport" or "proximity"
+- Each value must be a SHORT, FACTUAL string (10-15 words maximum)
+- Road: MUST include specific highway/national highway number (e.g., NH-65, SH-1) and distance
+  Example: "Near NH-65, 5 km from Warangal"
+  BAD: "Well-developed road networks connecting villages" (too vague, no highway number)
+- Rail: MUST include specific railway station name and distance
+  Example: "Warangal Railway Station (5 km)"
+  BAD: "Access to local transport services" (too vague, no station name)
+- Port: MUST include specific port name and distance, OR "Not applicable" if far from coast
+  Example: "Visakhapatnam Port (300 km)" or "Not applicable"
+  BAD: "Close to major markets" (wrong field, should be port-specific)
+- NO long sentences, NO explanations, NO descriptive text
+- Return ONLY the JSON object in this exact format: {"road": "...", "rail": "...", "port": "..."}
+- Example output: {"road": "Near NH-65, 5 km from Warangal", "rail": "Warangal Railway Station (5 km)", "port": "Not applicable"}`;
+      } else if (currentStep === 1 && fieldType === 'object') {
+        if (fieldName === 'enterpriseCount') {
+          formatInstructions = `
+CRITICAL FORMAT FOR enterpriseCount:
+- Return a JSON object with EXACTLY these keys: "micro", "small", "medium"
+- Each value must be a number (integer)
+- Example: {"micro": 15, "small": 8, "medium": 2}
+- Generate realistic counts based on cluster size and nature of business
+- Return ONLY the JSON object, no explanations`;
+        } else if (fieldName === 'ageOfEnterprises') {
+          formatInstructions = `
+CRITICAL FORMAT FOR ageOfEnterprises:
+- Return a JSON object with EXACTLY these keys: "lessThan5", "between5And10", "moreThan10"
+- Each value must be a number (integer) representing count of enterprises
+- Example: {"lessThan5": 10, "between5And10": 8, "moreThan10": 5}
+- Generate realistic distribution based on cluster maturity
+- Return ONLY the JSON object, no explanations`;
+        } else if (fieldName === 'employmentPerUnit') {
+          formatInstructions = `
+CRITICAL FORMAT FOR employmentPerUnit:
+- Return a JSON object with EXACTLY these keys: "lessThan5", "between5And10", "moreThan10"
+- Each value must be a number (integer) representing count of units
+- Example: {"lessThan5": 12, "between5And10": 8, "moreThan10": 5}
+- Generate realistic distribution based on enterprise sizes
+- Return ONLY the JSON object, no explanations`;
+        } else if (fieldName === 'marketServed') {
+          formatInstructions = `
+CRITICAL FORMAT FOR marketServed:
+- Return a JSON object with EXACTLY these keys: "domestic", "export"
+- Each value must be a number (0-100) representing percentage
+- Values should add up to 100 (or close to it)
+- Example: {"domestic": 75, "export": 25}
+- Generate realistic percentages based on cluster type and location
+- Return ONLY the JSON object, no explanations`;
+        } else {
+          formatInstructions = `
+CRITICAL FORMAT FOR ${fieldName}:
+- Return a JSON object matching the sample format: ${sampleValue}
+- Return ONLY the JSON object, no explanations`;
+        }
+      } else if (fieldType === 'array') {
         if (sampleValue.includes('{"') || sampleValue.includes('{name') || sampleValue.includes('{stage')) {
           // Structured array (objects)
           if (fieldName === 'valueAdditionStages') {
@@ -1485,6 +1665,26 @@ TASK: Generate actual content for the field "${fieldName}" in Step ${currentStep
 2. All previous steps data (especially Step 1)
 3. The cluster context (${clusterName}${district ? ` in ${district}` : ''}${natureOfBusiness ? ` - ${natureOfBusiness}` : ''})
 
+${fieldName === 'connectivity' ? `
+SPECIAL INSTRUCTIONS FOR CONNECTIVITY - BE VERY SPECIFIC:
+- Location: ${location || district || 'the location'}
+- Research ACTUAL highways, railways, and ports near this location
+- Road: MUST include specific highway/national highway number (NH-XX or SH-XX format) and distance from location
+  - Look up actual highways passing through/near ${district || 'the district'}
+  - Format: "Near [Highway Number], [distance] from [location]"
+  - Example: "Near NH-65, 5 km from Warangal" or "Near SH-1, 10 km from cluster location"
+- Rail: MUST include actual railway station name and distance
+  - Look up actual railway stations in/near ${district || 'the district'}
+  - Format: "[Station Name] ([distance])"
+  - Example: "Warangal Railway Station (5 km)" or "Kazipet Junction (8 km)"
+- Port: MUST include actual port name and distance, OR "Not applicable"
+  - If near coast: "Visakhapatnam Port (300 km)" or "Chennai Port (400 km)"
+  - If far from coast: "Not applicable"
+- Each value MUST be 10-15 words maximum
+- NO descriptive sentences, NO explanations, JUST FACTS
+- Return format: {"road": "Near NH-XX, X km from location", "rail": "Station Name (X km)", "port": "Port Name (X km)" or "Not applicable"}
+` : ''}
+
 ${formatInstructions}
 
 Return only the field content, no JSON wrapper or additional text.`;
@@ -1511,5 +1711,320 @@ Return only the field content, no JSON wrapper or additional text.`;
       console.error('Error generating field content:', error);
       return null;
     }
+  }
+
+  /**
+   * Generate Financial Statements using AI based on project data
+   */
+  static async generateFinancialStatements(projectData: any): Promise<any> {
+    try {
+      const step12 = projectData.step12 || {};
+      const step13 = projectData.step13 || {};
+      const step14 = projectData.step14 || {};
+      const step15 = projectData.step15 || {};
+
+      // Extract key financial data
+      const totalProjectCost = step12.totalProjectCost || 
+        ((step12.land || 0) + (step12.building || 0) + (step12.machinery || 0) + 
+         (step12.utilitiesAndInfrastructure || 0) + (step12.preliminaryAndPreOperative || 0) + 
+         (step12.workingCapitalMargin || 0));
+
+      const spvContribution = step13.spvContribution || 0;
+      const governmentGrant = step13.governmentGrant || 0;
+      const bankLoan = step13.bankLoan || 0;
+      const workingCapital = step12.workingCapitalMargin || 0;
+      const annualSales = step14.annualSalesRealization || 0;
+      const annualProduction = step14.annualProductionVolume || 0;
+      const rawMaterialCost = step14.rawMaterialCost || 0;
+      const powerCost = step14.powerCost || 0;
+      const wages = step14.wages || 0;
+
+      const prompt = `You are a financial analyst expert in generating comprehensive financial statements for Cluster Development Projects under the Micro Cluster Development Programme.
+
+Based on the following project data, generate all 12 financial statements with realistic, professional values:
+
+PROJECT DATA:
+- Total Project Cost: ₹${totalProjectCost.toFixed(2)} Lakhs
+- SPV Contribution: ₹${spvContribution.toFixed(2)} Lakhs
+- Government Grant: ₹${governmentGrant.toFixed(2)} Lakhs
+- Bank Loan: ₹${bankLoan.toFixed(2)} Lakhs
+- Working Capital: ₹${workingCapital.toFixed(2)} Lakhs
+- Annual Sales Realization: ₹${annualSales.toFixed(2)} Lakhs
+- Annual Production Volume: ${annualProduction} units
+- Raw Material Cost: ₹${rawMaterialCost.toFixed(2)} Lakhs
+- Power Cost: ₹${powerCost.toFixed(2)} Lakhs
+- Wages: ₹${wages.toFixed(2)} Lakhs
+
+Generate comprehensive financial statements for 5 years with the following structure:
+
+1. Cost of Project & Means of Finance
+2. Assessment of Working Capital (breakdown of working capital components)
+3. Cost of Production & Profitability (5 years with sales, costs, and profit)
+4. Assumptions for Cost of Production & Profitability
+5. Estimation of Power Cost
+6. Manpower Requirement & Estimation of Cost
+7. Estimation of Depreciation (for building and machinery)
+8. Calculation of Income Tax (5 years)
+9. Projected Cash Flow Statement (5 years)
+10. Projected Balance Sheet (5 years)
+11. Estimation of Break Even Point (5 years)
+12. Estimation of NPV & IRR
+
+IMPORTANT:
+- All values must be realistic and consistent
+- Use industry-standard assumptions (e.g., depreciation rates: Building 10%, Machinery 15%)
+- Show growth in sales and costs over 5 years (typically 5-10% growth)
+- Calculate tax based on profit brackets (20-30%)
+- Ensure all statements are mathematically consistent
+- Use the exact project cost and financing structure provided
+
+Return ONLY a valid JSON object with this structure:
+{
+  "costOfProject": number,
+  "spvShare": number,
+  "stateGovtGrant": number,
+  "bankLoan": number,
+  "workingCapital": {
+    "rawMaterials": number,
+    "workInProgress": number,
+    "finishedGoods": number,
+    "debtors": number,
+    "cashBankBalance": number,
+    "creditors": number
+  },
+  "costOfProduction": {
+    "year1": { "salesRealization": number, "totalCost": number, "profitBeforeTax": number },
+    "year2": { "salesRealization": number, "totalCost": number, "profitBeforeTax": number },
+    "year3": { "salesRealization": number, "totalCost": number, "profitBeforeTax": number },
+    "year4": { "salesRealization": number, "totalCost": number, "profitBeforeTax": number },
+    "year5": { "salesRealization": number, "totalCost": number, "profitBeforeTax": number }
+  },
+  "assumptions": {
+    "capacityUtilizationYear1": number,
+    "capacityUtilizationYear2": number,
+    "capacityUtilizationYear3Onwards": number,
+    "rawMaterialCostPercentage": number
+  },
+  "powerCost": {
+    "connectedLoad": number,
+    "monthlyConsumption": number,
+    "ratePerUnit": number,
+    "annualCost": number
+  },
+  "manpower": [
+    { "category": string, "count": number, "annualSalary": number, "totalCost": number }
+  ],
+  "depreciation": [
+    { "asset": string, "cost": number, "rate": number, "annualDepreciation": number }
+  ],
+  "incomeTax": {
+    "year1": { "profitBeforeTax": number, "taxRate": number, "taxAmount": number, "profitAfterTax": number },
+    "year2": { "profitBeforeTax": number, "taxRate": number, "taxAmount": number, "profitAfterTax": number },
+    "year3": { "profitBeforeTax": number, "taxRate": number, "taxAmount": number, "profitAfterTax": number },
+    "year4": { "profitBeforeTax": number, "taxRate": number, "taxAmount": number, "profitAfterTax": number },
+    "year5": { "profitBeforeTax": number, "taxRate": number, "taxAmount": number, "profitAfterTax": number }
+  },
+  "cashFlow": {
+    "year1": { "inflow": number, "outflow": number, "netCashFlow": number },
+    "year2": { "inflow": number, "outflow": number, "netCashFlow": number },
+    "year3": { "inflow": number, "outflow": number, "netCashFlow": number },
+    "year4": { "inflow": number, "outflow": number, "netCashFlow": number },
+    "year5": { "inflow": number, "outflow": number, "netCashFlow": number }
+  },
+  "balanceSheet": {
+    "year1": { "totalAssets": number, "totalLiabilities": number },
+    "year2": { "totalAssets": number, "totalLiabilities": number },
+    "year3": { "totalAssets": number, "totalLiabilities": number },
+    "year4": { "totalAssets": number, "totalLiabilities": number },
+    "year5": { "totalAssets": number, "totalLiabilities": number }
+  },
+  "breakEven": {
+    "year1": { "fixedExpenses": number, "variableExpenses": number, "breakEvenPoint": number },
+    "year2": { "fixedExpenses": number, "variableExpenses": number, "breakEvenPoint": number },
+    "year3": { "fixedExpenses": number, "variableExpenses": number, "breakEvenPoint": number },
+    "year4": { "fixedExpenses": number, "variableExpenses": number, "breakEvenPoint": number },
+    "year5": { "fixedExpenses": number, "variableExpenses": number, "breakEvenPoint": number }
+  },
+  "npvIrr": {
+    "npv": number,
+    "irr": number,
+    "discountRate": 8
+  }
+}
+
+Return ONLY the JSON object, no markdown, no explanations.`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a financial analyst expert in generating comprehensive financial statements for Cluster Development Projects. Generate realistic, mathematically consistent financial statements based on project data.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.3, // Lower temperature for more consistent financial calculations
+        max_tokens: 4000,
+      });
+
+      const content = response.choices[0]?.message?.content || '{}';
+
+      // Clean up the response
+      let cleanedContent = content
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+
+      // Try to parse JSON
+      let financialStatements;
+      try {
+        financialStatements = JSON.parse(cleanedContent);
+      } catch (parseError) {
+        console.error('Error parsing financial statements response:', parseError);
+        // Fallback: create basic structure with calculated values
+        financialStatements = this.createFallbackFinancialStatements(projectData);
+      }
+
+      return financialStatements;
+    } catch (error: any) {
+      console.error('Error generating financial statements:', error);
+      // Return fallback structure
+      return this.createFallbackFinancialStatements(projectData);
+    }
+  }
+
+  /**
+   * Create fallback financial statements structure
+   */
+  private static createFallbackFinancialStatements(projectData: any): any {
+    const step12 = projectData.step12 || {};
+    const step13 = projectData.step13 || {};
+    const step14 = projectData.step14 || {};
+
+    const totalProjectCost = step12.totalProjectCost || 
+      ((step12.land || 0) + (step12.building || 0) + (step12.machinery || 0) + 
+       (step12.utilitiesAndInfrastructure || 0) + (step12.preliminaryAndPreOperative || 0) + 
+       (step12.workingCapitalMargin || 0));
+
+    const workingCapital = step12.workingCapitalMargin || 0;
+    const annualSales = step14.annualSalesRealization || 0;
+    const buildingCost = step12.building || 0;
+    const machineryCost = step12.machinery || 0;
+
+    // Generate 5-year projections with growth
+    const costOfProduction: any = {};
+    const incomeTax: any = {};
+    const cashFlow: any = {};
+    const balanceSheet: any = {};
+    const breakEven: any = {};
+
+    for (let year = 1; year <= 5; year++) {
+      const growthFactor = 1 + (year - 1) * 0.05; // 5% growth per year
+      const sales = annualSales * growthFactor;
+      const cost = sales * 0.75; // 75% cost ratio
+      const profit = sales - cost;
+      
+      costOfProduction[`year${year}`] = {
+        salesRealization: sales,
+        totalCost: cost,
+        profitBeforeTax: profit,
+      };
+
+      const taxRate = profit > 100 ? 30 : profit > 50 ? 25 : 20;
+      const taxAmount = (profit * taxRate) / 100;
+      const profitAfterTax = profit - taxAmount;
+
+      incomeTax[`year${year}`] = {
+        profitBeforeTax: profit,
+        taxRate,
+        taxAmount,
+        profitAfterTax,
+      };
+
+      cashFlow[`year${year}`] = {
+        inflow: profitAfterTax + (buildingCost * 0.1 + machineryCost * 0.15), // Profit + Depreciation
+        outflow: cost * 0.2, // 20% of cost as outflow
+        netCashFlow: profitAfterTax + (buildingCost * 0.1 + machineryCost * 0.15) - (cost * 0.2),
+      };
+
+      balanceSheet[`year${year}`] = {
+        totalAssets: totalProjectCost + (profitAfterTax * year),
+        totalLiabilities: (step13.bankLoan || 0) * (1 - (year - 1) * 0.1), // Decreasing loan
+      };
+
+      breakEven[`year${year}`] = {
+        fixedExpenses: cost * 0.3,
+        variableExpenses: cost * 0.7,
+        breakEvenPoint: ((cost * 0.3) / (sales - cost * 0.7)) * 100,
+      };
+    }
+
+    return {
+      costOfProject: totalProjectCost,
+      spvShare: step13.spvContribution || 0,
+      stateGovtGrant: step13.governmentGrant || 0,
+      bankLoan: step13.bankLoan || 0,
+      workingCapital: {
+        rawMaterials: workingCapital * 0.4,
+        workInProgress: workingCapital * 0.2,
+        finishedGoods: workingCapital * 0.2,
+        debtors: workingCapital * 0.15,
+        cashBankBalance: workingCapital * 0.05,
+        creditors: workingCapital * 0.3,
+      },
+      costOfProduction,
+      assumptions: {
+        capacityUtilizationYear1: 60,
+        capacityUtilizationYear2: 75,
+        capacityUtilizationYear3Onwards: 85,
+        rawMaterialCostPercentage: 40,
+      },
+      powerCost: {
+        connectedLoad: 100,
+        monthlyConsumption: 10000,
+        ratePerUnit: 8,
+        annualCost: (step14.powerCost || 0),
+      },
+      manpower: [
+        {
+          category: 'Executives',
+          count: 2,
+          annualSalary: 600000,
+          totalCost: 1.2,
+        },
+        {
+          category: 'Workers',
+          count: 10,
+          annualSalary: 240000,
+          totalCost: 2.4,
+        },
+      ],
+      depreciation: [
+        {
+          asset: 'Building',
+          cost: buildingCost,
+          rate: 10,
+          annualDepreciation: buildingCost * 0.1,
+        },
+        {
+          asset: 'Machinery',
+          cost: machineryCost,
+          rate: 15,
+          annualDepreciation: machineryCost * 0.15,
+        },
+      ],
+      incomeTax,
+      cashFlow,
+      balanceSheet,
+      breakEven,
+      npvIrr: {
+        npv: totalProjectCost * 0.1, // 10% of project cost as NPV
+        irr: 26,
+        discountRate: 8,
+      },
+    };
   }
 }

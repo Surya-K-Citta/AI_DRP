@@ -21,6 +21,7 @@ export const ClusterDPRCreation: React.FC = () => {
   const [viewLanguage, setViewLanguage] = useState<'english' | 'telugu'>('english');
   const [previewZoom, setPreviewZoom] = useState(0.6); // Default zoom set to 60%
   const [previewScroll, setPreviewScroll] = useState(0);
+  const [project, setProject] = useState<any>(null); // Store the actual project object
 
   const currentStep = data.currentStep || 1;
   const totalSteps = 18;
@@ -35,16 +36,30 @@ export const ClusterDPRCreation: React.FC = () => {
         // Get projectId or dprId from URL params or search params
         const projectIdFromUrl = params.projectId || searchParams.get('projectId');
         const dprIdFromUrl = params.dprId || searchParams.get('dprId');
+        const isNew = searchParams.get('new') === 'true'; // Check for new parameter
         
         // Also check store for existing IDs
         const projectId = projectIdFromUrl || data.projectId;
         const dprId = dprIdFromUrl || data.dprId;
+        
+        // If user explicitly wants to create new, reset data and don't load anything
+        if (isNew) {
+          resetData();
+          setDprIds('', ''); // Clear IDs
+          setProject(null); // Clear project
+          console.log('🆕 Starting fresh cluster DPR creation');
+          setIsLoadingData(false);
+          return;
+        }
         
         // If we have a projectId, load project data (which contains stepData)
         if (projectId) {
           try {
             const projectResponse = await api.getProject(projectId);
             const projectData = projectResponse.data || projectResponse;
+            
+            // Store the actual project object
+            setProject(projectData);
             
             // If we also have a dprId, load DPR data
             let dprData = null;
@@ -80,85 +95,26 @@ export const ClusterDPRCreation: React.FC = () => {
             console.log('✅ Loaded existing draft from database');
           } catch (projectError) {
             console.error('Failed to load project:', projectError);
-            // If loading fails and we have generatedDPR, reset
-            const hasGeneratedDPR = data.generatedDPR && Object.keys(data.generatedDPR).length > 0;
-            if (hasGeneratedDPR) {
-              resetData();
-              console.log('🔄 Cleared old cluster data - starting fresh cluster creation');
-            }
+            // If loading fails, reset to start fresh
+            resetData();
+            setDprIds('', '');
+            setProject(null);
+            console.log('🔄 Cleared data - starting fresh cluster creation');
           }
         } else {
-          // No projectId in URL or store, try to find most recent draft project
-          try {
-            const projectsResponse = await api.getProjects({ status: 'draft', projectType: 'cluster', limit: 1 });
-            const projects = projectsResponse.data?.projects || projectsResponse.data || [];
-            
-            if (projects.length > 0) {
-              const latestProject = projects[0];
-              const projectData = latestProject;
-              
-              // Try to find associated DPR
-              let dprData = null;
-              try {
-                const dprsResponse = await api.getProjectDPRs(projectData._id || projectData.id);
-                const dprs = dprsResponse.data || dprsResponse;
-                if (Array.isArray(dprs) && dprs.length > 0) {
-                  // Find draft DPR
-                  const draftDpr = dprs.find((d: any) => d.status === 'draft');
-                  if (draftDpr) {
-                    try {
-                      const dprResponse = await api.getClusterDPR(draftDpr._id || draftDpr.id);
-                      dprData = dprResponse.data || dprResponse;
-                    } catch (dprError) {
-                      console.warn('Failed to load DPR:', dprError);
-                    }
-                  }
-                }
-              } catch (dprsError) {
-                console.warn('Failed to load DPRs for project:', dprsError);
-              }
-              
-              // Load data into store
-              loadDataFromProject(projectData, dprData);
-              
-              // Update IDs in store and URL
-              const pid = projectData._id || projectData.id;
-              const did = dprData?._id || dprData?.id;
-              if (pid) {
-                if (did) {
-                  setDprIds(did, pid);
-                  // Update URL to include IDs for future loads
-                  const newUrl = `/cluster-dpr/create?projectId=${pid}&dprId=${did}`;
-                  window.history.replaceState({}, '', newUrl);
-                } else {
-                  setDprIds('', pid);
-                  // Update URL to include projectId
-                  const newUrl = `/cluster-dpr/create?projectId=${pid}`;
-                  window.history.replaceState({}, '', newUrl);
-                }
-              }
-              
-              console.log('✅ Loaded most recent draft from database');
-            } else {
-              // No existing draft, check if we should reset
-              const hasGeneratedDPR = data.generatedDPR && Object.keys(data.generatedDPR).length > 0;
-              if (hasGeneratedDPR) {
-                resetData();
-                console.log('🔄 Cleared old cluster data - starting fresh cluster creation');
-              }
-            }
-          } catch (projectsError) {
-            console.error('Failed to load projects:', projectsError);
-            // If loading fails and we have generatedDPR, reset
-            const hasGeneratedDPR = data.generatedDPR && Object.keys(data.generatedDPR).length > 0;
-            if (hasGeneratedDPR) {
-              resetData();
-              console.log('🔄 Cleared old cluster data - starting fresh cluster creation');
-            }
-          }
+          // No projectId in URL or store - user is creating a new DPR
+          // Reset data to ensure clean state
+          resetData();
+          setDprIds('', '');
+          setProject(null);
+          console.log('🆕 Starting fresh cluster DPR creation - no project ID');
         }
       } catch (error) {
         console.error('Error loading existing draft:', error);
+        // On any error, reset to ensure clean state
+        resetData();
+        setDprIds('', '');
+        setProject(null);
       } finally {
         setIsLoadingData(false);
       }
@@ -212,10 +168,10 @@ export const ClusterDPRCreation: React.FC = () => {
   }, [data, setDprIds]);
 
   useEffect(() => {
-    // Auto-save draft to database every 2.5 seconds (debounced to prevent too many API calls)
+    // Auto-save draft to database every 20 seconds (debounced to prevent too many API calls)
     const databaseInterval = setInterval(() => {
       saveToDatabase();
-    }, 10000);
+    }, 30000);
 
     return () => {
       clearInterval(databaseInterval);
@@ -299,11 +255,12 @@ export const ClusterDPRCreation: React.FC = () => {
         return;
       }
 
-      // Get enhanced content from database if DPR already exists
+      // Get enhanced content and images from database if DPR/project already exists
       // Otherwise, enhanced content will be empty and backend will generate it
       let enhancedContent: Record<string, string> = {};
+      let projectImages: Record<string, string> = {};
       
-      // Try to find existing DPR for this project to get enhanced content
+      // Try to find existing project to get enhanced content and images
       try {
         // First, try to find existing project
         const existingProjects = await api.getProjects({ 
@@ -312,9 +269,16 @@ export const ClusterDPRCreation: React.FC = () => {
         });
         
         if (existingProjects.data && existingProjects.data.length > 0) {
-          const project = existingProjects.data[0];
+          const foundProject = existingProjects.data[0];
+          
+          // Get images from project
+          projectImages = foundProject.images || {};
+          if (Object.keys(projectImages).length > 0) {
+            console.log('📥 Loaded images from project:', Object.keys(projectImages).length, 'images');
+          }
+          
           // Try to get existing DPRs for this project
-          const projectDPRs = await api.getProjectDPRs(project._id || project.id);
+          const projectDPRs = await api.getProjectDPRs(foundProject._id || foundProject.id);
           
           if (projectDPRs.data && projectDPRs.data.length > 0) {
             // Get the most recent DPR
@@ -325,8 +289,13 @@ export const ClusterDPRCreation: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('Error loading enhanced content from database:', error);
-        // Continue without enhanced content - backend will generate it
+        console.error('Error loading enhanced content/images from database:', error);
+        // Continue without enhanced content/images - backend will generate content
+      }
+
+      // Also check if we have images in the current project state
+      if (project?.images && Object.keys(project.images).length > 0) {
+        projectImages = { ...projectImages, ...project.images };
       }
 
       // Prepare complete data - ensure all step data is included
@@ -334,6 +303,8 @@ export const ClusterDPRCreation: React.FC = () => {
         ...data,
         // Include enhanced content so backend can use it
         enhancedContent: enhancedContent,
+        // Include images from project so backend can use them
+        images: projectImages,
         // Remove metadata fields that shouldn't be sent
         currentStep: undefined,
         isDraft: undefined,
@@ -347,6 +318,8 @@ export const ClusterDPRCreation: React.FC = () => {
         totalSteps: stepKeys.length,
         steps: stepKeys,
         enhancedContentSections: Object.keys(enhancedContent).length,
+        imagesCount: Object.keys(projectImages).length,
+        imageIds: Object.keys(projectImages),
         step1Data: completeData.step1,
         step11Data: completeData.step11,
         step12Data: completeData.step12,
@@ -360,7 +333,7 @@ export const ClusterDPRCreation: React.FC = () => {
       if (response.success && response.data) {
         // Store the generated DPR in the store
         setGeneratedDPR(response.data.content);
-        
+        resetData();
         // Navigate to view the generated DPR
         toast.success('DPR generated successfully!', { id: 'generating-dpr' });
         navigate(`/dpr/view/${response.data.dprId}`);
@@ -672,7 +645,9 @@ export const ClusterDPRCreation: React.FC = () => {
                               clusterData: data,
                             },
                           }}
-                          project={{
+                          project={project || {
+                            _id: data.projectId,
+                            id: data.projectId,
                             projectName: data.step1?.clusterName,
                             projectType: 'cluster',
                             stepData: data,

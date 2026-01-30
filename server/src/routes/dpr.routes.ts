@@ -86,6 +86,7 @@ router.post('/cluster/sections/enhance', ClusterDPRController.enhanceSection);
 router.post('/cluster/ai/suggestions', ClusterDPRController.getAISuggestions);
 router.post('/cluster/ai/field-suggestion', ClusterDPRController.getFieldSuggestion);
 router.post('/cluster/ai/generate-field-content', ClusterDPRController.generateFieldContent);
+router.post('/cluster/financial-statements/generate', ClusterDPRController.generateFinancialStatements);
 
 // Image deletion for Cluster DPR
 router.delete('/cluster/images/delete', ClusterDPRController.deleteImage);
