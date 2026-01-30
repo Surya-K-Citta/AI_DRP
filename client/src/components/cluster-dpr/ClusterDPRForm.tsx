@@ -3,10 +3,13 @@ import React from 'react';
 import { useClusterDPRStore } from '@/store/clusterDPRStore';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { api } from '@/lib/api';
+import { toast } from 'react-hot-toast';
 import { AISuggestions } from './AISuggestions';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { FIELD_DESCRIPTIONS } from '@/data/fieldDescriptions';
+import { FinancialStatements } from './FinancialStatements';
 
 interface ClusterDPRFormProps {
   currentStep: number;
@@ -21,7 +24,10 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
 }) => {
   const { data, setStepData, getStepData } = useClusterDPRStore();
   const stepData = getStepData(currentStep) || {};
-  
+
+  // State for Step 18 file uploads (must be at top level due to React hooks rules)
+  const [uploadingFiles, setUploadingFiles] = React.useState<Record<string, boolean>>({});
+
   // Debug: Log when step data changes
   React.useEffect(() => {
     console.log(`📋 Step ${currentStep} data loaded:`, {
@@ -207,11 +213,21 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           </div>
         </div>
 
+        {/* AI Suggestions - appears above Enterprise Count, uses above fields as context to generate below fields */}
+        <AISuggestions
+          currentStep={currentStep}
+          currentStepData={stepData}
+          onApplySuggestion={(field, content) => {
+            handleInputChange(field, content);
+          }}
+          excludeFields={['clusterName', 'location', 'district', 'geographicalSpread', 'natureOfBusiness', 'majorProducts']}
+        />
+
         <div className="border-t pt-4">
           <h3 className="text-lg font-semibold mb-4">Enterprise Count</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Micro</label>
+              {renderLabel('enterpriseCount', 'Micro')}
               <Input
                 type="number"
                 value={stepData.enterpriseCount?.micro || ''}
@@ -223,7 +239,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Small</label>
+              {renderLabel('enterpriseCount', 'Small')}
               <Input
                 type="number"
                 value={stepData.enterpriseCount?.small || ''}
@@ -235,7 +251,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Medium</label>
+              {renderLabel('enterpriseCount', 'Medium')}
               <Input
                 type="number"
                 value={stepData.enterpriseCount?.medium || ''}
@@ -253,7 +269,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           <h3 className="text-lg font-semibold mb-4">Age of Enterprises</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">&lt; 5 years</label>
+              {renderLabel('ageOfEnterprises', '< 5 years')}
               <Input
                 type="number"
                 value={stepData.ageOfEnterprises?.lessThan5 || ''}
@@ -265,7 +281,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">5-10 years</label>
+              {renderLabel('ageOfEnterprises', '5-10 years')}
               <Input
                 type="number"
                 value={stepData.ageOfEnterprises?.between5And10 || ''}
@@ -277,7 +293,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">&gt; 10 years</label>
+              {renderLabel('ageOfEnterprises', '> 10 years')}
               <Input
                 type="number"
                 value={stepData.ageOfEnterprises?.moreThan10 || ''}
@@ -295,7 +311,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           <h3 className="text-lg font-semibold mb-4">Employment per Unit</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">&lt; 5 employees</label>
+              {renderLabel('employmentPerUnit', '< 5 employees')}
               <Input
                 type="number"
                 value={stepData.employmentPerUnit?.lessThan5 || ''}
@@ -307,7 +323,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">5-10 employees</label>
+              {renderLabel('employmentPerUnit', '5-10 employees')}
               <Input
                 type="number"
                 value={stepData.employmentPerUnit?.between5And10 || ''}
@@ -319,7 +335,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">&gt; 10 employees</label>
+              {renderLabel('employmentPerUnit', '> 10 employees')}
               <Input
                 type="number"
                 value={stepData.employmentPerUnit?.moreThan10 || ''}
@@ -335,7 +351,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Investment per Unit (₹ Lakhs)</label>
+            {renderLabel('investmentPerUnit', 'Investment per Unit (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.investmentPerUnit || ''}
@@ -344,7 +360,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Turnover per Unit (₹ Lakhs)</label>
+            {renderLabel('turnoverPerUnit', 'Turnover per Unit (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.turnoverPerUnit || ''}
@@ -358,7 +374,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           <h3 className="text-lg font-semibold mb-4">Market Served (%)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Domestic</label>
+              {renderLabel('marketServed', 'Domestic')}
               <Input
                 type="number"
                 min="0"
@@ -372,7 +388,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Export</label>
+              {renderLabel('marketServed', 'Export')}
               <Input
                 type="number"
                 min="0"
@@ -403,7 +419,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           }}
         />
         <div>
-          <label className="block text-sm font-medium mb-2">Sector / Industry Type *</label>
+          {renderLabel('sectorType', 'Sector / Industry Type', true)}
           <Input
             value={stepData.sectorType || ''}
             onChange={(e) => handleInputChange('sectorType', e.target.value)}
@@ -412,7 +428,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Sector Description *</label>
+          {renderLabel('sectorDescription', 'Sector Description', true)}
           <textarea
             className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.sectorDescription || ''}
@@ -422,7 +438,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">National Importance</label>
+          {renderLabel('nationalImportance', 'National Importance')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.nationalImportance || ''}
@@ -432,7 +448,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">State-level Importance</label>
+          {renderLabel('stateLevelImportance', 'State-level Importance')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.stateLevelImportance || ''}
@@ -442,7 +458,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Key Products</label>
+          {renderLabel('keyProducts', 'Key Products')}
           <div className="space-y-2">
             {(Array.isArray(stepData.keyProducts) ? stepData.keyProducts : []).map((product: string, index: number) => (
               <div key={index} className="flex items-center gap-2">
@@ -491,7 +507,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           }}
         />
         <div>
-          <label className="block text-sm font-medium mb-2">Geography</label>
+          {renderLabel('geography', 'Geography')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.geography || ''}
@@ -500,7 +516,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Climate</label>
+          {renderLabel('climate', 'Climate')}
           <Input
             value={stepData.climate || ''}
             onChange={(e) => handleInputChange('climate', e.target.value)}
@@ -508,7 +524,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Infrastructure</label>
+          {renderLabel('infrastructure', 'Infrastructure')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.infrastructure || ''}
@@ -517,7 +533,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Key Economic Activities</label>
+          {renderLabel('keyEconomicActivities', 'Key Economic Activities')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.keyEconomicActivities || ''}
@@ -527,7 +543,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Raw Material Availability</label>
+            {renderLabel('rawMaterialAvailability', 'Raw Material Availability')}
             <textarea
               className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={stepData.rawMaterialAvailability || ''}
@@ -536,7 +552,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Raw Material Quantity</label>
+            {renderLabel('rawMaterialQuantity', 'Raw Material Quantity')}
             <Input
               value={stepData.rawMaterialQuantity || ''}
               onChange={(e) => handleInputChange('rawMaterialQuantity', e.target.value)}
@@ -545,7 +561,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Industrial Infrastructure</label>
+          {renderLabel('industrialInfrastructure', 'Industrial Infrastructure')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.industrialInfrastructure || ''}
@@ -557,7 +573,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           <h3 className="text-lg font-semibold mb-4">Connectivity</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Road</label>
+              {renderLabel('connectivity', 'Road')}
               <Input
                 value={stepData.connectivity?.road || ''}
                 onChange={(e) => handleInputChange('connectivity', {
@@ -568,7 +584,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Rail</label>
+              {renderLabel('connectivity', 'Rail')}
               <Input
                 value={stepData.connectivity?.rail || ''}
                 onChange={(e) => handleInputChange('connectivity', {
@@ -579,7 +595,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Port</label>
+              {renderLabel('connectivity', 'Port')}
               <Input
                 value={stepData.connectivity?.port || ''}
                 onChange={(e) => handleInputChange('connectivity', {
@@ -607,7 +623,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           }}
         />
         <div>
-          <label className="block text-sm font-medium mb-2">Year of Establishment</label>
+          {renderLabel('yearOfEstablishment', 'Year of Establishment')}
           <Input
             type="number"
             value={stepData.yearOfEstablishment || ''}
@@ -616,7 +632,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Cluster Evolution</label>
+          {renderLabel('clusterEvolution', 'Cluster Evolution')}
           <textarea
             className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.clusterEvolution || ''}
@@ -625,7 +641,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Present Activities</label>
+          {renderLabel('presentActivities', 'Present Activities')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.presentActivities || ''}
@@ -634,7 +650,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Type of Units</label>
+          {renderLabel('typeOfUnits', 'Type of Units')}
           <Input
             value={stepData.typeOfUnits || ''}
             onChange={(e) => handleInputChange('typeOfUnits', e.target.value)}
@@ -642,7 +658,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Production Capacity</label>
+          {renderLabel('productionCapacity', 'Production Capacity')}
           <Input
             value={stepData.productionCapacity || ''}
             onChange={(e) => handleInputChange('productionCapacity', e.target.value)}
@@ -650,7 +666,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Technology Level</label>
+          {renderLabel('technologyLevel', 'Technology Level')}
           <Input
             value={stepData.technologyLevel || ''}
             onChange={(e) => handleInputChange('technologyLevel', e.target.value)}
@@ -658,7 +674,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Stakeholders</label>
+          {renderLabel('stakeholders', 'Stakeholders')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={normalizeToString(stepData.stakeholders)}
@@ -683,7 +699,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           }}
         />
         <div>
-          <label className="block text-sm font-medium mb-2">Raw Materials</label>
+          {renderLabel('rawMaterials', 'Raw Materials')}
           <div className="space-y-4">
             {(Array.isArray(stepData.rawMaterials) ? stepData.rawMaterials : []).map((material: any, index: number) => (
               <div key={index} className="p-4 border rounded-lg space-y-2">
@@ -724,7 +740,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Intermediate Products</label>
+          {renderLabel('intermediateProducts', 'Intermediate Products')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={normalizeToString(stepData.intermediateProducts)}
@@ -735,7 +751,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Final Products</label>
+          {renderLabel('finalProducts', 'Final Products')}
           <div className="space-y-2">
             {(Array.isArray(stepData.finalProducts) ? stepData.finalProducts : []).map((product: string, index: number) => (
               <div key={index} className="flex items-center gap-2">
@@ -770,7 +786,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Value Addition Stages</label>
+          {renderLabel('valueAdditionStages', 'Value Addition Stages')}
           <div className="space-y-4">
             {(Array.isArray(stepData.valueAdditionStages) ? stepData.valueAdditionStages : []).map((stage: any, index: number) => (
               <div key={index} className="p-4 border rounded-lg space-y-2">
@@ -812,7 +828,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Major Buyers</label>
+          {renderLabel('majorBuyers', 'Major Buyers')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={normalizeToString(stepData.majorBuyers)}
@@ -837,7 +853,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           }}
         />
         <div>
-          <label className="block text-sm font-medium mb-2">Existing Demand</label>
+          {renderLabel('existingDemand', 'Existing Demand')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.existingDemand || ''}
@@ -846,7 +862,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Demand-Supply Gap</label>
+          {renderLabel('demandSupplyGap', 'Demand-Supply Gap')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.demandSupplyGap || ''}
@@ -855,7 +871,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Target Market</label>
+          {renderLabel('targetMarket', 'Target Market')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.targetMarket || ''}
@@ -864,7 +880,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Competitor Analysis</label>
+          {renderLabel('competitorAnalysis', 'Competitor Analysis')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.competitorAnalysis || ''}
@@ -873,7 +889,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Price Trends</label>
+          {renderLabel('priceTrends', 'Price Trends')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.priceTrends || ''}
@@ -882,7 +898,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Export Potential</label>
+          {renderLabel('exportPotential', 'Export Potential')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.exportPotential || ''}
@@ -906,7 +922,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           }}
         />
         <div>
-          <label className="block text-sm font-medium mb-2">Technology Gaps</label>
+          {renderLabel('technologyGaps', 'Technology Gaps')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.technologyGaps || ''}
@@ -915,7 +931,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Infrastructure Gaps</label>
+          {renderLabel('infrastructureGaps', 'Infrastructure Gaps')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.infrastructureGaps || ''}
@@ -924,7 +940,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Skill Gaps</label>
+          {renderLabel('skillGaps', 'Skill Gaps')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.skillGaps || ''}
@@ -933,7 +949,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Marketing Gaps</label>
+          {renderLabel('marketingGaps', 'Marketing Gaps')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.marketingGaps || ''}
@@ -942,7 +958,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Financial Gaps</label>
+          {renderLabel('financialGaps', 'Financial Gaps')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.financialGaps || ''}
@@ -951,7 +967,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Justification for Intervention</label>
+          {renderLabel('justificationForIntervention', 'Justification for Intervention')}
           <textarea
             className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.justificationForIntervention || ''}
@@ -975,7 +991,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           }}
         />
         <div>
-          <label className="block text-sm font-medium mb-2">Strengths</label>
+          {renderLabel('strengths', 'Strengths')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={normalizeToString(stepData.strengths)}
@@ -985,7 +1001,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           <p className="text-xs text-muted-foreground mt-1">Separate multiple strengths with commas</p>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Weaknesses</label>
+          {renderLabel('weaknesses', 'Weaknesses')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={normalizeToString(stepData.weaknesses)}
@@ -995,7 +1011,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           <p className="text-xs text-muted-foreground mt-1">Separate multiple weaknesses with commas</p>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Opportunities</label>
+          {renderLabel('opportunities', 'Opportunities')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={normalizeToString(stepData.opportunities)}
@@ -1005,7 +1021,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           <p className="text-xs text-muted-foreground mt-1">Separate multiple opportunities with commas</p>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Threats</label>
+          {renderLabel('threats', 'Threats')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={normalizeToString(stepData.threats)}
@@ -1030,7 +1046,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           }}
         />
         <div>
-          <label className="block text-sm font-medium mb-2">Intervention Type *</label>
+          {renderLabel('interventionType', 'Intervention Type', true)}
           <select
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.interventionType || ''}
@@ -1043,7 +1059,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Description</label>
+          {renderLabel('description', 'Description')}
           <textarea
             className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.description || ''}
@@ -1052,7 +1068,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Objectives</label>
+          {renderLabel('objectives', 'Objectives')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={normalizeToString(stepData.objectives)}
@@ -1062,7 +1078,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           <p className="text-xs text-muted-foreground mt-1">Separate multiple objectives with commas</p>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Expected Benefits</label>
+          {renderLabel('expectedBenefits', 'Expected Benefits')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={normalizeToString(stepData.expectedBenefits)}
@@ -1088,7 +1104,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">CFC Name *</label>
+            {renderLabel('name', 'CFC Name', true)}
             <Input
               value={stepData.name || ''}
               onChange={(e) => handleInputChange('name', e.target.value)}
@@ -1096,7 +1112,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Location *</label>
+            {renderLabel('location', 'Location', true)}
             <Input
               value={stepData.location || ''}
               onChange={(e) => handleInputChange('location', e.target.value)}
@@ -1105,7 +1121,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Land Details</label>
+          {renderLabel('landDetails', 'Land Details')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.landDetails || ''}
@@ -1114,7 +1130,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Civil Works</label>
+          {renderLabel('civilWorks', 'Civil Works')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.civilWorks || ''}
@@ -1123,7 +1139,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Manufacturing Process</label>
+          {renderLabel('manufacturingProcess', 'Manufacturing Process')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.manufacturingProcess || ''}
@@ -1132,7 +1148,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Plant & Machinery</label>
+          {renderLabel('plantAndMachinery', 'Plant & Machinery')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.plantAndMachinery || ''}
@@ -1141,7 +1157,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Capacity</label>
+          {renderLabel('capacity', 'Capacity')}
           <Input
             value={stepData.capacity || ''}
             onChange={(e) => handleInputChange('capacity', e.target.value)}
@@ -1150,7 +1166,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Power Requirements</label>
+            {renderLabel('powerRequirements', 'Power Requirements')}
             <Input
               value={stepData.powerRequirements || ''}
               onChange={(e) => handleInputChange('powerRequirements', e.target.value)}
@@ -1158,7 +1174,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Water Requirements</label>
+            {renderLabel('waterRequirements', 'Water Requirements')}
             <Input
               value={stepData.waterRequirements || ''}
               onChange={(e) => handleInputChange('waterRequirements', e.target.value)}
@@ -1166,7 +1182,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Manpower Requirements</label>
+            {renderLabel('manpowerRequirements', 'Manpower Requirements')}
             <Input
               value={stepData.manpowerRequirements || ''}
               onChange={(e) => handleInputChange('manpowerRequirements', e.target.value)}
@@ -1191,7 +1207,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">SPV Name *</label>
+            {renderLabel('spvName', 'SPV Name', true)}
             <Input
               value={stepData.spvName || ''}
               onChange={(e) => handleInputChange('spvName', e.target.value)}
@@ -1199,7 +1215,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Legal Status</label>
+            {renderLabel('legalStatus', 'Legal Status')}
             <Input
               value={stepData.legalStatus || ''}
               onChange={(e) => handleInputChange('legalStatus', e.target.value)}
@@ -1209,7 +1225,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Year of Incorporation</label>
+            {renderLabel('yearOfIncorporation', 'Year of Incorporation')}
             <Input
               type="number"
               value={stepData.yearOfIncorporation || ''}
@@ -1218,7 +1234,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Submitted To</label>
+            {renderLabel('submittedTo', 'Submitted To')}
             <Input
               value={stepData.submittedTo || ''}
               onChange={(e) => handleInputChange('submittedTo', e.target.value)}
@@ -1227,7 +1243,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Objectives</label>
+          {renderLabel('objectives', 'Objectives')}
           <div className="space-y-2">
             {(Array.isArray(stepData.objectives) ? stepData.objectives : []).map((objective: string, index: number) => (
               <div key={index} className="flex items-center gap-2">
@@ -1261,7 +1277,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Roles & Responsibilities</label>
+          {renderLabel('rolesAndResponsibilities', 'Roles & Responsibilities')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={normalizeToString(stepData.rolesAndResponsibilities)}
@@ -1271,7 +1287,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           <p className="text-xs text-muted-foreground mt-1">Separate multiple roles with commas</p>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Board of Directors</label>
+          {renderLabel('boardOfDirectors', 'Board of Directors')}
           <div className="space-y-4">
             {(Array.isArray(stepData.boardOfDirectors) ? stepData.boardOfDirectors : []).map((director: any, index: number) => (
               <div key={index} className="p-4 border rounded-lg space-y-2">
@@ -1311,7 +1327,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Shareholding Pattern</label>
+          {renderLabel('shareholdingPattern', 'Shareholding Pattern')}
           <div className="space-y-4">
             {(Array.isArray(stepData.shareholdingPattern) ? stepData.shareholdingPattern : []).map((share: any, index: number) => (
               <div key={index} className="p-4 border rounded-lg space-y-2">
@@ -1354,7 +1370,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Member Units</label>
+          {renderLabel('memberUnits', 'Member Units')}
           <div className="space-y-4">
             {(Array.isArray(stepData.memberUnits) ? stepData.memberUnits : []).map((unit: any, index: number) => (
               <div key={index} className="p-4 border rounded-lg space-y-2">
@@ -1394,7 +1410,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Statutory Registrations</label>
+          {renderLabel('statutoryRegistrations', 'Statutory Registrations')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={normalizeToString(stepData.statutoryRegistrations)}
@@ -1427,7 +1443,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Land (₹ Lakhs)</label>
+            {renderLabel('land', 'Land (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.land || ''}
@@ -1436,7 +1452,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Building (₹ Lakhs)</label>
+            {renderLabel('building', 'Building (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.building || ''}
@@ -1445,7 +1461,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Machinery (₹ Lakhs)</label>
+            {renderLabel('machinery', 'Machinery (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.machinery || ''}
@@ -1454,7 +1470,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Utilities & Infrastructure (₹ Lakhs)</label>
+            {renderLabel('utilitiesAndInfrastructure', 'Utilities & Infrastructure (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.utilitiesAndInfrastructure || ''}
@@ -1463,7 +1479,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Preliminary & Pre-operative (₹ Lakhs)</label>
+            {renderLabel('preliminaryAndPreOperative', 'Preliminary & Pre-operative (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.preliminaryAndPreOperative || ''}
@@ -1472,7 +1488,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Working Capital Margin (₹ Lakhs)</label>
+            {renderLabel('workingCapitalMargin', 'Working Capital Margin (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.workingCapitalMargin || ''}
@@ -1511,7 +1527,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">SPV Contribution (₹ Lakhs)</label>
+            {renderLabel('spvContribution', 'SPV Contribution (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.spvContribution || ''}
@@ -1520,7 +1536,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Government Grant (₹ Lakhs)</label>
+            {renderLabel('governmentGrant', 'Government Grant (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.governmentGrant || ''}
@@ -1529,7 +1545,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Bank Loan (₹ Lakhs)</label>
+            {renderLabel('bankLoan', 'Bank Loan (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.bankLoan || ''}
@@ -1538,7 +1554,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Other Sources (₹ Lakhs)</label>
+            {renderLabel('otherSources', 'Other Sources (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.otherSources || ''}
@@ -1572,7 +1588,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Raw Material Cost (₹ Lakhs)</label>
+            {renderLabel('rawMaterialCost', 'Raw Material Cost (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.rawMaterialCost || ''}
@@ -1581,7 +1597,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Power Cost (₹ Lakhs)</label>
+            {renderLabel('powerCost', 'Power Cost (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.powerCost || ''}
@@ -1590,7 +1606,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Wages (₹ Lakhs)</label>
+            {renderLabel('wages', 'Wages (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.wages || ''}
@@ -1599,7 +1615,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Maintenance (₹ Lakhs)</label>
+            {renderLabel('maintenance', 'Maintenance (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.maintenance || ''}
@@ -1608,7 +1624,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Administrative Expenses (₹ Lakhs)</label>
+            {renderLabel('administrativeExpenses', 'Administrative Expenses (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.administrativeExpenses || ''}
@@ -1617,7 +1633,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Marketing Expenses (₹ Lakhs)</label>
+            {renderLabel('marketingExpenses', 'Marketing Expenses (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.marketingExpenses || ''}
@@ -1626,7 +1642,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Annual Production Volume</label>
+            {renderLabel('annualProductionVolume', 'Annual Production Volume')}
             <Input
               type="number"
               value={stepData.annualProductionVolume || ''}
@@ -1635,7 +1651,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Annual Sales Realization (₹ Lakhs)</label>
+            {renderLabel('annualSalesRealization', 'Annual Sales Realization (₹ Lakhs)')}
             <Input
               type="number"
               value={stepData.annualSalesRealization || ''}
@@ -1659,48 +1675,63 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             handleInputChange(field, content);
           }}
         />
-        <div>
-          <label className="block text-sm font-medium mb-2">Break-even Point (₹ Lakhs)</label>
-          <Input
-            type="number"
-            value={stepData.breakEvenPoint || ''}
-            onChange={(e) => handleInputChange('breakEvenPoint', parseFloat(e.target.value) || 0)}
-            placeholder="0"
-          />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">IRR (%)</label>
-            <Input
-              type="number"
-              value={stepData.irr || ''}
-              onChange={(e) => handleInputChange('irr', parseFloat(e.target.value) || 0)}
-              placeholder="0"
-            />
+        
+        {/* Basic Financial Indicators */}
+        <div className="border rounded-lg p-6 space-y-4">
+          <h4 className="text-lg font-semibold">Basic Financial Indicators</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              {renderLabel('breakEvenPoint', 'Break-even Point (₹ Lakhs)')}
+              <Input
+                type="number"
+                value={stepData.breakEvenPoint || ''}
+                onChange={(e) => handleInputChange('breakEvenPoint', parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              {renderLabel('irr', 'IRR (%)')}
+              <Input
+                type="number"
+                value={stepData.irr || ''}
+                onChange={(e) => handleInputChange('irr', parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              {renderLabel('npv', 'NPV (₹ Lakhs)')}
+              <Input
+                type="number"
+                value={stepData.npv || ''}
+                onChange={(e) => handleInputChange('npv', parseFloat(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">NPV (₹ Lakhs)</label>
-            <Input
-              type="number"
-              value={stepData.npv || ''}
-              onChange={(e) => handleInputChange('npv', parseFloat(e.target.value) || 0)}
-              placeholder="0"
+            {renderLabel('sensitivityAnalysis', 'Sensitivity Analysis')}
+            <textarea
+              className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={stepData.sensitivityAnalysis || ''}
+              onChange={(e) => handleInputChange('sensitivityAnalysis', e.target.value)}
+              placeholder="Describe sensitivity analysis"
             />
           </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Sensitivity Analysis</label>
-          <textarea
-            className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-            value={stepData.sensitivityAnalysis || ''}
-            onChange={(e) => handleInputChange('sensitivityAnalysis', e.target.value)}
-            placeholder="Describe sensitivity analysis"
+
+        {/* Detailed Financial Statements */}
+        <div className="border-t pt-6">
+          <FinancialStatements
+            data={stepData.financialStatements || {}}
+            onChange={(field, value) => {
+              if (field === 'financialStatements') {
+                handleInputChange('financialStatements', value);
+              } else {
+                handleInputChange(field, value);
+              }
+            }}
+            projectData={data}
           />
-        </div>
-        <div className="border-t pt-4">
-          <p className="text-sm text-muted-foreground mb-4">
-            Note: Detailed Profit & Loss, Cash Flow, and Balance Sheet projections can be added in the generated DPR.
-          </p>
         </div>
       </div>
     );
@@ -1718,7 +1749,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           }}
         />
         <div>
-          <label className="block text-sm font-medium mb-2">Start Date</label>
+          {renderLabel('startDate', 'Start Date')}
           <Input
             type="date"
             value={stepData.startDate || ''}
@@ -1726,7 +1757,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Milestones</label>
+          {renderLabel('milestones', 'Milestones')}
           <div className="space-y-4">
             {(Array.isArray(stepData.milestones) ? stepData.milestones : []).map((milestone: any, index: number) => (
               <div key={index} className="p-4 border rounded-lg space-y-2">
@@ -1780,7 +1811,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Total Implementation Period</label>
+          {renderLabel('totalImplementationPeriod', 'Total Implementation Period')}
           <Input
             value={stepData.totalImplementationPeriod || ''}
             onChange={(e) => handleInputChange('totalImplementationPeriod', e.target.value)}
@@ -1804,7 +1835,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Increase in Units</label>
+            {renderLabel('increaseInUnits', 'Increase in Units')}
             <Input
               type="number"
               value={stepData.increaseInUnits || ''}
@@ -1813,7 +1844,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Employment Generation</label>
+            {renderLabel('employmentGeneration', 'Employment Generation')}
             <Input
               type="number"
               value={stepData.employmentGeneration || ''}
@@ -1822,7 +1853,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Turnover Growth (%)</label>
+            {renderLabel('turnoverGrowth', 'Turnover Growth (%)')}
             <Input
               type="number"
               value={stepData.turnoverGrowth || ''}
@@ -1831,7 +1862,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Export Growth (%)</label>
+            {renderLabel('exportGrowth', 'Export Growth (%)')}
             <Input
               type="number"
               value={stepData.exportGrowth || ''}
@@ -1840,7 +1871,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Income Enhancement (%)</label>
+            {renderLabel('incomeEnhancement', 'Income Enhancement (%)')}
             <Input
               type="number"
               value={stepData.incomeEnhancement || ''}
@@ -1850,7 +1881,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Sustainability Outcomes</label>
+          {renderLabel('sustainabilityOutcomes', 'Sustainability Outcomes')}
           <textarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={normalizeToString(stepData.sustainabilityOutcomes)}
@@ -1865,11 +1896,71 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
 
   // Step 18: Annexures & Document Uploads
   if (currentStep === 18) {
-    const handleFileChange = (field: string, file: File | null) => {
+    // Note: uploadingFiles state is defined at component top level (React hooks rule)
+
+    const handleFileChange = async (field: string, file: File | null) => {
       if (file) {
-        // Store file name for now (in production, upload to server)
-        handleInputChange(field, file.name);
+        setUploadingFiles(prev => ({ ...prev, [field]: true }));
+        try {
+          // Upload to Cloudinary
+          const uploadResult = await api.uploadClusterDPRDocument(file);
+          if (uploadResult.success && uploadResult.data?.documentUrl) {
+            // Store the Cloudinary URL, not just the filename
+            handleInputChange(field, uploadResult.data.documentUrl);
+            toast.success(`${file.name} uploaded successfully!`);
+          } else {
+            toast.error(uploadResult.message || 'Failed to upload document');
+            // Fallback to filename only if upload fails
+            handleInputChange(field, file.name);
+          }
+        } catch (error: any) {
+          console.error('Error uploading document:', error);
+          toast.error(error.message || 'Failed to upload document');
+          // Fallback to filename only if upload fails
+          handleInputChange(field, file.name);
+        } finally {
+          setUploadingFiles(prev => ({ ...prev, [field]: false }));
+        }
       }
+    };
+
+    const handleMultipleFileChange = async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+
+      const fileArray = Array.from(files);
+      const uploadedUrls: string[] = [];
+
+      setUploadingFiles(prev => ({ ...prev, supportingDocuments: true }));
+      try {
+        for (const file of fileArray) {
+          try {
+            const uploadResult = await api.uploadClusterDPRDocument(file);
+            if (uploadResult.success && uploadResult.data?.documentUrl) {
+              uploadedUrls.push(uploadResult.data.documentUrl);
+            } else {
+              // Fallback to filename if upload fails
+              uploadedUrls.push(file.name);
+            }
+          } catch (error) {
+            console.error('Error uploading file:', file.name, error);
+            uploadedUrls.push(file.name);
+          }
+        }
+        handleInputChange('supportingDocuments', uploadedUrls);
+        toast.success(`${uploadedUrls.length} document(s) uploaded!`);
+      } finally {
+        setUploadingFiles(prev => ({ ...prev, supportingDocuments: false }));
+      }
+    };
+
+    // Helper to display filename from URL
+    const getDisplayName = (urlOrName: string): string => {
+      if (urlOrName.startsWith('http://') || urlOrName.startsWith('https://')) {
+        // Extract filename from URL
+        const urlParts = urlOrName.split('/');
+        return urlParts[urlParts.length - 1] || urlOrName;
+      }
+      return urlOrName;
     };
 
     return (
@@ -1882,76 +1973,120 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           }}
         />
         <div>
-          <label className="block text-sm font-medium mb-2">SPV Registration</label>
-          <Input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={(e) => handleFileChange('spvRegistration', e.target.files?.[0] || null)}
-          />
+          {renderLabel('spvRegistration', 'SPV Registration')}
+          <div className="relative">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => handleFileChange('spvRegistration', e.target.files?.[0] || null)}
+              disabled={uploadingFiles.spvRegistration}
+            />
+            {uploadingFiles.spvRegistration && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
           {stepData.spvRegistration && (
-            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.spvRegistration}</p>
+            <p className="text-sm text-green-600 mt-1">✓ Uploaded: {getDisplayName(stepData.spvRegistration)}</p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Land Documents</label>
-          <Input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={(e) => handleFileChange('landDocuments', e.target.files?.[0] || null)}
-          />
+          {renderLabel('landDocuments', 'Land Documents')}
+          <div className="relative">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => handleFileChange('landDocuments', e.target.files?.[0] || null)}
+              disabled={uploadingFiles.landDocuments}
+            />
+            {uploadingFiles.landDocuments && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
           {stepData.landDocuments && (
-            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.landDocuments}</p>
+            <p className="text-sm text-green-600 mt-1">✓ Uploaded: {getDisplayName(stepData.landDocuments)}</p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Building Estimates</label>
-          <Input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={(e) => handleFileChange('buildingEstimates', e.target.files?.[0] || null)}
-          />
+          {renderLabel('buildingEstimates', 'Building Estimates')}
+          <div className="relative">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => handleFileChange('buildingEstimates', e.target.files?.[0] || null)}
+              disabled={uploadingFiles.buildingEstimates}
+            />
+            {uploadingFiles.buildingEstimates && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
           {stepData.buildingEstimates && (
-            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.buildingEstimates}</p>
+            <p className="text-sm text-green-600 mt-1">✓ Uploaded: {getDisplayName(stepData.buildingEstimates)}</p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Machinery Quotations</label>
-          <Input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={(e) => handleFileChange('machineryQuotations', e.target.files?.[0] || null)}
-          />
+          {renderLabel('machineryQuotations', 'Machinery Quotations')}
+          <div className="relative">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => handleFileChange('machineryQuotations', e.target.files?.[0] || null)}
+              disabled={uploadingFiles.machineryQuotations}
+            />
+            {uploadingFiles.machineryQuotations && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
           {stepData.machineryQuotations && (
-            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.machineryQuotations}</p>
+            <p className="text-sm text-green-600 mt-1">✓ Uploaded: {getDisplayName(stepData.machineryQuotations)}</p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Member Registrations</label>
-          <Input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={(e) => handleFileChange('memberRegistrations', e.target.files?.[0] || null)}
-          />
+          {renderLabel('memberRegistrations', 'Member Registrations')}
+          <div className="relative">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => handleFileChange('memberRegistrations', e.target.files?.[0] || null)}
+              disabled={uploadingFiles.memberRegistrations}
+            />
+            {uploadingFiles.memberRegistrations && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
           {stepData.memberRegistrations && (
-            <p className="text-sm text-muted-foreground mt-1">Selected: {stepData.memberRegistrations}</p>
+            <p className="text-sm text-green-600 mt-1">✓ Uploaded: {getDisplayName(stepData.memberRegistrations)}</p>
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Supporting Documents</label>
-          <Input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            multiple
-            onChange={(e) => {
-              const files = Array.from(e.target.files || []);
-              const fileNames = files.map(f => f.name);
-              handleInputChange('supportingDocuments', fileNames);
-            }}
-          />
+          {renderLabel('supportingDocuments', 'Supporting Documents')}
+          <div className="relative">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              multiple
+              onChange={(e) => handleMultipleFileChange(e.target.files)}
+              disabled={uploadingFiles.supportingDocuments}
+            />
+            {uploadingFiles.supportingDocuments && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
           {stepData.supportingDocuments && Array.isArray(stepData.supportingDocuments) && stepData.supportingDocuments.length > 0 && (
             <div className="mt-2 space-y-1">
               {stepData.supportingDocuments.map((doc: string, index: number) => (
-                <p key={index} className="text-sm text-muted-foreground">• {doc}</p>
+                <p key={index} className="text-sm text-green-600">✓ {getDisplayName(doc)}</p>
               ))}
             </div>
           )}

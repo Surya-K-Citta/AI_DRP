@@ -328,7 +328,7 @@ export const Dashboard: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <Button
               variant="primary"
-              onClick={() => navigate('/cluster-dpr/create')}
+              onClick={() => navigate('/cluster-dpr/create?new=true')}
               className="gap-2 whitespace-nowrap"
             >
               <Building className="h-4 w-4" />
@@ -630,7 +630,7 @@ export const Dashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Button
                 variant="primary"
-                onClick={() => navigate('/cluster-dpr/create')}
+                onClick={() => navigate('/cluster-dpr/create?new=true')}
                 className="h-28 flex-col gap-3 bg-gradient-to-br from-primary to-primary/80"
               >
                 <div className="h-12 w-12 rounded-lg bg-white/20 flex items-center justify-center">
