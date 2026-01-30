@@ -11,15 +11,21 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   LineChart, Line
 } from 'recharts';
+import { EditableFinancialTable } from './EditableFinancialTable';
+import { useClusterDPRStore } from '@/store/clusterDPRStore';
 
 interface ClusterDPRDocumentViewProps {
   dpr: any;
   project: any;
   viewLanguage: 'english' | 'telugu';
   onSectionClick?: (stepNumber: number) => void;
+  onDataChange?: (field: string, value: any) => void; // Callback to update store when financial data changes
 }
 
-export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ dpr, project, viewLanguage, onSectionClick }) => {
+export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ dpr, project, viewLanguage, onSectionClick, onDataChange }) => {
+  // Get store functions to update data
+  const { data: storeData, setStepData } = useClusterDPRStore();
+  
   // Extract cluster data from multiple possible locations
   const clusterData =
     dpr.content?.[viewLanguage]?.clusterData ||
@@ -27,6 +33,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     dpr.content?.telugu?.clusterData ||
     dpr.metadata?.clusterData ||
     project?.stepData ||
+    storeData || // Also check store
     {};
 
   // Use contentRefreshKey to force re-read of content when it changes
@@ -3189,21 +3196,71 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               {(financialStatements.costOfProject || financialStatements.spvShare || financialStatements.stateGovtGrant || financialStatements.bankLoan || s12.totalProjectCost || s13.spvContribution || s13.governmentGrant || s13.bankLoan) && (
                 <div className="my-6">
                   <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 1: Cost of Project & Means of Finance</h3>
-                  {renderTable(
-                    ['Particulars', 'Amount (₹ Lakhs)'],
-                    [
-                      ['Cost of Project', (financialStatements.costOfProject || s12.totalProjectCost || 0).toFixed(2)],
-                      ['SPV Share', (financialStatements.spvShare || s13.spvContribution || 0).toFixed(2)],
-                      ['State Govt. Grant', (financialStatements.stateGovtGrant || s13.governmentGrant || 0).toFixed(2)],
-                      ['Bank Loan', (financialStatements.bankLoan || s13.bankLoan || 0).toFixed(2)],
-                      ['Total', ((financialStatements.costOfProject || s12.totalProjectCost || 0) + 
-                        (financialStatements.spvShare || s13.spvContribution || 0) + 
-                        (financialStatements.stateGovtGrant || s13.governmentGrant || 0) + 
-                        (financialStatements.bankLoan || s13.bankLoan || 0)).toFixed(2)],
-                    ],
-                    'Cost of Project & Means of Finance',
-                    '1'
-                  )}
+                  {(() => {
+                    const costOfProject = financialStatements.costOfProject || s12.totalProjectCost || 0;
+                    const spvShare = financialStatements.spvShare || s13.spvContribution || 0;
+                    const stateGrant = financialStatements.stateGovtGrant || s13.governmentGrant || 0;
+                    const bankLoan = financialStatements.bankLoan || s13.bankLoan || 0;
+                    
+                    const rows = [
+                      ['Cost of Project', costOfProject],
+                      ['SPV Share', spvShare],
+                      ['State Govt. Grant', stateGrant],
+                      ['Bank Loan', bankLoan],
+                      ['Total', costOfProject + spvShare + stateGrant + bankLoan], // Calculated
+                    ];
+                    
+                    return (
+                      <EditableFinancialTable
+                        headers={['Particulars', 'Amount (₹ Lakhs)']}
+                        rows={rows}
+                        title="Cost of Project & Means of Finance"
+                        statementNumber="1"
+                        editableCells={[
+                          [false, true], // Cost of Project - label not editable, value editable
+                          [false, true], // SPV Share
+                          [false, true], // State Grant
+                          [false, true], // Bank Loan
+                          [false, false], // Total - calculated, not editable
+                        ]}
+                        calculatedCells={[
+                          {
+                            row: 4,
+                            col: 1,
+                            formula: (data) => {
+                              return (parseFloat(data[0]?.[1] || 0) + 
+                                      parseFloat(data[1]?.[1] || 0) + 
+                                      parseFloat(data[2]?.[1] || 0) + 
+                                      parseFloat(data[3]?.[1] || 0));
+                            }
+                          }
+                        ]}
+                        onCellChange={(rowIndex, colIndex, value) => {
+                          const newFinancialStatements = { ...financialStatements };
+                          if (rowIndex === 0) {
+                            newFinancialStatements.costOfProject = value;
+                          } else if (rowIndex === 1) {
+                            newFinancialStatements.spvShare = value;
+                          } else if (rowIndex === 2) {
+                            newFinancialStatements.stateGovtGrant = value;
+                          } else if (rowIndex === 3) {
+                            newFinancialStatements.bankLoan = value;
+                          }
+                          
+                          // Update store
+                          const currentStep15 = clusterData.step15 || {};
+                          setStepData(15, {
+                            ...currentStep15,
+                            financialStatements: newFinancialStatements,
+                          });
+                          
+                          if (onDataChange) {
+                            onDataChange('financialStatements', newFinancialStatements);
+                          }
+                        }}
+                      />
+                    );
+                  })()}
                 </div>
               )}
 
@@ -3214,20 +3271,96 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   {(() => {
                     const wc = financialStatements.workingCapital || {};
                     const workingCapital = s12.workingCapitalMargin || 0;
-                    return renderTable(
-                      ['Particulars', 'Amount (₹ Lakhs)'],
-                      [
-                        ['Raw Materials', (wc.rawMaterials || (workingCapital * 0.4)).toFixed(2)],
-                        ['Work in Progress', (wc.workInProgress || (workingCapital * 0.2)).toFixed(2)],
-                        ['Finished Goods', (wc.finishedGoods || (workingCapital * 0.2)).toFixed(2)],
-                        ['Debtors', (wc.debtors || (workingCapital * 0.15)).toFixed(2)],
-                        ['Cash & Bank Balance', (wc.cashBankBalance || (workingCapital * 0.05)).toFixed(2)],
-                        ['Total Current Assets', (workingCapital || Object.values(wc).reduce((sum: number, val: any) => sum + (val || 0), 0)).toFixed(2)],
-                        ['Creditors', (wc.creditors || (workingCapital * 0.3)).toFixed(2)],
-                        ['Net Working Capital', ((workingCapital * 0.7) || (workingCapital - (wc.creditors || 0))).toFixed(2)],
-                      ],
-                      'Assessment of Working Capital',
-                      '2'
+                    const rawMaterials = wc.rawMaterials || (workingCapital * 0.4);
+                    const workInProgress = wc.workInProgress || (workingCapital * 0.2);
+                    const finishedGoods = wc.finishedGoods || (workingCapital * 0.2);
+                    const debtors = wc.debtors || (workingCapital * 0.15);
+                    const cashBankBalance = wc.cashBankBalance || (workingCapital * 0.05);
+                    const totalCurrentAssets = rawMaterials + workInProgress + finishedGoods + debtors + cashBankBalance;
+                    const creditors = wc.creditors || (workingCapital * 0.3);
+                    const netWorkingCapital = totalCurrentAssets - creditors;
+                    
+                    const rows = [
+                      ['Raw Materials', rawMaterials],
+                      ['Work in Progress', workInProgress],
+                      ['Finished Goods', finishedGoods],
+                      ['Debtors', debtors],
+                      ['Cash & Bank Balance', cashBankBalance],
+                      ['Total Current Assets', totalCurrentAssets], // Calculated
+                      ['Creditors', creditors],
+                      ['Net Working Capital', netWorkingCapital], // Calculated
+                    ];
+                    
+                    return (
+                      <EditableFinancialTable
+                        headers={['Particulars', 'Amount (₹ Lakhs)']}
+                        rows={rows}
+                        title="Assessment of Working Capital"
+                        statementNumber="2"
+                        editableCells={[
+                          [false, true], // Raw Materials
+                          [false, true], // Work in Progress
+                          [false, true], // Finished Goods
+                          [false, true], // Debtors
+                          [false, true], // Cash & Bank Balance
+                          [false, false], // Total Current Assets - calculated
+                          [false, true], // Creditors
+                          [false, false], // Net Working Capital - calculated
+                        ]}
+                        calculatedCells={[
+                          {
+                            row: 5,
+                            col: 1,
+                            formula: (data) => {
+                              return (parseFloat(data[0]?.[1] || 0) + 
+                                      parseFloat(data[1]?.[1] || 0) + 
+                                      parseFloat(data[2]?.[1] || 0) + 
+                                      parseFloat(data[3]?.[1] || 0) + 
+                                      parseFloat(data[4]?.[1] || 0));
+                            }
+                          },
+                          {
+                            row: 7,
+                            col: 1,
+                            formula: (data) => {
+                              const totalAssets = parseFloat(data[5]?.[1] || 0);
+                              const creditors = parseFloat(data[6]?.[1] || 0);
+                              return totalAssets - creditors;
+                            }
+                          }
+                        ]}
+                        onCellChange={(rowIndex, colIndex, value) => {
+                          const newFinancialStatements = { ...financialStatements };
+                          if (!newFinancialStatements.workingCapital) {
+                            newFinancialStatements.workingCapital = {};
+                          }
+                          
+                          if (rowIndex === 0) {
+                            newFinancialStatements.workingCapital.rawMaterials = value;
+                          } else if (rowIndex === 1) {
+                            newFinancialStatements.workingCapital.workInProgress = value;
+                          } else if (rowIndex === 2) {
+                            newFinancialStatements.workingCapital.finishedGoods = value;
+                          } else if (rowIndex === 3) {
+                            newFinancialStatements.workingCapital.debtors = value;
+                          } else if (rowIndex === 4) {
+                            newFinancialStatements.workingCapital.cashBankBalance = value;
+                          } else if (rowIndex === 6) {
+                            newFinancialStatements.workingCapital.creditors = value;
+                          }
+                          
+                          // Update store
+                          const currentStep15 = clusterData.step15 || {};
+                          setStepData(15, {
+                            ...currentStep15,
+                            financialStatements: newFinancialStatements,
+                          });
+                          
+                          if (onDataChange) {
+                            onDataChange('financialStatements', newFinancialStatements);
+                          }
+                        }}
+                      />
                     );
                   })()}
                 </div>
@@ -3239,37 +3372,83 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 3: Cost of Production & Profitability</h3>
                   {(() => {
                     const cop = financialStatements.costOfProduction || {};
-                    const rows: any[][] = [];
                     
-                    // Sales Realization row
-                    const salesRow = ['Sales Realisation', ''];
+                    // Build rows with editable values
+                    const salesRow: any[] = ['Sales Realisation', ''];
+                    const costRow: any[] = ['Total Cost', ''];
+                    const profitRow: any[] = ['Profit Before Tax', ''];
+                    
                     for (let year = 1; year <= 5; year++) {
                       const yearData = cop[`year${year}`] || {};
-                      salesRow.push((yearData.salesRealization || 0).toFixed(2));
+                      salesRow.push(yearData.salesRealization || 0);
+                      costRow.push(yearData.totalCost || 0);
+                      profitRow.push(yearData.profitBeforeTax || 0);
                     }
-                    rows.push(salesRow);
                     
-                    // Total Cost row
-                    const costRow = ['Total Cost', ''];
+                    const rows = [salesRow, costRow, profitRow];
+                    
+                    // Profit Before Tax is calculated as Sales - Total Cost
+                    const calculatedCells = [];
                     for (let year = 1; year <= 5; year++) {
-                      const yearData = cop[`year${year}`] || {};
-                      costRow.push((yearData.totalCost || 0).toFixed(2));
+                      calculatedCells.push({
+                        row: 2, // Profit Before Tax row
+                        col: year + 1, // Year column (offset by 2 for label and empty cell)
+                        formula: (data: any[][]) => {
+                          const sales = parseFloat(data[0]?.[year + 1] || 0);
+                          const cost = parseFloat(data[1]?.[year + 1] || 0);
+                          return sales - cost;
+                        }
+                      });
                     }
-                    rows.push(costRow);
                     
-                    // Profit Before Tax row
-                    const profitRow = ['Profit Before Tax', ''];
-                    for (let year = 1; year <= 5; year++) {
-                      const yearData = cop[`year${year}`] || {};
-                      profitRow.push((yearData.profitBeforeTax || 0).toFixed(2));
-                    }
-                    rows.push(profitRow);
-                    
-                    return renderTable(
-                      ['Years', '1', '2', '3', '4', '5'],
-                      rows,
-                      'COST OF PRODUCTION & PROFITABILITY',
-                      '3'
+                    return (
+                      <EditableFinancialTable
+                        headers={['Years', '', '1', '2', '3', '4', '5']}
+                        rows={rows}
+                        title="COST OF PRODUCTION & PROFITABILITY"
+                        statementNumber="3"
+                        editableCells={[
+                          [false, false, true, true, true, true, true], // Sales Realisation - editable for all years
+                          [false, false, true, true, true, true, true], // Total Cost - editable for all years
+                          [false, false, false, false, false, false, false], // Profit Before Tax - calculated
+                        ]}
+                        calculatedCells={calculatedCells}
+                        onCellChange={(rowIndex, colIndex, value) => {
+                          const newFinancialStatements = { ...financialStatements };
+                          if (!newFinancialStatements.costOfProduction) {
+                            newFinancialStatements.costOfProduction = {};
+                          }
+                          
+                          // colIndex 2 = Year 1, colIndex 3 = Year 2, etc.
+                          const year = colIndex - 1;
+                          if (year >= 1 && year <= 5) {
+                            const yearKey = `year${year}`;
+                            if (!newFinancialStatements.costOfProduction[yearKey]) {
+                              newFinancialStatements.costOfProduction[yearKey] = {};
+                            }
+                            
+                            if (rowIndex === 0) {
+                              // Sales Realisation
+                              newFinancialStatements.costOfProduction[yearKey].salesRealization = value;
+                            } else if (rowIndex === 1) {
+                              // Total Cost
+                              newFinancialStatements.costOfProduction[yearKey].totalCost = value;
+                            }
+                            // Profit Before Tax is calculated, not editable
+                          }
+                          
+                          // Update store
+                          const currentStep15 = clusterData.step15 || {};
+                          setStepData(15, {
+                            ...currentStep15,
+                            financialStatements: newFinancialStatements,
+                          });
+                          
+                          if (onDataChange) {
+                            onDataChange('financialStatements', newFinancialStatements);
+                          }
+                        }}
+                      />
                     );
                   })()}
                 </div>
@@ -3280,27 +3459,60 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 <div className="my-6">
                   <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 4: Assumptions for Cost of Production & Profitability</h3>
                   {(() => {
-                    const assumptions: any[][] = [];
                     const assump = financialStatements.assumptions || {};
-                    if (assump.capacityUtilizationYear1) assumptions.push(['Capacity Utilization (Year 1)', `${assump.capacityUtilizationYear1}%`]);
-                    if (assump.capacityUtilizationYear2) assumptions.push(['Capacity Utilization (Year 2)', `${assump.capacityUtilizationYear2}%`]);
-                    if (assump.capacityUtilizationYear3Onwards) assumptions.push(['Capacity Utilization (Year 3 onwards)', `${assump.capacityUtilizationYear3Onwards}%`]);
-                    if (assump.rawMaterialCostPercentage) assumptions.push(['Raw Material Cost (% of Revenue)', `${assump.rawMaterialCostPercentage}%`]);
-                    if (s14.capacityUtilization) {
-                      if (s14.capacityUtilization.year1) assumptions.push(['Capacity Utilization (Year 1)', `${s14.capacityUtilization.year1}%`]);
-                      if (s14.capacityUtilization.year2) assumptions.push(['Capacity Utilization (Year 2)', `${s14.capacityUtilization.year2}%`]);
-                      if (s14.capacityUtilization.year3Onwards) assumptions.push(['Capacity Utilization (Year 3 onwards)', `${s14.capacityUtilization.year3Onwards}%`]);
-                    }
-                    if (s14.rawMaterialCostPercentage) assumptions.push(['Raw Material Cost (% of Revenue)', `${s14.rawMaterialCostPercentage}%`]);
-                    if (assumptions.length > 0) {
-                      return renderTable(
-                        ['Assumption', 'Value'],
-                        assumptions,
-                        'Assumptions for Cost of Production & Profitability',
-                        '4'
-                      );
-                    }
-                    return null;
+                    const capUtil = s14.capacityUtilization || {};
+                    const capacityYear1 = assump.capacityUtilizationYear1 || capUtil.year1 || 0;
+                    const capacityYear2 = assump.capacityUtilizationYear2 || capUtil.year2 || 0;
+                    const capacityYear3Onwards = assump.capacityUtilizationYear3Onwards || capUtil.year3Onwards || 0;
+                    const rawMaterialCost = assump.rawMaterialCostPercentage || s14.rawMaterialCostPercentage || 0;
+                    
+                    const rows = [
+                      ['Capacity Utilization (Year 1)', capacityYear1],
+                      ['Capacity Utilization (Year 2)', capacityYear2],
+                      ['Capacity Utilization (Year 3 onwards)', capacityYear3Onwards],
+                      ['Raw Material Cost (% of Revenue)', rawMaterialCost],
+                    ];
+                    
+                    return (
+                      <EditableFinancialTable
+                        headers={['Assumption', 'Value (%)']}
+                        rows={rows}
+                        title="Assumptions for Cost of Production & Profitability"
+                        statementNumber="4"
+                        editableCells={[
+                          [false, true],
+                          [false, true],
+                          [false, true],
+                          [false, true],
+                        ]}
+                        onCellChange={(rowIndex, colIndex, value) => {
+                          const newFinancialStatements = { ...financialStatements };
+                          if (!newFinancialStatements.assumptions) {
+                            newFinancialStatements.assumptions = {};
+                          }
+                          
+                          if (rowIndex === 0) {
+                            newFinancialStatements.assumptions.capacityUtilizationYear1 = value;
+                          } else if (rowIndex === 1) {
+                            newFinancialStatements.assumptions.capacityUtilizationYear2 = value;
+                          } else if (rowIndex === 2) {
+                            newFinancialStatements.assumptions.capacityUtilizationYear3Onwards = value;
+                          } else if (rowIndex === 3) {
+                            newFinancialStatements.assumptions.rawMaterialCostPercentage = value;
+                          }
+                          
+                          const currentStep15 = clusterData.step15 || {};
+                          setStepData(15, {
+                            ...currentStep15,
+                            financialStatements: newFinancialStatements,
+                          });
+                          
+                          if (onDataChange) {
+                            onDataChange('financialStatements', newFinancialStatements);
+                          }
+                        }}
+                      />
+                    );
                   })()}
                 </div>
               )}
@@ -3311,20 +3523,88 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 5: Estimation of Power Cost</h3>
                   {(() => {
                     const pc = financialStatements.powerCost || {};
-                    return renderTable(
-                      ['Particulars', 'Units', 'Rate (₹)', 'Amount (₹ Lakhs)'],
-                      [
-                        ['Connected Load', (pc.connectedLoad || s14.connectedLoad || 'N/A').toString(), 
-                          (pc.ratePerUnit || s14.powerCost || 'N/A').toString(),
-                          pc.annualCost ? pc.annualCost.toFixed(2) : (s14.monthlyConsumption && s14.powerCost ? ((s14.monthlyConsumption * s14.powerCost * 12) / 100000).toFixed(2) : 'N/A')],
-                        ['Monthly Consumption', (pc.monthlyConsumption || s14.monthlyConsumption || 'N/A').toString(), 
-                          (pc.ratePerUnit || s14.powerCost || 'N/A').toString(),
-                          pc.monthlyConsumption && pc.ratePerUnit ? ((pc.monthlyConsumption * pc.ratePerUnit) / 100000).toFixed(2) : 'N/A'],
-                        ['Annual Power Cost', 'N/A', 'N/A',
-                          (pc.annualCost || (s14.monthlyConsumption && s14.powerCost ? ((s14.monthlyConsumption * s14.powerCost * 12) / 100000) : 0)).toFixed(2)],
-                      ],
-                      'Estimation of Power cost',
-                      '5'
+                    const connectedLoad = pc.connectedLoad || s14.connectedLoad || 0;
+                    const monthlyConsumption = pc.monthlyConsumption || s14.monthlyConsumption || 0;
+                    const ratePerUnit = pc.ratePerUnit || s14.powerCost || 0;
+                    const monthlyCost = (monthlyConsumption * ratePerUnit) / 100000; // Convert to lakhs
+                    const annualCost = pc.annualCost || (monthlyCost * 12) || 0;
+                    
+                    const rows = [
+                      ['Connected Load', connectedLoad, ratePerUnit, monthlyCost],
+                      ['Monthly Consumption', monthlyConsumption, ratePerUnit, monthlyCost],
+                      ['Annual Power Cost', 0, 0, annualCost], // Calculated
+                    ];
+                    
+                    return (
+                      <EditableFinancialTable
+                        headers={['Particulars', 'Units', 'Rate (₹)', 'Amount (₹ Lakhs)']}
+                        rows={rows}
+                        title="Estimation of Power cost"
+                        statementNumber="5"
+                        editableCells={[
+                          [false, true, true, false], // Connected Load - units and rate editable
+                          [false, true, true, false], // Monthly Consumption - units and rate editable
+                          [false, false, false, false], // Annual Power Cost - calculated
+                        ]}
+                        calculatedCells={[
+                          {
+                            row: 0,
+                            col: 3,
+                            formula: (data) => {
+                              const units = parseFloat(data[0]?.[1] || 0);
+                              const rate = parseFloat(data[0]?.[2] || 0);
+                              return (units * rate) / 100000;
+                            }
+                          },
+                          {
+                            row: 1,
+                            col: 3,
+                            formula: (data) => {
+                              const units = parseFloat(data[1]?.[1] || 0);
+                              const rate = parseFloat(data[1]?.[2] || 0);
+                              return (units * rate) / 100000;
+                            }
+                          },
+                          {
+                            row: 2,
+                            col: 3,
+                            formula: (data) => {
+                              const monthlyCost = parseFloat(data[1]?.[3] || 0);
+                              return monthlyCost * 12;
+                            }
+                          }
+                        ]}
+                        onCellChange={(rowIndex, colIndex, value) => {
+                          const newFinancialStatements = { ...financialStatements };
+                          if (!newFinancialStatements.powerCost) {
+                            newFinancialStatements.powerCost = {};
+                          }
+                          
+                          if (rowIndex === 0) {
+                            if (colIndex === 1) {
+                              newFinancialStatements.powerCost.connectedLoad = value;
+                            } else if (colIndex === 2) {
+                              newFinancialStatements.powerCost.ratePerUnit = value;
+                            }
+                          } else if (rowIndex === 1) {
+                            if (colIndex === 1) {
+                              newFinancialStatements.powerCost.monthlyConsumption = value;
+                            } else if (colIndex === 2) {
+                              newFinancialStatements.powerCost.ratePerUnit = value;
+                            }
+                          }
+                          
+                          const currentStep15 = clusterData.step15 || {};
+                          setStepData(15, {
+                            ...currentStep15,
+                            financialStatements: newFinancialStatements,
+                          });
+                          
+                          if (onDataChange) {
+                            onDataChange('financialStatements', newFinancialStatements);
+                          }
+                        }}
+                      />
                     );
                   })()}
                 </div>
@@ -3337,16 +3617,59 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   {(() => {
                     const manpower = financialStatements.manpower || s14.manpowerRequirement || [];
                     if (Array.isArray(manpower) && manpower.length > 0) {
-                      return renderTable(
-                        ['Category', 'No. of Employees', 'Annual Salary (₹)', 'Total Cost (₹ Lakhs)'],
-                        manpower.map((mp: any) => [
-                          mp.category || 'N/A',
-                          mp.count || 0,
-                          mp.annualSalary ? mp.annualSalary.toLocaleString('en-IN') : 'N/A',
-                          mp.totalCost ? mp.totalCost.toFixed(2) : 'N/A',
-                        ]),
-                        'Manpower requirement & estimation of cost',
-                        '6'
+                      const rows = manpower.map((mp: any, idx: number) => [
+                        mp.category || '',
+                        mp.count || 0,
+                        mp.annualSalary || 0,
+                        (mp.count || 0) * (mp.annualSalary || 0) / 100000, // Calculated: Total Cost
+                      ]);
+                      
+                      const editableCells = rows.map(() => [false, true, true, false]); // Category not editable, count and salary editable, total calculated
+                      const calculatedCells = rows.map((_, idx) => ({
+                        row: idx,
+                        col: 3,
+                        formula: (data: any[][]) => {
+                          const count = parseFloat(data[idx]?.[1] || 0);
+                          const salary = parseFloat(data[idx]?.[2] || 0);
+                          return (count * salary) / 100000; // Convert to lakhs
+                        }
+                      }));
+                      
+                      return (
+                        <EditableFinancialTable
+                          headers={['Category', 'No. of Employees', 'Annual Salary (₹)', 'Total Cost (₹ Lakhs)']}
+                          rows={rows}
+                          title="Manpower requirement & estimation of cost"
+                          statementNumber="6"
+                          editableCells={editableCells}
+                          calculatedCells={calculatedCells}
+                          onCellChange={(rowIndex, colIndex, value) => {
+                            const newFinancialStatements = { ...financialStatements };
+                            if (!newFinancialStatements.manpower) {
+                              newFinancialStatements.manpower = [];
+                            }
+                            
+                            if (!newFinancialStatements.manpower[rowIndex]) {
+                              newFinancialStatements.manpower[rowIndex] = { ...manpower[rowIndex] };
+                            }
+                            
+                            if (colIndex === 1) {
+                              newFinancialStatements.manpower[rowIndex].count = value;
+                            } else if (colIndex === 2) {
+                              newFinancialStatements.manpower[rowIndex].annualSalary = value;
+                            }
+                            
+                            const currentStep15 = clusterData.step15 || {};
+                            setStepData(15, {
+                              ...currentStep15,
+                              financialStatements: newFinancialStatements,
+                            });
+                            
+                            if (onDataChange) {
+                              onDataChange('financialStatements', newFinancialStatements);
+                            }
+                          }}
+                        />
                       );
                     }
                     return <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>;
@@ -3360,33 +3683,113 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 7: Estimation of Depreciation</h3>
                   {(() => {
                     const dep = financialStatements.depreciation || s14.depreciationDetails || [];
+                    let rows: any[][] = [];
+                    let editableCells: boolean[][] = [];
+                    let calculatedCells: any[] = [];
+                    
                     if (Array.isArray(dep) && dep.length > 0) {
-                      return renderTable(
-                        ['Asset', 'Cost (₹ Lakhs)', 'Depreciation Rate (%)', 'Annual Depreciation (₹ Lakhs)'],
-                        dep.map((d: any) => [
-                          d.asset || 'N/A',
-                          d.cost ? d.cost.toFixed(2) : 'N/A',
-                          d.rate ? `${d.rate}%` : 'N/A',
-                          d.annualDepreciation ? d.annualDepreciation.toFixed(2) : 'N/A',
-                        ]),
-                        'Estimation of Depreciation',
-                        '7'
-                      );
+                      rows = dep.map((d: any, idx: number) => [
+                        d.asset || '',
+                        d.cost || 0,
+                        d.rate || 0,
+                        (d.cost || 0) * (d.rate || 0) / 100, // Calculated
+                      ]);
+                      editableCells = dep.map(() => [false, true, true, false]);
+                      calculatedCells = dep.map((_, idx) => ({
+                        row: idx,
+                        col: 3,
+                        formula: (data: any[][]) => {
+                          const cost = parseFloat(data[idx]?.[1] || 0);
+                          const rate = parseFloat(data[idx]?.[2] || 0);
+                          return (cost * rate) / 100;
+                        }
+                      }));
                     } else if (s12.building || s12.machinery) {
                       const buildingCost = s12.building || 0;
                       const machineryCost = s12.machinery || 0;
                       const buildingDepRate = s14.buildingDepreciationRate || 10;
                       const machineryDepRate = s14.machineryDepreciationRate || 15;
-                      return renderTable(
-                        ['Asset', 'Cost (₹ Lakhs)', 'Depreciation Rate (%)', 'Annual Depreciation (₹ Lakhs)'],
-                        [
-                          buildingCost > 0 ? ['Building', buildingCost.toFixed(2), `${buildingDepRate}%`, ((buildingCost * buildingDepRate / 100)).toFixed(2)] : null,
-                          machineryCost > 0 ? ['Machinery', machineryCost.toFixed(2), `${machineryDepRate}%`, ((machineryCost * machineryDepRate / 100)).toFixed(2)] : null,
-                          ['Total', (buildingCost + machineryCost).toFixed(2), 'N/A',
-                            (((buildingCost * buildingDepRate / 100) + (machineryCost * machineryDepRate / 100))).toFixed(2)],
-                        ].filter(row => row !== null) as any[][],
-                        'Estimation of Depreciation',
-                        '7'
+                      
+                      if (buildingCost > 0) {
+                        rows.push(['Building', buildingCost, buildingDepRate, (buildingCost * buildingDepRate / 100)]);
+                        editableCells.push([false, true, true, false]);
+                        calculatedCells.push({
+                          row: rows.length - 1,
+                          col: 3,
+                          formula: (data: any[][]) => {
+                            const cost = parseFloat(data[rows.length - 1]?.[1] || 0);
+                            const rate = parseFloat(data[rows.length - 1]?.[2] || 0);
+                            return (cost * rate) / 100;
+                          }
+                        });
+                      }
+                      if (machineryCost > 0) {
+                        rows.push(['Machinery', machineryCost, machineryDepRate, (machineryCost * machineryDepRate / 100)]);
+                        editableCells.push([false, true, true, false]);
+                        calculatedCells.push({
+                          row: rows.length - 1,
+                          col: 3,
+                          formula: (data: any[][]) => {
+                            const cost = parseFloat(data[rows.length - 1]?.[1] || 0);
+                            const rate = parseFloat(data[rows.length - 1]?.[2] || 0);
+                            return (cost * rate) / 100;
+                          }
+                        });
+                      }
+                      // Total row
+                      const totalCost = buildingCost + machineryCost;
+                      const totalDep = (buildingCost * buildingDepRate / 100) + (machineryCost * machineryDepRate / 100);
+                      rows.push(['Total', totalCost, 0, totalDep]);
+                      editableCells.push([false, false, false, false]);
+                      calculatedCells.push({
+                        row: rows.length - 1,
+                        col: 3,
+                        formula: (data: any[][]) => {
+                          let sum = 0;
+                          for (let i = 0; i < rows.length - 1; i++) {
+                            sum += parseFloat(data[i]?.[3] || 0);
+                          }
+                          return sum;
+                        }
+                      });
+                    }
+                    
+                    if (rows.length > 0) {
+                      return (
+                        <EditableFinancialTable
+                          headers={['Asset', 'Cost (₹ Lakhs)', 'Depreciation Rate (%)', 'Annual Depreciation (₹ Lakhs)']}
+                          rows={rows}
+                          title="Estimation of Depreciation"
+                          statementNumber="7"
+                          editableCells={editableCells}
+                          calculatedCells={calculatedCells}
+                          onCellChange={(rowIndex, colIndex, value) => {
+                            const newFinancialStatements = { ...financialStatements };
+                            if (!newFinancialStatements.depreciation) {
+                              newFinancialStatements.depreciation = [];
+                            }
+                            
+                            if (!newFinancialStatements.depreciation[rowIndex]) {
+                              newFinancialStatements.depreciation[rowIndex] = { ...(dep[rowIndex] || {}) };
+                            }
+                            
+                            if (colIndex === 1) {
+                              newFinancialStatements.depreciation[rowIndex].cost = value;
+                            } else if (colIndex === 2) {
+                              newFinancialStatements.depreciation[rowIndex].rate = value;
+                            }
+                            
+                            const currentStep15 = clusterData.step15 || {};
+                            setStepData(15, {
+                              ...currentStep15,
+                              financialStatements: newFinancialStatements,
+                            });
+                            
+                            if (onDataChange) {
+                              onDataChange('financialStatements', newFinancialStatements);
+                            }
+                          }}
+                        />
                       );
                     }
                     return <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>;
@@ -3401,28 +3804,84 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   {(() => {
                     const it = financialStatements.incomeTax || {};
                     const rows: any[][] = [];
+                    const calculatedCells: any[] = [];
+                    
                     for (let year = 1; year <= 5; year++) {
                       const yearData = it[`year${year}`] || {};
-                      if (yearData.profitBeforeTax || (s15.profitAndLossProjections && s15.profitAndLossProjections[year - 1])) {
-                        const profitBeforeTax = yearData.profitBeforeTax || (s15.profitAndLossProjections[year - 1]?.profit || 0);
-                        const taxRate = yearData.taxRate || (profitBeforeTax > 1000000 ? 30 : profitBeforeTax > 500000 ? 25 : 20);
-                        const taxAmount = yearData.taxAmount || ((profitBeforeTax * taxRate) / 100);
-                        const profitAfterTax = yearData.profitAfterTax || (profitBeforeTax - taxAmount);
-                        rows.push([
-                          `Year ${year}`,
-                          profitBeforeTax.toFixed(2),
-                          `${taxRate}%`,
-                          taxAmount.toFixed(2),
-                          profitAfterTax.toFixed(2),
-                        ]);
-                      }
+                      const profitBeforeTax = yearData.profitBeforeTax || (s15.profitAndLossProjections?.[year - 1]?.profit || 0);
+                      const taxRate = yearData.taxRate || (profitBeforeTax > 1000000 ? 30 : profitBeforeTax > 500000 ? 25 : 20);
+                      const taxAmount = (profitBeforeTax * taxRate) / 100;
+                      const profitAfterTax = profitBeforeTax - taxAmount;
+                      
+                      rows.push([
+                        `Year ${year}`,
+                        profitBeforeTax,
+                        taxRate,
+                        taxAmount, // Calculated
+                        profitAfterTax, // Calculated
+                      ]);
+                      
+                      const rowIdx = rows.length - 1;
+                      calculatedCells.push(
+                        {
+                          row: rowIdx,
+                          col: 3,
+                          formula: (data: any[][]) => {
+                            const pbt = parseFloat(data[rowIdx]?.[1] || 0);
+                            const rate = parseFloat(data[rowIdx]?.[2] || 0);
+                            return (pbt * rate) / 100;
+                          }
+                        },
+                        {
+                          row: rowIdx,
+                          col: 4,
+                          formula: (data: any[][]) => {
+                            const pbt = parseFloat(data[rowIdx]?.[1] || 0);
+                            const tax = parseFloat(data[rowIdx]?.[3] || 0);
+                            return pbt - tax;
+                          }
+                        }
+                      );
                     }
+                    
                     if (rows.length > 0) {
-                      return renderTable(
-                        ['Year', 'Profit Before Tax (₹ Lakhs)', 'Tax Rate (%)', 'Tax Amount (₹ Lakhs)', 'Profit After Tax (₹ Lakhs)'],
-                        rows,
-                        'Calculation of Income Tax',
-                        '8'
+                      return (
+                        <EditableFinancialTable
+                          headers={['Year', 'Profit Before Tax (₹ Lakhs)', 'Tax Rate (%)', 'Tax Amount (₹ Lakhs)', 'Profit After Tax (₹ Lakhs)']}
+                          rows={rows}
+                          title="Calculation of Income Tax"
+                          statementNumber="8"
+                          editableCells={rows.map(() => [false, true, true, false, false])}
+                          calculatedCells={calculatedCells}
+                          onCellChange={(rowIndex, colIndex, value) => {
+                            const newFinancialStatements = { ...financialStatements };
+                            if (!newFinancialStatements.incomeTax) {
+                              newFinancialStatements.incomeTax = {};
+                            }
+                            
+                            const year = rowIndex + 1;
+                            const yearKey = `year${year}`;
+                            if (!newFinancialStatements.incomeTax[yearKey]) {
+                              newFinancialStatements.incomeTax[yearKey] = {};
+                            }
+                            
+                            if (colIndex === 1) {
+                              newFinancialStatements.incomeTax[yearKey].profitBeforeTax = value;
+                            } else if (colIndex === 2) {
+                              newFinancialStatements.incomeTax[yearKey].taxRate = value;
+                            }
+                            
+                            const currentStep15 = clusterData.step15 || {};
+                            setStepData(15, {
+                              ...currentStep15,
+                              financialStatements: newFinancialStatements,
+                            });
+                            
+                            if (onDataChange) {
+                              onDataChange('financialStatements', newFinancialStatements);
+                            }
+                          }}
+                        />
                       );
                     }
                     return null;
@@ -3431,9 +3890,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               )}
 
               {/* Statement 9: Projected Cash Flow Statement - Matching PDF format */}
+              {/* Note: This statement is calculated from other statements. Edit values in Statements 1-8 to update this. */}
               {(financialStatements.cashFlow || s15.cashFlowProjections) && (
                 <div className="my-6">
                   <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 9: Projected Cash Flow Statement</h3>
+                  <p className="text-xs text-gray-500 mb-2 italic">Note: This statement is automatically calculated from other financial statements.</p>
                   {(() => {
                     const cf = financialStatements.cashFlow || {};
                     const totalProjectCost = (s12.land || 0) + (s12.building || 0) + (s12.machinery || 0) +
@@ -3547,9 +4008,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               )}
 
               {/* Statement 10: Projected Balance Sheet - Matching PDF format */}
+              {/* Note: This statement is calculated from other statements. Edit values in Statements 1-8 to update this. */}
               {(financialStatements.balanceSheet || s15.balanceSheetProjections) && (
                 <div className="my-6">
                   <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 10: Projected Balance Sheet</h3>
+                  <p className="text-xs text-gray-500 mb-2 italic">Note: This statement is automatically calculated from other financial statements.</p>
                   {(() => {
                     const bs = financialStatements.balanceSheet || {};
                     const spvShare = financialStatements.spvShare || s13.spvContribution || 0;
@@ -3796,11 +4259,50 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                     }
                     rows.push(bepRow);
                     
-                    return renderTable(
-                      ['Years', '1', '2', '3', '4', '5'],
-                      rows,
-                      'ESTIMATION OF BREAK-EVEN POINT',
-                      '11'
+                    // Make key fields editable - Sales Realisation row
+                    const editableCells: boolean[][] = rows.map((row, idx) => {
+                      if (row[0] === 'Sales Realisation') {
+                        return [false, false, true, true, true, true, true]; // Editable for years 1-5
+                      }
+                      return [false, false, false, false, false, false, false]; // Other rows not editable
+                    });
+                    
+                    return (
+                      <EditableFinancialTable
+                        headers={['Years', '', '1', '2', '3', '4', '5']}
+                        rows={rows}
+                        title="ESTIMATION OF BREAK-EVEN POINT"
+                        statementNumber="11"
+                        editableCells={editableCells}
+                        onCellChange={(rowIndex, colIndex, value) => {
+                          // Find Sales Realisation row and update costOfProduction
+                          if (rows[rowIndex][0] === 'Sales Realisation') {
+                            const newFinancialStatements = { ...financialStatements };
+                            if (!newFinancialStatements.costOfProduction) {
+                              newFinancialStatements.costOfProduction = {};
+                            }
+                            
+                            const year = colIndex - 1; // colIndex 2 = Year 1
+                            if (year >= 1 && year <= 5) {
+                              const yearKey = `year${year}`;
+                              if (!newFinancialStatements.costOfProduction[yearKey]) {
+                                newFinancialStatements.costOfProduction[yearKey] = {};
+                              }
+                              newFinancialStatements.costOfProduction[yearKey].salesRealization = value;
+                              
+                              const currentStep15 = clusterData.step15 || {};
+                              setStepData(15, {
+                                ...currentStep15,
+                                financialStatements: newFinancialStatements,
+                              });
+                              
+                              if (onDataChange) {
+                                onDataChange('financialStatements', newFinancialStatements);
+                              }
+                            }
+                          }
+                        }}
+                      />
                     );
                   })()}
                 </div>
@@ -3876,15 +4378,56 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                     rows.push(['', '', '', '', '', '', '', '']);
                     
                     // NPV and IRR
-                    rows.push(['Net Present Value', npvIrr.npv ? `Rs.${npvIrr.npv.toFixed(2)} lakhs` : (s15.npv ? `Rs.${s15.npv.toFixed(2)} lakhs` : 'N/A'), '', '', '', '', '', '']);
-                    rows.push(['at 8% discount rate', '', '', '', '', '', '', '']);
-                    rows.push(['Internal Rate of Return', npvIrr.irr ? `${npvIrr.irr.toFixed(2)}%` : (s15.irr ? `${s15.irr.toFixed(2)}%` : 'N/A'), '', '', '', '', '', '']);
+                    const npv = npvIrr.npv || s15.npv || 0;
+                    const irr = npvIrr.irr || s15.irr || 0;
+                    const discountRate = npvIrr.discountRate || 8;
                     
-                    return renderTable(
-                      ['Years', 'PR. PERIOD', '1', '2', '3', '4', '5', '6'],
-                      rows,
-                      'ESTIMATION OF NET PRESENT VALUE AND INTERNAL RATE OF RETURN',
-                      '12'
+                    rows.push(['Net Present Value', npv, '', '', '', '', '', '']);
+                    rows.push(['at discount rate (%)', discountRate, '', '', '', '', '', '']);
+                    rows.push(['Internal Rate of Return', irr, '', '', '', '', '', '']);
+                    
+                    return (
+                      <EditableFinancialTable
+                        headers={['Years', 'PR. PERIOD', '1', '2', '3', '4', '5', '6']}
+                        rows={rows}
+                        title="ESTIMATION OF NET PRESENT VALUE AND INTERNAL RATE OF RETURN"
+                        statementNumber="12"
+                        editableCells={rows.map((row, idx) => {
+                          if (row[0] === 'Net Present Value') {
+                            return [false, true, false, false, false, false, false, false];
+                          } else if (row[0] === 'at discount rate (%)') {
+                            return [false, true, false, false, false, false, false, false];
+                          } else if (row[0] === 'Internal Rate of Return') {
+                            return [false, true, false, false, false, false, false, false];
+                          }
+                          return [false, false, false, false, false, false, false, false];
+                        })}
+                        onCellChange={(rowIndex, colIndex, value) => {
+                          const newFinancialStatements = { ...financialStatements };
+                          if (!newFinancialStatements.npvIrr) {
+                            newFinancialStatements.npvIrr = {};
+                          }
+                          
+                          const rowLabel = rows[rowIndex][0];
+                          if (rowLabel === 'Net Present Value' && colIndex === 1) {
+                            newFinancialStatements.npvIrr.npv = value;
+                          } else if (rowLabel === 'at discount rate (%)' && colIndex === 1) {
+                            newFinancialStatements.npvIrr.discountRate = value;
+                          } else if (rowLabel === 'Internal Rate of Return' && colIndex === 1) {
+                            newFinancialStatements.npvIrr.irr = value;
+                          }
+                          
+                          const currentStep15 = clusterData.step15 || {};
+                          setStepData(15, {
+                            ...currentStep15,
+                            financialStatements: newFinancialStatements,
+                          });
+                          
+                          if (onDataChange) {
+                            onDataChange('financialStatements', newFinancialStatements);
+                          }
+                        }}
+                      />
                     );
                   })()}
                 </div>

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Plus, Trash2, Sparkles } from 'lucide-react';
@@ -14,6 +14,8 @@ interface FinancialStatementsProps {
 
 export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, onChange, projectData }) => {
   const [generating, setGenerating] = useState<string | null>(null);
+  
+  const financialStatements = data || {};
 
   // Helper to handle nested field changes
   const handleNestedChange = (path: string[], value: any) => {
@@ -52,8 +54,6 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
       setGenerating(null);
     }
   };
-
-  const financialStatements = data || {};
 
   return (
     <div className="space-y-8">

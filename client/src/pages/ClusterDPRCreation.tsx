@@ -15,7 +15,7 @@ export const ClusterDPRCreation: React.FC = () => {
   const navigate = useNavigate();
   const params = useParams();
   const [searchParams] = useSearchParams();
-  const { data, setCurrentStep, setGeneratedDPR, resetData, setDprIds, loadDataFromProject } = useClusterDPRStore();
+  const { data, setCurrentStep, setGeneratedDPR, resetData, setDprIds, loadDataFromProject, setStepData } = useClusterDPRStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewMode, setPreviewMode] = useState<'split' | 'form' | 'preview'>('split');
   const [viewLanguage, setViewLanguage] = useState<'english' | 'telugu'>('english');
@@ -315,7 +315,7 @@ export const ClusterDPRCreation: React.FC = () => {
     // Auto-save draft to database every 20 seconds (debounced to prevent too many API calls)
     const databaseInterval = setInterval(() => {
       saveToDatabase();
-    }, 20000);
+    }, 30000);
 
     return () => {
       clearInterval(databaseInterval);
@@ -876,6 +876,16 @@ export const ClusterDPRCreation: React.FC = () => {
                           onSectionClick={(stepNumber: number) => {
                             setCurrentStep(stepNumber);
                             document.getElementById('cluster-dpr-form')?.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                          onDataChange={(field, value) => {
+                            // Update store when financial data changes
+                            if (field === 'financialStatements') {
+                              const currentStep15 = data.step15 || {};
+                              setStepData(15, {
+                                ...currentStep15,
+                                financialStatements: value,
+                              });
+                            }
                           }}
                         />
                       </div>
