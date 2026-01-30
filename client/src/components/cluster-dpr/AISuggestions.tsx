@@ -166,6 +166,64 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
     return parsedContent;
   };
 
+  // Function to extract value directly from suggestion text (fast path)
+  const extractValueFromSuggestion = (field: string, suggestionText: string): any => {
+    if (!suggestionText) return null;
+
+    // Try to find JSON objects/arrays in the suggestion text
+    try {
+      // Look for JSON objects like {"micro": 10, "small": 5}
+      const jsonObjectMatch = suggestionText.match(/\{[^{}]*\}/);
+      if (jsonObjectMatch) {
+        const parsed = JSON.parse(jsonObjectMatch[0]);
+        // Validate the structure matches expected format
+        if (field === 'enterpriseCount' && parsed.micro !== undefined && parsed.small !== undefined && parsed.medium !== undefined) {
+          return parsed;
+        }
+        if (field === 'ageOfEnterprises' && parsed.lessThan5 !== undefined && parsed.between5And10 !== undefined && parsed.moreThan10 !== undefined) {
+          return parsed;
+        }
+        if (field === 'employmentPerUnit' && parsed.lessThan5 !== undefined && parsed.between5And10 !== undefined && parsed.moreThan10 !== undefined) {
+          return parsed;
+        }
+        if (field === 'marketServed' && parsed.domestic !== undefined && parsed.export !== undefined) {
+          return parsed;
+        }
+        // For other object fields, return if it's a valid object
+        if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+
+      // Look for JSON arrays like ["item1", "item2"]
+      const jsonArrayMatch = suggestionText.match(/\[[^\]]*\]/);
+      if (jsonArrayMatch) {
+        const parsed = JSON.parse(jsonArrayMatch[0]);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+
+      // Try to extract numbers (for number fields)
+      if (field === 'investmentPerUnit' || field === 'turnoverPerUnit') {
+        // Look for numbers in the text (could be in lakhs or rupees)
+        const numberMatch = suggestionText.match(/(\d+(?:\.\d+)?)\s*(?:lakh|lakhs|₹|rupees?)?/i);
+        if (numberMatch) {
+          let num = parseFloat(numberMatch[1]);
+          // If it says "lakhs", multiply by 100000, otherwise assume it's already in the right unit
+          if (suggestionText.toLowerCase().includes('lakh')) {
+            num = num * 100000;
+          }
+          return num;
+        }
+      }
+    } catch (e) {
+      // If parsing fails, return null to fall back to API call
+    }
+
+    return null;
+  };
+
   // Function to apply a suggestion to a field
   const handleApplySuggestion = async (suggestion: AISuggestion) => {
     if (!suggestion.field) {
@@ -176,39 +234,50 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
     setApplyingFields(prev => new Set(prev).add(suggestion.field));
 
     try {
-      // Generate actual content for the field
-      const content = await AISuggestionsService.generateFieldContent(
-        suggestion.field,
-        currentStep,
-        currentStepData,
-        previousStepsData,
-        suggestion.suggestion
-      );
+      // First, try to extract value directly from suggestion (fast path)
+      const suggestionText = typeof suggestion.suggestion === 'string' 
+        ? suggestion.suggestion 
+        : JSON.stringify(suggestion.suggestion);
+      
+      let parsedContent = extractValueFromSuggestion(suggestion.field, suggestionText);
 
-      if (content) {
-        const parsedContent = parseAndTransformFieldContent(suggestion.field, content);
-        if (parsedContent === null) {
-          toast.error(`Generated content is empty for ${suggestion.field}. Please try again.`);
-          return;
+      // If we couldn't extract directly, fall back to API call
+      if (parsedContent === null) {
+        const content = await AISuggestionsService.generateFieldContent(
+          suggestion.field,
+          currentStep,
+          currentStepData,
+          previousStepsData,
+          suggestion.suggestion
+        );
+
+        if (content) {
+          parsedContent = parseAndTransformFieldContent(suggestion.field, content);
         }
-
-        // Update the form data
-        const updatedStepData = {
-          ...currentStepData,
-          [suggestion.field]: parsedContent,
-        };
-        setStepData(currentStep, updatedStepData);
-        console.log(`Updated step ${currentStep} data for field ${suggestion.field}:`, parsedContent);
-
-        // Call the optional callback
-        if (onApplySuggestion) {
-          onApplySuggestion(suggestion.field, parsedContent);
-        }
-
-        toast.success(`Applied AI suggestion to ${suggestion.field}`);
       } else {
-        toast.error('Failed to generate content for this field');
+        // Transform the extracted content if needed
+        parsedContent = parseAndTransformFieldContent(suggestion.field, JSON.stringify(parsedContent));
       }
+
+      if (parsedContent === null) {
+        toast.error(`Could not extract value for ${suggestion.field}. Please try again.`);
+        return;
+      }
+
+      // Update the form data
+      const updatedStepData = {
+        ...currentStepData,
+        [suggestion.field]: parsedContent,
+      };
+      setStepData(currentStep, updatedStepData);
+      console.log(`✅ Applied suggestion to ${suggestion.field}:`, parsedContent);
+
+      // Call the optional callback
+      if (onApplySuggestion) {
+        onApplySuggestion(suggestion.field, parsedContent);
+      }
+
+      toast.success(`Applied AI suggestion to ${suggestion.field}`);
     } catch (error) {
       console.error('Error applying suggestion:', error);
       toast.error('Failed to apply suggestion');
@@ -238,22 +307,30 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
     try {
       let updatedStepData = { ...currentStepData };
       let appliedCount = 0;
+      const fieldsNeedingAPI: typeof validSuggestions = [];
 
-      // Sequential on purpose (keeps API load reasonable, easier to debug)
+      // First pass: Try to extract values directly (fast path)
       for (const suggestion of validSuggestions) {
         try {
-          const content = await AISuggestionsService.generateFieldContent(
-            suggestion.field,
-            currentStep,
-            updatedStepData,
-            previousStepsData,
-            suggestion.suggestion
-          );
+          const suggestionText = typeof suggestion.suggestion === 'string' 
+            ? suggestion.suggestion 
+            : JSON.stringify(suggestion.suggestion);
+          
+          let parsedContent = extractValueFromSuggestion(suggestion.field, suggestionText);
 
-          if (!content) continue;
+          if (parsedContent === null) {
+            // Mark for API call in second pass
+            fieldsNeedingAPI.push(suggestion);
+            continue;
+          }
 
-          const parsedContent = parseAndTransformFieldContent(suggestion.field, content);
-          if (parsedContent === null) continue;
+          // Transform the extracted content if needed
+          parsedContent = parseAndTransformFieldContent(suggestion.field, JSON.stringify(parsedContent));
+          
+          if (parsedContent === null) {
+            fieldsNeedingAPI.push(suggestion);
+            continue;
+          }
 
           updatedStepData = {
             ...updatedStepData,
@@ -266,8 +343,51 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
 
           appliedCount += 1;
         } catch (e) {
-          console.error(`Error applying suggestion for ${suggestion.field}:`, e);
-          // Continue applying others
+          console.error(`Error extracting value for ${suggestion.field}:`, e);
+          fieldsNeedingAPI.push(suggestion);
+        }
+      }
+
+      // Second pass: Generate content via API for fields that couldn't be extracted directly
+      if (fieldsNeedingAPI.length > 0) {
+        // Make API calls in parallel for better performance
+        const apiPromises = fieldsNeedingAPI.map(async (suggestion) => {
+          try {
+            const content = await AISuggestionsService.generateFieldContent(
+              suggestion.field,
+              currentStep,
+              updatedStepData,
+              previousStepsData,
+              suggestion.suggestion
+            );
+
+            if (!content) return null;
+
+            const parsedContent = parseAndTransformFieldContent(suggestion.field, content);
+            if (parsedContent === null) return null;
+
+            return { field: suggestion.field, content: parsedContent };
+          } catch (e) {
+            console.error(`Error applying suggestion for ${suggestion.field}:`, e);
+            return null;
+          }
+        });
+
+        const results = await Promise.all(apiPromises);
+        
+        for (const result of results) {
+          if (result) {
+            updatedStepData = {
+              ...updatedStepData,
+              [result.field]: result.content,
+            };
+
+            if (onApplySuggestion) {
+              onApplySuggestion(result.field, result.content);
+            }
+
+            appliedCount += 1;
+          }
         }
       }
 
