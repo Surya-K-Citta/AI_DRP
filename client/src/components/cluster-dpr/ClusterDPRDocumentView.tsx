@@ -1200,19 +1200,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             {/* Enhance Complete DPR Card */}
             <div className="flex-1 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border-2 border-blue-200 shadow-md hover:shadow-lg transition-shadow">
               <div className="flex flex-col h-full">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-2" style={{ color: '#1E40AF' }}>
-                      Enhance Complete DPR
-                    </h3>
-                    <p className="text-sm text-gray-700 leading-relaxed">
-                      Generate comprehensive paragraphs for all sections and conclusion
-                    </p>
-                  </div>
-                  <div className="ml-4">
-                    <Wand2 className="h-8 w-8 text-blue-600" />
-                  </div>
-                </div>
+                
                 <div className="mt-auto">
                   <Button
                     variant="primary"
@@ -1457,21 +1445,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               
             </div>
             {/* Generate All Images Card */}
-            <div className="flex-1 bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg p-6 border-2 border-green-200 shadow-md hover:shadow-lg transition-shadow">
-                <div className="flex flex-col h-full">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold mb-2" style={{ color: '#047857' }}>
-                        Generate All Images
-                      </h3>
-                      <p className="text-sm text-gray-700 leading-relaxed">
-                        Generate all images for cover page, cluster photos, value chain, and CFC diagrams
-                      </p>
-                    </div>
-                    <div className="ml-4">
-                      <Sparkles className="h-8 w-8 text-green-600" />
-                    </div>
-                  </div>
+            <div className="flex bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg p-6 border-2 border-green-200 shadow-md hover:shadow-lg transition-shadow">
                   <div className="mt-auto">
                     <Button
                       variant="secondary"
@@ -1606,7 +1580,6 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                     </Button>
                   </div>
                 </div>
-              </div>
           </div>
         </div>
       </div>
