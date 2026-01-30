@@ -336,36 +336,72 @@ export const useClusterDPRStore = create<ClusterDPRState>()((set, get) => ({
   },
   
   loadDataFromProject: (projectData: any, dprData?: any) => {
-    if (!projectData) return;
+    if (!projectData) {
+      console.warn('⚠️ No project data provided to loadDataFromProject');
+      return;
+    }
     
-    // Load stepData from project
+    // Load stepData from project - this is the source of truth for draft data
     const stepData = projectData.stepData || {};
     
-    // Load data from DPR if available (takes precedence)
+    // Load data from DPR if available (takes precedence only if DPR exists and has data)
     const dprClusterData = dprData?.content?.english?.clusterData || 
                           dprData?.content?.telugu?.clusterData ||
                           dprData?.metadata?.clusterData;
     
-    const clusterDataToLoad = dprClusterData || stepData;
+    // Use DPR data if it exists and has content, otherwise use project stepData
+    // This ensures we always load the most recent saved data from project.stepData when no DPR exists
+    const clusterDataToLoad = (dprClusterData && Object.keys(dprClusterData).length > 0) 
+      ? dprClusterData 
+      : stepData;
+    
+    // Debug: Log what we're about to load
+    console.log('📥 Preparing to load data:', {
+      hasStepData: !!stepData && Object.keys(stepData).length > 0,
+      hasDprClusterData: !!dprClusterData && Object.keys(dprClusterData).length > 0,
+      stepDataKeys: Object.keys(stepData),
+      clusterDataToLoadKeys: Object.keys(clusterDataToLoad),
+      step1InStepData: stepData.step1,
+      step1InClusterDataToLoad: clusterDataToLoad.step1,
+      usingSource: (dprClusterData && Object.keys(dprClusterData).length > 0) ? 'DPR' : 'Project.stepData',
+    });
+    
+    // Only proceed if we have data to load
+    if (!clusterDataToLoad || Object.keys(clusterDataToLoad).length === 0) {
+      console.warn('⚠️ No data to load - clusterDataToLoad is empty');
+      return;
+    }
     
     // Merge with existing data, preserving currentStep and other metadata
     const currentState = get();
+    
+    // Create a new object that properly preserves all nested structures
+    // Directly spread clusterDataToLoad to preserve all nested objects (step1, step2, etc.)
     const loadedData: ClusterDPRData = {
+      // Start with current state to preserve any unsaved changes
       ...currentState.data,
+      // Directly spread clusterDataToLoad - this preserves all nested objects like step1.enterpriseCount
       ...clusterDataToLoad,
-      // Preserve current step if user was on a specific step
+      // Override metadata fields to preserve current state or use loaded values
       currentStep: currentState.data.currentStep || clusterDataToLoad.currentStep || 1,
-      // Set IDs if available
       dprId: dprData?._id || dprData?.id || currentState.data.dprId,
       projectId: projectData._id || projectData.id || currentState.data.projectId,
       lastSaved: new Date(),
     };
     
     set({ data: loadedData });
-    console.log('📥 Loaded cluster DPR data from database:', {
+    console.log('✅ Loaded cluster DPR data from database:', {
       projectId: loadedData.projectId,
       dprId: loadedData.dprId,
       stepsLoaded: Object.keys(clusterDataToLoad).filter(k => k.startsWith('step')).length,
+      step1Keys: loadedData.step1 ? Object.keys(loadedData.step1) : [],
+      step1EnterpriseCount: loadedData.step1?.enterpriseCount,
+      step1AgeOfEnterprises: loadedData.step1?.ageOfEnterprises,
+      step1EmploymentPerUnit: loadedData.step1?.employmentPerUnit,
+      step1InvestmentPerUnit: loadedData.step1?.investmentPerUnit,
+      step1TurnoverPerUnit: loadedData.step1?.turnoverPerUnit,
+      step1MarketServed: loadedData.step1?.marketServed,
+      fullStep1Data: loadedData.step1,
     });
   },
 }));

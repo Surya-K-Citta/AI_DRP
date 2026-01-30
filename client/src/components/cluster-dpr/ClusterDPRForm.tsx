@@ -23,7 +23,10 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   onPrevious,
 }) => {
   const { data, setStepData, getStepData } = useClusterDPRStore();
-  const stepData = getStepData(currentStep) || {};
+  // Read step data directly from store to ensure reactivity
+  // This will trigger re-renders when data is loaded from database
+  const stepDataKey = `step${currentStep}` as keyof typeof data;
+  const stepData = (data[stepDataKey] as any) || {};
 
   // State for Step 18 file uploads (must be at top level due to React hooks rules)
   const [uploadingFiles, setUploadingFiles] = React.useState<Record<string, boolean>>({});
@@ -34,6 +37,15 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
       stepData,
       hasData: Object.keys(stepData).length > 0,
       keys: Object.keys(stepData),
+      // For step 1, log all nested fields to debug
+      ...(currentStep === 1 ? {
+        enterpriseCount: stepData.enterpriseCount,
+        ageOfEnterprises: stepData.ageOfEnterprises,
+        employmentPerUnit: stepData.employmentPerUnit,
+        investmentPerUnit: stepData.investmentPerUnit,
+        turnoverPerUnit: stepData.turnoverPerUnit,
+        marketServed: stepData.marketServed,
+      } : {}),
     });
   }, [currentStep, stepData, data]);
 
@@ -78,8 +90,10 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   };
 
   const handleInputChange = (field: string, value: any) => {
+    // Get the latest stepData from store to avoid stale data
+    const latestStepData = getStepData(currentStep) || {};
     setStepData(currentStep, {
-      ...stepData,
+      ...latestStepData,
       [field]: value,
     });
   };

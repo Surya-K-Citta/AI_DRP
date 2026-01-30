@@ -18,7 +18,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
   onApplySuggestion,
   excludeFields = [],
 }) => {
-  const { data, setStepData } = useClusterDPRStore();
+  const { data, setStepData, getStepData } = useClusterDPRStore();
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
@@ -315,17 +315,20 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
         }
       }
 
+      // Get the latest stepData from store to avoid stale data
+      const latestStepData = getStepData(currentStep) || {};
+      
       // Update the form data
       const updatedStepData = {
-        ...currentStepData,
+        ...latestStepData,
         [suggestion.field]: finalContent,
       };
       setStepData(currentStep, updatedStepData);
       console.log(`✅ Applied suggestion to ${suggestion.field}:`, finalContent);
 
-      // Call the optional callback
+      // Call the optional callback (but data is already saved to store above)
       if (onApplySuggestion) {
-        onApplySuggestion(suggestion.field, parsedContent);
+        onApplySuggestion(suggestion.field, finalContent);
       }
 
       toast.success(`Applied AI suggestion to ${suggestion.field}`);
@@ -356,7 +359,9 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
     setApplyingFields(new Set(validSuggestions.map((s) => s.field)));
 
     try {
-      let updatedStepData = { ...currentStepData };
+      // Get the latest stepData from store to avoid stale data
+      const latestStepData = getStepData(currentStep) || {};
+      let updatedStepData = { ...latestStepData };
       let appliedCount = 0;
       const fieldsNeedingAPI: typeof validSuggestions = [];
 

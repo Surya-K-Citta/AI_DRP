@@ -1964,6 +1964,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             ]
           )}
 
+          {console.log('s1.enterpriseCount', s1)}
+
           {/* Existing Cluster Scenario Table - Only show if data is available */}
           {(s1.enterpriseCount || s4.productionCapacity || s14.annualProductionVolume) && (
             <div className="my-6">
@@ -1971,7 +1973,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               {(() => {
                 // Build table rows dynamically from available data
                 const rows: any[][] = [];
-                const totalUnits = (s1.enterpriseCount?.micro || 0) + (s1.enterpriseCount?.small || 0) + (s1.enterpriseCount?.medium || 0);
+                const totalUnits = (s1.enterpriseCount?.micro) + (s1.enterpriseCount?.small || 0) + (s1.enterpriseCount?.medium || 0);
 
                 // Add rows based on enterprise categories if they exist
                 if (s1.enterpriseCount?.micro && s1.enterpriseCount.micro > 0) {

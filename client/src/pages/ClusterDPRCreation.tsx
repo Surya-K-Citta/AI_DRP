@@ -27,6 +27,150 @@ export const ClusterDPRCreation: React.FC = () => {
   const totalSteps = 18;
   const [isLoadingData, setIsLoadingData] = useState(true);
 
+  // Helper function to load a draft project
+  const loadDraftProject = async (projectId: string, dprId?: string) => {
+    try {
+      const projectResponse = await api.getProject(projectId);
+      const projectData = projectResponse.data || projectResponse;
+      
+      // Store the actual project object
+      setProject(projectData);
+      
+      // If we also have a dprId, load DPR data
+      let dprData = null;
+      if (dprId) {
+        try {
+          const dprResponse = await api.getClusterDPR(dprId);
+          dprData = dprResponse.data || dprResponse;
+        } catch (dprError) {
+          console.warn('Failed to load DPR, using project data only:', dprError);
+        }
+      } else {
+        // Try to find associated DPR
+        try {
+          const dprsResponse = await api.getUserDPRs();
+          const dprs = Array.isArray(dprsResponse) 
+            ? dprsResponse 
+            : dprsResponse?.data?.dprs || dprsResponse?.data || [];
+          
+          const associatedDPR = dprs.find((d: any) => 
+            (d.projectId?._id || d.projectId?.id || d.projectId) === projectId &&
+            (d.content?.english?.isClusterDPR || d.content?.telugu?.isClusterDPR)
+          );
+          
+          if (associatedDPR) {
+            try {
+              const dprResponse = await api.getClusterDPR(associatedDPR._id || associatedDPR.id);
+              dprData = dprResponse.data || dprResponse;
+            } catch (dprError) {
+              console.warn('Failed to load DPR, using project data only:', dprError);
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to fetch DPRs:', error);
+        }
+      }
+      
+      // Debug: Log what we're receiving from the API
+      console.log('📥 Project data received from API:', {
+        projectId: projectData._id || projectData.id,
+        hasStepData: !!projectData.stepData,
+        stepDataKeys: projectData.stepData ? Object.keys(projectData.stepData) : [],
+        stepDataType: typeof projectData.stepData,
+        step1Data: projectData.stepData?.step1,
+        step1EnterpriseCount: projectData.stepData?.step1?.enterpriseCount,
+        step1AgeOfEnterprises: projectData.stepData?.step1?.ageOfEnterprises,
+        step1EmploymentPerUnit: projectData.stepData?.step1?.employmentPerUnit,
+        step1InvestmentPerUnit: projectData.stepData?.step1?.investmentPerUnit,
+        step1TurnoverPerUnit: projectData.stepData?.step1?.turnoverPerUnit,
+        step1MarketServed: projectData.stepData?.step1?.marketServed,
+        hasDprData: !!dprData,
+        dprId: dprData?._id || dprData?.id,
+      });
+      
+      // Load data into store - always pass projectData, even if no DPR exists
+      // This ensures we load from project.stepData when DPR is not generated
+      loadDataFromProject(projectData, dprData || null);
+      
+      // Update IDs in store and URL
+      if (projectData._id || projectData.id) {
+        const pid = projectData._id || projectData.id;
+        const did = dprData?._id || dprData?.id || dprId;
+        if (did) {
+          setDprIds(did, pid);
+          // Update URL to include IDs for future loads
+          const newUrl = `/cluster-dpr/create?projectId=${pid}&dprId=${did}`;
+          window.history.replaceState({}, '', newUrl);
+        } else if (pid) {
+          setDprIds('', pid);
+          // Update URL to include projectId
+          const newUrl = `/cluster-dpr/create?projectId=${pid}`;
+          window.history.replaceState({}, '', newUrl);
+        }
+      }
+      
+      console.log('✅ Loaded existing draft from database');
+      return true;
+    } catch (error) {
+      console.error('Failed to load draft project:', error);
+      return false;
+    }
+  };
+
+  // Helper function to find most recent draft
+  const findMostRecentDraft = async () => {
+    try {
+      const projectsResponse = await api.getProjects({ limit: 100 });
+      const projects = projectsResponse?.data?.projects || projectsResponse?.data || projectsResponse || [];
+      
+      // Filter for cluster projects with stepData (draft data)
+      const clusterProjectsWithData = projects.filter((p: any) => {
+        const isCluster = p.projectType === 'cluster';
+        const hasStepData = p.stepData && Object.keys(p.stepData).length > 0;
+        return isCluster && hasStepData;
+      });
+      
+      if (clusterProjectsWithData.length === 0) {
+        return null;
+      }
+      
+      // Prioritize projects with status 'draft' first (or no status, which means draft)
+      // Projects without status or with status='draft' are considered drafts
+      const draftProjects = clusterProjectsWithData.filter((p: any) => 
+        !p.status || p.status === 'draft' || p.status === undefined || p.status === null
+      );
+      const nonDraftProjects = clusterProjectsWithData.filter((p: any) => 
+        p.status && p.status !== 'draft' && p.status !== undefined && p.status !== null
+      );
+      
+      // Sort function to get most recent
+      const sortByDate = (a: any, b: any) => {
+        const aDate = new Date(a.updatedAt || a.createdAt || 0);
+        const bDate = new Date(b.updatedAt || b.createdAt || 0);
+        return bDate.getTime() - aDate.getTime();
+      };
+      
+      // If we have draft projects, return the most recent one
+      if (draftProjects.length > 0) {
+        const mostRecentDraft = draftProjects.sort(sortByDate)[0];
+        console.log('📋 Found draft project with status="draft":', mostRecentDraft._id || mostRecentDraft.id);
+        return mostRecentDraft;
+      }
+      
+      // If no draft projects, return the most recent project with stepData (fallback)
+      if (nonDraftProjects.length > 0) {
+        const mostRecentNonDraft = nonDraftProjects.sort(sortByDate)[0];
+        console.log('📋 Found project with stepData (not draft status):', mostRecentNonDraft._id || mostRecentNonDraft.id);
+        return mostRecentNonDraft;
+      }
+      
+      return null;
+    } catch (error) {
+      console.warn('Failed to check for existing drafts:', error);
+      return null;
+    }
+  };
+
   // Load existing draft data from database when component mounts
   useEffect(() => {
     const loadExistingDraft = async () => {
@@ -42,8 +186,24 @@ export const ClusterDPRCreation: React.FC = () => {
         const projectId = projectIdFromUrl || data.projectId;
         const dprId = dprIdFromUrl || data.dprId;
         
-        // If user explicitly wants to create new, reset data and don't load anything
+        // If user explicitly wants to create new, check for existing draft first
         if (isNew) {
+          // Before resetting, check if user has an existing draft
+          const draftProject = await findMostRecentDraft();
+          
+          // If draft exists, load it instead of resetting
+          if (draftProject && (draftProject._id || draftProject.id)) {
+            const pid = draftProject._id || draftProject.id;
+            console.log('📋 Found existing draft, loading it instead of creating new:', pid);
+            
+            const loaded = await loadDraftProject(pid);
+            if (loaded) {
+              setIsLoadingData(false);
+              return;
+            }
+          }
+          
+          // No existing draft found, proceed with reset
           resetData();
           setDprIds('', ''); // Clear IDs
           setProject(null); // Clear project
@@ -54,47 +214,8 @@ export const ClusterDPRCreation: React.FC = () => {
         
         // If we have a projectId, load project data (which contains stepData)
         if (projectId) {
-          try {
-            const projectResponse = await api.getProject(projectId);
-            const projectData = projectResponse.data || projectResponse;
-            
-            // Store the actual project object
-            setProject(projectData);
-            
-            // If we also have a dprId, load DPR data
-            let dprData = null;
-            if (dprId) {
-              try {
-                const dprResponse = await api.getClusterDPR(dprId);
-                dprData = dprResponse.data || dprResponse;
-              } catch (dprError) {
-                console.warn('Failed to load DPR, using project data only:', dprError);
-              }
-            }
-            
-            // Load data into store
-            loadDataFromProject(projectData, dprData);
-            
-            // Update IDs in store and URL
-            if (projectData._id || projectData.id) {
-              const pid = projectData._id || projectData.id;
-              const did = dprData?._id || dprData?.id || dprId;
-              if (did) {
-                setDprIds(did, pid);
-                // Update URL to include IDs for future loads
-                const newUrl = `/cluster-dpr/create?projectId=${pid}&dprId=${did}`;
-                window.history.replaceState({}, '', newUrl);
-              } else if (pid) {
-                setDprIds('', pid);
-                // Update URL to include projectId
-                const newUrl = `/cluster-dpr/create?projectId=${pid}`;
-                window.history.replaceState({}, '', newUrl);
-              }
-            }
-            
-            console.log('✅ Loaded existing draft from database');
-          } catch (projectError) {
-            console.error('Failed to load project:', projectError);
+          const loaded = await loadDraftProject(projectId, dprId);
+          if (!loaded) {
             // If loading fails, reset to start fresh
             resetData();
             setDprIds('', '');
@@ -102,8 +223,21 @@ export const ClusterDPRCreation: React.FC = () => {
             console.log('🔄 Cleared data - starting fresh cluster creation');
           }
         } else {
-          // No projectId in URL or store - user is creating a new DPR
-          // Reset data to ensure clean state
+          // No projectId in URL or store - check for existing draft
+          const draftProject = await findMostRecentDraft();
+          
+          if (draftProject && (draftProject._id || draftProject.id)) {
+            const pid = draftProject._id || draftProject.id;
+            console.log('📋 Found existing draft, loading it:', pid);
+            
+            const loaded = await loadDraftProject(pid);
+            if (loaded) {
+              setIsLoadingData(false);
+              return;
+            }
+          }
+          
+          // No existing draft found, reset to start fresh
           resetData();
           setDprIds('', '');
           setProject(null);
@@ -146,8 +280,18 @@ export const ClusterDPRCreation: React.FC = () => {
     // Debounce: wait 500ms after last change before saving
     saveToDatabaseRef.current = setTimeout(async () => {
       try {
-        // Only save if we have at least step1 data
-        if (data.step1?.clusterName) {
+        // Save if we have any step data (not just step1.clusterName)
+        // Check if any step has data
+        const hasAnyData = Object.keys(data).some(key => {
+          if (key.startsWith('step')) {
+            const stepData = data[key as keyof typeof data];
+            return stepData && typeof stepData === 'object' && Object.keys(stepData).length > 0;
+          }
+          return false;
+        });
+        
+        if (hasAnyData || data.projectId) {
+          // Save if we have any step data OR if we already have a projectId (to update existing draft)
           const response = await api.saveClusterDPRDraft(data);
           if (response.success && response.data) {
             // Store the dprId and projectId from the response
@@ -171,21 +315,67 @@ export const ClusterDPRCreation: React.FC = () => {
     // Auto-save draft to database every 20 seconds (debounced to prevent too many API calls)
     const databaseInterval = setInterval(() => {
       saveToDatabase();
-    }, 30000);
+    }, 20000);
 
     return () => {
       clearInterval(databaseInterval);
+      // Clear any pending debounced save
       if (saveToDatabaseRef.current) {
         clearTimeout(saveToDatabaseRef.current);
       }
+      // Save data one final time when component unmounts (user navigates away)
+      // Use a synchronous save without debounce
+      const finalSave = async () => {
+        try {
+          const hasAnyData = Object.keys(data).some(key => {
+            if (key.startsWith('step')) {
+              const stepData = data[key as keyof typeof data];
+              return stepData && typeof stepData === 'object' && Object.keys(stepData).length > 0;
+            }
+            return false;
+          });
+          
+          if (hasAnyData || data.projectId) {
+            await api.saveClusterDPRDraft(data);
+            console.log('💾 Final save on component unmount');
+          }
+        } catch (error) {
+          console.error('Error in final save on unmount:', error);
+        }
+      };
+      finalSave();
     };
-  }, [saveToDatabase]);
+  }, [saveToDatabase, data]);
+
+  // Trigger save when data changes (including when AI suggestions are applied)
+  useEffect(() => {
+    // Only trigger save if we have step data and we're not currently loading initial data
+    if (!isLoadingData) {
+      // Debounce the save to avoid too many API calls
+      const timeoutId = setTimeout(() => {
+        saveToDatabase();
+      }, 2000); // Wait 2 seconds after data change before saving
+
+      return () => {
+        clearTimeout(timeoutId);
+      };
+    }
+  }, [data, isLoadingData, saveToDatabase]);
 
   const handleNext = async () => {
     if (currentStep < totalSteps) {
       // Save to database before moving to next step
       try {
-        if (data.step1?.clusterName) {
+        // Check if we have any step data to save
+        const hasAnyData = Object.keys(data).some(key => {
+          if (key.startsWith('step')) {
+            const stepData = data[key as keyof typeof data];
+            return stepData && typeof stepData === 'object' && Object.keys(stepData).length > 0;
+          }
+          return false;
+        });
+        
+        if (hasAnyData || data.projectId) {
           const response = await api.saveClusterDPRDraft(data);
           if (response.success && response.data) {
             // Store the dprId and projectId from the response
@@ -209,8 +399,37 @@ export const ClusterDPRCreation: React.FC = () => {
     }
   };
 
-  const handlePrevious = () => {
+  const handlePrevious = async () => {
     if (currentStep > 1) {
+      // Save to database before moving to previous step (to ensure data is persisted)
+      try {
+        // Check if we have any step data to save
+        const hasAnyData = Object.keys(data).some(key => {
+          if (key.startsWith('step')) {
+            const stepData = data[key as keyof typeof data];
+            return stepData && typeof stepData === 'object' && Object.keys(stepData).length > 0;
+          }
+          return false;
+        });
+        
+        if (hasAnyData || data.projectId) {
+          const response = await api.saveClusterDPRDraft(data);
+          if (response.success && response.data) {
+            // Store the dprId and projectId from the response
+            if (response.data.dprId && response.data.projectId) {
+              setDprIds(response.data.dprId, response.data.projectId);
+              // Update URL to include IDs for future loads
+              const newUrl = `/cluster-dpr/create?projectId=${response.data.projectId}&dprId=${response.data.dprId}`;
+              window.history.replaceState({}, '', newUrl);
+            }
+            console.log('💾 Saved cluster DPR draft before moving to previous step');
+          }
+        }
+      } catch (error) {
+        console.error('Error saving draft before previous step:', error);
+        // Continue to previous step even if save fails
+      }
+      
       setCurrentStep(currentStep - 1);
       // Scroll to top of form
       document.getElementById('cluster-dpr-form')?.scrollIntoView({ behavior: 'smooth' });
@@ -519,6 +738,7 @@ export const ClusterDPRCreation: React.FC = () => {
                     </CardHeader>
                     <CardContent>
                       <ClusterDPRForm 
+                        key={`step-${currentStep}-${data.projectId || 'new'}-${isLoadingData ? 'loading' : 'loaded'}-${data.step1 ? JSON.stringify(data.step1).substring(0, 50) : ''}`}
                         currentStep={currentStep}
                         onNext={handleNext}
                         onPrevious={handlePrevious}
