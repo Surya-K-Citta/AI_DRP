@@ -30,7 +30,7 @@ export class OfflineDetector {
 
     // Check connectivity immediately and periodically
     this.checkConnectivity();
-    setInterval(() => this.checkConnectivity(), 10000); // Check every 10 seconds
+    setInterval(() => this.checkConnectivity(), 30000); // Check every 10 seconds
   }
 
   static async checkConnectivity(): Promise<boolean> {

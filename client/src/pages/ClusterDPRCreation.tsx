@@ -168,10 +168,10 @@ export const ClusterDPRCreation: React.FC = () => {
   }, [data, setDprIds]);
 
   useEffect(() => {
-    // Auto-save draft to database every 2.5 seconds (debounced to prevent too many API calls)
+    // Auto-save draft to database every 20 seconds (debounced to prevent too many API calls)
     const databaseInterval = setInterval(() => {
       saveToDatabase();
-    }, 10000);
+    }, 30000);
 
     return () => {
       clearInterval(databaseInterval);
