@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 interface DPR {
   _id: string;
@@ -28,38 +27,29 @@ interface DPRState {
 const CACHE_TTL = 3 * 60 * 1000; // 3 minutes
 
 export const useDPRStore = create<DPRState>()(
-  persist(
-    (set, get) => ({
-      dprs: [],
-      lastFetched: null,
-      setDPRs: (dprs) => set({ dprs, lastFetched: Date.now() }),
-      addDPR: (dpr) =>
-        set((state) => ({ dprs: [dpr, ...state.dprs] })),
-      updateDPR: (id, data) =>
-        set((state) => ({
-          dprs: state.dprs.map((d) =>
-            d._id === id ? { ...d, ...data } : d
-          ),
-        })),
-      deleteDPR: (id) =>
-        set((state) => ({
-          dprs: state.dprs.filter((d) => d._id !== id),
-        })),
-      setLastFetched: (timestamp) => set({ lastFetched: timestamp }),
-      isStale: () => {
-        const { lastFetched } = get();
-        if (!lastFetched) return true;
-        return Date.now() - lastFetched > CACHE_TTL;
-      },
-      clearDPRs: () => set({ dprs: [], lastFetched: null }),
-    }),
-    {
-      name: 'dpr-storage',
-      partialize: (state) => ({
-        dprs: state.dprs,
-        lastFetched: state.lastFetched,
-      }),
-    }
-  )
+  (set, get) => ({
+    dprs: [],
+    lastFetched: null,
+    setDPRs: (dprs) => set({ dprs, lastFetched: Date.now() }),
+    addDPR: (dpr) =>
+      set((state) => ({ dprs: [dpr, ...state.dprs] })),
+    updateDPR: (id, data) =>
+      set((state) => ({
+        dprs: state.dprs.map((d) =>
+          d._id === id ? { ...d, ...data } : d
+        ),
+      })),
+    deleteDPR: (id) =>
+      set((state) => ({
+        dprs: state.dprs.filter((d) => d._id !== id),
+      })),
+    setLastFetched: (timestamp) => set({ lastFetched: timestamp }),
+    isStale: () => {
+      const { lastFetched } = get();
+      if (!lastFetched) return true;
+      return Date.now() - lastFetched > CACHE_TTL;
+    },
+    clearDPRs: () => set({ dprs: [], lastFetched: null }),
+  })
 );
 

@@ -21,7 +21,6 @@ import { ClusterDPRCreation } from './pages/ClusterDPRCreation';
 import './i18n/config';
 
 function App() {
-
   return (
     <Router
       future={{

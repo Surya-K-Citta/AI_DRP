@@ -31,23 +31,23 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   // State for Step 18 file uploads (must be at top level due to React hooks rules)
   const [uploadingFiles, setUploadingFiles] = React.useState<Record<string, boolean>>({});
 
-  // Debug: Log when step data changes
-  React.useEffect(() => {
-    console.log(`📋 Step ${currentStep} data loaded:`, {
-      stepData,
-      hasData: Object.keys(stepData).length > 0,
-      keys: Object.keys(stepData),
-      // For step 1, log all nested fields to debug
-      ...(currentStep === 1 ? {
-        enterpriseCount: stepData.enterpriseCount,
-        ageOfEnterprises: stepData.ageOfEnterprises,
-        employmentPerUnit: stepData.employmentPerUnit,
-        investmentPerUnit: stepData.investmentPerUnit,
-        turnoverPerUnit: stepData.turnoverPerUnit,
-        marketServed: stepData.marketServed,
-      } : {}),
-    });
-  }, [currentStep, stepData, data]);
+  // Debug: Log when step data changes (reduced frequency)
+  // React.useEffect(() => {
+  //   console.log(`📋 Step ${currentStep} data loaded:`, {
+  //     stepData,
+  //     hasData: Object.keys(stepData).length > 0,
+  //     keys: Object.keys(stepData),
+  //     // For step 1, log all nested fields to debug
+  //     ...(currentStep === 1 ? {
+  //       enterpriseCount: stepData.enterpriseCount,
+  //       ageOfEnterprises: stepData.ageOfEnterprises,
+  //       employmentPerUnit: stepData.employmentPerUnit,
+  //       investmentPerUnit: stepData.investmentPerUnit,
+  //       turnoverPerUnit: stepData.turnoverPerUnit,
+  //       marketServed: stepData.marketServed,
+  //     } : {}),
+  //   });
+  // }, [currentStep, stepData, data]);
 
   // Helper function to render label with info icon
   const renderLabel = (fieldName: string, label: string, required: boolean = false) => {

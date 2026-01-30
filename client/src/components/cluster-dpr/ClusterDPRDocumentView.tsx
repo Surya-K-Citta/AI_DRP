@@ -39,17 +39,17 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   // Use contentRefreshKey to force re-read of content when it changes
   const content = (dpr.content?.[viewLanguage] || dpr.content?.english || {});
 
-  // Debug logging
-  console.log('📊 ClusterDPRDocumentView - Data extraction:', {
-    clusterData,
-    hasClusterData: !!clusterData && Object.keys(clusterData).length > 0,
-    clusterDataKeys: Object.keys(clusterData),
-    hasContent: !!content && Object.keys(content).length > 0,
-    content,
-    contentKeys: Object.keys(content),
-    hasProjectStepData: !!project?.stepData,
-    viewLanguage,
-  });
+  // Debug logging - reduced frequency
+  // console.log('📊 ClusterDPRDocumentView - Data extraction:', {
+  //   clusterData,
+  //   hasClusterData: !!clusterData && Object.keys(clusterData).length > 0,
+  //   clusterDataKeys: Object.keys(clusterData),
+  //   hasContent: !!content && Object.keys(content).length > 0,
+  //   content,
+  //   contentKeys: Object.keys(content),
+  //   hasProjectStepData: !!project?.stepData,
+  //   viewLanguage,
+  // });
 
   // Image state management
   const [images, setImages] = useState<Record<string, string>>({});

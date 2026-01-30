@@ -258,140 +258,74 @@ export const ClusterDPRCreation: React.FC = () => {
   }, []); // Run only on mount
   
   // Force re-render when data loads to ensure form fields are populated
-  useEffect(() => {
-    if (!isLoadingData && data.step1) {
-      console.log('✅ Data loaded, form should now display:', {
-        hasStep1: !!data.step1,
-        step1Keys: Object.keys(data.step1 || {}),
-        currentStep: data.currentStep,
-      });
-    }
-  }, [isLoadingData, data]);
+  // useEffect(() => {
+  //   if (!isLoadingData && data.step1) {
+  //     console.log('✅ Data loaded, form should now display:', {
+  //       hasStep1: !!data.step1,
+  //       step1Keys: Object.keys(data.step1 || {}),
+  //       currentStep: data.currentStep,
+  //     });
+  //   }
+  // }, [isLoadingData, data]);
 
-  // Debounce function to prevent too many rapid saves
-  const saveToDatabaseRef = useRef<NodeJS.Timeout | null>(null);
-  
+  // Manual save function - only called by specific button actions
   const saveToDatabase = useCallback(async () => {
-    // Clear any pending save
-    if (saveToDatabaseRef.current) {
-      clearTimeout(saveToDatabaseRef.current);
-    }
-    
-    // Debounce: wait 500ms after last change before saving
-    saveToDatabaseRef.current = setTimeout(async () => {
-      try {
-        // Save if we have any step data (not just step1.clusterName)
-        // Check if any step has data
-        const hasAnyData = Object.keys(data).some(key => {
-          if (key.startsWith('step')) {
-            const stepData = data[key as keyof typeof data];
-            return stepData && typeof stepData === 'object' && Object.keys(stepData).length > 0;
-          }
-          return false;
-        });
-        
-        if (hasAnyData || data.projectId) {
-          // Save if we have any step data OR if we already have a projectId (to update existing draft)
-          const response = await api.saveClusterDPRDraft(data);
-          if (response.success && response.data) {
-            // Store the dprId and projectId from the response
-            if (response.data.dprId && response.data.projectId) {
-              setDprIds(response.data.dprId, response.data.projectId);
-              // Update URL to include IDs for future loads
-              const newUrl = `/cluster-dpr/create?projectId=${response.data.projectId}&dprId=${response.data.dprId}`;
-              window.history.replaceState({}, '', newUrl);
-            }
-            console.log('💾 Auto-saved cluster DPR draft to database');
-          }
+    try {
+      // Save if we have any step data (not just step1.clusterName)
+      // Check if any step has data
+      const hasAnyData = Object.keys(data).some(key => {
+        if (key.startsWith('step')) {
+          const stepData = data[key as keyof typeof data];
+          return stepData && typeof stepData === 'object' && Object.keys(stepData).length > 0;
         }
-      } catch (error) {
-        console.error('Error auto-saving draft to database:', error);
-        // Don't show error toast for background saves
+        return false;
+      });
+      
+      if (hasAnyData || data.projectId) {
+        // Save if we have any step data OR if we already have a projectId (to update existing draft)
+        const response = await api.saveClusterDPRDraft(data);
+        if (response.success && response.data) {
+          // Store the dprId and projectId from the response
+          if (response.data.dprId && response.data.projectId) {
+            setDprIds(response.data.dprId, response.data.projectId);
+            // Update URL to include IDs for future loads
+            const newUrl = `/cluster-dpr/create?projectId=${response.data.projectId}&dprId=${response.data.dprId}`;
+            window.history.replaceState({}, '', newUrl);
+          }
+          // console.log('💾 Saved cluster DPR draft to database');
+          return true; // Indicate successful save
+        }
       }
-    }, 500);
+      return false; // Indicate no save was needed
+    } catch (error) {
+      console.error('Error saving draft to database:', error);
+      toast.error('Failed to save draft to database');
+      return false;
+    }
   }, [data, setDprIds]);
 
-  useEffect(() => {
-    // Auto-save draft to database every 20 seconds (debounced to prevent too many API calls)
-    const databaseInterval = setInterval(() => {
-      saveToDatabase();
-    }, 30000);
-
-    return () => {
-      clearInterval(databaseInterval);
-      // Clear any pending debounced save
-      if (saveToDatabaseRef.current) {
-        clearTimeout(saveToDatabaseRef.current);
-      }
-      // Save data one final time when component unmounts (user navigates away)
-      // Use a synchronous save without debounce
-      const finalSave = async () => {
-        try {
-          const hasAnyData = Object.keys(data).some(key => {
-            if (key.startsWith('step')) {
-              const stepData = data[key as keyof typeof data];
-              return stepData && typeof stepData === 'object' && Object.keys(stepData).length > 0;
-            }
-            return false;
-          });
-          
-          if (hasAnyData || data.projectId) {
-            await api.saveClusterDPRDraft(data);
-            console.log('💾 Final save on component unmount');
-          }
-        } catch (error) {
-          console.error('Error in final save on unmount:', error);
-        }
-      };
-      finalSave();
-    };
-  }, [saveToDatabase, data]);
+  // Removed final save on unmount to prevent frequent API calls
+  // Users should manually save their work using the Save Draft button
 
   // Trigger save when data changes (including when AI suggestions are applied)
-  useEffect(() => {
-    // Only trigger save if we have step data and we're not currently loading initial data
-    if (!isLoadingData) {
-      // Debounce the save to avoid too many API calls
-      const timeoutId = setTimeout(() => {
-        saveToDatabase();
-      }, 2000); // Wait 2 seconds after data change before saving
+  // useEffect(() => {
+  //   // Only trigger save if we have step data and we're not currently loading initial data
+  //   if (!isLoadingData) {
+  //     // Debounce the save to avoid too many API calls
+  //     const timeoutId = setTimeout(() => {
+  //       saveToDatabase();
+  //     }, 2000); // Wait 2 seconds after data change before saving
 
-      return () => {
-        clearTimeout(timeoutId);
-      };
-    }
-  }, [data, isLoadingData, saveToDatabase]);
+  //     return () => {
+  //       clearTimeout(timeoutId);
+  //     };
+  //   }
+  // }, [data, isLoadingData, saveToDatabase]);
 
   const handleNext = async () => {
     if (currentStep < totalSteps) {
       // Save to database before moving to next step
-      try {
-        // Check if we have any step data to save
-        const hasAnyData = Object.keys(data).some(key => {
-          if (key.startsWith('step')) {
-            const stepData = data[key as keyof typeof data];
-            return stepData && typeof stepData === 'object' && Object.keys(stepData).length > 0;
-          }
-          return false;
-        });
-        
-        if (hasAnyData || data.projectId) {
-          const response = await api.saveClusterDPRDraft(data);
-          if (response.success && response.data) {
-            // Store the dprId and projectId from the response
-            if (response.data.dprId && response.data.projectId) {
-              setDprIds(response.data.dprId, response.data.projectId);
-              // Update URL to include IDs for future loads
-              const newUrl = `/cluster-dpr/create?projectId=${response.data.projectId}&dprId=${response.data.dprId}`;
-              window.history.replaceState({}, '', newUrl);
-            }
-            console.log('💾 Saved cluster DPR draft before moving to next step');
-          }
-        }
-      } catch (error) {
-        console.error('Error saving draft before next step:', error);
-        // Continue to next step even if save fails
-      }
+      await saveToDatabase();
       
       setCurrentStep(currentStep + 1);
       // Scroll to top of form
@@ -402,33 +336,7 @@ export const ClusterDPRCreation: React.FC = () => {
   const handlePrevious = async () => {
     if (currentStep > 1) {
       // Save to database before moving to previous step (to ensure data is persisted)
-      try {
-        // Check if we have any step data to save
-        const hasAnyData = Object.keys(data).some(key => {
-          if (key.startsWith('step')) {
-            const stepData = data[key as keyof typeof data];
-            return stepData && typeof stepData === 'object' && Object.keys(stepData).length > 0;
-          }
-          return false;
-        });
-        
-        if (hasAnyData || data.projectId) {
-          const response = await api.saveClusterDPRDraft(data);
-          if (response.success && response.data) {
-            // Store the dprId and projectId from the response
-            if (response.data.dprId && response.data.projectId) {
-              setDprIds(response.data.dprId, response.data.projectId);
-              // Update URL to include IDs for future loads
-              const newUrl = `/cluster-dpr/create?projectId=${response.data.projectId}&dprId=${response.data.dprId}`;
-              window.history.replaceState({}, '', newUrl);
-            }
-            console.log('💾 Saved cluster DPR draft before moving to previous step');
-          }
-        }
-      } catch (error) {
-        console.error('Error saving draft before previous step:', error);
-        // Continue to previous step even if save fails
-      }
+      await saveToDatabase();
       
       setCurrentStep(currentStep - 1);
       // Scroll to top of form
@@ -443,24 +351,16 @@ export const ClusterDPRCreation: React.FC = () => {
 
   const handleSaveDraft = async () => {
     // Save to database
-    try {
-      if (data.step1?.clusterName) {
-        const response = await api.saveClusterDPRDraft(data);
-        if (response.success && response.data) {
-          // Store the dprId and projectId from the response
-          if (response.data.dprId && response.data.projectId) {
-            setDprIds(response.data.dprId, response.data.projectId);
-          }
-          toast.success('Draft saved to database successfully!');
-        } else {
-          toast.error('Failed to save draft');
-        }
-      } else {
+    const success = await saveToDatabase();
+    if (success) {
+      toast.success('Draft saved to database successfully!');
+    } else {
+      // Check if Step 1 is completed
+      if (!data.step1?.clusterName) {
         toast.error('Please complete Step 1 (Cluster Name) before saving');
+      } else {
+        toast.error('Failed to save draft');
       }
-    } catch (error) {
-      console.error('Error saving draft to database:', error);
-      toast.error('Failed to save draft to database');
     }
   };
 
@@ -470,6 +370,14 @@ export const ClusterDPRCreation: React.FC = () => {
       // Validate that at least some data is provided
       if (!data.step1 || !data.step1.clusterName) {
         toast.error('Please fill in at least Step 1 (Basic Cluster Details) before generating DPR.');
+        setIsGenerating(false);
+        return;
+      }
+
+      // Save current data before generating
+      const saveSuccess = await saveToDatabase();
+      if (!saveSuccess) {
+        toast.error('Failed to save data before generating DPR');
         setIsGenerating(false);
         return;
       }
