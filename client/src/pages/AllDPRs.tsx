@@ -18,6 +18,7 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
+  BarChart3,
   X,
   Sparkles,
   Upload,
@@ -39,7 +40,7 @@ interface DPR {
 
 type SortField = 'date' | 'status' | 'quality' | 'name';
 type SortOrder = 'asc' | 'desc';
-type StatusFilter = 'all' | 'draft' | 'submitted' | 'approved' | 'rejected';
+type StatusFilter = 'all' | 'draft' | 'analyzed' | 'submitted' | 'approved' | 'rejected';
 
 export const AllDPRs: React.FC = () => {
   const { t } = useTranslation();
@@ -178,9 +179,9 @@ export const AllDPRs: React.FC = () => {
       });
     }
 
-    // Apply status filter
+    // Apply status filter using effective status
     if (statusFilter !== 'all') {
-      filtered = filtered.filter((dpr) => dpr.status === statusFilter);
+      filtered = filtered.filter((dpr) => getEffectiveStatus(dpr) === statusFilter);
     }
 
     // Apply sorting
@@ -194,8 +195,8 @@ export const AllDPRs: React.FC = () => {
           comparison = dateA - dateB;
           break;
         case 'status':
-          const statusA = a.status || '';
-          const statusB = b.status || '';
+          const statusA = getEffectiveStatus(a);
+          const statusB = getEffectiveStatus(b);
           comparison = statusA.localeCompare(statusB);
           break;
         case 'quality':
@@ -216,6 +217,17 @@ export const AllDPRs: React.FC = () => {
     setFilteredDprs(filtered);
   };
 
+  const getEffectiveStatus = (dpr: DPR) => {
+    // If DPR has a quality score, it's been analyzed and shouldn't be shown as draft
+    if (dpr.qualityScore !== undefined && dpr.qualityScore !== null) {
+      // If it has a quality score but no explicit status, treat as analyzed draft
+      if (!dpr.status || dpr.status === 'draft') {
+        return 'analyzed';
+      }
+    }
+    return dpr.status || 'draft';
+  };
+
   const getStatusColor = (status?: string) => {
     if (!status) return 'bg-muted/50 text-muted-foreground';
     switch (status) {
@@ -225,6 +237,8 @@ export const AllDPRs: React.FC = () => {
         return 'bg-secondary/10 text-secondary border border-secondary/20';
       case 'draft':
         return 'bg-warning/10 text-warning border border-warning/20';
+      case 'analyzed':
+        return 'bg-primary/10 text-primary border border-primary/20';
       case 'rejected':
         return 'bg-destructive/10 text-destructive border border-destructive/20';
       default:
@@ -241,6 +255,8 @@ export const AllDPRs: React.FC = () => {
         return <AlertCircle className="h-4 w-4" />;
       case 'draft':
         return <Clock className="h-4 w-4" />;
+      case 'analyzed':
+        return <BarChart3 className="h-4 w-4" />;
       default:
         return <FileText className="h-4 w-4" />;
     }
@@ -567,6 +583,7 @@ export const AllDPRs: React.FC = () => {
                 >
                   <option value="all">All Status</option>
                   <option value="draft">Draft</option>
+                  <option value="analyzed">Analyzed</option>
                   <option value="submitted">Submitted</option>
                   <option value="approved">Approved</option>
                   <option value="rejected">Rejected</option>
@@ -653,9 +670,15 @@ export const AllDPRs: React.FC = () => {
                           <h3 className="font-semibold text-xl">
                             {dpr.projectId?.projectName || 'Untitled Project'}
                           </h3>
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(dpr.status)}`}>
-                            {getStatusIcon(dpr.status)}
-                            {dpr.status ? (dpr.status.charAt(0).toUpperCase() + dpr.status.slice(1)) : 'Unknown'}
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(getEffectiveStatus(dpr))}`}>
+                            {getStatusIcon(getEffectiveStatus(dpr))}
+                            {(() => {
+                              const effectiveStatus = getEffectiveStatus(dpr);
+                              if (effectiveStatus === 'analyzed') {
+                                return `Analyzed (${dpr.qualityScore}/100)`;
+                              }
+                              return effectiveStatus ? (effectiveStatus.charAt(0).toUpperCase() + effectiveStatus.slice(1)) : 'Unknown';
+                            })()}
                           </span>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">

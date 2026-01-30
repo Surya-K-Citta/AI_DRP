@@ -47,6 +47,7 @@ export const Dashboard: React.FC = () => {
   const [stats, setStats] = useState({
     total: 0,
     draft: 0,
+    analyzed: 0,
     submitted: 0,
     approved: 0,
     avgQualityScore: 0,
@@ -202,8 +203,9 @@ export const Dashboard: React.FC = () => {
   const processDPRsData = (dprsData: DPR[]) => {
     setDprs(dprsData);
     
-    // Calculate stats
-    const draft = dprsData.filter((d: DPR) => d.status === 'draft').length;
+    // Calculate stats - use effective status
+    const draft = dprsData.filter((d: DPR) => getEffectiveStatus(d) === 'draft').length;
+    const analyzed = dprsData.filter((d: DPR) => getEffectiveStatus(d) === 'analyzed').length;
     const submitted = dprsData.filter((d: DPR) => d.status === 'submitted').length;
     const approved = dprsData.filter((d: DPR) => d.status === 'approved').length;
     const qualityScores = dprsData
@@ -216,6 +218,7 @@ export const Dashboard: React.FC = () => {
     setStats({
       total: dprsData.length,
       draft,
+      analyzed,
       submitted,
       approved,
       avgQualityScore,
@@ -255,6 +258,17 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const getEffectiveStatus = (dpr: DPR) => {
+    // If DPR has a quality score, it's been analyzed and shouldn't be shown as draft
+    if (dpr.qualityScore !== undefined && dpr.qualityScore !== null) {
+      // If it has a quality score but no explicit status, treat as analyzed draft
+      if (!dpr.status || dpr.status === 'draft') {
+        return 'analyzed';
+      }
+    }
+    return dpr.status || 'draft';
+  };
+
   const getStatusColor = (status?: string) => {
     if (!status) return 'bg-muted/50 text-muted-foreground border border-border';
     switch (status) {
@@ -264,6 +278,8 @@ export const Dashboard: React.FC = () => {
         return 'bg-secondary/10 text-secondary border border-secondary/20';
       case 'draft':
         return 'bg-warning/10 text-warning border border-warning/20';
+      case 'analyzed':
+        return 'bg-primary/10 text-primary border border-primary/20';
       case 'rejected':
         return 'bg-destructive/10 text-destructive border border-destructive/20';
       default:
@@ -280,6 +296,8 @@ export const Dashboard: React.FC = () => {
         return <AlertCircle className="h-4 w-4" />;
       case 'draft':
         return <Clock className="h-4 w-4" />;
+      case 'analyzed':
+        return <BarChart3 className="h-4 w-4" />;
       default:
         return <FileText className="h-4 w-4" />;
     }
@@ -346,7 +364,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card className="hover:shadow-md transition-shadow">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -393,6 +411,23 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <div className="h-12 w-12 rounded-lg bg-secondary/10 flex items-center justify-center">
                   <AlertCircle className="h-6 w-6 text-secondary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    Analyzed
+                  </p>
+                  <h3 className="text-3xl font-bold text-foreground">{stats.analyzed}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{stats.analyzed} Analyzed DPRs</p>
+                </div>
+                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <BarChart3 className="h-6 w-6 text-primary" />
                 </div>
               </div>
             </CardContent>
@@ -511,9 +546,21 @@ export const Dashboard: React.FC = () => {
                       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                         <FileText className="h-5 w-5 text-primary" />
                       </div>
-                      <h4 className="font-semibold text-base">
-                        {dpr.projectId?.projectName || t('dashboard.untitledProject')}
-                      </h4>
+                      <div>
+                        <h4 className="font-semibold text-base">
+                          {dpr.projectId?.projectName || t('dashboard.untitledProject')}
+                        </h4>
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border mt-1 ${getStatusColor(getEffectiveStatus(dpr))}`}>
+                          {getStatusIcon(getEffectiveStatus(dpr))}
+                          {(() => {
+                            const effectiveStatus = getEffectiveStatus(dpr);
+                            if (effectiveStatus === 'analyzed') {
+                              return `Analyzed (${dpr.qualityScore}/100)`;
+                            }
+                            return effectiveStatus ? (effectiveStatus.charAt(0).toUpperCase() + effectiveStatus.slice(1)) : 'Draft';
+                          })()}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-4">
                       {dpr.qualityScore !== undefined && (
