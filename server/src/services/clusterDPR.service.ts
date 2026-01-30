@@ -992,24 +992,39 @@ Use exact values from the data above. Write in a formal, persuasive tone suitabl
       });
 
       // Special handling for Step 1 - use clusterName, location, district as context
-      const step1Context = currentStep === 1 && clusterName
+      // Generate context if ANY of the three key fields are present
+      const hasStep1Context = currentStep === 1 && (clusterName || location || district);
+      const step1Context = hasStep1Context
         ? `\n═══════════════════════════════════════════════════════════════
 CLUSTER CONTEXT (Use this information to generate suggestions):
 ═══════════════════════════════════════════════════════════════
-${clusterName ? `Cluster Name: ${clusterName}` : ''}
-${location ? `Location: ${location}` : ''}
-${district ? `District: ${district}` : ''}
+${clusterName ? `Cluster Name: ${clusterName}` : 'Cluster Name: (not provided)'}
+${location ? `Location: ${location}` : 'Location: (not provided)'}
+${district ? `District: ${district}` : 'District: (not provided)'}
 
-CRITICAL: Use the cluster name "${clusterName}"${location ? ` located in ${location}` : ''}${district ? `, ${district} district` : ''} as the PRIMARY CONTEXT for generating ALL suggestions. All field suggestions should be relevant and specific to this cluster.
+CRITICAL: Use the provided cluster information as the PRIMARY CONTEXT for generating ALL suggestions. All field suggestions should be relevant and specific to this cluster.
+${clusterName ? `The cluster name is "${clusterName}"` : 'Use the location and district information'}${location ? ` located in ${location}` : ''}${district ? `, ${district} district` : ''}.
 
 For example:
-- "Geographical Spread" should describe the geographical area covered by ${clusterName}${location ? ` in ${location}` : ''}${district ? `, ${district}` : ''}
-- "Nature of Business" should be inferred from the cluster name "${clusterName}" if not already provided
-- "Major Products" should be relevant to what "${clusterName}" typically produces
-- Enterprise counts, investment, turnover should be realistic estimates for a cluster named "${clusterName}"
-- Market served percentages should be appropriate for ${clusterName}${location ? ` in ${location}` : ''}${district ? `, ${district}` : ''}
+- "Geographical Spread" should describe the geographical area covered by ${clusterName || 'the cluster'}${location ? ` in ${location}` : ''}${district ? `, ${district}` : ''}
+- "Nature of Business" should be inferred from ${clusterName ? `the cluster name "${clusterName}"` : 'the location and district context'} if not already provided
+- "Major Products" should be relevant to what ${clusterName || 'this cluster'} typically produces
+- Enterprise counts, investment, turnover should be realistic estimates for ${clusterName ? `a cluster named "${clusterName}"` : 'this type of cluster'}
+- Market served percentages should be appropriate for ${clusterName || 'the cluster'}${location ? ` in ${location}` : ''}${district ? `, ${district}` : ''}
 `
         : '';
+      
+      // Debug logging for Step 1
+      if (currentStep === 1) {
+        console.log('🔍 Step 1 AI Suggestions Debug:', {
+          hasStep1Context,
+          clusterName: clusterName || '(empty)',
+          location: location || '(empty)',
+          district: district || '(empty)',
+          currentStepDataKeys: Object.keys(currentStepData || {}),
+          step1ContextLength: step1Context.length,
+        });
+      }
 
       const prompt = `You are an expert consultant helping create a Detailed Project Report (DPR) for an MSME cluster.
 
@@ -1091,7 +1106,18 @@ CRITICAL REQUIREMENTS:
      * For ARRAY fields (stakeholders, keyProducts, rawMaterials, valueAdditionStages, etc.): Suggest list items based on data from previous steps
      * For TEXT fields: Suggest detailed paragraphs derived from previous step information
      * For SHORTTEXT fields: Suggest concise phrases (10-15 words max) based on previous steps
-     * For OBJECT fields: Suggest structured data matching the expected format, derived from previous steps
+     * For OBJECT fields: Suggest structured data matching the EXACT expected format, derived from previous steps
+       ${currentStep === 1 ? `
+       CRITICAL FOR STEP 1 OBJECT FIELDS - USE THESE EXACT FORMATS:
+       - enterpriseCount: MUST be {"micro": <number>, "small": <number>, "medium": <number>}
+         Example: {"micro": 15, "small": 8, "medium": 2}
+       - ageOfEnterprises: MUST be {"lessThan5": <number>, "between5And10": <number>, "moreThan10": <number>}
+         Example: {"lessThan5": 10, "between5And10": 8, "moreThan10": 5}
+       - employmentPerUnit: MUST be {"lessThan5": <number>, "between5And10": <number>, "moreThan10": <number>}
+         Example: {"lessThan5": 12, "between5And10": 8, "moreThan10": 5}
+       - marketServed: MUST be {"domestic": <number>, "export": <number>} where numbers are percentages (0-100)
+         Example: {"domestic": 75, "export": 25}
+       DO NOT use alternative field names or structures. Use ONLY the exact field names specified above.` : ''}
 
 4. **PRIORITIZE EMPTY FIELDS:**
    - EMPTY fields (priority): ${emptyFields.length > 0 ? emptyFields.join(', ') : 'None - all fields are filled'}
@@ -1208,11 +1234,18 @@ Return suggestions in JSON format only.`,
               return orderA - orderB;
             });
             
-            return normalizedSuggestions;
+            // If we have suggestions, return them; otherwise fall through to fallback
+            if (normalizedSuggestions.length > 0) {
+              console.log(`✅ Returning ${normalizedSuggestions.length} AI suggestions for step ${currentStep}`);
+              return normalizedSuggestions;
+            } else {
+              console.log(`⚠️ AI returned empty suggestions for step ${currentStep}, using fallback`);
+            }
           }
         }
       } catch (parseError) {
         console.error('Error parsing AI suggestions:', parseError);
+        console.log(`⚠️ Failed to parse AI response for step ${currentStep}, using fallback`);
       }
 
       // Fallback: return field-specific suggestions based on all previous step data
@@ -1450,7 +1483,49 @@ Return only the suggestion text, no JSON or formatting.`;
 
       // Determine format instructions based on field type and sample value
       let formatInstructions = '';
-      if (fieldType === 'array') {
+      
+      // Special handling for Step 1 object fields
+      if (currentStep === 1 && fieldType === 'object') {
+        if (fieldName === 'enterpriseCount') {
+          formatInstructions = `
+CRITICAL FORMAT FOR enterpriseCount:
+- Return a JSON object with EXACTLY these keys: "micro", "small", "medium"
+- Each value must be a number (integer)
+- Example: {"micro": 15, "small": 8, "medium": 2}
+- Generate realistic counts based on cluster size and nature of business
+- Return ONLY the JSON object, no explanations`;
+        } else if (fieldName === 'ageOfEnterprises') {
+          formatInstructions = `
+CRITICAL FORMAT FOR ageOfEnterprises:
+- Return a JSON object with EXACTLY these keys: "lessThan5", "between5And10", "moreThan10"
+- Each value must be a number (integer) representing count of enterprises
+- Example: {"lessThan5": 10, "between5And10": 8, "moreThan10": 5}
+- Generate realistic distribution based on cluster maturity
+- Return ONLY the JSON object, no explanations`;
+        } else if (fieldName === 'employmentPerUnit') {
+          formatInstructions = `
+CRITICAL FORMAT FOR employmentPerUnit:
+- Return a JSON object with EXACTLY these keys: "lessThan5", "between5And10", "moreThan10"
+- Each value must be a number (integer) representing count of units
+- Example: {"lessThan5": 12, "between5And10": 8, "moreThan10": 5}
+- Generate realistic distribution based on enterprise sizes
+- Return ONLY the JSON object, no explanations`;
+        } else if (fieldName === 'marketServed') {
+          formatInstructions = `
+CRITICAL FORMAT FOR marketServed:
+- Return a JSON object with EXACTLY these keys: "domestic", "export"
+- Each value must be a number (0-100) representing percentage
+- Values should add up to 100 (or close to it)
+- Example: {"domestic": 75, "export": 25}
+- Generate realistic percentages based on cluster type and location
+- Return ONLY the JSON object, no explanations`;
+        } else {
+          formatInstructions = `
+CRITICAL FORMAT FOR ${fieldName}:
+- Return a JSON object matching the sample format: ${sampleValue}
+- Return ONLY the JSON object, no explanations`;
+        }
+      } else if (fieldType === 'array') {
         if (sampleValue.includes('{"') || sampleValue.includes('{name') || sampleValue.includes('{stage')) {
           // Structured array (objects)
           if (fieldName === 'valueAdditionStages') {

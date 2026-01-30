@@ -56,6 +56,18 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
       return;
     }
 
+    // Debug logging for Step 1
+    if (currentStep === 1) {
+      console.log('🔍 Step 1 AI Suggestions - Frontend Debug:', {
+        currentStepData,
+        clusterName: currentStepData?.clusterName || '(empty)',
+        location: currentStepData?.location || '(empty)',
+        district: currentStepData?.district || '(empty)',
+        excludeFields,
+        hasPreviousData,
+      });
+    }
+
     setLoading(true);
     try {
       const aiSuggestions = await AISuggestionsService.getSuggestionsForStep(
@@ -64,6 +76,15 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
         previousStepsData,
         excludeFields
       );
+      
+      // Debug logging for Step 1
+      if (currentStep === 1) {
+        console.log('🔍 Step 1 AI Suggestions - Response:', {
+          suggestionsCount: aiSuggestions?.length || 0,
+          suggestions: aiSuggestions,
+        });
+      }
+      
       // Filter out excluded fields from suggestions
       const filteredSuggestions = (aiSuggestions || []).filter(
         (suggestion) => !excludeFields.includes(suggestion.field)

@@ -4,6 +4,18 @@
  * Used to generate field-specific AI suggestions
  */
 export const STEP_FIELDS_MAPPING: Record<number, { stepName: string; fields: Array<{ name: string; type: string; label: string; sampleValue?: string }> }> = {
+  1: {
+    stepName: 'Executive Summary - Basic Cluster Details',
+    fields: [
+      // Fields that should be suggested (below AI component)
+      { name: 'enterpriseCount', type: 'object', label: 'Enterprise Count', sampleValue: '{"micro": 0, "small": 0, "medium": 0}' },
+      { name: 'ageOfEnterprises', type: 'object', label: 'Age of Enterprises', sampleValue: '{"lessThan5": 0, "between5And10": 0, "moreThan10": 0}' },
+      { name: 'employmentPerUnit', type: 'object', label: 'Employment per Unit', sampleValue: '{"lessThan5": 0, "between5And10": 0, "moreThan10": 0}' },
+      { name: 'investmentPerUnit', type: 'number', label: 'Investment per Unit (₹ Lakhs)' },
+      { name: 'turnoverPerUnit', type: 'number', label: 'Turnover per Unit (₹ Lakhs)' },
+      { name: 'marketServed', type: 'object', label: 'Market Served (%)', sampleValue: '{"domestic": 0, "export": 0}' },
+    ],
+  },
   2: {
     stepName: 'Introduction & Sector Overview',
     fields: [

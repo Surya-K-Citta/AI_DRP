@@ -36,10 +36,21 @@ export const ClusterDPRCreation: React.FC = () => {
         // Get projectId or dprId from URL params or search params
         const projectIdFromUrl = params.projectId || searchParams.get('projectId');
         const dprIdFromUrl = params.dprId || searchParams.get('dprId');
+        const isNew = searchParams.get('new') === 'true'; // Check for new parameter
         
         // Also check store for existing IDs
         const projectId = projectIdFromUrl || data.projectId;
         const dprId = dprIdFromUrl || data.dprId;
+        
+        // If user explicitly wants to create new, reset data and don't load anything
+        if (isNew) {
+          resetData();
+          setDprIds('', ''); // Clear IDs
+          setProject(null); // Clear project
+          console.log('🆕 Starting fresh cluster DPR creation');
+          setIsLoadingData(false);
+          return;
+        }
         
         // If we have a projectId, load project data (which contains stepData)
         if (projectId) {
@@ -84,88 +95,26 @@ export const ClusterDPRCreation: React.FC = () => {
             console.log('✅ Loaded existing draft from database');
           } catch (projectError) {
             console.error('Failed to load project:', projectError);
-            // If loading fails and we have generatedDPR, reset
-            const hasGeneratedDPR = data.generatedDPR && Object.keys(data.generatedDPR).length > 0;
-            if (hasGeneratedDPR) {
-              resetData();
-              console.log('🔄 Cleared old cluster data - starting fresh cluster creation');
-            }
+            // If loading fails, reset to start fresh
+            resetData();
+            setDprIds('', '');
+            setProject(null);
+            console.log('🔄 Cleared data - starting fresh cluster creation');
           }
         } else {
-          // No projectId in URL or store, try to find most recent draft project
-          try {
-            const projectsResponse = await api.getProjects({ status: 'draft', projectType: 'cluster', limit: 1 });
-            const projects = projectsResponse.data?.projects || projectsResponse.data || [];
-            
-            if (projects.length > 0) {
-              const latestProject = projects[0];
-              const projectData = latestProject;
-              
-              // Store the actual project object
-              setProject(projectData);
-              
-              // Try to find associated DPR
-              let dprData = null;
-              try {
-                const dprsResponse = await api.getProjectDPRs(projectData._id || projectData.id);
-                const dprs = dprsResponse.data || dprsResponse;
-                if (Array.isArray(dprs) && dprs.length > 0) {
-                  // Find draft DPR
-                  const draftDpr = dprs.find((d: any) => d.status === 'draft');
-                  if (draftDpr) {
-                    try {
-                      const dprResponse = await api.getClusterDPR(draftDpr._id || draftDpr.id);
-                      dprData = dprResponse.data || dprResponse;
-                    } catch (dprError) {
-                      console.warn('Failed to load DPR:', dprError);
-                    }
-                  }
-                }
-              } catch (dprsError) {
-                console.warn('Failed to load DPRs for project:', dprsError);
-              }
-              
-              // Load data into store
-              loadDataFromProject(projectData, dprData);
-              
-              // Update IDs in store and URL
-              const pid = projectData._id || projectData.id;
-              const did = dprData?._id || dprData?.id;
-              if (pid) {
-                if (did) {
-                  setDprIds(did, pid);
-                  // Update URL to include IDs for future loads
-                  const newUrl = `/cluster-dpr/create?projectId=${pid}&dprId=${did}`;
-                  window.history.replaceState({}, '', newUrl);
-                } else {
-                  setDprIds('', pid);
-                  // Update URL to include projectId
-                  const newUrl = `/cluster-dpr/create?projectId=${pid}`;
-                  window.history.replaceState({}, '', newUrl);
-                }
-              }
-              
-              console.log('✅ Loaded most recent draft from database');
-            } else {
-              // No existing draft, check if we should reset
-              const hasGeneratedDPR = data.generatedDPR && Object.keys(data.generatedDPR).length > 0;
-              if (hasGeneratedDPR) {
-                resetData();
-                console.log('🔄 Cleared old cluster data - starting fresh cluster creation');
-              }
-            }
-          } catch (projectsError) {
-            console.error('Failed to load projects:', projectsError);
-            // If loading fails and we have generatedDPR, reset
-            const hasGeneratedDPR = data.generatedDPR && Object.keys(data.generatedDPR).length > 0;
-            if (hasGeneratedDPR) {
-              resetData();
-              console.log('🔄 Cleared old cluster data - starting fresh cluster creation');
-            }
-          }
+          // No projectId in URL or store - user is creating a new DPR
+          // Reset data to ensure clean state
+          resetData();
+          setDprIds('', '');
+          setProject(null);
+          console.log('🆕 Starting fresh cluster DPR creation - no project ID');
         }
       } catch (error) {
         console.error('Error loading existing draft:', error);
+        // On any error, reset to ensure clean state
+        resetData();
+        setDprIds('', '');
+        setProject(null);
       } finally {
         setIsLoadingData(false);
       }
