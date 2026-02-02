@@ -17,14 +17,15 @@
 
   .page-break {
     page-break-after: always;
-    page-break-inside: avoid;
+    page-break-inside: auto; /* Allow content to break across pages */
     width: 21cm !important;
-    height: 29.7cm !important;
     min-height: 29.7cm !important;
-    max-height: 29.7cm !important;
+    height: auto !important; /* Allow height to grow */
+    max-height: none !important; /* Remove max-height restriction */
     margin: 0 !important;
     padding: 2cm !important;
     box-sizing: border-box;
+    overflow: visible !important; /* Allow overflow to trigger page break */
   }
 
   .page-break-before {
@@ -32,11 +33,33 @@
   }
 
   .avoid-break {
+    page-break-inside: avoid; /* Keep element together */
+  }
+
+  .allow-break {
+    page-break-inside: auto; /* Allow breaking inside */
+  }
+
+  /* Large tables can break across pages */
+  table {
+    page-break-inside: auto; /* Changed from avoid to auto for large tables */
+  }
+
+  /* Small tables should stay together */
+  table.small-table {
     page-break-inside: avoid;
   }
 
-  table {
+  /* Table rows should try to stay together */
+  table tr {
     page-break-inside: avoid;
+  }
+
+  /* Table headers should repeat on each page */
+  table thead {
+    display: table-header-group;
+    page-break-inside: avoid;
+    page-break-after: avoid;
   }
 
   img {
@@ -45,8 +68,26 @@
     height: auto;
   }
 
-  h1, h2, h3 {
+  h1, h2, h3, h4 {
     page-break-after: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Sections that should stay together */
+  .section-content {
+    page-break-inside: auto;
+  }
+
+  /* Auto-split content wrapper */
+  .auto-split-content {
+    page-break-inside: auto;
+    min-height: auto;
+  }
+
+  /* Prevent orphans and widows */
+  p {
+    orphans: 3;
+    widows: 3;
   }
 }
 
@@ -61,7 +102,7 @@
 .dpr-document h1 {
   font-size: 24pt;
   font-weight: bold;
-  margin-bottom: 12pt;
+  /* margin-bottom: 12pt; */
   color: #000;
 }
 
@@ -151,12 +192,13 @@
 .dpr-document .page-break {
   width: 21cm !important;
   min-height: 29.7cm !important;
-  height: auto !important;
-  max-height: none !important;
+  height: auto !important; /* Allow height to grow with content */
+  max-height: none !important; /* Remove max-height to allow overflow */
   padding: 2cm !important;
   margin: 0 auto 1cm auto !important;
   box-sizing: border-box;
-  overflow: visible !important;
+  overflow: visible !important; /* Allow overflow to trigger page break */
+  page-break-inside: auto; /* Allow content to break across pages */
 }
 
 .dpr-document .page-break > * {
@@ -169,4 +211,18 @@
   overflow: visible !important;
   min-height: 100% !important;
   height: auto !important;
+  max-height: none !important; /* Remove max-height restriction */
+}
+
+/* Content sections that can flow across pages */
+.dpr-document .section-content {
+  page-break-inside: auto;
+  min-height: auto;
+}
+
+/* Auto-split content */
+.dpr-document .auto-split-content {
+  page-break-inside: auto;
+  min-height: auto;
+  height: auto;
 }

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { FormattedText } from '@/utils/textFormatter';
 import { DPRVisualizations } from './DPRVisualizations';
 import { api } from '@/lib/api';
@@ -254,26 +254,75 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     return () => clearTimeout(timeoutId);
   }, [enhancedContent, dpr?._id || dpr?.id, viewLanguage]);
 
-  // Helper to render A4 page wrapper (21 x 29.7 cm)
-  const renderPageWrapper = (children: React.ReactNode, additionalStyles?: React.CSSProperties) => {
+  // Helper to render A4 page wrapper with automatic page splitting
+  const renderPageWrapper = (children: React.ReactNode, additionalStyles?: React.CSSProperties, enableAutoSplit: boolean = true) => {
+    // If auto-split is disabled, use the simple wrapper with fixed height
+    if (!enableAutoSplit) {
+      return (
+        <div
+          className="page-break relative"
+          style={{
+            width: '21cm',
+            height: '29.7cm',
+            maxHeight: 'none',
+            padding: '2cm',
+            margin: '0',
+            pageBreakAfter: 'always',
+            pageBreakInside: 'auto',
+            fontFamily: 'Times New Roman, serif',
+            border: '8px solid #2563EB',
+            position: 'relative',
+            overflow: 'hidden',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            ...additionalStyles
+          }}
+        >
+          {/* Decorative border effect */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              border: '2px solid #3B82F6',
+              margin: '8px',
+              borderRadius: '4px'
+            }}
+          />
+          <div
+            className="relative z-10"
+            style={{
+              width: '100%',
+              minHeight: '100%',
+              height: 'auto',
+              overflow: 'visible',
+              display: 'flex',
+              flexDirection: 'column',
+              boxSizing: 'border-box'
+            }}
+          >
+            {children}
+          </div>
+        </div>
+      );
+    }
+
+    // Auto-split enabled: Allow content to flow naturally across pages
+    // Content will automatically break to next page when it exceeds page height
     return (
       <div
         className="page-break relative"
         style={{
           width: '21cm',
-          minHeight: '29.7cm',
-          height: 'auto',
-          maxHeight: 'none',
+          minHeight: '29.7cm', // Minimum height for a page
           padding: '2cm',
-          margin: '0 auto',
+          margin: '0',
           marginBottom: '1cm',
           pageBreakAfter: 'always',
-          pageBreakInside: 'avoid',
+          pageBreakInside: 'auto', // Allow breaking inside if needed
           fontFamily: 'Times New Roman, serif',
           border: '8px solid #2563EB',
-          borderStyle: 'double',
           position: 'relative',
-          overflow: 'visible',
+          overflow: 'visible', // Allow overflow to trigger page break
           boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
@@ -298,13 +347,69 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             overflow: 'visible',
             display: 'flex',
             flexDirection: 'column',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
+            // Allow content to flow and break naturally
+            pageBreakInside: 'auto'
           }}
         >
           {children}
         </div>
       </div>
     );
+  };
+
+  // Component for automatic page splitting based on content height
+  const AutoSplitPage: React.FC<{ children: React.ReactNode; sectionTitle?: string }> = ({ children, sectionTitle }) => {
+    const contentRef = useRef<HTMLDivElement>(null);
+    const [needsSplit, setNeedsSplit] = useState(false);
+    const [contentChunks, setContentChunks] = useState<React.ReactNode[]>([children]);
+
+    // Maximum usable height per page (29.7cm - 4cm padding = 25.7cm = ~972px at 96dpi)
+    const MAX_PAGE_HEIGHT = 972; // pixels
+
+    useLayoutEffect(() => {
+      if (!contentRef.current) return;
+
+      const checkHeight = () => {
+        const contentHeight = contentRef.current?.scrollHeight || 0;
+        if (contentHeight > MAX_PAGE_HEIGHT) {
+          setNeedsSplit(true);
+          // For now, let CSS handle the split
+          // In a more sophisticated implementation, we could split the content programmatically
+        } else {
+          setNeedsSplit(false);
+        }
+      };
+
+      // Check height after render
+      const timeoutId = setTimeout(checkHeight, 100);
+      window.addEventListener('resize', checkHeight);
+
+      return () => {
+        clearTimeout(timeoutId);
+        window.removeEventListener('resize', checkHeight);
+      };
+    }, [children]);
+
+    return (
+      <div
+        ref={contentRef}
+        style={{
+          width: '100%',
+          pageBreakInside: 'auto',
+          // Allow content to flow naturally across pages
+          minHeight: 'auto',
+        }}
+        className="auto-split-content"
+      >
+        {children}
+      </div>
+    );
+  };
+
+  // Helper to render content with automatic page splitting based on height
+  const renderContentWithAutoSplit = (content: React.ReactNode, sectionTitle?: string) => {
+    return <AutoSplitPage sectionTitle={sectionTitle}>{content}</AutoSplitPage>;
   };
 
   // Map section titles to step numbers for navigation
@@ -337,7 +442,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     const isClickable = onSectionClick && step !== null;
 
     return (
-      <div className="mb-6">
+      <div className="-mt-4 mb-4">
         <div
           className={`rounded-lg p-4 mx-auto max-w-2xl ${isClickable ? 'cursor-pointer hover:shadow-lg transition-all duration-200' : ''}`}
           style={{
@@ -363,11 +468,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   // Helper to render professional tables matching PDF format with explanation
   const renderTable = (headers: string[], rows: any[][], title?: string, statementNumber?: string, tableId?: string) => {
     const explanationKey = tableId || `table-${title || 'default'}`;
+    // For large tables, allow page breaks; for small tables, try to keep together
+    const isLargeTable = rows.length > 15;
+    const tableBreakStyle = isLargeTable ? { pageBreakInside: 'auto' } : { pageBreakInside: 'avoid' };
 
     return (
-      <div className="my-6">
+      <div className="my-2" style={{ pageBreakInside: 'avoid' }}>
         {title && (
-          <div className="mb-3">
+          <div className="mb-3" style={{ pageBreakAfter: 'avoid' }}>
             {statementNumber && (
               <p className="text-xs text-gray-600 mb-1 font-semibold">Statement {statementNumber}</p>
             )}
@@ -381,9 +489,15 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             )}
           </div>
         )}
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-gray-800 text-sm" style={{ borderColor: '#1F2937' }}>
-            <thead>
+        <div className="overflow-x-auto" style={tableBreakStyle}>
+          <table 
+            className="w-full border-collapse border border-gray-800 text-sm" 
+            style={{ 
+              borderColor: '#1F2937',
+              ...tableBreakStyle
+            }}
+          >
+            <thead style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid' }}>
               <tr style={{ backgroundColor: '#E5E7EB' }}>
                 {headers.map((header, idx) => (
                   <th
@@ -404,7 +518,10 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               {rows.map((row, rowIdx) => (
                 <tr
                   key={rowIdx}
-                  style={{ backgroundColor: rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }}
+                  style={{ 
+                    backgroundColor: rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB',
+                    pageBreakInside: 'avoid' // Try to keep rows together
+                  }}
                 >
                   {row.map((cell, cellIdx) => (
                     <td
@@ -1050,15 +1167,15 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     const hasImage = currentImage && currentImage !== '';
 
     return (
-      <div className="my-6 text-center">
-        <div className="relative inline-block w-full max-w-2xl">
+      <div className="  text-center">
+        <div className="relative inline-block w-full ">
           {/* Image Preview Area */}
           <div
             className={`relative border-2 border-dashed rounded-lg overflow-hidden transition-all ${hasImage
               ? 'border-gray-300 bg-white'
               : 'border-blue-300 bg-blue-50/30'
               }`}
-            style={{ minHeight: '300px' }}
+            style={{ minWidth: '300px' }}
           >
             {hasImage ? (
               <>
@@ -1066,7 +1183,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   src={currentImage}
                   alt={alt}
                   className="w-full h-auto object-contain"
-                  style={{ maxHeight: '400px', minHeight: '300px' }}
+                  style={{ maxHeight: '300px' }}
                   crossOrigin="anonymous"
                   onError={(e) => {
                     // Fallback to placeholder
@@ -1593,11 +1710,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
 
       {/* Cover Page - Matching Template Design */}
       {renderPageWrapper(
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full -mt-8">
           {/* Title Section with Grey Box */}
-          <div className="mb-6">
+          <div className="-mb-2">
             <div
-              className="rounded-lg p-6 mx-auto max-w-2xl"
+              className="rounded-lg p-6 mx-auto max-w-2xl -mt-2"
               style={{
                 backgroundColor: '#F3F4F6',
                 backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.02) 10px, rgba(0,0,0,0.02) 20px)',
@@ -1605,26 +1722,26 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
               }}
             >
-              <h1 className="text-4xl font-bold text-center mb-2" style={{ color: '#1F2937', letterSpacing: '0.05em' }}>
+              <h1 className="text-4xl font-bold text-center " style={{ color: '#1F2937', letterSpacing: '0.05em' }}>
                 DETAILED PROJECT REPORT
               </h1>
-              <h2 className="text-2xl font-semibold text-center mb-3" style={{ color: '#1F2937' }}>
+              <h2 className="text-2xl font-semibold text-center " style={{ color: '#1F2937' }}>
                 On
               </h2>
-              <h2 className="text-2xl font-semibold text-center mb-2" style={{ color: '#1F2937' }}>
+              <h2 className="text-2xl font-semibold text-center" style={{ color: '#1F2937' }}>
                 Establishment of Common Facility Centre for
               </h2>
-              <h2 className="text-3xl font-bold text-center mb-3 uppercase" style={{ color: '#059669', letterSpacing: '0.05em' }}>
+              <h2 className="text-3xl font-bold text-center uppercase" style={{ color: '#059669', letterSpacing: '0.05em' }}>
                 {s1.clusterName || 'CLUSTER NAME'}
               </h2>
-              <p className="text-lg font-semibold text-center justify-center" style={{ color: '#1F2937' }}>
+              <p className="text-lg font-semibold text-center items-center px-32" style={{ color: '#1F2937' }}>
                 under 'Micro Cluster Development Programme'
               </p>
             </div>
           </div>
 
           {/* Image Holder Section - Using renderImage with upload/generate */}
-          <div className="flex items-center justify-center my-8">
+          <div className="flex items-center justify-center my-8 ">
             {renderImage(
               'cover-image',
               '',
@@ -1644,7 +1761,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           >
             {/* Submitted to */}
             <div
-              className="border-t-2 border-b-2 border-gray-800 py-3 flex"
+              className="border-t-2 border-b-2 border-gray-800 py-1 flex"
               style={{ borderColor: '#1F2937' }}
             >
               <p
@@ -1660,7 +1777,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
 
             {/* Submitted by */}
             <div
-              className="border-b-2 border-gray-800 py-3"
+              className="border-b-2 border-gray-800 "
               style={{ borderColor: '#1F2937' }}
             >
               <div className="flex">
@@ -1672,9 +1789,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 </p>
                 <div>
                   <p className="text-sm" style={{ color: '#1F2937' }}>
-                    {s1.clusterName || 'Cluster Name'}
-                  </p>
-                  <p className="text-sm" style={{ color: '#1F2937' }}>
+                    {s1.clusterName+ ", " || 'Cluster Name'} 
                     {s1.location || 'Location'}
                   </p>
                 </div>
@@ -1682,7 +1797,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             </div>
 
             {/* Prepared by */}
-            <div className="py-3 flex">
+            <div className="flex">
               <p
                 className="text-sm font-semibold w-32"
                 style={{ color: '#1F2937' }}
@@ -1698,9 +1813,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         </div>
       )}
 
-      {/* Table of Contents - Matching PDF Format */}
+      {/* Table of Contents - Page 1 - Matching PDF Format */}
       {renderPageWrapper(
-        <div>
+        <div classname="">
           {renderSectionTitle('CONTENTS')}
           {(() => {
             // Check which sections have data
@@ -1797,94 +1912,98 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               currentPage++;
             }
 
+            // Find split point - after Expected Impact, before Financial Statements
+            const splitIndex = sections.length;
+
             // Financial Statements
+            const financialStatementsSections: Array<{ chapter: string, title: string, page: string, isHeader?: boolean }> = [];
             if (hasFinancialStatements) {
-              sections.push({ chapter: '', title: 'Financial Statements', page: '', isHeader: true });
-              sections.push({ chapter: 'SI.No.', title: 'Financial Statements', page: '' });
+              financialStatementsSections.push({ chapter: '', title: 'Financial Statements', page: '', isHeader: true });
+              financialStatementsSections.push({ chapter: 'SI.No.', title: 'Financial Statements', page: '' });
 
               let statementNum = 1;
               let statementPage = currentPage;
 
               // Cost of Project & Means of Finance (always shown if project cost exists)
               if (hasProjectCost) {
-                sections.push({ chapter: statementNum.toString(), title: 'Cost of Project & Means of Finance', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Cost of Project & Means of Finance', page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Assessment of Working Capital
               if (s12.workingCapitalMargin && s12.workingCapitalMargin > 0) {
-                sections.push({ chapter: statementNum.toString(), title: 'Assessment of Working Capital', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Assessment of Working Capital', page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Cost of Production & Profitability
               if (s15.profitAndLossProjections?.length > 0) {
-                sections.push({ chapter: statementNum.toString(), title: 'Cost of Production & Profitability', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Cost of Production & Profitability', page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Assumptions
               if (s14.capacityUtilization || s14.rawMaterialCostPercentage || s14.powerCost || s14.depreciationRate || s14.interestRate) {
-                sections.push({ chapter: statementNum.toString(), title: 'Assumptions for Cost of Production & Profitability', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Assumptions for Cost of Production & Profitability', page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Power Cost
               if (s14.powerCost) {
-                sections.push({ chapter: statementNum.toString(), title: 'Estimation of Power cost', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of Power cost', page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Manpower
               if (s14.manpowerRequirement?.length > 0 || (s17.employmentGeneration && s17.employmentGeneration > 0)) {
-                sections.push({ chapter: statementNum.toString(), title: 'Manpower requirement & estimation of cost', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Manpower requirement & estimation of cost', page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Depreciation
               if ((s12.building && s12.building > 0) || (s12.machinery && s12.machinery > 0) || s14.depreciationDetails) {
-                sections.push({ chapter: statementNum.toString(), title: 'Estimation of Depreciation', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of Depreciation', page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Income Tax
               if (s15.profitAndLossProjections?.length > 0) {
-                sections.push({ chapter: statementNum.toString(), title: 'Calculation of Income Tax', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Calculation of Income Tax', page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Cash Flow
               if (s15.cashFlowProjections?.length > 0) {
-                sections.push({ chapter: statementNum.toString(), title: 'Projected Cash Flow Statement', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Projected Cash Flow Statement', page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Balance Sheet
               if (s15.balanceSheetProjections?.length > 0) {
-                sections.push({ chapter: statementNum.toString(), title: 'Projected Balance Sheet', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Projected Balance Sheet', page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Break Even Point
               if (s15.breakEvenPoint) {
-                sections.push({ chapter: statementNum.toString(), title: 'Estimation of Break Even Point', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of Break Even Point', page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // NPV & IRR
               if (s15.npv || s15.irr) {
-                sections.push({ chapter: statementNum.toString(), title: 'Estimation of NPV & IRR', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of NPV & IRR', page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
@@ -1894,7 +2013,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
 
             // Conclusion
             if (hasConclusion) {
-              sections.push({ chapter: '', title: 'Conclusion', page: currentPage.toString() });
+              financialStatementsSections.push({ chapter: '', title: 'Conclusion', page: currentPage.toString() });
               currentPage++;
             }
 
@@ -1916,8 +2035,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               const annexureEndPage = annexureFileCount > 0 ? currentPage + annexureFileCount : currentPage;
               // If only cover page, show single page number, otherwise show range
               const annexurePageNumber = annexureFileCount > 0 ? `${annexureStartPage}-${annexureEndPage}` : annexureStartPage.toString();
-              sections.push({ chapter: '', title: 'Annexures', page: annexurePageNumber });
+              financialStatementsSections.push({ chapter: '', title: 'Annexures', page: annexurePageNumber });
             }
+
+            // Page 1: Main sections (up to Expected Impact)
+            const page1Sections = sections.slice(0, splitIndex);
 
             return (
               <table className="w-full border-collapse border border-gray-800 text-sm" style={{ borderColor: '#1F2937' }}>
@@ -1929,7 +2051,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   </tr>
                 </thead>
                 <tbody>
-                  {sections.map((section, idx) => (
+                  {page1Sections.map((section, idx) => (
                     <tr
                       key={idx}
                       style={{ backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }}
@@ -1952,11 +2074,222 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         </div>
       )}
 
-      {/* Project Snapshot - Matching PDF Format */}
+      {/* Table of Contents - Page 2 - Financial Statements and Remaining Sections */}
       {renderPageWrapper(
         <div>
+          {renderSectionTitle('CONTENTS (Continued)')}
+          {(() => {
+            // Check which sections have data
+            const hasExecutiveSummary = content.executiveSummary || (s1.clusterName || s1.district || s1.location);
+            const hasIntroduction = content.introduction || (s2.sectorType || s2.sectorDescription || s2.nationalImportance);
+            const hasDistrictProfile = s3.geography || s3.climate || s3.infrastructure || s3.keyEconomicActivities || s3.rawMaterialAvailability || s3.industrialInfrastructure || s3.connectivity;
+            const hasClusterProfile = s4.clusterEvolution || s4.productionCapacity || s4.technologyLevel;
+            const hasValueChain = s5.rawMaterials?.length > 0 || s5.valueAdditionStages?.length > 0;
+            const hasMarketAspects = s6.existingDemand || s6.demandSupplyGap || s6.competitorAnalysis || s6.priceTrends || s6.exportPotential;
+            const hasSWOT = (Array.isArray(s8.strengths) && s8.strengths.length > 0) || (Array.isArray(s8.weaknesses) && s8.weaknesses.length > 0) || (Array.isArray(s8.opportunities) && s8.opportunities.length > 0) || (Array.isArray(s8.threats) && s8.threats.length > 0);
+            const hasGapAnalysis = s7.technologyGaps || s7.infrastructureGaps || s7.skillGaps || s7.marketingGaps || s7.financialGaps || s7.justificationForIntervention;
+            const hasCFCDetails = s10.name || s10.location || s10.plantAndMachinery || s10.manufacturingProcess || s10.capacity;
+            const hasSPVDetails = s11.spvName || s11.legalStatus || s11.memberUnits?.length > 0;
+            const hasProjectCost = (s12.land && s12.land > 0) || (s12.building && s12.building > 0) || (s12.machinery && s12.machinery > 0);
+            const hasOperatingCostRevenue = s14.rawMaterialCost || s14.powerCost || s14.wages || s14.maintenance || s14.administrativeExpenses || s14.marketingExpenses || s14.annualProductionVolume || s14.annualSalesRealization;
+            const hasFinancialViability = s15.profitAndLossProjections?.length > 0 || s15.cashFlowProjections?.length > 0 || s15.balanceSheetProjections?.length > 0 || s15.breakEvenPoint || s15.irr || s15.npv;
+            const hasImplementationSchedule = s16.startDate || (Array.isArray(s16.milestones) && s16.milestones.length > 0) || s16.totalImplementationPeriod;
+            const hasExpectedImpact = s17.employmentGeneration || s17.turnoverGrowth || s17.exportGrowth || s17.incomeEnhancement || s17.sustainabilityOutcomes?.length > 0;
+            const hasFinancialStatements = (s12.workingCapitalMargin && s12.workingCapitalMargin > 0) ||
+              (s14.capacityUtilization || s14.rawMaterialCostPercentage || s14.powerCost) ||
+              (s14.manpowerRequirement?.length > 0) ||
+              ((s12.building && s12.building > 0) || (s12.machinery && s12.machinery > 0)) ||
+              (s15.profitAndLossProjections?.length > 0);
+            const hasConclusion = content.conclusion || true; // Always show conclusion section
+            const hasAnnexures = clusterData.step18?.spvRegistration || clusterData.step18?.landDocuments ||
+              clusterData.step18?.buildingEstimates || clusterData.step18?.machineryQuotations ||
+              clusterData.step18?.memberRegistrations ||
+              (clusterData.step18?.supportingDocuments && clusterData.step18.supportingDocuments.length > 0);
+
+            // Build sections array with page numbers
+            let currentPage = 1; // Start from page 1 after cover page and TOC
+
+            // Calculate currentPage for financial statements
+            if (hasExecutiveSummary) currentPage++;
+            if (hasIntroduction) currentPage++;
+            if (hasDistrictProfile) currentPage++;
+            if (hasClusterProfile) currentPage++;
+            if (hasValueChain) currentPage++;
+            if (hasMarketAspects) currentPage++;
+            if (hasSWOT) currentPage++;
+            if (hasGapAnalysis) currentPage++;
+            if (hasCFCDetails) currentPage++;
+            if (hasSPVDetails) currentPage++;
+            if (hasProjectCost) currentPage++;
+            if (hasOperatingCostRevenue) currentPage++;
+            if (hasFinancialViability) currentPage++;
+            if (hasImplementationSchedule) currentPage++;
+            if (hasExpectedImpact) currentPage++;
+
+            // Financial Statements
+            const financialStatementsSections: Array<{ chapter: string, title: string, page: string, isHeader?: boolean }> = [];
+            if (hasFinancialStatements) {
+              financialStatementsSections.push({ chapter: '', title: 'Financial Statements', page: '', isHeader: true });
+              financialStatementsSections.push({ chapter: 'SI.No.', title: 'Financial Statements', page: '' });
+
+              let statementNum = 1;
+              let statementPage = currentPage;
+
+              // Cost of Project & Means of Finance (always shown if project cost exists)
+              if (hasProjectCost) {
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Cost of Project & Means of Finance', page: statementPage.toString() });
+                statementNum++;
+                statementPage++;
+              }
+
+              // Assessment of Working Capital
+              if (s12.workingCapitalMargin && s12.workingCapitalMargin > 0) {
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Assessment of Working Capital', page: statementPage.toString() });
+                statementNum++;
+                statementPage++;
+              }
+
+              // Cost of Production & Profitability
+              if (s15.profitAndLossProjections?.length > 0) {
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Cost of Production & Profitability', page: statementPage.toString() });
+                statementNum++;
+                statementPage++;
+              }
+
+              // Assumptions
+              if (s14.capacityUtilization || s14.rawMaterialCostPercentage || s14.powerCost || s14.depreciationRate || s14.interestRate) {
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Assumptions for Cost of Production & Profitability', page: statementPage.toString() });
+                statementNum++;
+                statementPage++;
+              }
+
+              // Power Cost
+              if (s14.powerCost) {
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of Power cost', page: statementPage.toString() });
+                statementNum++;
+                statementPage++;
+              }
+
+              // Manpower
+              if (s14.manpowerRequirement?.length > 0 || (s17.employmentGeneration && s17.employmentGeneration > 0)) {
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Manpower requirement & estimation of cost', page: statementPage.toString() });
+                statementNum++;
+                statementPage++;
+              }
+
+              // Depreciation
+              if ((s12.building && s12.building > 0) || (s12.machinery && s12.machinery > 0) || s14.depreciationDetails) {
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of Depreciation', page: statementPage.toString() });
+                statementNum++;
+                statementPage++;
+              }
+
+              // Income Tax
+              if (s15.profitAndLossProjections?.length > 0) {
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Calculation of Income Tax', page: statementPage.toString() });
+                statementNum++;
+                statementPage++;
+              }
+
+              // Cash Flow
+              if (s15.cashFlowProjections?.length > 0) {
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Projected Cash Flow Statement', page: statementPage.toString() });
+                statementNum++;
+                statementPage++;
+              }
+
+              // Balance Sheet
+              if (s15.balanceSheetProjections?.length > 0) {
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Projected Balance Sheet', page: statementPage.toString() });
+                statementNum++;
+                statementPage++;
+              }
+
+              // Break Even Point
+              if (s15.breakEvenPoint) {
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of Break Even Point', page: statementPage.toString() });
+                statementNum++;
+                statementPage++;
+              }
+
+              // NPV & IRR
+              if (s15.npv || s15.irr) {
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of NPV & IRR', page: statementPage.toString() });
+                statementNum++;
+                statementPage++;
+              }
+
+              currentPage = statementPage;
+            }
+
+            // Conclusion
+            if (hasConclusion) {
+              financialStatementsSections.push({ chapter: '', title: 'Conclusion', page: currentPage.toString() });
+              currentPage++;
+            }
+
+            // Annexures
+            if (hasAnnexures) {
+              // Count annexure files to calculate pages
+              let annexureFileCount = 0;
+              if (clusterData.step18?.spvRegistration) annexureFileCount++;
+              if (clusterData.step18?.landDocuments) annexureFileCount++;
+              if (clusterData.step18?.buildingEstimates) annexureFileCount++;
+              if (clusterData.step18?.machineryQuotations) annexureFileCount++;
+              if (clusterData.step18?.memberRegistrations) annexureFileCount++;
+              if (clusterData.step18?.supportingDocuments && Array.isArray(clusterData.step18.supportingDocuments)) {
+                annexureFileCount += clusterData.step18.supportingDocuments.length;
+              }
+
+              // Annexures cover page (1 page) + each file page
+              const annexureStartPage = currentPage;
+              const annexureEndPage = annexureFileCount > 0 ? currentPage + annexureFileCount : currentPage;
+              // If only cover page, show single page number, otherwise show range
+              const annexurePageNumber = annexureFileCount > 0 ? `${annexureStartPage}-${annexureEndPage}` : annexureStartPage.toString();
+              financialStatementsSections.push({ chapter: '', title: 'Annexures', page: annexurePageNumber });
+            }
+
+            // Page 2: Financial Statements, Conclusion, and Annexures
+            const page2Sections = financialStatementsSections;
+
+            return (
+              <table className="w-full border-collapse border border-gray-800 text-sm" style={{ borderColor: '#1F2937' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#E5E7EB' }}>
+                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Chapter</th>
+                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Title</th>
+                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Page No</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {page2Sections.map((section, idx) => (
+                    <tr
+                      key={idx}
+                      style={{ backgroundColor: idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }}
+                    >
+                      <td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>
+                        {section.isHeader ? <strong>{section.chapter}</strong> : section.chapter}
+                      </td>
+                      <td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>
+                        {section.isHeader ? <strong>{section.title}</strong> : section.title}
+                      </td>
+                      <td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>
+                        {section.page}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            );
+          })()}
+        </div>
+      , { pageBreakAfter: 'auto' })}
+
+      {/* Project Snapshot - Page 1: Basic Details */}
+      {renderPageWrapper(
+        <div classname="">
           {renderSectionTitle('PROJECT SNAPSHOT')}
-          {renderEnhancedContent('projectSnapshot', 'Project Snapshot')}
+          {/* {renderEnhancedContent('projectSnapshot', 'Project Snapshot')} */}
           {renderTable(
             ['Particulars', 'Details'],
             [
@@ -1970,12 +2303,18 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               ['Number of SPV members(Micro unit holders)', `${(s11.memberUnits?.length || 0)} member units`],
             ]
           )}
+        </div>
+      )}
 
+      {/* Project Snapshot - Page 2: Existing Cluster Scenario and Key Concerns */}
+      {renderPageWrapper(
+        <div className="-mt-6">
+          {/* {renderSectionTitle('PROJECT SNAPSHOT (Continued)')} */}
           {console.log('s1.enterpriseCount', s1)}
 
           {/* Existing Cluster Scenario Table - Only show if data is available */}
           {(s1.enterpriseCount || s4.productionCapacity || s14.annualProductionVolume) && (
-            <div className="my-6">
+            <div className="-mt-2">
               <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Existing cluster scenario</h4>
               {(() => {
                 // Build table rows dynamically from available data
@@ -2031,27 +2370,61 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
 
           <div className="my-6">
             <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Key Concern areas of the cluster</h4>
-            {(() => {
-              const concerns: string[] = [];
-              if (s7.technologyGaps) concerns.push(`Technology: ${s7.technologyGaps}`);
-              if (s7.infrastructureGaps) concerns.push(`Infrastructure: ${s7.infrastructureGaps}`);
-              if (s7.skillGaps) concerns.push(`Skill: ${s7.skillGaps}`);
-              if (s7.marketingGaps) concerns.push(`Marketing: ${s7.marketingGaps}`);
-              if (s7.financialGaps) concerns.push(`Finance: ${s7.financialGaps}`);
+            {s7.technologyGaps && (
+              <div className="mb-4">
+                <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+                  <strong>Technology:</strong> {s7.technologyGaps}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
-              if (concerns.length > 0) {
-                return (
-                  <ul className="list-disc list-inside space-y-2 text-sm" style={{ color: '#1F2937' }}>
-                    {concerns.map((concern, idx) => (
-                      <li key={idx}>{concern}</li>
-                    ))}
-                  </ul>
-                );
-              }
-              return (
-                <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>
-              );
-            })()}
+      {/* Project Snapshot - Page 3: Key Concerns (Part 2, 3, 4 - Infrastructure, Skill, Marketing) */}
+      {renderPageWrapper(
+        <div className="-mt-4">
+          {/* {renderSectionTitle('PROJECT SNAPSHOT (Continued)')} */}
+          <div className="-mt-8">
+            <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Key Concern areas of the cluster (Continued)</h4>
+            {s7.infrastructureGaps && (
+              <div className="mb-4">
+                <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+                  <strong>Infrastructure:</strong> {s7.infrastructureGaps}
+                </p>
+              </div>
+            )}
+            {s7.skillGaps && (
+              <div className="mb-4">
+                <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+                  <strong>Skill:</strong> {s7.skillGaps}
+                </p>
+              </div>
+            )}
+            {s7.marketingGaps && (
+              <div className="mb-4">
+                <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+                  <strong>Marketing:</strong> {s7.marketingGaps}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Project Snapshot - Page 4: Key Concerns (Part 5 - Finance) and Project Rationale */}
+      {renderPageWrapper(
+        <div className="-mt-2">
+          {/* {renderSectionTitle('PROJECT SNAPSHOT (Continued)')} */}
+          <div className="-mt-8">
+            <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Key Concern areas of the cluster (Continued)</h4>
+            {s7.financialGaps && (
+              <div className="mb-4">
+                <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
+                  <strong>Finance:</strong> {s7.financialGaps}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="my-6">
@@ -2060,8 +2433,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               {s7.justificationForIntervention || 'N/A'}
             </p>
           </div>
+        </div>
+      )}
 
-          <div className="my-6">
+      {/* Project Snapshot - Page 5: Proposed Interventions */}
+      {renderPageWrapper(
+        <div>
+          {/* {renderSectionTitle('PROJECT SNAPSHOT (Continued)')} */}
+          <div className="-mt-8">
             <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Proposed Interventions</h4>
             {s9.interventionType && (
               <p className="text-sm mb-2" style={{ color: '#1F2937' }}>
@@ -2165,7 +2544,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         </div>
       )}
 
-      {/* Section 1: Introduction */}
+      {/* Section 1: Introduction - Page 1 */}
       {renderPageWrapper(
         <div>
           {renderSectionTitle('1. INTRODUCTION', 2)}
@@ -2179,16 +2558,25 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               <p><strong>1.1 Sector/Industry Type:</strong> {s2.sectorType || 'N/A'}</p>
               <p><strong>1.2 Sector Description:</strong></p>
               <p className="text-justify">{s2.sectorDescription || 'N/A'}</p>
-              <p><strong>1.3 National Importance:</strong></p>
-              <p className="text-justify">{s2.nationalImportance || 'N/A'}</p>
-              <p><strong>1.4 State-level Importance:</strong></p>
-              <p className="text-justify">{s2.stateLevelImportance || 'N/A'}</p>
             </div>
           )}
         </div>
       )}
 
-      {/* Section 1.5: District & Regional Profile */}
+      {/* Section 1: Introduction - Page 2 */}
+      {renderPageWrapper(
+        <div>
+          {/* {renderSectionTitle('1. INTRODUCTION (Continued)', 2)} */}
+          <div className="text-sm leading-relaxed space-y-4">
+            <p><strong>1.3 National Importance:</strong></p>
+            <p className="text-justify">{s2.nationalImportance || 'N/A'}</p>
+            <p><strong>1.4 State-level Importance:</strong></p>
+            <p className="text-justify">{s2.stateLevelImportance || 'N/A'}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Section 1.5: District & Regional Profile - Page 1 */}
       {(s3.geography || s3.climate || s3.infrastructure || s3.keyEconomicActivities || s3.rawMaterialAvailability || s3.industrialInfrastructure || s3.connectivity) && (
         <div
           className="p-12 border-b-4 border-gray-800 page-break relative"
@@ -2233,6 +2621,37 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   {renderEnhancedSubsection('districtProfile-infrastructure', s3.infrastructure)}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section 1.5: District & Regional Profile - Page 2 */}
+      {(s3.keyEconomicActivities || s3.rawMaterialAvailability || s3.rawMaterialQuantity) && (
+        <div
+          className="p-12 border-b-4 border-gray-800 page-break relative"
+          style={{
+            pageBreakAfter: 'always',
+            padding: '2cm',
+            minHeight: '29.7cm',
+            fontFamily: 'Times New Roman, serif',
+            border: '8px solid #2563EB',
+            borderStyle: 'double',
+            position: 'relative'
+          }}
+        >
+          {/* Decorative border effect */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              border: '2px solid #3B82F6',
+              margin: '8px',
+              borderRadius: '4px'
+            }}
+          />
+          <div className="relative z-10">
+            {/* {renderSectionTitle('1.5 DISTRICT & REGIONAL PROFILE (Continued)', 3)} */}
+            <div className="space-y-6 text-sm">
               {s3.keyEconomicActivities && (
                 <div>
                   <h3 className="text-xl font-semibold mb-3">1.5.4 Key Economic Activities</h3>
@@ -2251,6 +2670,37 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section 1.5: District & Regional Profile - Page 3 */}
+      {(s3.industrialInfrastructure || s3.connectivity?.road || s3.connectivity?.rail || s3.connectivity?.port) && (
+        <div
+          className="p-12 border-b-4 border-gray-800 page-break relative"
+          style={{
+            pageBreakAfter: 'always',
+            padding: '2cm',
+            minHeight: '29.7cm',
+            fontFamily: 'Times New Roman, serif',
+            border: '8px solid #2563EB',
+            borderStyle: 'double',
+            position: 'relative'
+          }}
+        >
+          {/* Decorative border effect */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              border: '2px solid #3B82F6',
+              margin: '8px',
+              borderRadius: '4px'
+            }}
+          />
+          <div className="relative z-10">
+            {/* {renderSectionTitle('1.5 DISTRICT & REGIONAL PROFILE (Continued)', 3)} */}
+            <div className="space-y-6 text-sm">
               {s3.industrialInfrastructure && (
                 <div>
                   <h3 className="text-xl font-semibold mb-3">1.5.6 Industrial Infrastructure</h3>
@@ -2275,7 +2725,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         </div>
       )}
 
-      {/* Section 2: Cluster Profile */}
+      {/* Section 2: Cluster Profile - Page 1 */}
       <div
         className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{
@@ -2313,6 +2763,43 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   ['No. of Units', (s1.enterpriseCount?.micro || 0) + (s1.enterpriseCount?.small || 0) + (s1.enterpriseCount?.medium || 0)],
                   ['Production Capacity', s4.productionCapacity || 'N/A'],
                   ['Technology Level', s4.technologyLevel || 'N/A'],
+                ]
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 2: Cluster Profile - Page 2 */}
+      <div
+        className="p-12 border-b-4 border-gray-800 page-break relative"
+        style={{
+          pageBreakAfter: 'always',
+          padding: '2cm',
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
+        }}
+      >
+        {/* Decorative border effect */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {/* {renderSectionTitle('2. CLUSTER PROFILE (Continued)', 4)} */}
+          <div className="space-y-6 text-sm">
+            <div>
+              <h3 className="text-xl font-semibold mb-3">2.2 Present Status of Cluster Units (Continued)</h3>
+              {renderTable(
+                ['Parameter', 'Details'],
+                [
                   ['Year of Establishment', s4.yearOfEstablishment || 'N/A'],
                   ['Type of Units', s4.typeOfUnits || 'N/A'],
                   ['Present Activities', s4.presentActivities || 'N/A'],
@@ -2404,36 +2891,43 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   )}
                 </div>
               )}
-              {s5.intermediateProducts && Array.isArray(s5.intermediateProducts) && s5.intermediateProducts.length > 0 && (
-                <div className="my-4">
-                  <h4 className="font-semibold mb-2">Intermediate Products:</h4>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    {s5.intermediateProducts.map((product: string, idx: number) => (
-                      <li key={idx}>{product}</li>
-                    ))}
-                  </ul>
+              {/* Products and Buyers side by side */}
+              <div className="my-4 grid grid-cols-2 gap-6">
+                <div>
+                  {s5.intermediateProducts && Array.isArray(s5.intermediateProducts) && s5.intermediateProducts.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="font-semibold mb-2">Intermediate Products:</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm">
+                        {s5.intermediateProducts.map((product: string, idx: number) => (
+                          <li key={idx}>{product}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {s5.finalProducts && Array.isArray(s5.finalProducts) && s5.finalProducts.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-2">Final Products:</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm">
+                        {s5.finalProducts.map((product: string, idx: number) => (
+                          <li key={idx}>{product}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-              )}
-              {s5.finalProducts && Array.isArray(s5.finalProducts) && s5.finalProducts.length > 0 && (
-                <div className="my-4">
-                  <h4 className="font-semibold mb-2">Final Products:</h4>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    {s5.finalProducts.map((product: string, idx: number) => (
-                      <li key={idx}>{product}</li>
-                    ))}
-                  </ul>
+                <div>
+                  {s5.majorBuyers && Array.isArray(s5.majorBuyers) && s5.majorBuyers.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-2">Major Buyers:</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm">
+                        {s5.majorBuyers.map((buyer: string, idx: number) => (
+                          <li key={idx}>{buyer}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-              )}
-              {s5.majorBuyers && Array.isArray(s5.majorBuyers) && s5.majorBuyers.length > 0 && (
-                <div className="my-4">
-                  <h4 className="font-semibold mb-2">Major Buyers:</h4>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    {s5.majorBuyers.map((buyer: string, idx: number) => (
-                      <li key={idx}>{buyer}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              </div>
             </div>
             {/* Value chain diagram placeholder */}
             <div className="my-6">
@@ -2453,7 +2947,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         </div>
       </div>
 
-      {/* Section 4: Market Aspects */}
+      {/* Section 4: Market Aspects - Page 1 */}
       <div
         className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{
@@ -2496,6 +2990,35 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               <h3 className="text-xl font-semibold mb-3">4.3 Price Trends</h3>
               {renderEnhancedSubsection('marketAspects-priceTrends', s6.priceTrends)}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 4: Market Aspects - Page 2 */}
+      <div
+        className="p-12 border-b-4 border-gray-800 page-break relative"
+        style={{
+          pageBreakAfter: 'always',
+          padding: '2cm',
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
+        }}
+      >
+        {/* Decorative border effect */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {/* {renderSectionTitle('4. MARKET ASPECTS (Continued)', 6)} */}
+          <div className="space-y-6 text-sm">
             <div>
               <h3 className="text-xl font-semibold mb-3">4.4 Export Potential</h3>
               {renderEnhancedSubsection('marketAspects-exportPotential', s6.exportPotential)}
@@ -2572,7 +3095,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         </div>
       </div>
 
-      {/* Section 6: Gap Analysis */}
+      {/* Section 6: Gap Analysis - Page 1 */}
       <div
         className="p-12 border-b-4 border-gray-800 page-break relative"
         style={{
@@ -2607,6 +3130,33 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               ['Finance', s7.financialGaps || 'N/A'],
             ]
           )}
+        </div>
+      </div>
+
+      {/* Section 6: Gap Analysis - Page 2 */}
+      <div
+        className="p-12 border-b-4 border-gray-800 page-break relative"
+        style={{
+          pageBreakAfter: 'always',
+          padding: '2cm',
+          minHeight: '29.7cm',
+          fontFamily: 'Times New Roman, serif',
+          border: '8px solid #2563EB',
+          borderStyle: 'double',
+          position: 'relative'
+        }}
+      >
+        {/* Decorative border effect */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            border: '2px solid #3B82F6',
+            margin: '8px',
+            borderRadius: '4px'
+          }}
+        />
+        <div className="relative z-10">
+          {/* {renderSectionTitle('6. NEED GAP ANALYSIS (Continued)', 7)} */}
           <div className="my-6">
             <h3 className="text-xl font-semibold mb-3">Justification for Intervention</h3>
             <p className="text-sm text-justify leading-relaxed">{s7.justificationForIntervention || 'N/A'}</p>
@@ -2614,10 +3164,10 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         </div>
       </div>
 
-      {/* Section 7: CFC Details - Split into 2 pages if needed */}
+      {/* Section 7: CFC Details - Split into 4 pages */}
       {(s10.name || s10.location || s10.plantAndMachinery || s10.manufacturingProcess || s10.capacity) && (
         <>
-          {/* Page 1: CFC Overview, Plant & Machinery, Process, Capacity, Requirements */}
+          {/* Page 1: CFC Overview */}
           {renderPageWrapper(
             <div>
               {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT', 10)}
@@ -2635,6 +3185,15 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                     ]
                   )}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Page 2: Plant & Machinery, Manufacturing Process */}
+          {renderPageWrapper(
+            <div>
+              {/* {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT (Continued)', 10)} */}
+              <div className="space-y-6 text-sm">
                 <div>
                   <h3 className="text-xl font-semibold mb-3">7.2 Plant & Machinery</h3>
                   <p className="text-justify leading-relaxed">{s10.plantAndMachinery || 'N/A'}</p>
@@ -2643,32 +3202,38 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   <h3 className="text-xl font-semibold mb-3">7.3 Manufacturing Process</h3>
                   <p className="text-justify leading-relaxed">{s10.manufacturingProcess || 'N/A'}</p>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Page 3: Capacity and Requirements */}
+          {renderPageWrapper(
+            <div>
+              {/* {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT (Continued)', 10)} */}
+              <div className="space-y-6 text-sm">
                 <div>
                   <h3 className="text-xl font-semibold mb-3">7.4 Capacity</h3>
                   <p>{s10.capacity || 'N/A'}</p>
                 </div>
-                <div className='flex gap-12 items-center justify-space-between w-full'>
-                  <div>
-                    <h4>Power Requirements</h4>
-                    <p>{s10.powerRequirements || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <h4>Water Requirements</h4>
-                    <p>{s10.waterRequirements || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <h4>Manpower Requirements</h4>
-                    <p>{s10.manpowerRequirements || 'N/A'}</p>
-                  </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-3">7.5 Requirements</h3>
+                  {renderTable(
+                    ['Requirement', 'Details'],
+                    [
+                      ['Power Requirements', s10.powerRequirements || 'N/A'],
+                      ['Water Requirements', s10.waterRequirements || 'N/A'],
+                      ['Manpower Requirements', s10.manpowerRequirements || 'N/A'],
+                    ]
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Page 2: Process Flow Diagram and Machinery Layout */}
+          {/* Page 4: Process Flow Diagram and Machinery Layout */}
           {renderPageWrapper(
             <div>
-              {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT (Continued)')}
+              {/* {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT (Continued)', 10)} */}
               <div className="space-y-6 text-sm">
                 {/* Process flow diagram and machinery images */}
                 <div className="my-6">
@@ -2768,7 +3333,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           {/* Page 2: Member Units, Objectives, Roles, Board, Registrations */}
           {renderPageWrapper(
             <div>
-              {renderSectionTitle('8. SPV MEMBER UNITS (Continued)')}
+              {/* {renderSectionTitle('8. SPV MEMBER UNITS (Continued)')} */}
               <div className="space-y-6 text-sm">
                 {s11.memberUnits && Array.isArray(s11.memberUnits) && s11.memberUnits.length > 0 && (
                   <div>
@@ -3157,7 +3722,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         </div>
       </div>
 
-      {/* Financial Statements - Detailed Section */}
+      {/* Financial Statements - Detailed Section - Split into 6 pages */}
       {(() => {
         const financialStatements = s15.financialStatements || {};
         const hasFinancialStatements = Object.keys(financialStatements).length > 0 || 
@@ -3168,29 +3733,31 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         if (!hasFinancialStatements) return null;
 
         return (
-          <div
-            className="p-12 border-b-4 border-gray-800 page-break relative"
-            style={{
-              pageBreakAfter: 'always',
-              padding: '2cm',
-              minHeight: '29.7cm',
-              fontFamily: 'Times New Roman, serif',
-              border: '8px solid #2563EB',
-              borderStyle: 'double',
-              position: 'relative'
-            }}
-          >
-            {/* Decorative border effect */}
+          <>
+            {/* Page 1: Statements 1 & 2 */}
             <div
-              className="absolute inset-0 pointer-events-none"
+              className="p-12 border-b-4 border-gray-800 page-break relative"
               style={{
-                border: '2px solid #3B82F6',
-                margin: '8px',
-                borderRadius: '4px'
+                pageBreakAfter: 'always',
+                padding: '2cm',
+                minHeight: '29.7cm',
+                fontFamily: 'Times New Roman, serif',
+                border: '8px solid #2563EB',
+                borderStyle: 'double',
+                position: 'relative'
               }}
-            />
-            <div className="relative z-10">
-              {renderSectionTitle('FINANCIAL STATEMENTS')}
+            >
+              {/* Decorative border effect */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  border: '2px solid #3B82F6',
+                  margin: '8px',
+                  borderRadius: '4px'
+                }}
+              />
+              <div className="relative z-10">
+                {renderSectionTitle('FINANCIAL STATEMENTS')}
 
               {/* Statement 1: Cost of Project & Means of Finance */}
               {(financialStatements.costOfProject || financialStatements.spvShare || financialStatements.stateGovtGrant || financialStatements.bankLoan || s12.totalProjectCost || s13.spvContribution || s13.governmentGrant || s13.bankLoan) && (
@@ -3365,7 +3932,33 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   })()}
                 </div>
               )}
+              </div>
+            </div>
 
+            {/* Page 2: Statements 3 & 4 */}
+            <div
+              className="p-12 border-b-4 border-gray-800 page-break relative"
+              style={{
+                pageBreakAfter: 'always',
+                padding: '2cm',
+                minHeight: '29.7cm',
+                fontFamily: 'Times New Roman, serif',
+                border: '8px solid #2563EB',
+                borderStyle: 'double',
+                position: 'relative'
+              }}
+            >
+              {/* Decorative border effect */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  border: '2px solid #3B82F6',
+                  margin: '8px',
+                  borderRadius: '4px'
+                }}
+              />
+              <div className="relative z-10">
+                {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')}
               {/* Statement 3: Cost of Production & Profitability - Matching PDF format */}
               {(financialStatements.costOfProduction || s15.profitAndLossProjections) && (
                 <div className="my-6">
@@ -3516,7 +4109,33 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   })()}
                 </div>
               )}
+              </div>
+            </div>
 
+            {/* Page 3: Statements 5 & 6 */}
+            <div
+              className="p-12 border-b-4 border-gray-800 page-break relative"
+              style={{
+                pageBreakAfter: 'always',
+                padding: '2cm',
+                minHeight: '29.7cm',
+                fontFamily: 'Times New Roman, serif',
+                border: '8px solid #2563EB',
+                borderStyle: 'double',
+                position: 'relative'
+              }}
+            >
+              {/* Decorative border effect */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  border: '2px solid #3B82F6',
+                  margin: '8px',
+                  borderRadius: '4px'
+                }}
+              />
+              <div className="relative z-10">
+                {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')}
               {/* Statement 5: Estimation of Power Cost */}
               {(financialStatements.powerCost || s14.powerCost) && (
                 <div className="my-6">
@@ -3676,7 +4295,33 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   })()}
                 </div>
               )}
+              </div>
+            </div>
 
+            {/* Page 4: Statements 7 & 8 */}
+            <div
+              className="p-12 border-b-4 border-gray-800 page-break relative"
+              style={{
+                pageBreakAfter: 'always',
+                padding: '2cm',
+                minHeight: '29.7cm',
+                fontFamily: 'Times New Roman, serif',
+                border: '8px solid #2563EB',
+                borderStyle: 'double',
+                position: 'relative'
+              }}
+            >
+              {/* Decorative border effect */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  border: '2px solid #3B82F6',
+                  margin: '8px',
+                  borderRadius: '4px'
+                }}
+              />
+              <div className="relative z-10">
+                {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')}
               {/* Statement 7: Estimation of Depreciation */}
               {(financialStatements.depreciation || s14.depreciationDetails || (s12.building && s12.machinery)) && (
                 <div className="my-6">
@@ -3888,7 +4533,33 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   })()}
                 </div>
               )}
+              </div>
+            </div>
 
+            {/* Page 5: Statement 9 */}
+            <div
+              className="p-12 border-b-4 border-gray-800 page-break relative"
+              style={{
+                pageBreakAfter: 'always',
+                padding: '2cm',
+                minHeight: '29.7cm',
+                fontFamily: 'Times New Roman, serif',
+                border: '8px solid #2563EB',
+                borderStyle: 'double',
+                position: 'relative'
+              }}
+            >
+              {/* Decorative border effect */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  border: '2px solid #3B82F6',
+                  margin: '8px',
+                  borderRadius: '4px'
+                }}
+              />
+              <div className="relative z-10">
+                {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')}
               {/* Statement 9: Projected Cash Flow Statement - Matching PDF format */}
               {/* Note: This statement is calculated from other statements. Edit values in Statements 1-8 to update this. */}
               {(financialStatements.cashFlow || s15.cashFlowProjections) && (
@@ -4006,7 +4677,33 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   })()}
                 </div>
               )}
+              </div>
+            </div>
 
+            {/* Page 6: Statement 10 */}
+            <div
+              className="p-12 border-b-4 border-gray-800 page-break relative"
+              style={{
+                pageBreakAfter: 'always',
+                padding: '2cm',
+                minHeight: '29.7cm',
+                fontFamily: 'Times New Roman, serif',
+                border: '8px solid #2563EB',
+                borderStyle: 'double',
+                position: 'relative'
+              }}
+            >
+              {/* Decorative border effect */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  border: '2px solid #3B82F6',
+                  margin: '8px',
+                  borderRadius: '4px'
+                }}
+              />
+              <div className="relative z-10">
+                {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')}
               {/* Statement 10: Projected Balance Sheet - Matching PDF format */}
               {/* Note: This statement is calculated from other statements. Edit values in Statements 1-8 to update this. */}
               {(financialStatements.balanceSheet || s15.balanceSheetProjections) && (
@@ -4122,7 +4819,33 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   })()}
                 </div>
               )}
+              </div>
+            </div>
 
+            {/* Page 7: Statement 11 */}
+            <div
+              className="p-12 border-b-4 border-gray-800 page-break relative"
+              style={{
+                pageBreakAfter: 'always',
+                padding: '2cm',
+                minHeight: '29.7cm',
+                fontFamily: 'Times New Roman, serif',
+                border: '8px solid #2563EB',
+                borderStyle: 'double',
+                position: 'relative'
+              }}
+            >
+              {/* Decorative border effect */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  border: '2px solid #3B82F6',
+                  margin: '8px',
+                  borderRadius: '4px'
+                }}
+              />
+              <div className="relative z-10">
+                {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')}
               {/* Statement 11: Estimation of Break Even Point - Matching PDF format */}
               {(financialStatements.breakEven || s15.breakEvenPoint || financialStatements.costOfProduction) && (
                 <div className="my-6">
@@ -4307,7 +5030,33 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   })()}
                 </div>
               )}
+              </div>
+            </div>
 
+            {/* Page 8: Statement 12 */}
+            <div
+              className="p-12 border-b-4 border-gray-800 page-break relative"
+              style={{
+                pageBreakAfter: 'always',
+                padding: '2cm',
+                minHeight: '29.7cm',
+                fontFamily: 'Times New Roman, serif',
+                border: '8px solid #2563EB',
+                borderStyle: 'double',
+                position: 'relative'
+              }}
+            >
+              {/* Decorative border effect */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  border: '2px solid #3B82F6',
+                  margin: '8px',
+                  borderRadius: '4px'
+                }}
+              />
+              <div className="relative z-10">
+                {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')}
               {/* Statement 12: Estimation of NPV & IRR - Matching PDF format */}
               {(financialStatements.npvIrr || s15.npv || s15.irr || financialStatements.cashFlow) && (
                 <div className="my-6">
@@ -4432,8 +5181,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   })()}
                 </div>
               )}
+              </div>
             </div>
-          </div>
+          </>
         );
       })()}
 

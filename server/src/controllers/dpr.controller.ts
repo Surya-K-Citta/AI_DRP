@@ -780,6 +780,7 @@ export class DPRController {
       const { dprId } = req.params;
       const { language = 'english' } = req.query;
       const html = req.body?.html;
+      console.log('html', html);
 
       if (!html || typeof html !== 'string' || html.trim().length === 0) {
         res.status(400).json({
