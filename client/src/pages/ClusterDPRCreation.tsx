@@ -322,14 +322,23 @@ export const ClusterDPRCreation: React.FC = () => {
   //   }
   // }, [data, isLoadingData, saveToDatabase]);
 
+  const scrollFormIntoViewIfNeeded = (smooth = true) => {
+    const el = document.getElementById('cluster-dpr-form');
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.top < 0 || rect.bottom > window.innerHeight) {
+      el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+    }
+  };
+
   const handleNext = async () => {
     if (currentStep < totalSteps) {
       // Save to database before moving to next step
       await saveToDatabase();
       
       setCurrentStep(currentStep + 1);
-      // Scroll to top of form
-      document.getElementById('cluster-dpr-form')?.scrollIntoView({ behavior: 'smooth' });
+      // Scroll to top of the page so the new content appears to come from top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -339,14 +348,15 @@ export const ClusterDPRCreation: React.FC = () => {
       await saveToDatabase();
       
       setCurrentStep(currentStep - 1);
-      // Scroll to top of form
-      document.getElementById('cluster-dpr-form')?.scrollIntoView({ behavior: 'smooth' });
+      // Scroll to top of the page so the new content appears to come from top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleStepClick = (step: number) => {
     setCurrentStep(step);
-    document.getElementById('cluster-dpr-form')?.scrollIntoView({ behavior: 'smooth' });
+    // Scroll to top of the page so the selected step appears to come from top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSaveDraft = async () => {
@@ -783,7 +793,8 @@ export const ClusterDPRCreation: React.FC = () => {
                           viewLanguage="english"
                           onSectionClick={(stepNumber: number) => {
                             setCurrentStep(stepNumber);
-                            document.getElementById('cluster-dpr-form')?.scrollIntoView({ behavior: 'smooth' });
+                            // Scroll to top of the page when a section is clicked in preview
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
                           onDataChange={(field, value) => {
                             // Update store when financial data changes
