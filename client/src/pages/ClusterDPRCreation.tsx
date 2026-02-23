@@ -655,8 +655,8 @@ export const ClusterDPRCreation: React.FC = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <ClusterDPRForm 
-                        key={`step-${currentStep}-${data.projectId || 'new'}-${isLoadingData ? 'loading' : 'loaded'}-${data.step1 ? JSON.stringify(data.step1).substring(0, 50) : ''}`}
+                      <ClusterDPRForm
+                        key={`step-${currentStep}-${data.projectId || 'new'}-${isLoadingData ? 'loading' : 'loaded'}`}
                         currentStep={currentStep}
                         onNext={handleNext}
                         onPrevious={handlePrevious}

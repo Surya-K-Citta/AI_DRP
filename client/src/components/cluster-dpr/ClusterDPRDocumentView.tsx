@@ -25,7 +25,7 @@ interface ClusterDPRDocumentViewProps {
 export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ dpr, project, viewLanguage, onSectionClick, onDataChange }) => {
   // Get store functions to update data
   const { data: storeData, setStepData } = useClusterDPRStore();
-  
+
   // Extract cluster data from multiple possible locations
   const clusterData =
     dpr.content?.[viewLanguage]?.clusterData ||
@@ -60,13 +60,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   useEffect(() => {
     // First check DPR content for images (from generated DPR)
     const dprImages = content.images || dpr.content?.english?.images || dpr.content?.telugu?.images || {};
-    
+
     // Then check project for images (from preview/generation)
     const projectImages = project?.images || {};
-    
+
     // Merge both sources (DPR content takes precedence)
     const allImages = { ...projectImages, ...dprImages };
-    
+
     if (Object.keys(allImages).length > 0) {
       console.log('📥 Loaded images:', {
         fromDPR: Object.keys(dprImages).length,
@@ -475,7 +475,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
     return (
       <div className="my-2" style={{ pageBreakInside: 'avoid' }}>
         {title && (
-          <div className="mb-3" style={{ pageBreakAfter: 'avoid' }}>
+          <div className="" style={{ pageBreakAfter: 'avoid' }}>
             {statementNumber && (
               <p className="text-xs text-gray-600 mb-1 font-semibold">Statement {statementNumber}</p>
             )}
@@ -490,9 +490,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           </div>
         )}
         <div className="overflow-x-auto" style={tableBreakStyle}>
-          <table 
-            className="w-full border-collapse border border-gray-800 text-sm" 
-            style={{ 
+          <table
+            className="w-full border-collapse border border-gray-800 text-sm"
+            style={{
               borderColor: '#1F2937',
               ...tableBreakStyle
             }}
@@ -518,7 +518,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               {rows.map((row, rowIdx) => (
                 <tr
                   key={rowIdx}
-                  style={{ 
+                  style={{
                     backgroundColor: rowIdx % 2 === 0 ? '#FFFFFF' : '#F9FAFB',
                     pageBreakInside: 'avoid' // Try to keep rows together
                   }}
@@ -549,7 +549,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       if (result.success && result.data?.imageUrl) {
         const imageUrl = result.data.imageUrl;
         setImages({ ...images, [imageId]: imageUrl });
-        
+
         // Save image to project database
         const projectId = project?._id || project?.id;
         if (projectId) {
@@ -567,7 +567,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             // Don't show error to user - image is still in state for preview
           }
         }
-        
+
         toast.success('Image generated successfully!');
       } else {
         toast.error(result.message || 'Failed to generate image');
@@ -769,7 +769,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
   const handleApplyEnhancedContent = async (sectionName: string) => {
     let dprId = dpr?._id || dpr?.id;
     const projectId = project?._id || project?.id;
-    
+
     // Try to get DPR ID from project if not available
     if (!dprId && projectId) {
       try {
@@ -785,7 +785,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         console.warn('Failed to get DPRs for project:', error);
       }
     }
-    
+
     if (!dprId) {
       toast.error('DPR not found. Please generate DPR first to apply enhanced content permanently.');
       return;
@@ -825,7 +825,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       }
 
       const result = await api.applyClusterDPREnhancedContent(dprId, sectionName, viewLanguage);
-      
+
       if (!result.success) {
         console.error('Failed to apply enhanced content:', {
           sectionName,
@@ -835,7 +835,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           hasEnhancedContent: !!enhancedContentToApply,
           enhancedContentLength: enhancedContentToApply?.length
         });
-        
+
         // If the error says content not found, try saving again and retrying
         if (result.message?.includes('not found') && enhancedContentToApply) {
           console.log('Retrying: Saving enhanced content again and retrying apply...');
@@ -845,7 +845,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             };
             await api.saveClusterDPREnhancedContent(dprId, contentToSave, viewLanguage);
             await new Promise(resolve => setTimeout(resolve, 200));
-            
+
             // Retry applying
             const retryResult = await api.applyClusterDPREnhancedContent(dprId, sectionName, viewLanguage);
             if (retryResult.success && retryResult.data) {
@@ -865,7 +865,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           }
         }
       }
-      
+
       if (result.success && result.data) {
         // Use the applied content from the response (full content from database)
         const appliedContent = result.data.appliedContent || enhancedContentToApply;
@@ -1324,230 +1324,230 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             {/* Enhance Complete DPR Card */}
             <div className="flex-1 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border-2 border-blue-200 shadow-md hover:shadow-lg transition-shadow">
               <div className="flex flex-col h-full">
-                
+
                 <div className="mt-auto">
                   <Button
                     variant="primary"
                     size="lg"
                     onClick={async () => {
-                const sectionsToEnhance = [
-                  { name: 'projectSnapshot', data: { step1: s1, step11: s11 } },
-                  { name: 'introduction', data: s2 },
-                  { name: 'districtProfile', data: s3 },
-                  // District Profile Subsections - pass with context
-                  ...(s3.geography ? [{ name: 'districtProfile-geography', data: { text: s3.geography, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
-                  ...(s3.climate ? [{ name: 'districtProfile-climate', data: { text: s3.climate, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
-                  ...(s3.infrastructure ? [{ name: 'districtProfile-infrastructure', data: { text: s3.infrastructure, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
-                  ...(s3.keyEconomicActivities ? [{ name: 'districtProfile-keyEconomicActivities', data: { text: s3.keyEconomicActivities, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
-                  ...(s3.industrialInfrastructure ? [{ name: 'districtProfile-industrialInfrastructure', data: { text: s3.industrialInfrastructure, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
-                  { name: 'clusterProfile', data: s4 },
-                  // Cluster Profile Subsections - pass with context
-                  ...(s4.clusterEvolution ? [{ name: 'clusterProfile-evolution', data: { text: s4.clusterEvolution, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s4 } }] : []),
-                  { name: 'valueChain', data: s5 },
-                  { name: 'marketAspects', data: s6 },
-                  // Market Aspects Subsections - pass with context
-                  ...(s6.existingDemand ? [{ name: 'marketAspects-demandSupply', data: { text: s6.existingDemand, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
-                  ...(s6.demandSupplyGap ? [{ name: 'marketAspects-demandSupplyGap', data: { text: s6.demandSupplyGap, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
-                  ...(s6.competitorAnalysis ? [{ name: 'marketAspects-competition', data: { text: s6.competitorAnalysis, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
-                  ...(s6.priceTrends ? [{ name: 'marketAspects-priceTrends', data: { text: s6.priceTrends, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
-                  ...(s6.exportPotential ? [{ name: 'marketAspects-exportPotential', data: { text: s6.exportPotential, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
-                  ...(s6.targetMarket ? [{ name: 'marketAspects-targetMarket', data: { text: s6.targetMarket, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
-                  { name: 'swotAnalysis', data: s8 },
-                  { name: 'gapAnalysis', data: s7 },
-                  { name: 'cfcDetails', data: s10 },
-                  { name: 'spvDetails', data: s11 },
-                  { name: 'projectCost', data: { step12: s12, step13: s13 } },
-                  { name: 'operatingCostRevenue', data: s14 },
-                  { name: 'financialViability', data: s15 },
-                  { name: 'implementationSchedule', data: s16 },
-                  { name: 'expectedImpact', data: s17 },
-                  { name: 'conclusion', data: clusterData },
-                ];
+                      const sectionsToEnhance = [
+                        { name: 'projectSnapshot', data: { step1: s1, step11: s11 } },
+                        { name: 'introduction', data: s2 },
+                        { name: 'districtProfile', data: s3 },
+                        // District Profile Subsections - pass with context
+                        ...(s3.geography ? [{ name: 'districtProfile-geography', data: { text: s3.geography, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
+                        ...(s3.climate ? [{ name: 'districtProfile-climate', data: { text: s3.climate, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
+                        ...(s3.infrastructure ? [{ name: 'districtProfile-infrastructure', data: { text: s3.infrastructure, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
+                        ...(s3.keyEconomicActivities ? [{ name: 'districtProfile-keyEconomicActivities', data: { text: s3.keyEconomicActivities, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
+                        ...(s3.industrialInfrastructure ? [{ name: 'districtProfile-industrialInfrastructure', data: { text: s3.industrialInfrastructure, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s3 } }] : []),
+                        { name: 'clusterProfile', data: s4 },
+                        // Cluster Profile Subsections - pass with context
+                        ...(s4.clusterEvolution ? [{ name: 'clusterProfile-evolution', data: { text: s4.clusterEvolution, clusterName: s1.clusterName, district: s1.district, location: s1.location, context: s4 } }] : []),
+                        { name: 'valueChain', data: s5 },
+                        { name: 'marketAspects', data: s6 },
+                        // Market Aspects Subsections - pass with context
+                        ...(s6.existingDemand ? [{ name: 'marketAspects-demandSupply', data: { text: s6.existingDemand, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                        ...(s6.demandSupplyGap ? [{ name: 'marketAspects-demandSupplyGap', data: { text: s6.demandSupplyGap, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                        ...(s6.competitorAnalysis ? [{ name: 'marketAspects-competition', data: { text: s6.competitorAnalysis, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                        ...(s6.priceTrends ? [{ name: 'marketAspects-priceTrends', data: { text: s6.priceTrends, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                        ...(s6.exportPotential ? [{ name: 'marketAspects-exportPotential', data: { text: s6.exportPotential, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                        ...(s6.targetMarket ? [{ name: 'marketAspects-targetMarket', data: { text: s6.targetMarket, clusterName: s1.clusterName, majorProducts: s1.majorProducts, context: s6 } }] : []),
+                        { name: 'swotAnalysis', data: s8 },
+                        { name: 'gapAnalysis', data: s7 },
+                        { name: 'cfcDetails', data: s10 },
+                        { name: 'spvDetails', data: s11 },
+                        { name: 'projectCost', data: { step12: s12, step13: s13 } },
+                        { name: 'operatingCostRevenue', data: s14 },
+                        { name: 'financialViability', data: s15 },
+                        { name: 'implementationSchedule', data: s16 },
+                        { name: 'expectedImpact', data: s17 },
+                        { name: 'conclusion', data: clusterData },
+                      ];
 
-                // Filter out sections that don't have data
-                const validSections = sectionsToEnhance.filter(section => {
-                  if (section.name === 'projectSnapshot') return s1.clusterName || s11.spvName;
-                  if (section.name === 'introduction') return s2.sectorType || s2.sectorDescription;
-                  if (section.name === 'districtProfile') return s3.geography || s3.climate || s3.infrastructure;
-                  if (section.name === 'clusterProfile') return s4.clusterEvolution || s4.productionCapacity;
-                  if (section.name === 'valueChain') return s5.rawMaterials?.length > 0 || s5.valueAdditionStages?.length > 0;
-                  if (section.name === 'marketAspects') return s6.existingDemand || s6.competitorAnalysis;
-                  if (section.name === 'swotAnalysis') return (Array.isArray(s8.strengths) && s8.strengths.length > 0) || (Array.isArray(s8.weaknesses) && s8.weaknesses.length > 0);
-                  if (section.name === 'gapAnalysis') return s7.technologyGaps || s7.infrastructureGaps;
-                  if (section.name === 'cfcDetails') return s10.name || s10.location;
-                  if (section.name === 'spvDetails') return s11.spvName || s11.legalStatus;
-                  if (section.name === 'operatingCostRevenue') return s14.rawMaterialCost || s14.powerCost || s14.wages;
-                  if (section.name === 'projectCost') return s12.land || s12.building || s12.machinery;
-                  if (section.name === 'financialViability') return s15.profitAndLossProjections || s15.irr || s15.npv;
-                  if (section.name === 'implementationSchedule') return s16.startDate || (Array.isArray(s16.milestones) && s16.milestones.length > 0);
-                  if (section.name === 'expectedImpact') return s17.employmentGeneration || s17.turnoverGrowth;
-                  if (section.name === 'conclusion') return true; // Always enhance conclusion
-                  return false;
-                });
+                      // Filter out sections that don't have data
+                      const validSections = sectionsToEnhance.filter(section => {
+                        if (section.name === 'projectSnapshot') return s1.clusterName || s11.spvName;
+                        if (section.name === 'introduction') return s2.sectorType || s2.sectorDescription;
+                        if (section.name === 'districtProfile') return s3.geography || s3.climate || s3.infrastructure;
+                        if (section.name === 'clusterProfile') return s4.clusterEvolution || s4.productionCapacity;
+                        if (section.name === 'valueChain') return s5.rawMaterials?.length > 0 || s5.valueAdditionStages?.length > 0;
+                        if (section.name === 'marketAspects') return s6.existingDemand || s6.competitorAnalysis;
+                        if (section.name === 'swotAnalysis') return (Array.isArray(s8.strengths) && s8.strengths.length > 0) || (Array.isArray(s8.weaknesses) && s8.weaknesses.length > 0);
+                        if (section.name === 'gapAnalysis') return s7.technologyGaps || s7.infrastructureGaps;
+                        if (section.name === 'cfcDetails') return s10.name || s10.location;
+                        if (section.name === 'spvDetails') return s11.spvName || s11.legalStatus;
+                        if (section.name === 'operatingCostRevenue') return s14.rawMaterialCost || s14.powerCost || s14.wages;
+                        if (section.name === 'projectCost') return s12.land || s12.building || s12.machinery;
+                        if (section.name === 'financialViability') return s15.profitAndLossProjections || s15.irr || s15.npv;
+                        if (section.name === 'implementationSchedule') return s16.startDate || (Array.isArray(s16.milestones) && s16.milestones.length > 0);
+                        if (section.name === 'expectedImpact') return s17.employmentGeneration || s17.turnoverGrowth;
+                        if (section.name === 'conclusion') return true; // Always enhance conclusion
+                        return false;
+                      });
 
-                const totalSections = validSections.length;
-                let dprId = dpr?._id || dpr?.id;
-                const projectId = project?._id || project?.id;
+                      const totalSections = validSections.length;
+                      let dprId = dpr?._id || dpr?.id;
+                      const projectId = project?._id || project?.id;
 
-                // If DPR doesn't exist yet, try to get or create it using project ID
-                if (!dprId && projectId) {
-                  try {
-                    // Try to get existing DPRs for this project
-                    const dprsResponse = await api.getProjectDPRs(projectId);
-                    const dprs = dprsResponse.data || dprsResponse;
-                    if (Array.isArray(dprs) && dprs.length > 0) {
-                      // Find draft DPR
-                      const draftDpr = dprs.find((d: any) => d.status === 'draft');
-                      if (draftDpr) {
-                        dprId = draftDpr._id || draftDpr.id;
-                      }
-                    }
-                    
-                    // If still no DPR, we'll proceed without saving to database
-                    // The enhanced content will still be stored in state for preview
-                    if (!dprId) {
-                      console.warn('No DPR found for project. Enhanced content will be stored in preview only.');
-                    }
-                  } catch (error) {
-                    console.warn('Failed to get DPRs for project:', error);
-                    // Continue without DPR ID - enhanced content will still work in preview
-                  }
-                }
-
-                if (!dprId && !projectId) {
-                  toast.error('Project not found. Please save your project first.');
-                  return;
-                }
-
-                // Set all sections as enhancing
-                const enhancingState: Record<string, boolean> = {};
-                validSections.forEach(section => {
-                  enhancingState[section.name] = true;
-                });
-                setEnhancingSections(enhancingState);
-
-                toast.loading(`Enhancing and applying all sections: 0/${totalSections}`, { id: 'enhance-all', duration: Infinity });
-
-                try {
-                  // Enhance all sections and automatically apply them
-                  let successCount = 0;
-                  let failedCount = 0;
-                  let appliedCount = 0;
-
-                  // Process sections sequentially to avoid overwhelming the API
-                  for (let i = 0; i < validSections.length; i++) {
-                    const section = validSections[i];
-                    try {
-                      toast.loading(`Enhancing and applying: ${i + 1}/${totalSections} - ${section.name}`, { id: 'enhance-all' });
-                      
-                      // Step 1: Enhance the section and get the enhanced content
-                      const enhanceResult = await api.enhanceClusterDPRSection(section.name, section.data, clusterData);
-                      if (!enhanceResult.success || !enhanceResult.data?.enhancedParagraph) {
-                        throw new Error(enhanceResult.message || 'Failed to enhance section');
-                      }
-                      
-                      const enhancedParagraph = enhanceResult.data.enhancedParagraph;
-                      
-                      // Update state for preview (even if we're applying immediately)
-                      setEnhancedContent((prev) => ({
-                        ...prev,
-                        [section.name]: enhancedParagraph
-                      }));
-                      
-                      // Step 2: Automatically apply the enhanced content if DPR exists
-                      if (dprId) {
+                      // If DPR doesn't exist yet, try to get or create it using project ID
+                      if (!dprId && projectId) {
                         try {
-                          // Save enhanced content to database first
-                          const contentToSave = {
-                            [section.name]: enhancedParagraph
-                          };
-                          await api.saveClusterDPREnhancedContent(dprId, contentToSave, viewLanguage);
-                          await new Promise(resolve => setTimeout(resolve, 100));
-                          
-                          // Apply the enhanced content
-                          const applyResult = await api.applyClusterDPREnhancedContent(dprId, section.name, viewLanguage);
-                          if (applyResult.success) {
-                            // Remove from enhancedContent state since it's now applied
-                            setEnhancedContent((prev) => {
-                              const updated = { ...prev };
-                              delete updated[section.name];
-                              return updated;
-                            });
-                            appliedCount++;
-                            console.log(`✅ Applied enhanced content for ${section.name}`);
-                          } else {
-                            console.warn(`Failed to apply enhanced content for ${section.name}:`, applyResult.message);
-                            // Retry once
-                            try {
-                              await new Promise(resolve => setTimeout(resolve, 200));
-                              const retryResult = await api.applyClusterDPREnhancedContent(dprId, section.name, viewLanguage);
-                              if (retryResult.success) {
-                                setEnhancedContent((prev) => {
-                                  const updated = { ...prev };
-                                  delete updated[section.name];
-                                  return updated;
-                                });
-                                appliedCount++;
-                                console.log(`✅ Applied enhanced content for ${section.name} on retry`);
-                              }
-                            } catch (retryError) {
-                              console.error(`Retry failed for ${section.name}:`, retryError);
+                          // Try to get existing DPRs for this project
+                          const dprsResponse = await api.getProjectDPRs(projectId);
+                          const dprs = dprsResponse.data || dprsResponse;
+                          if (Array.isArray(dprs) && dprs.length > 0) {
+                            // Find draft DPR
+                            const draftDpr = dprs.find((d: any) => d.status === 'draft');
+                            if (draftDpr) {
+                              dprId = draftDpr._id || draftDpr.id;
                             }
                           }
-                        } catch (applyError: any) {
-                          console.error(`Error applying enhanced content for ${section.name}:`, applyError);
-                          // Continue - content is still in preview
+
+                          // If still no DPR, we'll proceed without saving to database
+                          // The enhanced content will still be stored in state for preview
+                          if (!dprId) {
+                            console.warn('No DPR found for project. Enhanced content will be stored in preview only.');
+                          }
+                        } catch (error) {
+                          console.warn('Failed to get DPRs for project:', error);
+                          // Continue without DPR ID - enhanced content will still work in preview
                         }
                       }
-                      
-                      successCount++;
-                    } catch (error: any) {
-                      console.error(`Error enhancing section ${section.name}:`, error);
-                      failedCount++;
-                    }
-                  }
 
-                  // Reload DPR to show applied content
-                  if (dprId && appliedCount > 0) {
-                    try {
-                      const reloadedDPRResponse = await api.getClusterDPR(dprId);
-                      if (reloadedDPRResponse.success && reloadedDPRResponse.data) {
-                        const reloadedDPR = reloadedDPRResponse.data;
-                        if (dpr) {
-                          Object.assign(dpr, reloadedDPR);
-                          if (reloadedDPR.content) {
-                            dpr.content = reloadedDPR.content;
-                          }
-                          if (reloadedDPR.clusterSections) {
-                            dpr.clusterSections = reloadedDPR.clusterSections;
+                      if (!dprId && !projectId) {
+                        toast.error('Project not found. Please save your project first.');
+                        return;
+                      }
+
+                      // Set all sections as enhancing
+                      const enhancingState: Record<string, boolean> = {};
+                      validSections.forEach(section => {
+                        enhancingState[section.name] = true;
+                      });
+                      setEnhancingSections(enhancingState);
+
+                      toast.loading(`Enhancing and applying all sections: 0/${totalSections}`, { id: 'enhance-all', duration: Infinity });
+
+                      try {
+                        // Enhance all sections and automatically apply them
+                        let successCount = 0;
+                        let failedCount = 0;
+                        let appliedCount = 0;
+
+                        // Process sections sequentially to avoid overwhelming the API
+                        for (let i = 0; i < validSections.length; i++) {
+                          const section = validSections[i];
+                          try {
+                            toast.loading(`Enhancing and applying: ${i + 1}/${totalSections} - ${section.name}`, { id: 'enhance-all' });
+
+                            // Step 1: Enhance the section and get the enhanced content
+                            const enhanceResult = await api.enhanceClusterDPRSection(section.name, section.data, clusterData);
+                            if (!enhanceResult.success || !enhanceResult.data?.enhancedParagraph) {
+                              throw new Error(enhanceResult.message || 'Failed to enhance section');
+                            }
+
+                            const enhancedParagraph = enhanceResult.data.enhancedParagraph;
+
+                            // Update state for preview (even if we're applying immediately)
+                            setEnhancedContent((prev) => ({
+                              ...prev,
+                              [section.name]: enhancedParagraph
+                            }));
+
+                            // Step 2: Automatically apply the enhanced content if DPR exists
+                            if (dprId) {
+                              try {
+                                // Save enhanced content to database first
+                                const contentToSave = {
+                                  [section.name]: enhancedParagraph
+                                };
+                                await api.saveClusterDPREnhancedContent(dprId, contentToSave, viewLanguage);
+                                await new Promise(resolve => setTimeout(resolve, 100));
+
+                                // Apply the enhanced content
+                                const applyResult = await api.applyClusterDPREnhancedContent(dprId, section.name, viewLanguage);
+                                if (applyResult.success) {
+                                  // Remove from enhancedContent state since it's now applied
+                                  setEnhancedContent((prev) => {
+                                    const updated = { ...prev };
+                                    delete updated[section.name];
+                                    return updated;
+                                  });
+                                  appliedCount++;
+                                  console.log(`✅ Applied enhanced content for ${section.name}`);
+                                } else {
+                                  console.warn(`Failed to apply enhanced content for ${section.name}:`, applyResult.message);
+                                  // Retry once
+                                  try {
+                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                    const retryResult = await api.applyClusterDPREnhancedContent(dprId, section.name, viewLanguage);
+                                    if (retryResult.success) {
+                                      setEnhancedContent((prev) => {
+                                        const updated = { ...prev };
+                                        delete updated[section.name];
+                                        return updated;
+                                      });
+                                      appliedCount++;
+                                      console.log(`✅ Applied enhanced content for ${section.name} on retry`);
+                                    }
+                                  } catch (retryError) {
+                                    console.error(`Retry failed for ${section.name}:`, retryError);
+                                  }
+                                }
+                              } catch (applyError: any) {
+                                console.error(`Error applying enhanced content for ${section.name}:`, applyError);
+                                // Continue - content is still in preview
+                              }
+                            }
+
+                            successCount++;
+                          } catch (error: any) {
+                            console.error(`Error enhancing section ${section.name}:`, error);
+                            failedCount++;
                           }
                         }
-                        setContentRefreshKey(prev => prev + 1);
-                      }
-                    } catch (reloadError) {
-                      console.error('Failed to reload DPR after applying:', reloadError);
-                      setContentRefreshKey(prev => prev + 1);
-                    }
-                  }
 
-                  if (failedCount === 0) {
-                    const message = dprId 
-                      ? `Successfully enhanced and applied ${appliedCount} sections! Enhanced content has been directly added to the DPR.`
-                      : `Successfully enhanced ${successCount} sections! Enhanced content is now visible in the preview. Note: Generate DPR to apply enhanced content permanently.`;
-                    toast.success(message, { id: 'enhance-all', duration: 5000 });
-                  } else {
-                    const message = dprId
-                      ? `Enhanced and applied ${appliedCount}/${totalSections} sections. ${failedCount} failed. Enhanced content has been directly added to the DPR.`
-                      : `Enhanced ${successCount}/${totalSections} sections. ${failedCount} failed. Enhanced content is now visible in the preview. Note: Generate DPR to apply enhanced content permanently.`;
-                    toast.success(message, { id: 'enhance-all', duration: 5000 });
-                  }
-                } catch (error: any) {
-                  console.error('Error enhancing all sections:', error);
-                  toast.error(error.message || 'Failed to enhance sections', { id: 'enhance-all' });
-                } finally {
-                  setEnhancingSections({});
-                }
-              }}
+                        // Reload DPR to show applied content
+                        if (dprId && appliedCount > 0) {
+                          try {
+                            const reloadedDPRResponse = await api.getClusterDPR(dprId);
+                            if (reloadedDPRResponse.success && reloadedDPRResponse.data) {
+                              const reloadedDPR = reloadedDPRResponse.data;
+                              if (dpr) {
+                                Object.assign(dpr, reloadedDPR);
+                                if (reloadedDPR.content) {
+                                  dpr.content = reloadedDPR.content;
+                                }
+                                if (reloadedDPR.clusterSections) {
+                                  dpr.clusterSections = reloadedDPR.clusterSections;
+                                }
+                              }
+                              setContentRefreshKey(prev => prev + 1);
+                            }
+                          } catch (reloadError) {
+                            console.error('Failed to reload DPR after applying:', reloadError);
+                            setContentRefreshKey(prev => prev + 1);
+                          }
+                        }
+
+                        if (failedCount === 0) {
+                          const message = dprId
+                            ? `Successfully enhanced and applied ${appliedCount} sections! Enhanced content has been directly added to the DPR.`
+                            : `Successfully enhanced ${successCount} sections! Enhanced content is now visible in the preview. Note: Generate DPR to apply enhanced content permanently.`;
+                          toast.success(message, { id: 'enhance-all', duration: 5000 });
+                        } else {
+                          const message = dprId
+                            ? `Enhanced and applied ${appliedCount}/${totalSections} sections. ${failedCount} failed. Enhanced content has been directly added to the DPR.`
+                            : `Enhanced ${successCount}/${totalSections} sections. ${failedCount} failed. Enhanced content is now visible in the preview. Note: Generate DPR to apply enhanced content permanently.`;
+                          toast.success(message, { id: 'enhance-all', duration: 5000 });
+                        }
+                      } catch (error: any) {
+                        console.error('Error enhancing all sections:', error);
+                        toast.error(error.message || 'Failed to enhance sections', { id: 'enhance-all' });
+                      } finally {
+                        setEnhancingSections({});
+                      }
+                    }}
                     disabled={Object.values(enhancingSections).some(v => v)}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-base font-semibold rounded-lg transition-all"
                   >
@@ -1565,145 +1565,145 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   </Button>
                 </div>
               </div>
-              
-              
+
+
             </div>
             {/* Generate All Images Card */}
             <div className="flex bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg p-6 border-2 border-green-200 shadow-md hover:shadow-lg transition-shadow">
-                  <div className="mt-auto">
-                    <Button
-                      variant="secondary"
-                      size="lg"
-                      onClick={async () => {
-                const projectId = project?._id || project?.id;
-                if (!projectId) {
-                  toast.error('Project not found. Please save your project first.');
-                  return;
-                }
+              <div className="mt-auto">
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  onClick={async () => {
+                    const projectId = project?._id || project?.id;
+                    if (!projectId) {
+                      toast.error('Project not found. Please save your project first.');
+                      return;
+                    }
 
-                // Define all images to generate
-                const imagesToGenerate = [
-                  {
-                    imageId: 'cover-image',
-                    prompt: `Professional cover image showcasing the key products manufactured and developed by ${s1.clusterName || 'the cluster'} without text, labels, diagrams, or watermarks. The products and services list is: ${s1.majorProducts || 'N/A'}.`,
-                    sectionType: 'coverPage',
-                    sectionInfo: { clusterName: s1.clusterName, location: s1.location, district: s1.district }
-                  },
-                  {
-                    imageId: 'cluster-photo-1',
-                    prompt: `Professional photograph of ${s1.clusterName || 'a cluster'} unit showing ${s1.majorProducts || 'production facilities'} in ${s1.location || 'the cluster location'}. Realistic, documentary style, business document quality.`,
-                    sectionType: 'clusterProfile',
-                    sectionInfo: { clusterName: s1.clusterName, location: s1.location, majorProducts: s1.majorProducts }
-                  },
-                  {
-                    imageId: 'cluster-photo-2',
-                    prompt: `Professional photograph showing production process at ${s1.clusterName || 'the cluster'} unit. Workers engaged in manufacturing ${s1.majorProducts || 'products'}. Realistic, documentary style, business document quality.`,
-                    sectionType: 'clusterProfile',
-                    sectionInfo: { clusterName: s1.clusterName, productionProcess: s4.productionProcess }
-                  },
-                  {
-                    imageId: 'value-chain-diagram',
-                    prompt: `Create a professional flow diagram illustrating the value chain for ${s1.clusterName || 'the cluster'}, showing the process from raw materials through processing and value addition to the end customer. Use the following manufacturing process as a guide: ${s10.manufacturingProcess || 'N/A'}. The diagram should be clean, realistic, and professional, with clear visual flow, but absolutely no text, labels, diagrams, or watermarks visible.`,
-                    sectionType: 'valueChain',
-                    sectionInfo: { rawMaterials: s5.rawMaterials, valueAdditionStages: s5.valueAdditionStages, clusterName: s1.clusterName }
-                  },
-                  {
-                    imageId: 'process-flow-diagram',
-                    prompt: `Professional diagram showing manufacturing process flow for ${s10.name || 'the CFC'} at ${s1.clusterName || 'the cluster'}. Clean, professional business diagram style showing process steps.`,
-                    sectionType: 'cfcDetails',
-                    sectionInfo: { manufacturingProcess: s10.manufacturingProcess, cfcName: s10.name, clusterName: s1.clusterName }
-                  },
-                  {
-                    imageId: 'machinery-layout',
-                    prompt: `Professional photograph or diagram showing machinery layout at ${s10.name || 'the CFC'} for ${s1.clusterName || 'the cluster'}. Modern industrial equipment arranged in a facility. Realistic, documentary style, business document quality.`,
-                    sectionType: 'cfcDetails',
-                    sectionInfo: { plantAndMachinery: s10.plantAndMachinery, cfcName: s10.name, clusterName: s1.clusterName }
-                  }
-                ];
+                    // Define all images to generate
+                    const imagesToGenerate = [
+                      {
+                        imageId: 'cover-image',
+                        prompt: `Professional cover image showcasing the key products manufactured and developed by ${s1.clusterName || 'the cluster'} without text, labels, diagrams, or watermarks. The products and services list is: ${s1.majorProducts || 'N/A'}.`,
+                        sectionType: 'coverPage',
+                        sectionInfo: { clusterName: s1.clusterName, location: s1.location, district: s1.district }
+                      },
+                      {
+                        imageId: 'cluster-photo-1',
+                        prompt: `Professional photograph of ${s1.clusterName || 'a cluster'} unit showing ${s1.majorProducts || 'production facilities'} in ${s1.location || 'the cluster location'}. Realistic, documentary style, business document quality.`,
+                        sectionType: 'clusterProfile',
+                        sectionInfo: { clusterName: s1.clusterName, location: s1.location, majorProducts: s1.majorProducts }
+                      },
+                      {
+                        imageId: 'cluster-photo-2',
+                        prompt: `Professional photograph showing production process at ${s1.clusterName || 'the cluster'} unit. Workers engaged in manufacturing ${s1.majorProducts || 'products'}. Realistic, documentary style, business document quality.`,
+                        sectionType: 'clusterProfile',
+                        sectionInfo: { clusterName: s1.clusterName, productionProcess: s4.productionProcess }
+                      },
+                      {
+                        imageId: 'value-chain-diagram',
+                        prompt: `Create a professional flow diagram illustrating the value chain for ${s1.clusterName || 'the cluster'}, showing the process from raw materials through processing and value addition to the end customer. Use the following manufacturing process as a guide: ${s10.manufacturingProcess || 'N/A'}. The diagram should be clean, realistic, and professional, with clear visual flow, but absolutely no text, labels, diagrams, or watermarks visible.`,
+                        sectionType: 'valueChain',
+                        sectionInfo: { rawMaterials: s5.rawMaterials, valueAdditionStages: s5.valueAdditionStages, clusterName: s1.clusterName }
+                      },
+                      {
+                        imageId: 'process-flow-diagram',
+                        prompt: `Professional diagram showing manufacturing process flow for ${s10.name || 'the CFC'} at ${s1.clusterName || 'the cluster'}. Clean, professional business diagram style showing process steps.`,
+                        sectionType: 'cfcDetails',
+                        sectionInfo: { manufacturingProcess: s10.manufacturingProcess, cfcName: s10.name, clusterName: s1.clusterName }
+                      },
+                      {
+                        imageId: 'machinery-layout',
+                        prompt: `Professional photograph or diagram showing machinery layout at ${s10.name || 'the CFC'} for ${s1.clusterName || 'the cluster'}. Modern industrial equipment arranged in a facility. Realistic, documentary style, business document quality.`,
+                        sectionType: 'cfcDetails',
+                        sectionInfo: { plantAndMachinery: s10.plantAndMachinery, cfcName: s10.name, clusterName: s1.clusterName }
+                      }
+                    ];
 
-                const totalImages = imagesToGenerate.length;
-                let successCount = 0;
-                let failedCount = 0;
+                    const totalImages = imagesToGenerate.length;
+                    let successCount = 0;
+                    let failedCount = 0;
 
-                // Set all images as generating
-                const generatingState: Record<string, boolean> = {};
-                imagesToGenerate.forEach(img => {
-                  generatingState[img.imageId] = true;
-                });
-                setGeneratingImages(generatingState);
+                    // Set all images as generating
+                    const generatingState: Record<string, boolean> = {};
+                    imagesToGenerate.forEach(img => {
+                      generatingState[img.imageId] = true;
+                    });
+                    setGeneratingImages(generatingState);
 
-                toast.loading(`Generating all images: 0/${totalImages}`, { id: 'generate-all-images', duration: Infinity });
+                    toast.loading(`Generating all images: 0/${totalImages}`, { id: 'generate-all-images', duration: Infinity });
 
-                try {
-                  // Process images sequentially to avoid overwhelming the API
-                  for (let i = 0; i < imagesToGenerate.length; i++) {
-                    const imageConfig = imagesToGenerate[i];
                     try {
-                      toast.loading(`Generating image ${i + 1}/${totalImages}: ${imageConfig.imageId}`, { id: 'generate-all-images' });
-                      
-                      const result = await api.generateClusterDPRImage(
-                        imageConfig.prompt,
-                        imageConfig.sectionType,
-                        imageConfig.sectionInfo
-                      );
-                      
-                      if (result.success && result.data?.imageUrl) {
-                        const imageUrl = result.data.imageUrl;
-                        setImages(prev => ({ ...prev, [imageConfig.imageId]: imageUrl }));
-                        
-                        // Save image to project database
+                      // Process images sequentially to avoid overwhelming the API
+                      for (let i = 0; i < imagesToGenerate.length; i++) {
+                        const imageConfig = imagesToGenerate[i];
                         try {
-                          const currentImages = project?.images || {};
-                          await api.updateProject(projectId, {
-                            images: {
-                              ...currentImages,
-                              [imageConfig.imageId]: imageUrl
+                          toast.loading(`Generating image ${i + 1}/${totalImages}: ${imageConfig.imageId}`, { id: 'generate-all-images' });
+
+                          const result = await api.generateClusterDPRImage(
+                            imageConfig.prompt,
+                            imageConfig.sectionType,
+                            imageConfig.sectionInfo
+                          );
+
+                          if (result.success && result.data?.imageUrl) {
+                            const imageUrl = result.data.imageUrl;
+                            setImages(prev => ({ ...prev, [imageConfig.imageId]: imageUrl }));
+
+                            // Save image to project database
+                            try {
+                              const currentImages = project?.images || {};
+                              await api.updateProject(projectId, {
+                                images: {
+                                  ...currentImages,
+                                  [imageConfig.imageId]: imageUrl
+                                }
+                              });
+                              console.log(`💾 Saved image ${imageConfig.imageId} to project database`);
+                            } catch (saveError) {
+                              console.error('Error saving image to project:', saveError);
                             }
-                          });
-                          console.log(`💾 Saved image ${imageConfig.imageId} to project database`);
-                        } catch (saveError) {
-                          console.error('Error saving image to project:', saveError);
+
+                            successCount++;
+                          } else {
+                            throw new Error(result.message || 'Failed to generate image');
+                          }
+                        } catch (error: any) {
+                          console.error(`Error generating image ${imageConfig.imageId}:`, error);
+                          failedCount++;
                         }
-                        
-                        successCount++;
+                      }
+
+                      if (failedCount === 0) {
+                        toast.success(`Successfully generated ${successCount} images!`, { id: 'generate-all-images', duration: 5000 });
                       } else {
-                        throw new Error(result.message || 'Failed to generate image');
+                        toast.success(`Generated ${successCount}/${totalImages} images. ${failedCount} failed.`, { id: 'generate-all-images', duration: 5000 });
                       }
                     } catch (error: any) {
-                      console.error(`Error generating image ${imageConfig.imageId}:`, error);
-                      failedCount++;
+                      console.error('Error generating all images:', error);
+                      toast.error(error.message || 'Failed to generate images', { id: 'generate-all-images' });
+                    } finally {
+                      setGeneratingImages({});
                     }
-                  }
-
-                  if (failedCount === 0) {
-                    toast.success(`Successfully generated ${successCount} images!`, { id: 'generate-all-images', duration: 5000 });
-                  } else {
-                    toast.success(`Generated ${successCount}/${totalImages} images. ${failedCount} failed.`, { id: 'generate-all-images', duration: 5000 });
-                  }
-                } catch (error: any) {
-                  console.error('Error generating all images:', error);
-                  toast.error(error.message || 'Failed to generate images', { id: 'generate-all-images' });
-                } finally {
-                  setGeneratingImages({});
-                }
-                      }}
-                      disabled={Object.values(generatingImages).some(v => v)}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 text-base font-semibold rounded-lg transition-all"
-                    >
-                      {Object.values(generatingImages).some(v => v) ? (
-                        <>
-                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                          Generating Images...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-5 w-5 mr-2" />
-                          Generate All Images
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
+                  }}
+                  disabled={Object.values(generatingImages).some(v => v)}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 text-base font-semibold rounded-lg transition-all"
+                >
+                  {Object.values(generatingImages).some(v => v) ? (
+                    <>
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      Generating Images...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-5 w-5 mr-2" />
+                      Generate All Images
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1789,7 +1789,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 </p>
                 <div>
                   <p className="text-sm" style={{ color: '#1F2937' }}>
-                    {s1.clusterName+ ", " || 'Cluster Name'} 
+                    {s1.clusterName + ", " || 'Cluster Name'}
                     {s1.location || 'Location'}
                   </p>
                 </div>
@@ -2283,7 +2283,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             );
           })()}
         </div>
-      , { pageBreakAfter: 'auto' })}
+        , { pageBreakAfter: 'auto' })}
 
       {/* Project Snapshot - Page 1: Basic Details */}
       {renderPageWrapper(
@@ -2794,7 +2794,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         />
         <div className="relative z-10">
           {/* {renderSectionTitle('2. CLUSTER PROFILE (Continued)', 4)} */}
-          <div className="space-y-6 text-sm">
+          <div className="-mt-6 text-sm">
             <div>
               <h3 className="text-xl font-semibold mb-3">2.2 Present Status of Cluster Units (Continued)</h3>
               {renderTable(
@@ -2807,14 +2807,22 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               )}
             </div>
             {s4.stakeholders && Array.isArray(s4.stakeholders) && s4.stakeholders.length > 0 && (
-              <div>
+              <div className="-mt-2">
                 <h3 className="text-xl font-semibold mb-3">2.3 Key Stakeholders</h3>
-                <ul className="list-disc list-inside space-y-2 text-sm">
+
+                <div className="flex flex-wrap gap-3">
                   {s4.stakeholders.map((stakeholder: string, idx: number) => (
-                    <li key={idx}>{stakeholder}</li>
+                    <div
+                      key={idx}
+                      className="px-4 py-2 text-sm border rounded-lg bg-white shadow-sm
+                              hover:shadow-md transition"
+                    >
+                      {stakeholder}
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
+
             )}
             {/* Image placeholder for cluster photos */}
             <div className="my-6">
@@ -2844,28 +2852,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
         </div>
       </div>
 
-      {/* Section 3: Value Chain */}
-      <div
-        className="p-12 border-b-4 border-gray-800 page-break relative"
-        style={{
-          pageBreakAfter: 'always',
-          padding: '2cm',
-          minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif',
-          border: '8px solid #2563EB',
-          borderStyle: 'double',
-          position: 'relative'
-        }}
-      >
-        {/* Decorative border effect */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            border: '2px solid #3B82F6',
-            margin: '8px',
-            borderRadius: '4px'
-          }}
-        />
+      {/* Section 3: Value Chain - Page 1: Stages and Tables */}
+      {renderPageWrapper(
         <div className="relative z-10">
           {renderSectionTitle('3. CLUSTER VALUE CHAIN MAPPING', 5)}
           {renderEnhancedContent('valueChain', 'Value Chain')}
@@ -2891,42 +2879,52 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   )}
                 </div>
               )}
-              {/* Products and Buyers side by side */}
-              <div className="my-4 grid grid-cols-2 gap-6">
-                <div>
-                  {s5.intermediateProducts && Array.isArray(s5.intermediateProducts) && s5.intermediateProducts.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="font-semibold mb-2">Intermediate Products:</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        {s5.intermediateProducts.map((product: string, idx: number) => (
-                          <li key={idx}>{product}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {s5.finalProducts && Array.isArray(s5.finalProducts) && s5.finalProducts.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Final Products:</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        {s5.finalProducts.map((product: string, idx: number) => (
-                          <li key={idx}>{product}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  {s5.majorBuyers && Array.isArray(s5.majorBuyers) && s5.majorBuyers.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Major Buyers:</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        {s5.majorBuyers.map((buyer: string, idx: number) => (
-                          <li key={idx}>{buyer}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
+            </div>
+          </div>
+        </div>,
+        { borderStyle: 'double' }
+      )}
+
+      {/* Section 3: Value Chain - Page 2: Products, Buyers and Diagram */}
+      {renderPageWrapper(
+        <div className="relative z-10">
+          {/* {renderSectionTitle('3. CLUSTER VALUE CHAIN MAPPING (Continued)', 5)} */}
+          <div className="space-y-6 text-sm">
+            {/* Products and Buyers side by side */}
+            <div className="w-full my-4 flex flex-row align-center justify-space-around gap-16">
+              <div className='flex flex-row align-center justify-space-between gap-12'>
+                {s5.intermediateProducts && Array.isArray(s5.intermediateProducts) && s5.intermediateProducts.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="font-semibold mb-2">Intermediate Products:</h4>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      {s5.intermediateProducts.map((product: string, idx: number) => (
+                        <li key={idx}>{product}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {s5.finalProducts && Array.isArray(s5.finalProducts) && s5.finalProducts.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Final Products:</h4>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      {s5.finalProducts.map((product: string, idx: number) => (
+                        <li key={idx}>{product}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              <div>
+                {s5.majorBuyers && Array.isArray(s5.majorBuyers) && s5.majorBuyers.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Major Buyers:</h4>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      {s5.majorBuyers.map((buyer: string, idx: number) => (
+                        <li key={idx}>{buyer}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
             {/* Value chain diagram placeholder */}
@@ -2940,47 +2938,22 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 'valueChain',
                 { rawMaterials: s5.rawMaterials, valueAdditionStages: s5.valueAdditionStages, clusterName: s1.clusterName },
                 `Create a professional flow diagram illustrating the value chain for ${s1.clusterName || 'the cluster'}, showing the process from raw materials through processing and value addition to the end customer. Use the following manufacturing process as a guide: ${s10.manufacturingProcess || 'N/A'}. The diagram should be clean, realistic, and professional, with clear visual flow, but absolutely no text, labels, diagrams, or watermarks visible.`
-
               )}
             </div>
           </div>
-        </div>
-      </div>
+        </div>,
+        { borderStyle: 'double' }
+      )}
 
       {/* Section 4: Market Aspects - Page 1 */}
-      <div
-        className="p-12 border-b-4 border-gray-800 page-break relative"
-        style={{
-          pageBreakAfter: 'always',
-          padding: '2cm',
-          minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif',
-          border: '8px solid #2563EB',
-          borderStyle: 'double',
-          position: 'relative'
-        }}
-      >
-        {/* Decorative border effect */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            border: '2px solid #3B82F6',
-            margin: '8px',
-            borderRadius: '4px'
-          }}
-        />
-        <div className="relative z-10">
+      {renderPageWrapper(
+        <div>
           {renderSectionTitle('4. MARKET ASPECTS', 6)}
           {renderEnhancedContent('marketAspects', 'Market Aspects')}
           <div className="space-y-6 text-sm">
             <div>
               <h3 className="text-xl font-semibold mb-3">4.1 Demand–Supply Analysis</h3>
               {renderEnhancedSubsection('marketAspects-demandSupply', s6.existingDemand)}
-              {s6.demandSupplyGap && (
-                <div className="text-justify leading-relaxed mt-2">
-                  <strong>Demand-Supply Gap:</strong> {enhancedContent['marketAspects-demandSupplyGap'] || s6.demandSupplyGap}
-                </div>
-              )}
             </div>
             <div>
               <h3 className="text-xl font-semibold mb-3">4.2 Competition Analysis</h3>
@@ -2988,50 +2961,49 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             </div>
             <div>
               <h3 className="text-xl font-semibold mb-3">4.3 Price Trends</h3>
-              {renderEnhancedSubsection('marketAspects-priceTrends', s6.priceTrends)}
+              {(() => {
+                const text = enhancedContent['marketAspects-priceTrends'] || s6.priceTrends || '';
+                if (!text) return <div className="text-justify leading-relaxed">N/A</div>;
+                const mid = Math.floor(text.length / 2);
+                let splitPos = text.indexOf('. ', mid);
+                if (splitPos === -1) splitPos = text.lastIndexOf('. ', mid);
+                const firstHalf = splitPos !== -1 ? text.substring(0, splitPos + 1) : text;
+                return <div className="text-justify leading-relaxed">{firstHalf}</div>;
+              })()}
             </div>
           </div>
-        </div>
-      </div>
+        </div>,
+        { borderStyle: 'double' }
+      )}
 
       {/* Section 4: Market Aspects - Page 2 */}
-      <div
-        className="p-12 border-b-4 border-gray-800 page-break relative"
-        style={{
-          pageBreakAfter: 'always',
-          padding: '2cm',
-          minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif',
-          border: '8px solid #2563EB',
-          borderStyle: 'double',
-          position: 'relative'
-        }}
-      >
-        {/* Decorative border effect */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            border: '2px solid #3B82F6',
-            margin: '8px',
-            borderRadius: '4px'
-          }}
-        />
-        <div className="relative z-10">
-          {/* {renderSectionTitle('4. MARKET ASPECTS (Continued)', 6)} */}
-          <div className="space-y-6 text-sm">
-            <div>
-              <h3 className="text-xl font-semibold mb-3">4.4 Export Potential</h3>
-              {renderEnhancedSubsection('marketAspects-exportPotential', s6.exportPotential)}
-            </div>
-            {s6.targetMarket && (
-              <div>
-                <h3 className="text-xl font-semibold mb-3">4.5 Target Market</h3>
-                {renderEnhancedSubsection('marketAspects-targetMarket', s6.targetMarket)}
-              </div>
-            )}
+      {renderPageWrapper(
+        <div className="space-y-6 text-sm">
+          <div>
+            <h3 className="text-xl font-semibold mb-3">4.3 Price Trends (Continued)</h3>
+            {(() => {
+              const text = enhancedContent['marketAspects-priceTrends'] || s6.priceTrends || '';
+              if (!text) return null;
+              const mid = Math.floor(text.length / 2);
+              let splitPos = text.indexOf('. ', mid);
+              if (splitPos === -1) splitPos = text.lastIndexOf('. ', mid);
+              const secondHalf = splitPos !== -1 ? text.substring(splitPos + 1).trim() : '';
+              return secondHalf ? <div className="text-justify leading-relaxed">{secondHalf}</div> : null;
+            })()}
           </div>
-        </div>
-      </div>
+          <div>
+            <h3 className="text-xl font-semibold mb-3">4.4 Export Potential</h3>
+            {renderEnhancedSubsection('marketAspects-exportPotential', s6.exportPotential)}
+          </div>
+          {s6.targetMarket && (
+            <div>
+              <h3 className="text-xl font-semibold mb-3">4.5 Target Market</h3>
+              {renderEnhancedSubsection('marketAspects-targetMarket', s6.targetMarket)}
+            </div>
+          )}
+        </div>,
+        { borderStyle: 'double' }
+      )}
 
       {/* Section 5: SWOT Analysis */}
       <div
@@ -3096,73 +3068,40 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       </div>
 
       {/* Section 6: Gap Analysis - Page 1 */}
-      <div
-        className="p-12 border-b-4 border-gray-800 page-break relative"
-        style={{
-          pageBreakAfter: 'always',
-          padding: '2cm',
-          minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif',
-          border: '8px solid #2563EB',
-          borderStyle: 'double',
-          position: 'relative'
-        }}
-      >
-        {/* Decorative border effect */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            border: '2px solid #3B82F6',
-            margin: '8px',
-            borderRadius: '4px'
-          }}
-        />
+      {renderPageWrapper(
         <div className="relative z-10">
           {renderSectionTitle('6. NEED GAP ANALYSIS', 7)}
           {renderEnhancedContent('gapAnalysis', 'Gap Analysis')}
           {renderTable(
             ['Area', 'Existing Gap'],
             [
-              ['Technology', s7.technologyGaps || 'N/A'],
-              ['Infrastructure', s7.infrastructureGaps || 'N/A'],
-              ['Skill', s7.skillGaps || 'N/A'],
-              ['Marketing', s7.marketingGaps || 'N/A'],
-              ['Finance', s7.financialGaps || 'N/A'],
+              ['Technology', enhancedContent['gapAnalysis-tech'] || s7.technologyGaps || 'N/A'],
+              ['Infrastructure', enhancedContent['gapAnalysis-infra'] || s7.infrastructureGaps || 'N/A'],
+              ['Skill', enhancedContent['gapAnalysis-skill'] || s7.skillGaps || 'N/A'],
             ]
           )}
-        </div>
-      </div>
+        </div>,
+        { borderStyle: 'double' }
+      )}
 
       {/* Section 6: Gap Analysis - Page 2 */}
-      <div
-        className="p-12 border-b-4 border-gray-800 page-break relative"
-        style={{
-          pageBreakAfter: 'always',
-          padding: '2cm',
-          minHeight: '29.7cm',
-          fontFamily: 'Times New Roman, serif',
-          border: '8px solid #2563EB',
-          borderStyle: 'double',
-          position: 'relative'
-        }}
-      >
-        {/* Decorative border effect */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            border: '2px solid #3B82F6',
-            margin: '8px',
-            borderRadius: '4px'
-          }}
-        />
-        <div className="relative z-10">
+      {renderPageWrapper(
+        <div className="relative z-10 -mt-6">
           {/* {renderSectionTitle('6. NEED GAP ANALYSIS (Continued)', 7)} */}
+          {renderTable(
+            ['Area', 'Existing Gap'],
+            [
+              ['Marketing', enhancedContent['gapAnalysis-marketing'] || s7.marketingGaps || 'N/A'],
+              ['Finance', enhancedContent['gapAnalysis-finance'] || s7.financialGaps || 'N/A'],
+            ]
+          )}
           <div className="my-6">
             <h3 className="text-xl font-semibold mb-3">Justification for Intervention</h3>
             <p className="text-sm text-justify leading-relaxed">{s7.justificationForIntervention || 'N/A'}</p>
           </div>
-        </div>
-      </div>
+        </div>,
+        { borderStyle: 'double' }
+      )}
 
       {/* Section 7: CFC Details - Split into 4 pages */}
       {(s10.name || s10.location || s10.plantAndMachinery || s10.manufacturingProcess || s10.capacity) && (
@@ -3210,7 +3149,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           {renderPageWrapper(
             <div>
               {/* {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT (Continued)', 10)} */}
-              <div className="space-y-6 text-sm">
+              <div className="-mt-6 text-sm">
                 <div>
                   <h3 className="text-xl font-semibold mb-3">7.4 Capacity</h3>
                   <p>{s10.capacity || 'N/A'}</p>
@@ -3345,7 +3284,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                   </div>
                 )}
                 {s11.objectives && Array.isArray(s11.objectives) && s11.objectives.length > 0 && (
-                  <div>
+                  <div className="-mt-6">
                     <h3 className="text-xl font-semibold mb-3">8.4 SPV Objectives</h3>
                     <ul className="list-disc list-inside space-y-2 text-sm">
                       {s11.objectives.map((objective: string, idx: number) => (
@@ -3376,11 +3315,18 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 {s11.statutoryRegistrations && Array.isArray(s11.statutoryRegistrations) && s11.statutoryRegistrations.length > 0 && (
                   <div>
                     <h3 className="text-xl font-semibold mb-3">8.7 Statutory Registrations</h3>
-                    <ul className="list-disc list-inside space-y-2 text-sm">
+
+                    <div className="flex flex-wrap gap-3">
                       {s11.statutoryRegistrations.map((registration: string, idx: number) => (
-                        <li key={idx}>{registration}</li>
+                        <div
+                          key={idx}
+                          className="px-4 py-2 text-sm border rounded-lg bg-white shadow-sm
+                                   hover:shadow-md transition"
+                        >
+                          {registration}
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 )}
               </div>
@@ -3432,7 +3378,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                     ['Total Project Cost', totalCost.toFixed(2)],
                   ],
                   'Cost of Project & Means of Finance',
-                  '1'
+
                 );
               })()}
             </div>
@@ -3456,7 +3402,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               })()}
             </div>
             {/* Cost breakup chart */}
-            <div className="my-6">
+            <div className="-mt-2">
               <h4 className="text-lg font-semibold mb-3">📊 Cost Breakup</h4>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -3580,7 +3526,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
             {(() => {
               // Define financialStatements at the start of this section
               const financialStatements = s15.financialStatements || {};
-              
+
               return (
                 <>
                   {/* Profit & Loss Statement - Removed duplicate, shown in Financial Statements section */}
@@ -3701,7 +3647,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
           {renderSectionTitle('11. EXPECTED IMPACT', 17)}
           {renderEnhancedContent('expectedImpact', 'Expected Impact')}
           {renderTable(
-            ['Parameter',  'Value'],
+            ['Parameter', 'Value'],
             [
               ['Employment', s17.employmentGeneration || 0],
               ['Turnover', `₹${(s17.turnoverGrowth || 0).toFixed(2)} Lakhs`],
@@ -3725,9 +3671,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
       {/* Financial Statements - Detailed Section - Split into 6 pages */}
       {(() => {
         const financialStatements = s15.financialStatements || {};
-        const hasFinancialStatements = Object.keys(financialStatements).length > 0 || 
-          s12.workingCapitalMargin || 
-          s14.powerCost || 
+        const hasFinancialStatements = Object.keys(financialStatements).length > 0 ||
+          s12.workingCapitalMargin ||
+          s14.powerCost ||
           s15.profitAndLossProjections;
 
         if (!hasFinancialStatements) return null;
@@ -3759,179 +3705,179 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
               <div className="relative z-10">
                 {renderSectionTitle('FINANCIAL STATEMENTS')}
 
-              {/* Statement 1: Cost of Project & Means of Finance */}
-              {(financialStatements.costOfProject || financialStatements.spvShare || financialStatements.stateGovtGrant || financialStatements.bankLoan || s12.totalProjectCost || s13.spvContribution || s13.governmentGrant || s13.bankLoan) && (
-                <div className="my-6">
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 1: Cost of Project & Means of Finance</h3>
-                  {(() => {
-                    const costOfProject = financialStatements.costOfProject || s12.totalProjectCost || 0;
-                    const spvShare = financialStatements.spvShare || s13.spvContribution || 0;
-                    const stateGrant = financialStatements.stateGovtGrant || s13.governmentGrant || 0;
-                    const bankLoan = financialStatements.bankLoan || s13.bankLoan || 0;
-                    
-                    const rows = [
-                      ['Cost of Project', costOfProject],
-                      ['SPV Share', spvShare],
-                      ['State Govt. Grant', stateGrant],
-                      ['Bank Loan', bankLoan],
-                      ['Total', costOfProject + spvShare + stateGrant + bankLoan], // Calculated
-                    ];
-                    
-                    return (
-                      <EditableFinancialTable
-                        headers={['Particulars', 'Amount (₹ Lakhs)']}
-                        rows={rows}
-                        title="Cost of Project & Means of Finance"
-                        statementNumber="1"
-                        editableCells={[
-                          [false, true], // Cost of Project - label not editable, value editable
-                          [false, true], // SPV Share
-                          [false, true], // State Grant
-                          [false, true], // Bank Loan
-                          [false, false], // Total - calculated, not editable
-                        ]}
-                        calculatedCells={[
-                          {
-                            row: 4,
-                            col: 1,
-                            formula: (data) => {
-                              return (parseFloat(data[0]?.[1] || 0) + 
-                                      parseFloat(data[1]?.[1] || 0) + 
-                                      parseFloat(data[2]?.[1] || 0) + 
-                                      parseFloat(data[3]?.[1] || 0));
-                            }
-                          }
-                        ]}
-                        onCellChange={(rowIndex, colIndex, value) => {
-                          const newFinancialStatements = { ...financialStatements };
-                          if (rowIndex === 0) {
-                            newFinancialStatements.costOfProject = value;
-                          } else if (rowIndex === 1) {
-                            newFinancialStatements.spvShare = value;
-                          } else if (rowIndex === 2) {
-                            newFinancialStatements.stateGovtGrant = value;
-                          } else if (rowIndex === 3) {
-                            newFinancialStatements.bankLoan = value;
-                          }
-                          
-                          // Update store
-                          const currentStep15 = clusterData.step15 || {};
-                          setStepData(15, {
-                            ...currentStep15,
-                            financialStatements: newFinancialStatements,
-                          });
-                          
-                          if (onDataChange) {
-                            onDataChange('financialStatements', newFinancialStatements);
-                          }
-                        }}
-                      />
-                    );
-                  })()}
-                </div>
-              )}
+                {/* Statement 1: Cost of Project & Means of Finance */}
+                {(financialStatements.costOfProject || financialStatements.spvShare || financialStatements.stateGovtGrant || financialStatements.bankLoan || s12.totalProjectCost || s13.spvContribution || s13.governmentGrant || s13.bankLoan) && (
+                  <div className="my-6">
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 1: Cost of Project & Means of Finance</h3>
+                    {(() => {
+                      const costOfProject = financialStatements.costOfProject || s12.totalProjectCost || 0;
+                      const spvShare = financialStatements.spvShare || s13.spvContribution || 0;
+                      const stateGrant = financialStatements.stateGovtGrant || s13.governmentGrant || 0;
+                      const bankLoan = financialStatements.bankLoan || s13.bankLoan || 0;
 
-              {/* Statement 2: Assessment of Working Capital */}
-              {(financialStatements.workingCapital || s12.workingCapitalMargin) && (
-                <div className="my-6">
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 2: Assessment of Working Capital</h3>
-                  {(() => {
-                    const wc = financialStatements.workingCapital || {};
-                    const workingCapital = s12.workingCapitalMargin || 0;
-                    const rawMaterials = wc.rawMaterials || (workingCapital * 0.4);
-                    const workInProgress = wc.workInProgress || (workingCapital * 0.2);
-                    const finishedGoods = wc.finishedGoods || (workingCapital * 0.2);
-                    const debtors = wc.debtors || (workingCapital * 0.15);
-                    const cashBankBalance = wc.cashBankBalance || (workingCapital * 0.05);
-                    const totalCurrentAssets = rawMaterials + workInProgress + finishedGoods + debtors + cashBankBalance;
-                    const creditors = wc.creditors || (workingCapital * 0.3);
-                    const netWorkingCapital = totalCurrentAssets - creditors;
-                    
-                    const rows = [
-                      ['Raw Materials', rawMaterials],
-                      ['Work in Progress', workInProgress],
-                      ['Finished Goods', finishedGoods],
-                      ['Debtors', debtors],
-                      ['Cash & Bank Balance', cashBankBalance],
-                      ['Total Current Assets', totalCurrentAssets], // Calculated
-                      ['Creditors', creditors],
-                      ['Net Working Capital', netWorkingCapital], // Calculated
-                    ];
-                    
-                    return (
-                      <EditableFinancialTable
-                        headers={['Particulars', 'Amount (₹ Lakhs)']}
-                        rows={rows}
-                        title="Assessment of Working Capital"
-                        statementNumber="2"
-                        editableCells={[
-                          [false, true], // Raw Materials
-                          [false, true], // Work in Progress
-                          [false, true], // Finished Goods
-                          [false, true], // Debtors
-                          [false, true], // Cash & Bank Balance
-                          [false, false], // Total Current Assets - calculated
-                          [false, true], // Creditors
-                          [false, false], // Net Working Capital - calculated
-                        ]}
-                        calculatedCells={[
-                          {
-                            row: 5,
-                            col: 1,
-                            formula: (data) => {
-                              return (parseFloat(data[0]?.[1] || 0) + 
-                                      parseFloat(data[1]?.[1] || 0) + 
-                                      parseFloat(data[2]?.[1] || 0) + 
-                                      parseFloat(data[3]?.[1] || 0) + 
-                                      parseFloat(data[4]?.[1] || 0));
+                      const rows = [
+                        ['Cost of Project', costOfProject],
+                        ['SPV Share', spvShare],
+                        ['State Govt. Grant', stateGrant],
+                        ['Bank Loan', bankLoan],
+                        ['Total', costOfProject + spvShare + stateGrant + bankLoan], // Calculated
+                      ];
+
+                      return (
+                        <EditableFinancialTable
+                          headers={['Particulars', 'Amount (₹ Lakhs)']}
+                          rows={rows}
+                          title="Cost of Project & Means of Finance"
+                          statementNumber="1"
+                          editableCells={[
+                            [false, true], // Cost of Project - label not editable, value editable
+                            [false, true], // SPV Share
+                            [false, true], // State Grant
+                            [false, true], // Bank Loan
+                            [false, false], // Total - calculated, not editable
+                          ]}
+                          calculatedCells={[
+                            {
+                              row: 4,
+                              col: 1,
+                              formula: (data) => {
+                                return (parseFloat(data[0]?.[1] || 0) +
+                                  parseFloat(data[1]?.[1] || 0) +
+                                  parseFloat(data[2]?.[1] || 0) +
+                                  parseFloat(data[3]?.[1] || 0));
+                              }
                             }
-                          },
-                          {
-                            row: 7,
-                            col: 1,
-                            formula: (data) => {
-                              const totalAssets = parseFloat(data[5]?.[1] || 0);
-                              const creditors = parseFloat(data[6]?.[1] || 0);
-                              return totalAssets - creditors;
+                          ]}
+                          onCellChange={(rowIndex, colIndex, value) => {
+                            const newFinancialStatements = { ...financialStatements };
+                            if (rowIndex === 0) {
+                              newFinancialStatements.costOfProject = value;
+                            } else if (rowIndex === 1) {
+                              newFinancialStatements.spvShare = value;
+                            } else if (rowIndex === 2) {
+                              newFinancialStatements.stateGovtGrant = value;
+                            } else if (rowIndex === 3) {
+                              newFinancialStatements.bankLoan = value;
                             }
-                          }
-                        ]}
-                        onCellChange={(rowIndex, colIndex, value) => {
-                          const newFinancialStatements = { ...financialStatements };
-                          if (!newFinancialStatements.workingCapital) {
-                            newFinancialStatements.workingCapital = {};
-                          }
-                          
-                          if (rowIndex === 0) {
-                            newFinancialStatements.workingCapital.rawMaterials = value;
-                          } else if (rowIndex === 1) {
-                            newFinancialStatements.workingCapital.workInProgress = value;
-                          } else if (rowIndex === 2) {
-                            newFinancialStatements.workingCapital.finishedGoods = value;
-                          } else if (rowIndex === 3) {
-                            newFinancialStatements.workingCapital.debtors = value;
-                          } else if (rowIndex === 4) {
-                            newFinancialStatements.workingCapital.cashBankBalance = value;
-                          } else if (rowIndex === 6) {
-                            newFinancialStatements.workingCapital.creditors = value;
-                          }
-                          
-                          // Update store
-                          const currentStep15 = clusterData.step15 || {};
-                          setStepData(15, {
-                            ...currentStep15,
-                            financialStatements: newFinancialStatements,
-                          });
-                          
-                          if (onDataChange) {
-                            onDataChange('financialStatements', newFinancialStatements);
-                          }
-                        }}
-                      />
-                    );
-                  })()}
-                </div>
-              )}
+
+                            // Update store
+                            const currentStep15 = clusterData.step15 || {};
+                            setStepData(15, {
+                              ...currentStep15,
+                              financialStatements: newFinancialStatements,
+                            });
+
+                            if (onDataChange) {
+                              onDataChange('financialStatements', newFinancialStatements);
+                            }
+                          }}
+                        />
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Statement 2: Assessment of Working Capital */}
+                {(financialStatements.workingCapital || s12.workingCapitalMargin) && (
+                  <div className="my-6">
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 2: Assessment of Working Capital</h3>
+                    {(() => {
+                      const wc = financialStatements.workingCapital || {};
+                      const workingCapital = s12.workingCapitalMargin || 0;
+                      const rawMaterials = wc.rawMaterials || (workingCapital * 0.4);
+                      const workInProgress = wc.workInProgress || (workingCapital * 0.2);
+                      const finishedGoods = wc.finishedGoods || (workingCapital * 0.2);
+                      const debtors = wc.debtors || (workingCapital * 0.15);
+                      const cashBankBalance = wc.cashBankBalance || (workingCapital * 0.05);
+                      const totalCurrentAssets = rawMaterials + workInProgress + finishedGoods + debtors + cashBankBalance;
+                      const creditors = wc.creditors || (workingCapital * 0.3);
+                      const netWorkingCapital = totalCurrentAssets - creditors;
+
+                      const rows = [
+                        ['Raw Materials', rawMaterials],
+                        ['Work in Progress', workInProgress],
+                        ['Finished Goods', finishedGoods],
+                        ['Debtors', debtors],
+                        ['Cash & Bank Balance', cashBankBalance],
+                        ['Total Current Assets', totalCurrentAssets], // Calculated
+                        ['Creditors', creditors],
+                        ['Net Working Capital', netWorkingCapital], // Calculated
+                      ];
+
+                      return (
+                        <EditableFinancialTable
+                          headers={['Particulars', 'Amount (₹ Lakhs)']}
+                          rows={rows}
+                          title="Assessment of Working Capital"
+                          statementNumber="2"
+                          editableCells={[
+                            [false, true], // Raw Materials
+                            [false, true], // Work in Progress
+                            [false, true], // Finished Goods
+                            [false, true], // Debtors
+                            [false, true], // Cash & Bank Balance
+                            [false, false], // Total Current Assets - calculated
+                            [false, true], // Creditors
+                            [false, false], // Net Working Capital - calculated
+                          ]}
+                          calculatedCells={[
+                            {
+                              row: 5,
+                              col: 1,
+                              formula: (data) => {
+                                return (parseFloat(data[0]?.[1] || 0) +
+                                  parseFloat(data[1]?.[1] || 0) +
+                                  parseFloat(data[2]?.[1] || 0) +
+                                  parseFloat(data[3]?.[1] || 0) +
+                                  parseFloat(data[4]?.[1] || 0));
+                              }
+                            },
+                            {
+                              row: 7,
+                              col: 1,
+                              formula: (data) => {
+                                const totalAssets = parseFloat(data[5]?.[1] || 0);
+                                const creditors = parseFloat(data[6]?.[1] || 0);
+                                return totalAssets - creditors;
+                              }
+                            }
+                          ]}
+                          onCellChange={(rowIndex, colIndex, value) => {
+                            const newFinancialStatements = { ...financialStatements };
+                            if (!newFinancialStatements.workingCapital) {
+                              newFinancialStatements.workingCapital = {};
+                            }
+
+                            if (rowIndex === 0) {
+                              newFinancialStatements.workingCapital.rawMaterials = value;
+                            } else if (rowIndex === 1) {
+                              newFinancialStatements.workingCapital.workInProgress = value;
+                            } else if (rowIndex === 2) {
+                              newFinancialStatements.workingCapital.finishedGoods = value;
+                            } else if (rowIndex === 3) {
+                              newFinancialStatements.workingCapital.debtors = value;
+                            } else if (rowIndex === 4) {
+                              newFinancialStatements.workingCapital.cashBankBalance = value;
+                            } else if (rowIndex === 6) {
+                              newFinancialStatements.workingCapital.creditors = value;
+                            }
+
+                            // Update store
+                            const currentStep15 = clusterData.step15 || {};
+                            setStepData(15, {
+                              ...currentStep15,
+                              financialStatements: newFinancialStatements,
+                            });
+
+                            if (onDataChange) {
+                              onDataChange('financialStatements', newFinancialStatements);
+                            }
+                          }}
+                        />
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -3958,157 +3904,157 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 }}
               />
               <div className="relative z-10">
-                {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')}
-              {/* Statement 3: Cost of Production & Profitability - Matching PDF format */}
-              {(financialStatements.costOfProduction || s15.profitAndLossProjections) && (
-                <div className="my-6">
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 3: Cost of Production & Profitability</h3>
-                  {(() => {
-                    const cop = financialStatements.costOfProduction || {};
-                    
-                    // Build rows with editable values
-                    const salesRow: any[] = ['Sales Realisation', ''];
-                    const costRow: any[] = ['Total Cost', ''];
-                    const profitRow: any[] = ['Profit Before Tax', ''];
-                    
-                    for (let year = 1; year <= 5; year++) {
-                      const yearData = cop[`year${year}`] || {};
-                      salesRow.push(yearData.salesRealization || 0);
-                      costRow.push(yearData.totalCost || 0);
-                      profitRow.push(yearData.profitBeforeTax || 0);
-                    }
-                    
-                    const rows = [salesRow, costRow, profitRow];
-                    
-                    // Profit Before Tax is calculated as Sales - Total Cost
-                    const calculatedCells = [];
-                    for (let year = 1; year <= 5; year++) {
-                      calculatedCells.push({
-                        row: 2, // Profit Before Tax row
-                        col: year + 1, // Year column (offset by 2 for label and empty cell)
-                        formula: (data: any[][]) => {
-                          const sales = parseFloat(data[0]?.[year + 1] || 0);
-                          const cost = parseFloat(data[1]?.[year + 1] || 0);
-                          return sales - cost;
-                        }
-                      });
-                    }
-                    
-                    return (
-                      <EditableFinancialTable
-                        headers={['Years', '', '1', '2', '3', '4', '5']}
-                        rows={rows}
-                        title="COST OF PRODUCTION & PROFITABILITY"
-                        statementNumber="3"
-                        editableCells={[
-                          [false, false, true, true, true, true, true], // Sales Realisation - editable for all years
-                          [false, false, true, true, true, true, true], // Total Cost - editable for all years
-                          [false, false, false, false, false, false, false], // Profit Before Tax - calculated
-                        ]}
-                        calculatedCells={calculatedCells}
-                        onCellChange={(rowIndex, colIndex, value) => {
-                          const newFinancialStatements = { ...financialStatements };
-                          if (!newFinancialStatements.costOfProduction) {
-                            newFinancialStatements.costOfProduction = {};
-                          }
-                          
-                          // colIndex 2 = Year 1, colIndex 3 = Year 2, etc.
-                          const year = colIndex - 1;
-                          if (year >= 1 && year <= 5) {
-                            const yearKey = `year${year}`;
-                            if (!newFinancialStatements.costOfProduction[yearKey]) {
-                              newFinancialStatements.costOfProduction[yearKey] = {};
-                            }
-                            
-                            if (rowIndex === 0) {
-                              // Sales Realisation
-                              newFinancialStatements.costOfProduction[yearKey].salesRealization = value;
-                            } else if (rowIndex === 1) {
-                              // Total Cost
-                              newFinancialStatements.costOfProduction[yearKey].totalCost = value;
-                            }
-                            // Profit Before Tax is calculated, not editable
-                          }
-                          
-                          // Update store
-                          const currentStep15 = clusterData.step15 || {};
-                          setStepData(15, {
-                            ...currentStep15,
-                            financialStatements: newFinancialStatements,
-                          });
-                          
-                          if (onDataChange) {
-                            onDataChange('financialStatements', newFinancialStatements);
-                          }
-                        }}
-                      />
-                    );
-                  })()}
-                </div>
-              )}
+                {/* {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')} */}
+                {/* Statement 3: Cost of Production & Profitability - Matching PDF format */}
+                {(financialStatements.costOfProduction || s15.profitAndLossProjections) && (
+                  <div className="-mt-8">
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 3: Cost of Production & Profitability</h3>
+                    {(() => {
+                      const cop = financialStatements.costOfProduction || {};
 
-              {/* Statement 4: Assumptions for Cost of Production & Profitability */}
-              {(financialStatements.assumptions || s14.capacityUtilization || s14.rawMaterialCostPercentage) && (
-                <div className="my-6">
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 4: Assumptions for Cost of Production & Profitability</h3>
-                  {(() => {
-                    const assump = financialStatements.assumptions || {};
-                    const capUtil = s14.capacityUtilization || {};
-                    const capacityYear1 = assump.capacityUtilizationYear1 || capUtil.year1 || 0;
-                    const capacityYear2 = assump.capacityUtilizationYear2 || capUtil.year2 || 0;
-                    const capacityYear3Onwards = assump.capacityUtilizationYear3Onwards || capUtil.year3Onwards || 0;
-                    const rawMaterialCost = assump.rawMaterialCostPercentage || s14.rawMaterialCostPercentage || 0;
-                    
-                    const rows = [
-                      ['Capacity Utilization (Year 1)', capacityYear1],
-                      ['Capacity Utilization (Year 2)', capacityYear2],
-                      ['Capacity Utilization (Year 3 onwards)', capacityYear3Onwards],
-                      ['Raw Material Cost (% of Revenue)', rawMaterialCost],
-                    ];
-                    
-                    return (
-                      <EditableFinancialTable
-                        headers={['Assumption', 'Value (%)']}
-                        rows={rows}
-                        title="Assumptions for Cost of Production & Profitability"
-                        statementNumber="4"
-                        editableCells={[
-                          [false, true],
-                          [false, true],
-                          [false, true],
-                          [false, true],
-                        ]}
-                        onCellChange={(rowIndex, colIndex, value) => {
-                          const newFinancialStatements = { ...financialStatements };
-                          if (!newFinancialStatements.assumptions) {
-                            newFinancialStatements.assumptions = {};
+                      // Build rows with editable values
+                      const salesRow: any[] = ['Sales Realisation', ''];
+                      const costRow: any[] = ['Total Cost', ''];
+                      const profitRow: any[] = ['Profit Before Tax', ''];
+
+                      for (let year = 1; year <= 5; year++) {
+                        const yearData = cop[`year${year}`] || {};
+                        salesRow.push(yearData.salesRealization || 0);
+                        costRow.push(yearData.totalCost || 0);
+                        profitRow.push(yearData.profitBeforeTax || 0);
+                      }
+
+                      const rows = [salesRow, costRow, profitRow];
+
+                      // Profit Before Tax is calculated as Sales - Total Cost
+                      const calculatedCells = [];
+                      for (let year = 1; year <= 5; year++) {
+                        calculatedCells.push({
+                          row: 2, // Profit Before Tax row
+                          col: year + 1, // Year column (offset by 2 for label and empty cell)
+                          formula: (data: any[][]) => {
+                            const sales = parseFloat(data[0]?.[year + 1] || 0);
+                            const cost = parseFloat(data[1]?.[year + 1] || 0);
+                            return sales - cost;
                           }
-                          
-                          if (rowIndex === 0) {
-                            newFinancialStatements.assumptions.capacityUtilizationYear1 = value;
-                          } else if (rowIndex === 1) {
-                            newFinancialStatements.assumptions.capacityUtilizationYear2 = value;
-                          } else if (rowIndex === 2) {
-                            newFinancialStatements.assumptions.capacityUtilizationYear3Onwards = value;
-                          } else if (rowIndex === 3) {
-                            newFinancialStatements.assumptions.rawMaterialCostPercentage = value;
-                          }
-                          
-                          const currentStep15 = clusterData.step15 || {};
-                          setStepData(15, {
-                            ...currentStep15,
-                            financialStatements: newFinancialStatements,
-                          });
-                          
-                          if (onDataChange) {
-                            onDataChange('financialStatements', newFinancialStatements);
-                          }
-                        }}
-                      />
-                    );
-                  })()}
-                </div>
-              )}
+                        });
+                      }
+
+                      return (
+                        <EditableFinancialTable
+                          headers={['Years', '', '1', '2', '3', '4', '5']}
+                          rows={rows}
+                          title="COST OF PRODUCTION & PROFITABILITY"
+                          statementNumber="3"
+                          editableCells={[
+                            [false, false, true, true, true, true, true], // Sales Realisation - editable for all years
+                            [false, false, true, true, true, true, true], // Total Cost - editable for all years
+                            [false, false, false, false, false, false, false], // Profit Before Tax - calculated
+                          ]}
+                          calculatedCells={calculatedCells}
+                          onCellChange={(rowIndex, colIndex, value) => {
+                            const newFinancialStatements = { ...financialStatements };
+                            if (!newFinancialStatements.costOfProduction) {
+                              newFinancialStatements.costOfProduction = {};
+                            }
+
+                            // colIndex 2 = Year 1, colIndex 3 = Year 2, etc.
+                            const year = colIndex - 1;
+                            if (year >= 1 && year <= 5) {
+                              const yearKey = `year${year}`;
+                              if (!newFinancialStatements.costOfProduction[yearKey]) {
+                                newFinancialStatements.costOfProduction[yearKey] = {};
+                              }
+
+                              if (rowIndex === 0) {
+                                // Sales Realisation
+                                newFinancialStatements.costOfProduction[yearKey].salesRealization = value;
+                              } else if (rowIndex === 1) {
+                                // Total Cost
+                                newFinancialStatements.costOfProduction[yearKey].totalCost = value;
+                              }
+                              // Profit Before Tax is calculated, not editable
+                            }
+
+                            // Update store
+                            const currentStep15 = clusterData.step15 || {};
+                            setStepData(15, {
+                              ...currentStep15,
+                              financialStatements: newFinancialStatements,
+                            });
+
+                            if (onDataChange) {
+                              onDataChange('financialStatements', newFinancialStatements);
+                            }
+                          }}
+                        />
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Statement 4: Assumptions for Cost of Production & Profitability */}
+                {(financialStatements.assumptions || s14.capacityUtilization || s14.rawMaterialCostPercentage) && (
+                  <div className="my-6">
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 4: Assumptions for Cost of Production & Profitability</h3>
+                    {(() => {
+                      const assump = financialStatements.assumptions || {};
+                      const capUtil = s14.capacityUtilization || {};
+                      const capacityYear1 = assump.capacityUtilizationYear1 || capUtil.year1 || 0;
+                      const capacityYear2 = assump.capacityUtilizationYear2 || capUtil.year2 || 0;
+                      const capacityYear3Onwards = assump.capacityUtilizationYear3Onwards || capUtil.year3Onwards || 0;
+                      const rawMaterialCost = assump.rawMaterialCostPercentage || s14.rawMaterialCostPercentage || 0;
+
+                      const rows = [
+                        ['Capacity Utilization (Year 1)', capacityYear1],
+                        ['Capacity Utilization (Year 2)', capacityYear2],
+                        ['Capacity Utilization (Year 3 onwards)', capacityYear3Onwards],
+                        ['Raw Material Cost (% of Revenue)', rawMaterialCost],
+                      ];
+
+                      return (
+                        <EditableFinancialTable
+                          headers={['Assumption', 'Value (%)']}
+                          rows={rows}
+                          title="Assumptions for Cost of Production & Profitability"
+                          statementNumber="4"
+                          editableCells={[
+                            [false, true],
+                            [false, true],
+                            [false, true],
+                            [false, true],
+                          ]}
+                          onCellChange={(rowIndex, colIndex, value) => {
+                            const newFinancialStatements = { ...financialStatements };
+                            if (!newFinancialStatements.assumptions) {
+                              newFinancialStatements.assumptions = {};
+                            }
+
+                            if (rowIndex === 0) {
+                              newFinancialStatements.assumptions.capacityUtilizationYear1 = value;
+                            } else if (rowIndex === 1) {
+                              newFinancialStatements.assumptions.capacityUtilizationYear2 = value;
+                            } else if (rowIndex === 2) {
+                              newFinancialStatements.assumptions.capacityUtilizationYear3Onwards = value;
+                            } else if (rowIndex === 3) {
+                              newFinancialStatements.assumptions.rawMaterialCostPercentage = value;
+                            }
+
+                            const currentStep15 = clusterData.step15 || {};
+                            setStepData(15, {
+                              ...currentStep15,
+                              financialStatements: newFinancialStatements,
+                            });
+
+                            if (onDataChange) {
+                              onDataChange('financialStatements', newFinancialStatements);
+                            }
+                          }}
+                        />
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -4135,166 +4081,166 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 }}
               />
               <div className="relative z-10">
-                {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')}
-              {/* Statement 5: Estimation of Power Cost */}
-              {(financialStatements.powerCost || s14.powerCost) && (
-                <div className="my-6">
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 5: Estimation of Power Cost</h3>
-                  {(() => {
-                    const pc = financialStatements.powerCost || {};
-                    const connectedLoad = pc.connectedLoad || s14.connectedLoad || 0;
-                    const monthlyConsumption = pc.monthlyConsumption || s14.monthlyConsumption || 0;
-                    const ratePerUnit = pc.ratePerUnit || s14.powerCost || 0;
-                    const monthlyCost = (monthlyConsumption * ratePerUnit) / 100000; // Convert to lakhs
-                    const annualCost = pc.annualCost || (monthlyCost * 12) || 0;
-                    
-                    const rows = [
-                      ['Connected Load', connectedLoad, ratePerUnit, monthlyCost],
-                      ['Monthly Consumption', monthlyConsumption, ratePerUnit, monthlyCost],
-                      ['Annual Power Cost', 0, 0, annualCost], // Calculated
-                    ];
-                    
-                    return (
-                      <EditableFinancialTable
-                        headers={['Particulars', 'Units', 'Rate (₹)', 'Amount (₹ Lakhs)']}
-                        rows={rows}
-                        title="Estimation of Power cost"
-                        statementNumber="5"
-                        editableCells={[
-                          [false, true, true, false], // Connected Load - units and rate editable
-                          [false, true, true, false], // Monthly Consumption - units and rate editable
-                          [false, false, false, false], // Annual Power Cost - calculated
-                        ]}
-                        calculatedCells={[
-                          {
-                            row: 0,
-                            col: 3,
-                            formula: (data) => {
-                              const units = parseFloat(data[0]?.[1] || 0);
-                              const rate = parseFloat(data[0]?.[2] || 0);
-                              return (units * rate) / 100000;
-                            }
-                          },
-                          {
-                            row: 1,
-                            col: 3,
-                            formula: (data) => {
-                              const units = parseFloat(data[1]?.[1] || 0);
-                              const rate = parseFloat(data[1]?.[2] || 0);
-                              return (units * rate) / 100000;
-                            }
-                          },
-                          {
-                            row: 2,
-                            col: 3,
-                            formula: (data) => {
-                              const monthlyCost = parseFloat(data[1]?.[3] || 0);
-                              return monthlyCost * 12;
-                            }
-                          }
-                        ]}
-                        onCellChange={(rowIndex, colIndex, value) => {
-                          const newFinancialStatements = { ...financialStatements };
-                          if (!newFinancialStatements.powerCost) {
-                            newFinancialStatements.powerCost = {};
-                          }
-                          
-                          if (rowIndex === 0) {
-                            if (colIndex === 1) {
-                              newFinancialStatements.powerCost.connectedLoad = value;
-                            } else if (colIndex === 2) {
-                              newFinancialStatements.powerCost.ratePerUnit = value;
-                            }
-                          } else if (rowIndex === 1) {
-                            if (colIndex === 1) {
-                              newFinancialStatements.powerCost.monthlyConsumption = value;
-                            } else if (colIndex === 2) {
-                              newFinancialStatements.powerCost.ratePerUnit = value;
-                            }
-                          }
-                          
-                          const currentStep15 = clusterData.step15 || {};
-                          setStepData(15, {
-                            ...currentStep15,
-                            financialStatements: newFinancialStatements,
-                          });
-                          
-                          if (onDataChange) {
-                            onDataChange('financialStatements', newFinancialStatements);
-                          }
-                        }}
-                      />
-                    );
-                  })()}
-                </div>
-              )}
+                {/* {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')} */}
+                {/* Statement 5: Estimation of Power Cost */}
+                {(financialStatements.powerCost || s14.powerCost) && (
+                  <div className="-mt-8">
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 5: Estimation of Power Cost</h3>
+                    {(() => {
+                      const pc = financialStatements.powerCost || {};
+                      const connectedLoad = pc.connectedLoad || s14.connectedLoad || 0;
+                      const monthlyConsumption = pc.monthlyConsumption || s14.monthlyConsumption || 0;
+                      const ratePerUnit = pc.ratePerUnit || s14.powerCost || 0;
+                      const monthlyCost = (monthlyConsumption * ratePerUnit) / 100000; // Convert to lakhs
+                      const annualCost = pc.annualCost || (monthlyCost * 12) || 0;
 
-              {/* Statement 6: Manpower Requirement & Estimation of Cost */}
-              {(financialStatements.manpower || s14.manpowerRequirement) && (
-                <div className="my-6">
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 6: Manpower Requirement & Estimation of Cost</h3>
-                  {(() => {
-                    const manpower = financialStatements.manpower || s14.manpowerRequirement || [];
-                    if (Array.isArray(manpower) && manpower.length > 0) {
-                      const rows = manpower.map((mp: any, idx: number) => [
-                        mp.category || '',
-                        mp.count || 0,
-                        mp.annualSalary || 0,
-                        (mp.count || 0) * (mp.annualSalary || 0) / 100000, // Calculated: Total Cost
-                      ]);
-                      
-                      const editableCells = rows.map(() => [false, true, true, false]); // Category not editable, count and salary editable, total calculated
-                      const calculatedCells = rows.map((_, idx) => ({
-                        row: idx,
-                        col: 3,
-                        formula: (data: any[][]) => {
-                          const count = parseFloat(data[idx]?.[1] || 0);
-                          const salary = parseFloat(data[idx]?.[2] || 0);
-                          return (count * salary) / 100000; // Convert to lakhs
-                        }
-                      }));
-                      
+                      const rows = [
+                        ['Connected Load', connectedLoad, ratePerUnit, monthlyCost],
+                        ['Monthly Consumption', monthlyConsumption, ratePerUnit, monthlyCost],
+                        ['Annual Power Cost', 0, 0, annualCost], // Calculated
+                      ];
+
                       return (
                         <EditableFinancialTable
-                          headers={['Category', 'No. of Employees', 'Annual Salary (₹)', 'Total Cost (₹ Lakhs)']}
+                          headers={['Particulars', 'Units', 'Rate (₹)', 'Amount (₹ Lakhs)']}
                           rows={rows}
-                          title="Manpower requirement & estimation of cost"
-                          statementNumber="6"
-                          editableCells={editableCells}
-                          calculatedCells={calculatedCells}
+                          title="Estimation of Power cost"
+                          statementNumber="5"
+                          editableCells={[
+                            [false, true, true, false], // Connected Load - units and rate editable
+                            [false, true, true, false], // Monthly Consumption - units and rate editable
+                            [false, false, false, false], // Annual Power Cost - calculated
+                          ]}
+                          calculatedCells={[
+                            {
+                              row: 0,
+                              col: 3,
+                              formula: (data) => {
+                                const units = parseFloat(data[0]?.[1] || 0);
+                                const rate = parseFloat(data[0]?.[2] || 0);
+                                return (units * rate) / 100000;
+                              }
+                            },
+                            {
+                              row: 1,
+                              col: 3,
+                              formula: (data) => {
+                                const units = parseFloat(data[1]?.[1] || 0);
+                                const rate = parseFloat(data[1]?.[2] || 0);
+                                return (units * rate) / 100000;
+                              }
+                            },
+                            {
+                              row: 2,
+                              col: 3,
+                              formula: (data) => {
+                                const monthlyCost = parseFloat(data[1]?.[3] || 0);
+                                return monthlyCost * 12;
+                              }
+                            }
+                          ]}
                           onCellChange={(rowIndex, colIndex, value) => {
                             const newFinancialStatements = { ...financialStatements };
-                            if (!newFinancialStatements.manpower) {
-                              newFinancialStatements.manpower = [];
+                            if (!newFinancialStatements.powerCost) {
+                              newFinancialStatements.powerCost = {};
                             }
-                            
-                            if (!newFinancialStatements.manpower[rowIndex]) {
-                              newFinancialStatements.manpower[rowIndex] = { ...manpower[rowIndex] };
+
+                            if (rowIndex === 0) {
+                              if (colIndex === 1) {
+                                newFinancialStatements.powerCost.connectedLoad = value;
+                              } else if (colIndex === 2) {
+                                newFinancialStatements.powerCost.ratePerUnit = value;
+                              }
+                            } else if (rowIndex === 1) {
+                              if (colIndex === 1) {
+                                newFinancialStatements.powerCost.monthlyConsumption = value;
+                              } else if (colIndex === 2) {
+                                newFinancialStatements.powerCost.ratePerUnit = value;
+                              }
                             }
-                            
-                            if (colIndex === 1) {
-                              newFinancialStatements.manpower[rowIndex].count = value;
-                            } else if (colIndex === 2) {
-                              newFinancialStatements.manpower[rowIndex].annualSalary = value;
-                            }
-                            
+
                             const currentStep15 = clusterData.step15 || {};
                             setStepData(15, {
                               ...currentStep15,
                               financialStatements: newFinancialStatements,
                             });
-                            
+
                             if (onDataChange) {
                               onDataChange('financialStatements', newFinancialStatements);
                             }
                           }}
                         />
                       );
-                    }
-                    return <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>;
-                  })()}
-                </div>
-              )}
+                    })()}
+                  </div>
+                )}
+
+                {/* Statement 6: Manpower Requirement & Estimation of Cost */}
+                {(financialStatements.manpower || s14.manpowerRequirement) && (
+                  <div className="my-6">
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 6: Manpower Requirement & Estimation of Cost</h3>
+                    {(() => {
+                      const manpower = financialStatements.manpower || s14.manpowerRequirement || [];
+                      if (Array.isArray(manpower) && manpower.length > 0) {
+                        const rows = manpower.map((mp: any, idx: number) => [
+                          mp.category || '',
+                          mp.count || 0,
+                          mp.annualSalary || 0,
+                          (mp.count || 0) * (mp.annualSalary || 0) / 100000, // Calculated: Total Cost
+                        ]);
+
+                        const editableCells = rows.map(() => [false, true, true, false]); // Category not editable, count and salary editable, total calculated
+                        const calculatedCells = rows.map((_, idx) => ({
+                          row: idx,
+                          col: 3,
+                          formula: (data: any[][]) => {
+                            const count = parseFloat(data[idx]?.[1] || 0);
+                            const salary = parseFloat(data[idx]?.[2] || 0);
+                            return (count * salary) / 100000; // Convert to lakhs
+                          }
+                        }));
+
+                        return (
+                          <EditableFinancialTable
+                            headers={['Category', 'No. of Employees', 'Annual Salary (₹)', 'Total Cost (₹ Lakhs)']}
+                            rows={rows}
+                            title="Manpower requirement & estimation of cost"
+                            statementNumber="6"
+                            editableCells={editableCells}
+                            calculatedCells={calculatedCells}
+                            onCellChange={(rowIndex, colIndex, value) => {
+                              const newFinancialStatements = { ...financialStatements };
+                              if (!newFinancialStatements.manpower) {
+                                newFinancialStatements.manpower = [];
+                              }
+
+                              if (!newFinancialStatements.manpower[rowIndex]) {
+                                newFinancialStatements.manpower[rowIndex] = { ...manpower[rowIndex] };
+                              }
+
+                              if (colIndex === 1) {
+                                newFinancialStatements.manpower[rowIndex].count = value;
+                              } else if (colIndex === 2) {
+                                newFinancialStatements.manpower[rowIndex].annualSalary = value;
+                              }
+
+                              const currentStep15 = clusterData.step15 || {};
+                              setStepData(15, {
+                                ...currentStep15,
+                                financialStatements: newFinancialStatements,
+                              });
+
+                              if (onDataChange) {
+                                onDataChange('financialStatements', newFinancialStatements);
+                              }
+                            }}
+                          />
+                        );
+                      }
+                      return <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>;
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -4321,218 +4267,218 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 }}
               />
               <div className="relative z-10">
-                {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')}
-              {/* Statement 7: Estimation of Depreciation */}
-              {(financialStatements.depreciation || s14.depreciationDetails || (s12.building && s12.machinery)) && (
-                <div className="my-6">
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 7: Estimation of Depreciation</h3>
-                  {(() => {
-                    const dep = financialStatements.depreciation || s14.depreciationDetails || [];
-                    let rows: any[][] = [];
-                    let editableCells: boolean[][] = [];
-                    let calculatedCells: any[] = [];
-                    
-                    if (Array.isArray(dep) && dep.length > 0) {
-                      rows = dep.map((d: any, idx: number) => [
-                        d.asset || '',
-                        d.cost || 0,
-                        d.rate || 0,
-                        (d.cost || 0) * (d.rate || 0) / 100, // Calculated
-                      ]);
-                      editableCells = dep.map(() => [false, true, true, false]);
-                      calculatedCells = dep.map((_, idx) => ({
-                        row: idx,
-                        col: 3,
-                        formula: (data: any[][]) => {
-                          const cost = parseFloat(data[idx]?.[1] || 0);
-                          const rate = parseFloat(data[idx]?.[2] || 0);
-                          return (cost * rate) / 100;
-                        }
-                      }));
-                    } else if (s12.building || s12.machinery) {
-                      const buildingCost = s12.building || 0;
-                      const machineryCost = s12.machinery || 0;
-                      const buildingDepRate = s14.buildingDepreciationRate || 10;
-                      const machineryDepRate = s14.machineryDepreciationRate || 15;
-                      
-                      if (buildingCost > 0) {
-                        rows.push(['Building', buildingCost, buildingDepRate, (buildingCost * buildingDepRate / 100)]);
-                        editableCells.push([false, true, true, false]);
-                        calculatedCells.push({
-                          row: rows.length - 1,
-                          col: 3,
-                          formula: (data: any[][]) => {
-                            const cost = parseFloat(data[rows.length - 1]?.[1] || 0);
-                            const rate = parseFloat(data[rows.length - 1]?.[2] || 0);
-                            return (cost * rate) / 100;
-                          }
-                        });
-                      }
-                      if (machineryCost > 0) {
-                        rows.push(['Machinery', machineryCost, machineryDepRate, (machineryCost * machineryDepRate / 100)]);
-                        editableCells.push([false, true, true, false]);
-                        calculatedCells.push({
-                          row: rows.length - 1,
-                          col: 3,
-                          formula: (data: any[][]) => {
-                            const cost = parseFloat(data[rows.length - 1]?.[1] || 0);
-                            const rate = parseFloat(data[rows.length - 1]?.[2] || 0);
-                            return (cost * rate) / 100;
-                          }
-                        });
-                      }
-                      // Total row
-                      const totalCost = buildingCost + machineryCost;
-                      const totalDep = (buildingCost * buildingDepRate / 100) + (machineryCost * machineryDepRate / 100);
-                      rows.push(['Total', totalCost, 0, totalDep]);
-                      editableCells.push([false, false, false, false]);
-                      calculatedCells.push({
-                        row: rows.length - 1,
-                        col: 3,
-                        formula: (data: any[][]) => {
-                          let sum = 0;
-                          for (let i = 0; i < rows.length - 1; i++) {
-                            sum += parseFloat(data[i]?.[3] || 0);
-                          }
-                          return sum;
-                        }
-                      });
-                    }
-                    
-                    if (rows.length > 0) {
-                      return (
-                        <EditableFinancialTable
-                          headers={['Asset', 'Cost (₹ Lakhs)', 'Depreciation Rate (%)', 'Annual Depreciation (₹ Lakhs)']}
-                          rows={rows}
-                          title="Estimation of Depreciation"
-                          statementNumber="7"
-                          editableCells={editableCells}
-                          calculatedCells={calculatedCells}
-                          onCellChange={(rowIndex, colIndex, value) => {
-                            const newFinancialStatements = { ...financialStatements };
-                            if (!newFinancialStatements.depreciation) {
-                              newFinancialStatements.depreciation = [];
-                            }
-                            
-                            if (!newFinancialStatements.depreciation[rowIndex]) {
-                              newFinancialStatements.depreciation[rowIndex] = { ...(dep[rowIndex] || {}) };
-                            }
-                            
-                            if (colIndex === 1) {
-                              newFinancialStatements.depreciation[rowIndex].cost = value;
-                            } else if (colIndex === 2) {
-                              newFinancialStatements.depreciation[rowIndex].rate = value;
-                            }
-                            
-                            const currentStep15 = clusterData.step15 || {};
-                            setStepData(15, {
-                              ...currentStep15,
-                              financialStatements: newFinancialStatements,
-                            });
-                            
-                            if (onDataChange) {
-                              onDataChange('financialStatements', newFinancialStatements);
-                            }
-                          }}
-                        />
-                      );
-                    }
-                    return <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>;
-                  })()}
-                </div>
-              )}
+                {/* {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')} */}
+                {/* Statement 7: Estimation of Depreciation */}
+                {(financialStatements.depreciation || s14.depreciationDetails || (s12.building && s12.machinery)) && (
+                  <div className="-mt-8">
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 7: Estimation of Depreciation</h3>
+                    {(() => {
+                      const dep = financialStatements.depreciation || s14.depreciationDetails || [];
+                      let rows: any[][] = [];
+                      let editableCells: boolean[][] = [];
+                      let calculatedCells: any[] = [];
 
-              {/* Statement 8: Calculation of Income Tax */}
-              {(financialStatements.incomeTax || s15.profitAndLossProjections) && (
-                <div className="my-6">
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 8: Calculation of Income Tax</h3>
-                  {(() => {
-                    const it = financialStatements.incomeTax || {};
-                    const rows: any[][] = [];
-                    const calculatedCells: any[] = [];
-                    
-                    for (let year = 1; year <= 5; year++) {
-                      const yearData = it[`year${year}`] || {};
-                      const profitBeforeTax = yearData.profitBeforeTax || (s15.profitAndLossProjections?.[year - 1]?.profit || 0);
-                      const taxRate = yearData.taxRate || (profitBeforeTax > 1000000 ? 30 : profitBeforeTax > 500000 ? 25 : 20);
-                      const taxAmount = (profitBeforeTax * taxRate) / 100;
-                      const profitAfterTax = profitBeforeTax - taxAmount;
-                      
-                      rows.push([
-                        `Year ${year}`,
-                        profitBeforeTax,
-                        taxRate,
-                        taxAmount, // Calculated
-                        profitAfterTax, // Calculated
-                      ]);
-                      
-                      const rowIdx = rows.length - 1;
-                      calculatedCells.push(
-                        {
-                          row: rowIdx,
+                      if (Array.isArray(dep) && dep.length > 0) {
+                        rows = dep.map((d: any, idx: number) => [
+                          d.asset || '',
+                          d.cost || 0,
+                          d.rate || 0,
+                          (d.cost || 0) * (d.rate || 0) / 100, // Calculated
+                        ]);
+                        editableCells = dep.map(() => [false, true, true, false]);
+                        calculatedCells = dep.map((_, idx) => ({
+                          row: idx,
                           col: 3,
                           formula: (data: any[][]) => {
-                            const pbt = parseFloat(data[rowIdx]?.[1] || 0);
-                            const rate = parseFloat(data[rowIdx]?.[2] || 0);
-                            return (pbt * rate) / 100;
+                            const cost = parseFloat(data[idx]?.[1] || 0);
+                            const rate = parseFloat(data[idx]?.[2] || 0);
+                            return (cost * rate) / 100;
                           }
-                        },
-                        {
-                          row: rowIdx,
-                          col: 4,
-                          formula: (data: any[][]) => {
-                            const pbt = parseFloat(data[rowIdx]?.[1] || 0);
-                            const tax = parseFloat(data[rowIdx]?.[3] || 0);
-                            return pbt - tax;
-                          }
+                        }));
+                      } else if (s12.building || s12.machinery) {
+                        const buildingCost = s12.building || 0;
+                        const machineryCost = s12.machinery || 0;
+                        const buildingDepRate = s14.buildingDepreciationRate || 10;
+                        const machineryDepRate = s14.machineryDepreciationRate || 15;
+
+                        if (buildingCost > 0) {
+                          rows.push(['Building', buildingCost, buildingDepRate, (buildingCost * buildingDepRate / 100)]);
+                          editableCells.push([false, true, true, false]);
+                          calculatedCells.push({
+                            row: rows.length - 1,
+                            col: 3,
+                            formula: (data: any[][]) => {
+                              const cost = parseFloat(data[rows.length - 1]?.[1] || 0);
+                              const rate = parseFloat(data[rows.length - 1]?.[2] || 0);
+                              return (cost * rate) / 100;
+                            }
+                          });
                         }
-                      );
-                    }
-                    
-                    if (rows.length > 0) {
-                      return (
-                        <EditableFinancialTable
-                          headers={['Year', 'Profit Before Tax (₹ Lakhs)', 'Tax Rate (%)', 'Tax Amount (₹ Lakhs)', 'Profit After Tax (₹ Lakhs)']}
-                          rows={rows}
-                          title="Calculation of Income Tax"
-                          statementNumber="8"
-                          editableCells={rows.map(() => [false, true, true, false, false])}
-                          calculatedCells={calculatedCells}
-                          onCellChange={(rowIndex, colIndex, value) => {
-                            const newFinancialStatements = { ...financialStatements };
-                            if (!newFinancialStatements.incomeTax) {
-                              newFinancialStatements.incomeTax = {};
+                        if (machineryCost > 0) {
+                          rows.push(['Machinery', machineryCost, machineryDepRate, (machineryCost * machineryDepRate / 100)]);
+                          editableCells.push([false, true, true, false]);
+                          calculatedCells.push({
+                            row: rows.length - 1,
+                            col: 3,
+                            formula: (data: any[][]) => {
+                              const cost = parseFloat(data[rows.length - 1]?.[1] || 0);
+                              const rate = parseFloat(data[rows.length - 1]?.[2] || 0);
+                              return (cost * rate) / 100;
                             }
-                            
-                            const year = rowIndex + 1;
-                            const yearKey = `year${year}`;
-                            if (!newFinancialStatements.incomeTax[yearKey]) {
-                              newFinancialStatements.incomeTax[yearKey] = {};
+                          });
+                        }
+                        // Total row
+                        const totalCost = buildingCost + machineryCost;
+                        const totalDep = (buildingCost * buildingDepRate / 100) + (machineryCost * machineryDepRate / 100);
+                        rows.push(['Total', totalCost, 0, totalDep]);
+                        editableCells.push([false, false, false, false]);
+                        calculatedCells.push({
+                          row: rows.length - 1,
+                          col: 3,
+                          formula: (data: any[][]) => {
+                            let sum = 0;
+                            for (let i = 0; i < rows.length - 1; i++) {
+                              sum += parseFloat(data[i]?.[3] || 0);
                             }
-                            
-                            if (colIndex === 1) {
-                              newFinancialStatements.incomeTax[yearKey].profitBeforeTax = value;
-                            } else if (colIndex === 2) {
-                              newFinancialStatements.incomeTax[yearKey].taxRate = value;
+                            return sum;
+                          }
+                        });
+                      }
+
+                      if (rows.length > 0) {
+                        return (
+                          <EditableFinancialTable
+                            headers={['Asset', 'Cost (₹ Lakhs)', 'Depreciation Rate (%)', 'Annual Depreciation (₹ Lakhs)']}
+                            rows={rows}
+                            title="Estimation of Depreciation"
+                            statementNumber="7"
+                            editableCells={editableCells}
+                            calculatedCells={calculatedCells}
+                            onCellChange={(rowIndex, colIndex, value) => {
+                              const newFinancialStatements = { ...financialStatements };
+                              if (!newFinancialStatements.depreciation) {
+                                newFinancialStatements.depreciation = [];
+                              }
+
+                              if (!newFinancialStatements.depreciation[rowIndex]) {
+                                newFinancialStatements.depreciation[rowIndex] = { ...(dep[rowIndex] || {}) };
+                              }
+
+                              if (colIndex === 1) {
+                                newFinancialStatements.depreciation[rowIndex].cost = value;
+                              } else if (colIndex === 2) {
+                                newFinancialStatements.depreciation[rowIndex].rate = value;
+                              }
+
+                              const currentStep15 = clusterData.step15 || {};
+                              setStepData(15, {
+                                ...currentStep15,
+                                financialStatements: newFinancialStatements,
+                              });
+
+                              if (onDataChange) {
+                                onDataChange('financialStatements', newFinancialStatements);
+                              }
+                            }}
+                          />
+                        );
+                      }
+                      return <p className="text-sm text-gray-500" style={{ color: '#1F2937' }}>N/A</p>;
+                    })()}
+                  </div>
+                )}
+
+                {/* Statement 8: Calculation of Income Tax */}
+                {(financialStatements.incomeTax || s15.profitAndLossProjections) && (
+                  <div className="my-6">
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 8: Calculation of Income Tax</h3>
+                    {(() => {
+                      const it = financialStatements.incomeTax || {};
+                      const rows: any[][] = [];
+                      const calculatedCells: any[] = [];
+
+                      for (let year = 1; year <= 5; year++) {
+                        const yearData = it[`year${year}`] || {};
+                        const profitBeforeTax = yearData.profitBeforeTax || (s15.profitAndLossProjections?.[year - 1]?.profit || 0);
+                        const taxRate = yearData.taxRate || (profitBeforeTax > 1000000 ? 30 : profitBeforeTax > 500000 ? 25 : 20);
+                        const taxAmount = (profitBeforeTax * taxRate) / 100;
+                        const profitAfterTax = profitBeforeTax - taxAmount;
+
+                        rows.push([
+                          `Year ${year}`,
+                          profitBeforeTax,
+                          taxRate,
+                          taxAmount, // Calculated
+                          profitAfterTax, // Calculated
+                        ]);
+
+                        const rowIdx = rows.length - 1;
+                        calculatedCells.push(
+                          {
+                            row: rowIdx,
+                            col: 3,
+                            formula: (data: any[][]) => {
+                              const pbt = parseFloat(data[rowIdx]?.[1] || 0);
+                              const rate = parseFloat(data[rowIdx]?.[2] || 0);
+                              return (pbt * rate) / 100;
                             }
-                            
-                            const currentStep15 = clusterData.step15 || {};
-                            setStepData(15, {
-                              ...currentStep15,
-                              financialStatements: newFinancialStatements,
-                            });
-                            
-                            if (onDataChange) {
-                              onDataChange('financialStatements', newFinancialStatements);
+                          },
+                          {
+                            row: rowIdx,
+                            col: 4,
+                            formula: (data: any[][]) => {
+                              const pbt = parseFloat(data[rowIdx]?.[1] || 0);
+                              const tax = parseFloat(data[rowIdx]?.[3] || 0);
+                              return pbt - tax;
                             }
-                          }}
-                        />
-                      );
-                    }
-                    return null;
-                  })()}
-                </div>
-              )}
+                          }
+                        );
+                      }
+
+                      if (rows.length > 0) {
+                        return (
+                          <EditableFinancialTable
+                            headers={['Year', 'Profit Before Tax (₹ Lakhs)', 'Tax Rate (%)', 'Tax Amount (₹ Lakhs)', 'Profit After Tax (₹ Lakhs)']}
+                            rows={rows}
+                            title="Calculation of Income Tax"
+                            statementNumber="8"
+                            editableCells={rows.map(() => [false, true, true, false, false])}
+                            calculatedCells={calculatedCells}
+                            onCellChange={(rowIndex, colIndex, value) => {
+                              const newFinancialStatements = { ...financialStatements };
+                              if (!newFinancialStatements.incomeTax) {
+                                newFinancialStatements.incomeTax = {};
+                              }
+
+                              const year = rowIndex + 1;
+                              const yearKey = `year${year}`;
+                              if (!newFinancialStatements.incomeTax[yearKey]) {
+                                newFinancialStatements.incomeTax[yearKey] = {};
+                              }
+
+                              if (colIndex === 1) {
+                                newFinancialStatements.incomeTax[yearKey].profitBeforeTax = value;
+                              } else if (colIndex === 2) {
+                                newFinancialStatements.incomeTax[yearKey].taxRate = value;
+                              }
+
+                              const currentStep15 = clusterData.step15 || {};
+                              setStepData(15, {
+                                ...currentStep15,
+                                financialStatements: newFinancialStatements,
+                              });
+
+                              if (onDataChange) {
+                                onDataChange('financialStatements', newFinancialStatements);
+                              }
+                            }}
+                          />
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -4559,124 +4505,124 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 }}
               />
               <div className="relative z-10">
-                {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')}
-              {/* Statement 9: Projected Cash Flow Statement - Matching PDF format */}
-              {/* Note: This statement is calculated from other statements. Edit values in Statements 1-8 to update this. */}
-              {(financialStatements.cashFlow || s15.cashFlowProjections) && (
-                <div className="my-6">
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 9: Projected Cash Flow Statement</h3>
-                  <p className="text-xs text-gray-500 mb-2 italic">Note: This statement is automatically calculated from other financial statements.</p>
-                  {(() => {
-                    const cf = financialStatements.cashFlow || {};
-                    const totalProjectCost = (s12.land || 0) + (s12.building || 0) + (s12.machinery || 0) +
-                      (s12.utilitiesAndInfrastructure || 0) + (s12.preliminaryAndPreOperative || 0) +
-                      (s12.workingCapitalMargin || 0);
-                    const spvShare = financialStatements.spvShare || s13.spvContribution || 0;
-                    const stateGrant = financialStatements.stateGovtGrant || s13.governmentGrant || 0;
-                    const workingCapitalLoan = s13.bankLoan ? (s13.bankLoan * 0.1) : 30; // Estimate 10% of bank loan as WC loan
-                    const workingCapital = s12.workingCapitalMargin || 0;
-                    
-                    const rows: any[][] = [];
-                    
-                    // Source Of Funds
-                    rows.push(['Source Of Funds', '', '', '', '', '', '']);
-                    rows.push(['SPV Share', spvShare.toFixed(2), '', '', '', '', '']);
-                    rows.push(['State Govt. Grant', stateGrant.toFixed(2), '', '', '', '', '']);
-                    
-                    // Profit Before Int.,Dep. & Tax for each year
-                    const profitRow = ['Profit Before Int.,Dep. & Tax', ''];
-                    for (let year = 1; year <= 5; year++) {
-                      const yearData = cf[`year${year}`] || (s15.cashFlowProjections && s15.cashFlowProjections[year - 1]) || {};
-                      const profitBeforeTax = yearData.profitBeforeTax || (financialStatements.costOfProduction?.[`year${year}`]?.profitBeforeTax || 0);
-                      profitRow.push(profitBeforeTax.toFixed(2));
-                    }
-                    rows.push(profitRow);
-                    
-                    // Increase in W.C.Loan
-                    const wcLoanRow = ['Increase in W.C.Loan', workingCapitalLoan.toFixed(2), '0.00', '0.00', '0.00', '0.00', '0.00'];
-                    rows.push(wcLoanRow);
-                    
-                    // Total Source - PR. PERIOD is one-time funding only, Years 1-5 are profit only
-                    const totalSourcePR = spvShare + stateGrant + workingCapitalLoan;
-                    rows.push(['Total', totalSourcePR.toFixed(2), 
-                      (cf.year1?.profitBeforeTax || 0).toFixed(2),
-                      (cf.year2?.profitBeforeTax || 0).toFixed(2),
-                      (cf.year3?.profitBeforeTax || 0).toFixed(2),
-                      (cf.year4?.profitBeforeTax || 0).toFixed(2),
-                      (cf.year5?.profitBeforeTax || 0).toFixed(2),
-                    ]);
-                    rows.push(['', '', '', '', '', '', '']);
-                    
-                    // Uses
-                    rows.push(['Uses', '', '', '', '', '', '']);
-                    rows.push(['Inc. in Capital Expenditure', totalProjectCost.toFixed(2), '', '', '', '', '']);
-                    rows.push(['Deposits & advances (as per Statement 1.1)', (s12.preliminaryAndPreOperative || 0).toFixed(2), '', '', '', '', '']);
-                    
-                    // Increase in W.Capital
-                    const wcIncreaseRow = ['Increase in W.Capital', ''];
-                    for (let year = 1; year <= 5; year++) {
-                      const yearData = cf[`year${year}`] || {};
-                      wcIncreaseRow.push((yearData.workingCapitalIncrease || (year === 1 ? workingCapital * 0.05 : 0)).toFixed(2));
-                    }
-                    rows.push(wcIncreaseRow);
-                    
-                    // Provision For Taxation
-                    const taxRow = ['Provision For Taxation', ''];
-                    for (let year = 1; year <= 5; year++) {
-                      const yearData = financialStatements.incomeTax?.[`year${year}`] || {};
-                      taxRow.push((yearData.taxAmount || 0).toFixed(2));
-                    }
-                    rows.push(taxRow);
-                    
-                    // Total Uses
-                    const totalUsesBase = totalProjectCost + (s12.preliminaryAndPreOperative || 0);
-                    rows.push(['Total', totalUsesBase.toFixed(2),
-                      (parseFloat(wcIncreaseRow[2] || '0') + parseFloat(taxRow[2] || '0')).toFixed(2),
-                      (parseFloat(wcIncreaseRow[3] || '0') + parseFloat(taxRow[3] || '0')).toFixed(2),
-                      (parseFloat(wcIncreaseRow[4] || '0') + parseFloat(taxRow[4] || '0')).toFixed(2),
-                      (parseFloat(wcIncreaseRow[5] || '0') + parseFloat(taxRow[5] || '0')).toFixed(2),
-                      (parseFloat(wcIncreaseRow[6] || '0') + parseFloat(taxRow[6] || '0')).toFixed(2),
-                    ]);
-                    rows.push(['', '', '', '', '', '', '']);
-                    
-                    // Surplus - PR. PERIOD is funding minus capital expenditure, Years 1-5 are profit minus uses
-                    // totalSourcePR already declared above, reuse it
-                    const surplusPR = totalSourcePR - totalUsesBase;
-                    const surplusRow = ['Surplus', surplusPR.toFixed(2)];
-                    for (let year = 1; year <= 5; year++) {
-                      const source = parseFloat(rows[rows.length - 2][year + 1] || '0');
-                      const uses = parseFloat(rows[rows.length - 1][year + 1] || '0');
-                      surplusRow.push((source - uses).toFixed(2));
-                    }
-                    rows.push(surplusRow);
-                    
-                    // Opening Balance - starts at 0, then accumulates surplus from previous year
-                    const openingRow = ['Opening Balance', '0.00', '0.00'];
-                    let runningBalance = parseFloat(surplusRow[1] || '0'); // Start with PR. PERIOD surplus
-                    for (let year = 2; year <= 5; year++) {
-                      runningBalance += parseFloat(surplusRow[year] || '0');
-                      openingRow.push(runningBalance.toFixed(2));
-                    }
-                    rows.push(openingRow);
-                    
-                    // Closing Balance - cumulative surplus including PR. PERIOD
-                    const closingRow = ['Closing Balance', '0.00'];
-                    runningBalance = parseFloat(surplusRow[1] || '0'); // Start with PR. PERIOD surplus
-                    for (let year = 1; year <= 5; year++) {
-                      runningBalance += parseFloat(surplusRow[year + 1] || '0');
-                      closingRow.push(runningBalance.toFixed(2));
-                    }
-                    rows.push(closingRow);
-                    
-                    return renderTable(
-                      ['Years', 'PR. PERIOD', '1', '2', '3', '4', '5'],
-                      rows,
-                      'PROJECTED CASH FLOW STATEMENT',
-                      '9'
-                    );
-                  })()}
-                </div>
-              )}
+                {/* {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')} */}
+                {/* Statement 9: Projected Cash Flow Statement - Matching PDF format */}
+                {/* Note: This statement is calculated from other statements. Edit values in Statements 1-8 to update this. */}
+                {(financialStatements.cashFlow || s15.cashFlowProjections) && (
+                  <div className="-mt-8">
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 9: Projected Cash Flow Statement</h3>
+                    <p className="text-xs text-gray-500 mb-2 italic">Note: This statement is automatically calculated from other financial statements.</p>
+                    {(() => {
+                      const cf = financialStatements.cashFlow || {};
+                      const totalProjectCost = (s12.land || 0) + (s12.building || 0) + (s12.machinery || 0) +
+                        (s12.utilitiesAndInfrastructure || 0) + (s12.preliminaryAndPreOperative || 0) +
+                        (s12.workingCapitalMargin || 0);
+                      const spvShare = financialStatements.spvShare || s13.spvContribution || 0;
+                      const stateGrant = financialStatements.stateGovtGrant || s13.governmentGrant || 0;
+                      const workingCapitalLoan = s13.bankLoan ? (s13.bankLoan * 0.1) : 30; // Estimate 10% of bank loan as WC loan
+                      const workingCapital = s12.workingCapitalMargin || 0;
+
+                      const rows: any[][] = [];
+
+                      // Source Of Funds
+                      rows.push(['Source Of Funds', '', '', '', '', '', '']);
+                      rows.push(['SPV Share', spvShare.toFixed(2), '', '', '', '', '']);
+                      rows.push(['State Govt. Grant', stateGrant.toFixed(2), '', '', '', '', '']);
+
+                      // Profit Before Int.,Dep. & Tax for each year
+                      const profitRow = ['Profit Before Int.,Dep. & Tax', ''];
+                      for (let year = 1; year <= 5; year++) {
+                        const yearData = cf[`year${year}`] || (s15.cashFlowProjections && s15.cashFlowProjections[year - 1]) || {};
+                        const profitBeforeTax = yearData.profitBeforeTax || (financialStatements.costOfProduction?.[`year${year}`]?.profitBeforeTax || 0);
+                        profitRow.push(profitBeforeTax.toFixed(2));
+                      }
+                      rows.push(profitRow);
+
+                      // Increase in W.C.Loan
+                      const wcLoanRow = ['Increase in W.C.Loan', workingCapitalLoan.toFixed(2), '0.00', '0.00', '0.00', '0.00', '0.00'];
+                      rows.push(wcLoanRow);
+
+                      // Total Source - PR. PERIOD is one-time funding only, Years 1-5 are profit only
+                      const totalSourcePR = spvShare + stateGrant + workingCapitalLoan;
+                      rows.push(['Total', totalSourcePR.toFixed(2),
+                        (cf.year1?.profitBeforeTax || 0).toFixed(2),
+                        (cf.year2?.profitBeforeTax || 0).toFixed(2),
+                        (cf.year3?.profitBeforeTax || 0).toFixed(2),
+                        (cf.year4?.profitBeforeTax || 0).toFixed(2),
+                        (cf.year5?.profitBeforeTax || 0).toFixed(2),
+                      ]);
+                      rows.push(['', '', '', '', '', '', '']);
+
+                      // Uses
+                      rows.push(['Uses', '', '', '', '', '', '']);
+                      rows.push(['Inc. in Capital Expenditure', totalProjectCost.toFixed(2), '', '', '', '', '']);
+                      rows.push(['Deposits & advances (as per Statement 1.1)', (s12.preliminaryAndPreOperative || 0).toFixed(2), '', '', '', '', '']);
+
+                      // Increase in W.Capital
+                      const wcIncreaseRow = ['Increase in W.Capital', ''];
+                      for (let year = 1; year <= 5; year++) {
+                        const yearData = cf[`year${year}`] || {};
+                        wcIncreaseRow.push((yearData.workingCapitalIncrease || (year === 1 ? workingCapital * 0.05 : 0)).toFixed(2));
+                      }
+                      rows.push(wcIncreaseRow);
+
+                      // Provision For Taxation
+                      const taxRow = ['Provision For Taxation', ''];
+                      for (let year = 1; year <= 5; year++) {
+                        const yearData = financialStatements.incomeTax?.[`year${year}`] || {};
+                        taxRow.push((yearData.taxAmount || 0).toFixed(2));
+                      }
+                      rows.push(taxRow);
+
+                      // Total Uses
+                      const totalUsesBase = totalProjectCost + (s12.preliminaryAndPreOperative || 0);
+                      rows.push(['Total', totalUsesBase.toFixed(2),
+                        (parseFloat(wcIncreaseRow[2] || '0') + parseFloat(taxRow[2] || '0')).toFixed(2),
+                        (parseFloat(wcIncreaseRow[3] || '0') + parseFloat(taxRow[3] || '0')).toFixed(2),
+                        (parseFloat(wcIncreaseRow[4] || '0') + parseFloat(taxRow[4] || '0')).toFixed(2),
+                        (parseFloat(wcIncreaseRow[5] || '0') + parseFloat(taxRow[5] || '0')).toFixed(2),
+                        (parseFloat(wcIncreaseRow[6] || '0') + parseFloat(taxRow[6] || '0')).toFixed(2),
+                      ]);
+                      rows.push(['', '', '', '', '', '', '']);
+
+                      // Surplus - PR. PERIOD is funding minus capital expenditure, Years 1-5 are profit minus uses
+                      // totalSourcePR already declared above, reuse it
+                      const surplusPR = totalSourcePR - totalUsesBase;
+                      const surplusRow = ['Surplus', surplusPR.toFixed(2)];
+                      for (let year = 1; year <= 5; year++) {
+                        const source = parseFloat(rows[rows.length - 2][year + 1] || '0');
+                        const uses = parseFloat(rows[rows.length - 1][year + 1] || '0');
+                        surplusRow.push((source - uses).toFixed(2));
+                      }
+                      rows.push(surplusRow);
+
+                      // Opening Balance - starts at 0, then accumulates surplus from previous year
+                      const openingRow = ['Opening Balance', '0.00', '0.00'];
+                      let runningBalance = parseFloat(surplusRow[1] || '0'); // Start with PR. PERIOD surplus
+                      for (let year = 2; year <= 5; year++) {
+                        runningBalance += parseFloat(surplusRow[year] || '0');
+                        openingRow.push(runningBalance.toFixed(2));
+                      }
+                      rows.push(openingRow);
+
+                      // Closing Balance - cumulative surplus including PR. PERIOD
+                      const closingRow = ['Closing Balance', '0.00'];
+                      runningBalance = parseFloat(surplusRow[1] || '0'); // Start with PR. PERIOD surplus
+                      for (let year = 1; year <= 5; year++) {
+                        runningBalance += parseFloat(surplusRow[year + 1] || '0');
+                        closingRow.push(runningBalance.toFixed(2));
+                      }
+                      rows.push(closingRow);
+
+                      return renderTable(
+                        ['Years', 'PR. PERIOD', '1', '2', '3', '4', '5'],
+                        rows,
+                        'PROJECTED CASH FLOW STATEMENT',
+                        '9'
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -4703,122 +4649,122 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 }}
               />
               <div className="relative z-10">
-                {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')}
-              {/* Statement 10: Projected Balance Sheet - Matching PDF format */}
-              {/* Note: This statement is calculated from other statements. Edit values in Statements 1-8 to update this. */}
-              {(financialStatements.balanceSheet || s15.balanceSheetProjections) && (
-                <div className="my-6">
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 10: Projected Balance Sheet</h3>
-                  <p className="text-xs text-gray-500 mb-2 italic">Note: This statement is automatically calculated from other financial statements.</p>
-                  {(() => {
-                    const bs = financialStatements.balanceSheet || {};
-                    const spvShare = financialStatements.spvShare || s13.spvContribution || 0;
-                    const stateGrant = financialStatements.stateGovtGrant || s13.governmentGrant || 0;
-                    const workingCapitalLoan = s13.bankLoan ? (s13.bankLoan * 0.1) : 30;
-                    const totalProjectCost = (s12.land || 0) + (s12.building || 0) + (s12.machinery || 0) +
-                      (s12.utilitiesAndInfrastructure || 0) + (s12.preliminaryAndPreOperative || 0);
-                    const grossBlock = totalProjectCost;
-                    
-                    const rows: any[][] = [];
-                    
-                    // Liabilities
-                    rows.push(['Liabilities', '', '', '', '', '', '']);
-                    rows.push(['SPV Share', spvShare.toFixed(2), spvShare.toFixed(2), spvShare.toFixed(2), spvShare.toFixed(2), spvShare.toFixed(2), spvShare.toFixed(2)]);
-                    rows.push(['State Govt. Grant', stateGrant.toFixed(2), stateGrant.toFixed(2), stateGrant.toFixed(2), stateGrant.toFixed(2), stateGrant.toFixed(2), stateGrant.toFixed(2)]);
-                    
-                    // Reserves & Surplus
-                    const reservesRow = ['Reserves & Surplus', ''];
-                    let cumulativeProfit = 0;
-                    for (let year = 1; year <= 5; year++) {
-                      const yearData = financialStatements.incomeTax?.[`year${year}`] || {};
-                      cumulativeProfit += (yearData.profitAfterTax || 0);
-                      reservesRow.push(cumulativeProfit.toFixed(2));
-                    }
-                    rows.push(reservesRow);
-                    
-                    rows.push(['W.C.Borrowings', workingCapitalLoan.toFixed(2), workingCapitalLoan.toFixed(2), workingCapitalLoan.toFixed(2), workingCapitalLoan.toFixed(2), workingCapitalLoan.toFixed(2), workingCapitalLoan.toFixed(2)]);
-                    
-                    // Current liabilities
-                    const currentLiabRow = ['Current liabilities', ''];
-                    for (let year = 1; year <= 5; year++) {
-                      currentLiabRow.push((0.75 + year * 0.08).toFixed(2)); // Small increment each year
-                    }
-                    rows.push(currentLiabRow);
-                    
-                    // Total Liabilities
-                    const totalLiabRow = ['Total', ''];
-                    for (let year = 0; year <= 5; year++) {
-                      const spv = spvShare;
-                      const grant = stateGrant;
-                      const reserves = year === 0 ? 0 : parseFloat(reservesRow[year + 1] || '0');
-                      const wc = workingCapitalLoan;
-                      const current = year === 0 ? 0 : parseFloat(currentLiabRow[year + 1] || '0');
-                      totalLiabRow.push((spv + grant + reserves + wc + current).toFixed(2));
-                    }
-                    rows.push(totalLiabRow);
-                    rows.push(['', '', '', '', '', '', '']);
-                    
-                    // Assets
-                    rows.push(['Assets', '', '', '', '', '', '']);
-                    rows.push(['Gross Block', grossBlock.toFixed(2), grossBlock.toFixed(2), grossBlock.toFixed(2), grossBlock.toFixed(2), grossBlock.toFixed(2), grossBlock.toFixed(2)]);
-                    
-                    // Less: Accu. Depreciation
-                    const depRow = ['Less: Accu. Depreciation', ''];
-                    let cumulativeDep = 0;
-                    const annualDep = (s12.building || 0) * 0.1 + (s12.machinery || 0) * 0.15;
-                    for (let year = 1; year <= 5; year++) {
-                      cumulativeDep += annualDep;
-                      depRow.push(cumulativeDep.toFixed(2));
-                    }
-                    rows.push(depRow);
-                    
-                    // Net Block
-                    const netBlockRow = ['Net Block', grossBlock.toFixed(2)];
-                    for (let year = 1; year <= 5; year++) {
-                      netBlockRow.push((grossBlock - parseFloat(depRow[year + 1] || '0')).toFixed(2));
-                    }
-                    rows.push(netBlockRow);
-                    
-                    rows.push(['Deposits', (s12.preliminaryAndPreOperative || 0).toFixed(2), (s12.preliminaryAndPreOperative || 0).toFixed(2), (s12.preliminaryAndPreOperative || 0).toFixed(2), (s12.preliminaryAndPreOperative || 0).toFixed(2), (s12.preliminaryAndPreOperative || 0).toFixed(2), (s12.preliminaryAndPreOperative || 0).toFixed(2)]);
-                    
-                    // Current Assets
-                    const currentAssetsRow = ['Current Assets', ''];
-                    for (let year = 1; year <= 5; year++) {
-                      const wc = s12.workingCapitalMargin || 0;
-                      currentAssetsRow.push((wc * (1 + year * 0.05)).toFixed(2)); // Growing current assets
-                    }
-                    rows.push(currentAssetsRow);
-                    
-                    // Closing Balance (from cash flow)
-                    const closingRow = ['Closing Balance', '0.00'];
-                    let runningBalance = 0;
-                    for (let year = 1; year <= 5; year++) {
-                      const yearData = financialStatements.cashFlow?.[`year${year}`] || {};
-                      runningBalance += (yearData.netCashFlow || 0);
-                      closingRow.push(runningBalance.toFixed(2));
-                    }
-                    rows.push(closingRow);
-                    
-                    // Total Assets
-                    const totalAssetsRow = ['Total', ''];
-                    for (let year = 0; year <= 5; year++) {
-                      const netBlock = year === 0 ? grossBlock : parseFloat(netBlockRow[year + 1] || '0');
-                      const deposits = s12.preliminaryAndPreOperative || 0;
-                      const current = year === 0 ? 0 : parseFloat(currentAssetsRow[year + 1] || '0');
-                      const closing = year === 0 ? 0 : parseFloat(closingRow[year + 1] || '0');
-                      totalAssetsRow.push((netBlock + deposits + current + closing).toFixed(2));
-                    }
-                    rows.push(totalAssetsRow);
-                    
-                    return renderTable(
-                      ['Years', 'PR. PERIOD', '1', '2', '3', '4', '5'],
-                      rows,
-                      'PROJECTED BALANCE SHEET',
-                      '10'
-                    );
-                  })()}
-                </div>
-              )}
+                {/* {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')} */}
+                {/* Statement 10: Projected Balance Sheet - Matching PDF format */}
+                {/* Note: This statement is calculated from other statements. Edit values in Statements 1-8 to update this. */}
+                {(financialStatements.balanceSheet || s15.balanceSheetProjections) && (
+                  <div className="-mt-8">
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 10: Projected Balance Sheet</h3>
+                    <p className="text-xs text-gray-500 mb-2 italic">Note: This statement is automatically calculated from other financial statements.</p>
+                    {(() => {
+                      const bs = financialStatements.balanceSheet || {};
+                      const spvShare = financialStatements.spvShare || s13.spvContribution || 0;
+                      const stateGrant = financialStatements.stateGovtGrant || s13.governmentGrant || 0;
+                      const workingCapitalLoan = s13.bankLoan ? (s13.bankLoan * 0.1) : 30;
+                      const totalProjectCost = (s12.land || 0) + (s12.building || 0) + (s12.machinery || 0) +
+                        (s12.utilitiesAndInfrastructure || 0) + (s12.preliminaryAndPreOperative || 0);
+                      const grossBlock = totalProjectCost;
+
+                      const rows: any[][] = [];
+
+                      // Liabilities
+                      rows.push(['Liabilities', '', '', '', '', '', '']);
+                      rows.push(['SPV Share', spvShare.toFixed(2), spvShare.toFixed(2), spvShare.toFixed(2), spvShare.toFixed(2), spvShare.toFixed(2), spvShare.toFixed(2)]);
+                      rows.push(['State Govt. Grant', stateGrant.toFixed(2), stateGrant.toFixed(2), stateGrant.toFixed(2), stateGrant.toFixed(2), stateGrant.toFixed(2), stateGrant.toFixed(2)]);
+
+                      // Reserves & Surplus
+                      const reservesRow = ['Reserves & Surplus', ''];
+                      let cumulativeProfit = 0;
+                      for (let year = 1; year <= 5; year++) {
+                        const yearData = financialStatements.incomeTax?.[`year${year}`] || {};
+                        cumulativeProfit += (yearData.profitAfterTax || 0);
+                        reservesRow.push(cumulativeProfit.toFixed(2));
+                      }
+                      rows.push(reservesRow);
+
+                      rows.push(['W.C.Borrowings', workingCapitalLoan.toFixed(2), workingCapitalLoan.toFixed(2), workingCapitalLoan.toFixed(2), workingCapitalLoan.toFixed(2), workingCapitalLoan.toFixed(2), workingCapitalLoan.toFixed(2)]);
+
+                      // Current liabilities
+                      const currentLiabRow = ['Current liabilities', ''];
+                      for (let year = 1; year <= 5; year++) {
+                        currentLiabRow.push((0.75 + year * 0.08).toFixed(2)); // Small increment each year
+                      }
+                      rows.push(currentLiabRow);
+
+                      // Total Liabilities
+                      const totalLiabRow = ['Total', ''];
+                      for (let year = 0; year <= 5; year++) {
+                        const spv = spvShare;
+                        const grant = stateGrant;
+                        const reserves = year === 0 ? 0 : parseFloat(reservesRow[year + 1] || '0');
+                        const wc = workingCapitalLoan;
+                        const current = year === 0 ? 0 : parseFloat(currentLiabRow[year + 1] || '0');
+                        totalLiabRow.push((spv + grant + reserves + wc + current).toFixed(2));
+                      }
+                      rows.push(totalLiabRow);
+                      rows.push(['', '', '', '', '', '', '']);
+
+                      // Assets
+                      rows.push(['Assets', '', '', '', '', '', '']);
+                      rows.push(['Gross Block', grossBlock.toFixed(2), grossBlock.toFixed(2), grossBlock.toFixed(2), grossBlock.toFixed(2), grossBlock.toFixed(2), grossBlock.toFixed(2)]);
+
+                      // Less: Accu. Depreciation
+                      const depRow = ['Less: Accu. Depreciation', ''];
+                      let cumulativeDep = 0;
+                      const annualDep = (s12.building || 0) * 0.1 + (s12.machinery || 0) * 0.15;
+                      for (let year = 1; year <= 5; year++) {
+                        cumulativeDep += annualDep;
+                        depRow.push(cumulativeDep.toFixed(2));
+                      }
+                      rows.push(depRow);
+
+                      // Net Block
+                      const netBlockRow = ['Net Block', grossBlock.toFixed(2)];
+                      for (let year = 1; year <= 5; year++) {
+                        netBlockRow.push((grossBlock - parseFloat(depRow[year + 1] || '0')).toFixed(2));
+                      }
+                      rows.push(netBlockRow);
+
+                      rows.push(['Deposits', (s12.preliminaryAndPreOperative || 0).toFixed(2), (s12.preliminaryAndPreOperative || 0).toFixed(2), (s12.preliminaryAndPreOperative || 0).toFixed(2), (s12.preliminaryAndPreOperative || 0).toFixed(2), (s12.preliminaryAndPreOperative || 0).toFixed(2), (s12.preliminaryAndPreOperative || 0).toFixed(2)]);
+
+                      // Current Assets
+                      const currentAssetsRow = ['Current Assets', ''];
+                      for (let year = 1; year <= 5; year++) {
+                        const wc = s12.workingCapitalMargin || 0;
+                        currentAssetsRow.push((wc * (1 + year * 0.05)).toFixed(2)); // Growing current assets
+                      }
+                      rows.push(currentAssetsRow);
+
+                      // Closing Balance (from cash flow)
+                      const closingRow = ['Closing Balance', '0.00'];
+                      let runningBalance = 0;
+                      for (let year = 1; year <= 5; year++) {
+                        const yearData = financialStatements.cashFlow?.[`year${year}`] || {};
+                        runningBalance += (yearData.netCashFlow || 0);
+                        closingRow.push(runningBalance.toFixed(2));
+                      }
+                      rows.push(closingRow);
+
+                      // Total Assets
+                      const totalAssetsRow = ['Total', ''];
+                      for (let year = 0; year <= 5; year++) {
+                        const netBlock = year === 0 ? grossBlock : parseFloat(netBlockRow[year + 1] || '0');
+                        const deposits = s12.preliminaryAndPreOperative || 0;
+                        const current = year === 0 ? 0 : parseFloat(currentAssetsRow[year + 1] || '0');
+                        const closing = year === 0 ? 0 : parseFloat(closingRow[year + 1] || '0');
+                        totalAssetsRow.push((netBlock + deposits + current + closing).toFixed(2));
+                      }
+                      rows.push(totalAssetsRow);
+
+                      return renderTable(
+                        ['Years', 'PR. PERIOD', '1', '2', '3', '4', '5'],
+                        rows,
+                        'PROJECTED BALANCE SHEET',
+                        '10'
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -4845,191 +4791,191 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 }}
               />
               <div className="relative z-10">
-                {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')}
-              {/* Statement 11: Estimation of Break Even Point - Matching PDF format */}
-              {(financialStatements.breakEven || s15.breakEvenPoint || financialStatements.costOfProduction) && (
-                <div className="my-6">
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 11: Estimation of Break Even Point</h3>
-                  {(() => {
-                    const be = financialStatements.breakEven || {};
-                    const cop = financialStatements.costOfProduction || {};
-                    const rows: any[][] = [];
-                    
-                    // Fixed Expenses
-                    rows.push(['Fixed Expenses', '', '', '', '', '', '']);
-                    
-                    // Salary for Executives
-                    const salaryRow = ['Salary for Executives', ''];
-                    let baseSalary = financialStatements.manpower?.find((m: any) => m.category?.toLowerCase().includes('executive'))?.totalCost || 39.54;
-                    for (let year = 1; year <= 5; year++) {
-                      salaryRow.push((baseSalary * (1 + (year - 1) * 0.05)).toFixed(2)); // 5% growth
-                    }
-                    rows.push(salaryRow);
-                    
-                    rows.push(['Preliminary expenses', '0.05', '0.05', '0.05', '0.05', '0.05', '0.05']);
-                    
-                    // Depreciation
-                    const depRow = ['Depreciation', ''];
-                    const annualDep = (s12.building || 0) * 0.1 + (s12.machinery || 0) * 0.15;
-                    for (let year = 1; year <= 5; year++) {
-                      depRow.push(annualDep.toFixed(2));
-                    }
-                    rows.push(depRow);
-                    
-                    // Total Fixed Expenses (A)
-                    const totalFixedRow = ['Total( A )', ''];
-                    for (let year = 1; year <= 5; year++) {
-                      const salary = parseFloat(salaryRow[year + 1] || '0');
-                      const prelim = 0.05;
-                      const dep = annualDep;
-                      totalFixedRow.push((salary + prelim + dep).toFixed(2));
-                    }
-                    rows.push(totalFixedRow);
-                    rows.push(['', '', '', '', '', '', '']);
-                    
-                    // Variable Expenses
-                    rows.push(['Variable Expenses', '', '', '', '', '', '']);
-                    
-                    // Cost Of Raw materials and Consumables
-                    const rawMatRow = ['Cost Of Raw materials and Consumables', ''];
-                    let baseRawMat = financialStatements.costOfProduction?.year1?.totalCost ? 
-                      financialStatements.costOfProduction.year1.totalCost * 0.5 : 299.77;
-                    for (let year = 1; year <= 5; year++) {
-                      rawMatRow.push((baseRawMat * (1 + (year - 1) * 0.15)).toFixed(2)); // 15% growth
-                    }
-                    rows.push(rawMatRow);
-                    
-                    // Cost Of Power
-                    const powerRow = ['Cost Of Power', ''];
-                    let basePower = financialStatements.powerCost?.annualCost || s14.powerCost || 31.13;
-                    for (let year = 1; year <= 5; year++) {
-                      powerRow.push((basePower * (1 + (year - 1) * 0.15)).toFixed(2));
-                    }
-                    rows.push(powerRow);
-                    
-                    // Wages
-                    const wagesRow = ['Wages', ''];
-                    let baseWages = financialStatements.manpower?.find((m: any) => m.category?.toLowerCase().includes('worker'))?.totalCost || s14.wages || 39.54;
-                    for (let year = 1; year <= 5; year++) {
-                      wagesRow.push((baseWages * (1 + (year - 1) * 0.05)).toFixed(2));
-                    }
-                    rows.push(wagesRow);
-                    
-                    // Repairs & Maintenance
-                    const repairsRow = ['Repairs & Maintenance', ''];
-                    let baseRepairs = (s12.machinery || 0) * 0.01 || 8.46;
-                    for (let year = 1; year <= 5; year++) {
-                      repairsRow.push((baseRepairs * (1 + (year - 1) * 0.1)).toFixed(2));
-                    }
-                    rows.push(repairsRow);
-                    
-                    // Administrative Expenses
-                    const adminRow = ['Administrative Expenses', ''];
-                    let baseAdmin = s14.administrativeExpenses || 20.46;
-                    for (let year = 1; year <= 5; year++) {
-                      adminRow.push((baseAdmin * (1 + (year - 1) * 0.15)).toFixed(2));
-                    }
-                    rows.push(adminRow);
-                    
-                    // Selling and Marketing Expenses
-                    const marketingRow = ['Selling and Marketing Expenses', ''];
-                    let baseMarketing = s14.marketingExpenses || 34.09;
-                    for (let year = 1; year <= 5; year++) {
-                      marketingRow.push((baseMarketing * (1 + (year - 1) * 0.15)).toFixed(2));
-                    }
-                    rows.push(marketingRow);
-                    
-                    // Interest on Working Capital Loan
-                    const interestRow = ['Interest on Working Capital Loan', ''];
-                    const wcInterest = (s13.bankLoan || 0) * 0.12 * 0.1 || 3.60; // 12% of 10% of bank loan
-                    for (let year = 1; year <= 5; year++) {
-                      interestRow.push(wcInterest.toFixed(2));
-                    }
-                    rows.push(interestRow);
-                    
-                    // Total Variable Expenses (B)
-                    const totalVarRow = ['Total( B )', ''];
-                    for (let year = 1; year <= 5; year++) {
-                      const rawMat = parseFloat(rawMatRow[year + 1] || '0');
-                      const power = parseFloat(powerRow[year + 1] || '0');
-                      const wages = parseFloat(wagesRow[year + 1] || '0');
-                      const repairs = parseFloat(repairsRow[year + 1] || '0');
-                      const admin = parseFloat(adminRow[year + 1] || '0');
-                      const marketing = parseFloat(marketingRow[year + 1] || '0');
-                      const interest = wcInterest;
-                      totalVarRow.push((rawMat + power + wages + repairs + admin + marketing + interest).toFixed(2));
-                    }
-                    rows.push(totalVarRow);
-                    rows.push(['', '', '', '', '', '', '']);
-                    
-                    // Sales Realisation
-                    const salesRow = ['Sales Realisation', ''];
-                    for (let year = 1; year <= 5; year++) {
-                      const yearData = cop[`year${year}`] || {};
-                      salesRow.push((yearData.salesRealization || 0).toFixed(2));
-                    }
-                    rows.push(salesRow);
-                    
-                    // Break Even Point
-                    const bepRow = ['Break Even Point', ''];
-                    for (let year = 1; year <= 5; year++) {
-                      const fixed = parseFloat(totalFixedRow[year + 1] || '0');
-                      const variable = parseFloat(totalVarRow[year + 1] || '0');
-                      const sales = parseFloat(salesRow[year + 1] || '1');
-                      const contribution = sales - variable;
-                      const bep = contribution > 0 ? (fixed / contribution) * 100 : 0;
-                      bepRow.push(`${bep.toFixed(0)}%`);
-                    }
-                    rows.push(bepRow);
-                    
-                    // Make key fields editable - Sales Realisation row
-                    const editableCells: boolean[][] = rows.map((row, idx) => {
-                      if (row[0] === 'Sales Realisation') {
-                        return [false, false, true, true, true, true, true]; // Editable for years 1-5
+                {/* {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')} */}
+                {/* Statement 11: Estimation of Break Even Point - Matching PDF format */}
+                {(financialStatements.breakEven || s15.breakEvenPoint || financialStatements.costOfProduction) && (
+                  <div className="-mt-8">
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 11: Estimation of Break Even Point</h3>
+                    {(() => {
+                      const be = financialStatements.breakEven || {};
+                      const cop = financialStatements.costOfProduction || {};
+                      const rows: any[][] = [];
+
+                      // Fixed Expenses
+                      rows.push(['Fixed Expenses', '', '', '', '', '', '']);
+
+                      // Salary for Executives
+                      const salaryRow = ['Salary for Executives', ''];
+                      let baseSalary = financialStatements.manpower?.find((m: any) => m.category?.toLowerCase().includes('executive'))?.totalCost || 39.54;
+                      for (let year = 1; year <= 5; year++) {
+                        salaryRow.push((baseSalary * (1 + (year - 1) * 0.05)).toFixed(2)); // 5% growth
                       }
-                      return [false, false, false, false, false, false, false]; // Other rows not editable
-                    });
-                    
-                    return (
-                      <EditableFinancialTable
-                        headers={['Years', '', '1', '2', '3', '4', '5']}
-                        rows={rows}
-                        title="ESTIMATION OF BREAK-EVEN POINT"
-                        statementNumber="11"
-                        editableCells={editableCells}
-                        onCellChange={(rowIndex, colIndex, value) => {
-                          // Find Sales Realisation row and update costOfProduction
-                          if (rows[rowIndex][0] === 'Sales Realisation') {
-                            const newFinancialStatements = { ...financialStatements };
-                            if (!newFinancialStatements.costOfProduction) {
-                              newFinancialStatements.costOfProduction = {};
-                            }
-                            
-                            const year = colIndex - 1; // colIndex 2 = Year 1
-                            if (year >= 1 && year <= 5) {
-                              const yearKey = `year${year}`;
-                              if (!newFinancialStatements.costOfProduction[yearKey]) {
-                                newFinancialStatements.costOfProduction[yearKey] = {};
+                      rows.push(salaryRow);
+
+                      rows.push(['Preliminary expenses', '0.05', '0.05', '0.05', '0.05', '0.05', '0.05']);
+
+                      // Depreciation
+                      const depRow = ['Depreciation', ''];
+                      const annualDep = (s12.building || 0) * 0.1 + (s12.machinery || 0) * 0.15;
+                      for (let year = 1; year <= 5; year++) {
+                        depRow.push(annualDep.toFixed(2));
+                      }
+                      rows.push(depRow);
+
+                      // Total Fixed Expenses (A)
+                      const totalFixedRow = ['Total( A )', ''];
+                      for (let year = 1; year <= 5; year++) {
+                        const salary = parseFloat(salaryRow[year + 1] || '0');
+                        const prelim = 0.05;
+                        const dep = annualDep;
+                        totalFixedRow.push((salary + prelim + dep).toFixed(2));
+                      }
+                      rows.push(totalFixedRow);
+                      rows.push(['', '', '', '', '', '', '']);
+
+                      // Variable Expenses
+                      rows.push(['Variable Expenses', '', '', '', '', '', '']);
+
+                      // Cost Of Raw materials and Consumables
+                      const rawMatRow = ['Cost Of Raw materials and Consumables', ''];
+                      let baseRawMat = financialStatements.costOfProduction?.year1?.totalCost ?
+                        financialStatements.costOfProduction.year1.totalCost * 0.5 : 299.77;
+                      for (let year = 1; year <= 5; year++) {
+                        rawMatRow.push((baseRawMat * (1 + (year - 1) * 0.15)).toFixed(2)); // 15% growth
+                      }
+                      rows.push(rawMatRow);
+
+                      // Cost Of Power
+                      const powerRow = ['Cost Of Power', ''];
+                      let basePower = financialStatements.powerCost?.annualCost || s14.powerCost || 31.13;
+                      for (let year = 1; year <= 5; year++) {
+                        powerRow.push((basePower * (1 + (year - 1) * 0.15)).toFixed(2));
+                      }
+                      rows.push(powerRow);
+
+                      // Wages
+                      const wagesRow = ['Wages', ''];
+                      let baseWages = financialStatements.manpower?.find((m: any) => m.category?.toLowerCase().includes('worker'))?.totalCost || s14.wages || 39.54;
+                      for (let year = 1; year <= 5; year++) {
+                        wagesRow.push((baseWages * (1 + (year - 1) * 0.05)).toFixed(2));
+                      }
+                      rows.push(wagesRow);
+
+                      // Repairs & Maintenance
+                      const repairsRow = ['Repairs & Maintenance', ''];
+                      let baseRepairs = (s12.machinery || 0) * 0.01 || 8.46;
+                      for (let year = 1; year <= 5; year++) {
+                        repairsRow.push((baseRepairs * (1 + (year - 1) * 0.1)).toFixed(2));
+                      }
+                      rows.push(repairsRow);
+
+                      // Administrative Expenses
+                      const adminRow = ['Administrative Expenses', ''];
+                      let baseAdmin = s14.administrativeExpenses || 20.46;
+                      for (let year = 1; year <= 5; year++) {
+                        adminRow.push((baseAdmin * (1 + (year - 1) * 0.15)).toFixed(2));
+                      }
+                      rows.push(adminRow);
+
+                      // Selling and Marketing Expenses
+                      const marketingRow = ['Selling and Marketing Expenses', ''];
+                      let baseMarketing = s14.marketingExpenses || 34.09;
+                      for (let year = 1; year <= 5; year++) {
+                        marketingRow.push((baseMarketing * (1 + (year - 1) * 0.15)).toFixed(2));
+                      }
+                      rows.push(marketingRow);
+
+                      // Interest on Working Capital Loan
+                      const interestRow = ['Interest on Working Capital Loan', ''];
+                      const wcInterest = (s13.bankLoan || 0) * 0.12 * 0.1 || 3.60; // 12% of 10% of bank loan
+                      for (let year = 1; year <= 5; year++) {
+                        interestRow.push(wcInterest.toFixed(2));
+                      }
+                      rows.push(interestRow);
+
+                      // Total Variable Expenses (B)
+                      const totalVarRow = ['Total( B )', ''];
+                      for (let year = 1; year <= 5; year++) {
+                        const rawMat = parseFloat(rawMatRow[year + 1] || '0');
+                        const power = parseFloat(powerRow[year + 1] || '0');
+                        const wages = parseFloat(wagesRow[year + 1] || '0');
+                        const repairs = parseFloat(repairsRow[year + 1] || '0');
+                        const admin = parseFloat(adminRow[year + 1] || '0');
+                        const marketing = parseFloat(marketingRow[year + 1] || '0');
+                        const interest = wcInterest;
+                        totalVarRow.push((rawMat + power + wages + repairs + admin + marketing + interest).toFixed(2));
+                      }
+                      rows.push(totalVarRow);
+                      rows.push(['', '', '', '', '', '', '']);
+
+                      // Sales Realisation
+                      const salesRow = ['Sales Realisation', ''];
+                      for (let year = 1; year <= 5; year++) {
+                        const yearData = cop[`year${year}`] || {};
+                        salesRow.push((yearData.salesRealization || 0).toFixed(2));
+                      }
+                      rows.push(salesRow);
+
+                      // Break Even Point
+                      const bepRow = ['Break Even Point', ''];
+                      for (let year = 1; year <= 5; year++) {
+                        const fixed = parseFloat(totalFixedRow[year + 1] || '0');
+                        const variable = parseFloat(totalVarRow[year + 1] || '0');
+                        const sales = parseFloat(salesRow[year + 1] || '1');
+                        const contribution = sales - variable;
+                        const bep = contribution > 0 ? (fixed / contribution) * 100 : 0;
+                        bepRow.push(`${bep.toFixed(0)}%`);
+                      }
+                      rows.push(bepRow);
+
+                      // Make key fields editable - Sales Realisation row
+                      const editableCells: boolean[][] = rows.map((row, idx) => {
+                        if (row[0] === 'Sales Realisation') {
+                          return [false, false, true, true, true, true, true]; // Editable for years 1-5
+                        }
+                        return [false, false, false, false, false, false, false]; // Other rows not editable
+                      });
+
+                      return (
+                        <EditableFinancialTable
+                          headers={['Years', '', '1', '2', '3', '4', '5']}
+                          rows={rows}
+                          title="ESTIMATION OF BREAK-EVEN POINT"
+                          statementNumber="11"
+                          editableCells={editableCells}
+                          onCellChange={(rowIndex, colIndex, value) => {
+                            // Find Sales Realisation row and update costOfProduction
+                            if (rows[rowIndex][0] === 'Sales Realisation') {
+                              const newFinancialStatements = { ...financialStatements };
+                              if (!newFinancialStatements.costOfProduction) {
+                                newFinancialStatements.costOfProduction = {};
                               }
-                              newFinancialStatements.costOfProduction[yearKey].salesRealization = value;
-                              
-                              const currentStep15 = clusterData.step15 || {};
-                              setStepData(15, {
-                                ...currentStep15,
-                                financialStatements: newFinancialStatements,
-                              });
-                              
-                              if (onDataChange) {
-                                onDataChange('financialStatements', newFinancialStatements);
+
+                              const year = colIndex - 1; // colIndex 2 = Year 1
+                              if (year >= 1 && year <= 5) {
+                                const yearKey = `year${year}`;
+                                if (!newFinancialStatements.costOfProduction[yearKey]) {
+                                  newFinancialStatements.costOfProduction[yearKey] = {};
+                                }
+                                newFinancialStatements.costOfProduction[yearKey].salesRealization = value;
+
+                                const currentStep15 = clusterData.step15 || {};
+                                setStepData(15, {
+                                  ...currentStep15,
+                                  financialStatements: newFinancialStatements,
+                                });
+
+                                if (onDataChange) {
+                                  onDataChange('financialStatements', newFinancialStatements);
+                                }
                               }
                             }
-                          }
-                        }}
-                      />
-                    );
-                  })()}
-                </div>
-              )}
+                          }}
+                        />
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -5056,131 +5002,131 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({ 
                 }}
               />
               <div className="relative z-10">
-                {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')}
-              {/* Statement 12: Estimation of NPV & IRR - Matching PDF format */}
-              {(financialStatements.npvIrr || s15.npv || s15.irr || financialStatements.cashFlow) && (
-                <div className="my-6">
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 12: Estimation of NPV & IRR</h3>
-                  {(() => {
-                    const npvIrr = financialStatements.npvIrr || {};
-                    const cf = financialStatements.cashFlow || {};
-                    const totalProjectCost = (s12.land || 0) + (s12.building || 0) + (s12.machinery || 0) +
-                      (s12.utilitiesAndInfrastructure || 0) + (s12.preliminaryAndPreOperative || 0) +
-                      (s12.workingCapitalMargin || 0);
-                    
-                    const rows: any[][] = [];
-                    
-                    // Cash Out Flow
-                    rows.push(['Cash Out Flow', '', '', '', '', '', '', '']);
-                    rows.push(['Capital Expenditure', totalProjectCost.toFixed(2), '', '', '', '', '', '']);
-                    rows.push(['Preliminary & Preoperative Expenses', (s12.preliminaryAndPreOperative || 0).toFixed(2), '', '', '', '', '', '']);
-                    rows.push(['Working Capital Margin', (s12.workingCapitalMargin || 0).toFixed(2), '', '', '', '', '', '']);
-                    rows.push(['Total', (totalProjectCost + (s12.preliminaryAndPreOperative || 0) + (s12.workingCapitalMargin || 0)).toFixed(2), '0.00', '0.00', '0.00', '0.00', '0.00', '']);
-                    rows.push(['', '', '', '', '', '', '', '']);
-                    
-                    // Cash Inflow
-                    rows.push(['Cash Inflow', '', '', '', '', '', '', '']);
-                    
-                    // Profit After Tax
-                    const profitAfterTaxRow = ['Profit After Tax', ''];
-                    for (let year = 1; year <= 6; year++) {
-                      if (year <= 5) {
-                        const yearData = financialStatements.incomeTax?.[`year${year}`] || {};
-                        profitAfterTaxRow.push((yearData.profitAfterTax || 0).toFixed(2));
-                      } else {
-                        // Year 6 same as Year 5
-                        const year5Data = financialStatements.incomeTax?.year5 || {};
-                        profitAfterTaxRow.push((year5Data.profitAfterTax || 0).toFixed(2));
+                {/* {renderSectionTitle('FINANCIAL STATEMENTS (Continued)')} */}
+                {/* Statement 12: Estimation of NPV & IRR - Matching PDF format */}
+                {(financialStatements.npvIrr || s15.npv || s15.irr || financialStatements.cashFlow) && (
+                  <div className="-mt-8">
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 12: Estimation of NPV & IRR</h3>
+                    {(() => {
+                      const npvIrr = financialStatements.npvIrr || {};
+                      const cf = financialStatements.cashFlow || {};
+                      const totalProjectCost = (s12.land || 0) + (s12.building || 0) + (s12.machinery || 0) +
+                        (s12.utilitiesAndInfrastructure || 0) + (s12.preliminaryAndPreOperative || 0) +
+                        (s12.workingCapitalMargin || 0);
+
+                      const rows: any[][] = [];
+
+                      // Cash Out Flow
+                      rows.push(['Cash Out Flow', '', '', '', '', '', '', '']);
+                      rows.push(['Capital Expenditure', totalProjectCost.toFixed(2), '', '', '', '', '', '']);
+                      rows.push(['Preliminary & Preoperative Expenses', (s12.preliminaryAndPreOperative || 0).toFixed(2), '', '', '', '', '', '']);
+                      rows.push(['Working Capital Margin', (s12.workingCapitalMargin || 0).toFixed(2), '', '', '', '', '', '']);
+                      rows.push(['Total', (totalProjectCost + (s12.preliminaryAndPreOperative || 0) + (s12.workingCapitalMargin || 0)).toFixed(2), '0.00', '0.00', '0.00', '0.00', '0.00', '']);
+                      rows.push(['', '', '', '', '', '', '', '']);
+
+                      // Cash Inflow
+                      rows.push(['Cash Inflow', '', '', '', '', '', '', '']);
+
+                      // Profit After Tax
+                      const profitAfterTaxRow = ['Profit After Tax', ''];
+                      for (let year = 1; year <= 6; year++) {
+                        if (year <= 5) {
+                          const yearData = financialStatements.incomeTax?.[`year${year}`] || {};
+                          profitAfterTaxRow.push((yearData.profitAfterTax || 0).toFixed(2));
+                        } else {
+                          // Year 6 same as Year 5
+                          const year5Data = financialStatements.incomeTax?.year5 || {};
+                          profitAfterTaxRow.push((year5Data.profitAfterTax || 0).toFixed(2));
+                        }
                       }
-                    }
-                    rows.push(profitAfterTaxRow);
-                    
-                    // Depreciation
-                    const depRow = ['Depreciation', ''];
-                    const annualDep = (s12.building || 0) * 0.1 + (s12.machinery || 0) * 0.15;
-                    for (let year = 1; year <= 6; year++) {
-                      depRow.push(annualDep.toFixed(2));
-                    }
-                    rows.push(depRow);
-                    
-                    rows.push(['W.C.Margin', '', '', '', '', '', '', '']);
-                    rows.push(['Residual Value Of F.Assets', '', '', '', '', '', '', '']);
-                    rows.push(['', '', '', '', '', '', '', '']);
-                    
-                    // Total Cash Inflow
-                    const totalInflowRow = ['Total', '0.00'];
-                    for (let year = 1; year <= 6; year++) {
-                      const profit = parseFloat(profitAfterTaxRow[year + 1] || '0');
-                      const dep = annualDep;
-                      totalInflowRow.push((profit + dep).toFixed(2));
-                    }
-                    rows.push(totalInflowRow);
-                    rows.push(['', '', '', '', '', '', '', '']);
-                    
-                    // Net Cash Flow - PR. PERIOD is negative (outflow), Years 1-6 are positive (inflow)
-                    const totalOutflow = totalProjectCost + (s12.preliminaryAndPreOperative || 0) + (s12.workingCapitalMargin || 0);
-                    const netCashFlowRow = ['Net Cash Flow', `-${totalOutflow.toFixed(2)}`];
-                    for (let year = 1; year <= 6; year++) {
-                      netCashFlowRow.push(totalInflowRow[year + 1] || '0.00');
-                    }
-                    rows.push(netCashFlowRow);
-                    rows.push(['', '', '', '', '', '', '', '']);
-                    
-                    // NPV and IRR
-                    const npv = npvIrr.npv || s15.npv || 0;
-                    const irr = npvIrr.irr || s15.irr || 0;
-                    const discountRate = npvIrr.discountRate || 8;
-                    
-                    rows.push(['Net Present Value', npv, '', '', '', '', '', '']);
-                    rows.push(['at discount rate (%)', discountRate, '', '', '', '', '', '']);
-                    rows.push(['Internal Rate of Return', irr, '', '', '', '', '', '']);
-                    
-                    return (
-                      <EditableFinancialTable
-                        headers={['Years', 'PR. PERIOD', '1', '2', '3', '4', '5', '6']}
-                        rows={rows}
-                        title="ESTIMATION OF NET PRESENT VALUE AND INTERNAL RATE OF RETURN"
-                        statementNumber="12"
-                        editableCells={rows.map((row, idx) => {
-                          if (row[0] === 'Net Present Value') {
-                            return [false, true, false, false, false, false, false, false];
-                          } else if (row[0] === 'at discount rate (%)') {
-                            return [false, true, false, false, false, false, false, false];
-                          } else if (row[0] === 'Internal Rate of Return') {
-                            return [false, true, false, false, false, false, false, false];
-                          }
-                          return [false, false, false, false, false, false, false, false];
-                        })}
-                        onCellChange={(rowIndex, colIndex, value) => {
-                          const newFinancialStatements = { ...financialStatements };
-                          if (!newFinancialStatements.npvIrr) {
-                            newFinancialStatements.npvIrr = {};
-                          }
-                          
-                          const rowLabel = rows[rowIndex][0];
-                          if (rowLabel === 'Net Present Value' && colIndex === 1) {
-                            newFinancialStatements.npvIrr.npv = value;
-                          } else if (rowLabel === 'at discount rate (%)' && colIndex === 1) {
-                            newFinancialStatements.npvIrr.discountRate = value;
-                          } else if (rowLabel === 'Internal Rate of Return' && colIndex === 1) {
-                            newFinancialStatements.npvIrr.irr = value;
-                          }
-                          
-                          const currentStep15 = clusterData.step15 || {};
-                          setStepData(15, {
-                            ...currentStep15,
-                            financialStatements: newFinancialStatements,
-                          });
-                          
-                          if (onDataChange) {
-                            onDataChange('financialStatements', newFinancialStatements);
-                          }
-                        }}
-                      />
-                    );
-                  })()}
-                </div>
-              )}
+                      rows.push(profitAfterTaxRow);
+
+                      // Depreciation
+                      const depRow = ['Depreciation', ''];
+                      const annualDep = (s12.building || 0) * 0.1 + (s12.machinery || 0) * 0.15;
+                      for (let year = 1; year <= 6; year++) {
+                        depRow.push(annualDep.toFixed(2));
+                      }
+                      rows.push(depRow);
+
+                      rows.push(['W.C.Margin', '', '', '', '', '', '', '']);
+                      rows.push(['Residual Value Of F.Assets', '', '', '', '', '', '', '']);
+                      rows.push(['', '', '', '', '', '', '', '']);
+
+                      // Total Cash Inflow
+                      const totalInflowRow = ['Total', '0.00'];
+                      for (let year = 1; year <= 6; year++) {
+                        const profit = parseFloat(profitAfterTaxRow[year + 1] || '0');
+                        const dep = annualDep;
+                        totalInflowRow.push((profit + dep).toFixed(2));
+                      }
+                      rows.push(totalInflowRow);
+                      rows.push(['', '', '', '', '', '', '', '']);
+
+                      // Net Cash Flow - PR. PERIOD is negative (outflow), Years 1-6 are positive (inflow)
+                      const totalOutflow = totalProjectCost + (s12.preliminaryAndPreOperative || 0) + (s12.workingCapitalMargin || 0);
+                      const netCashFlowRow = ['Net Cash Flow', `-${totalOutflow.toFixed(2)}`];
+                      for (let year = 1; year <= 6; year++) {
+                        netCashFlowRow.push(totalInflowRow[year + 1] || '0.00');
+                      }
+                      rows.push(netCashFlowRow);
+                      rows.push(['', '', '', '', '', '', '', '']);
+
+                      // NPV and IRR
+                      const npv = npvIrr.npv || s15.npv || 0;
+                      const irr = npvIrr.irr || s15.irr || 0;
+                      const discountRate = npvIrr.discountRate || 8;
+
+                      rows.push(['Net Present Value', npv, '', '', '', '', '', '']);
+                      rows.push(['at discount rate (%)', discountRate, '', '', '', '', '', '']);
+                      rows.push(['Internal Rate of Return', irr, '', '', '', '', '', '']);
+
+                      return (
+                        <EditableFinancialTable
+                          headers={['Years', 'PR. PERIOD', '1', '2', '3', '4', '5', '6']}
+                          rows={rows}
+                          title="ESTIMATION OF NET PRESENT VALUE AND INTERNAL RATE OF RETURN"
+                          statementNumber="12"
+                          editableCells={rows.map((row, idx) => {
+                            if (row[0] === 'Net Present Value') {
+                              return [false, true, false, false, false, false, false, false];
+                            } else if (row[0] === 'at discount rate (%)') {
+                              return [false, true, false, false, false, false, false, false];
+                            } else if (row[0] === 'Internal Rate of Return') {
+                              return [false, true, false, false, false, false, false, false];
+                            }
+                            return [false, false, false, false, false, false, false, false];
+                          })}
+                          onCellChange={(rowIndex, colIndex, value) => {
+                            const newFinancialStatements = { ...financialStatements };
+                            if (!newFinancialStatements.npvIrr) {
+                              newFinancialStatements.npvIrr = {};
+                            }
+
+                            const rowLabel = rows[rowIndex][0];
+                            if (rowLabel === 'Net Present Value' && colIndex === 1) {
+                              newFinancialStatements.npvIrr.npv = value;
+                            } else if (rowLabel === 'at discount rate (%)' && colIndex === 1) {
+                              newFinancialStatements.npvIrr.discountRate = value;
+                            } else if (rowLabel === 'Internal Rate of Return' && colIndex === 1) {
+                              newFinancialStatements.npvIrr.irr = value;
+                            }
+
+                            const currentStep15 = clusterData.step15 || {};
+                            setStepData(15, {
+                              ...currentStep15,
+                              financialStatements: newFinancialStatements,
+                            });
+
+                            if (onDataChange) {
+                              onDataChange('financialStatements', newFinancialStatements);
+                            }
+                          }}
+                        />
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
           </>
