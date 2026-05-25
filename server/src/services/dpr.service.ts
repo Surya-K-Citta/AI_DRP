@@ -846,16 +846,18 @@ export class DPRService {
             salaryDetails: '10. జీత వివరాలు',
             workingCapitalEstimate: '11. పని మూలధన అంచనా',
             powerEstimate: '12. విద్యుత్ అంచనా',
-            overheadExpenses: '13. ఓవర్ హెడ్ ఖర్చులు',
-            financing: '14. ఆర్థిక సహాయం',
-            salesDetails: '15. అమ్మకాల వివరాలు',
-            marketAnalysis: '16. మార్కెట్ విశ్లేషణ',
-            technicalFeasibility: '17. సాంకేతిక సాధ్యత',
-            financialProjections: '18. ఆర్థిక అంచనాలు',
-            financialParameters: '19. ఆర్థిక పారామితులు',
-            beneficiaryInfo: '20. లాభాంశకుడి సమాచారం',
-            eligibleSchemes: '21. అర్హతగల ప్రభుత్వ పథకాలు',
-            conclusion: '22. ముగింపు',
+            energyEfficiency: '13. శక్తి సామర్థ్యం',
+            waterEfficiency: '14. నీటి సామర్థ్యం',
+            overheadExpenses: '15. ఓవర్ హెడ్ ఖర్చులు',
+            financing: '16. ఆర్థిక సహాయం',
+            salesDetails: '17. అమ్మకాల వివరాలు',
+            marketAnalysis: '18. మార్కెట్ విశ్లేషణ',
+            technicalFeasibility: '19. సాంకేతిక సాధ్యత',
+            financialProjections: '20. ఆర్థిక అంచనాలు',
+            financialParameters: '21. ఆర్థిక పారామితులు',
+            beneficiaryInfo: '22. లాభాంశకుడి సమాచారం',
+            eligibleSchemes: '23. అర్హతగల ప్రభుత్వ పథకాలు',
+            conclusion: '24. ముగింపు',
             financialSummary: 'ఆర్థిక సారాంశం',
             projectCostBreakdown: 'ప్రాజెక్ట్ ఖర్చు విభజన:',
             meansOfFinance: 'ఆర్థిక మార్గాలు:'
@@ -872,16 +874,18 @@ export class DPRService {
             salaryDetails: '10. Salary Details',
             workingCapitalEstimate: '11. Working Capital Estimate',
             powerEstimate: '12. Power Estimate',
-            overheadExpenses: '13. Overhead Expenses',
-            financing: '14. Financing',
-            salesDetails: '15. Sales Details',
-            marketAnalysis: '16. Market Analysis',
-            technicalFeasibility: '17. Technical Feasibility',
-            financialProjections: '18. Financial Projections',
-            financialParameters: '19. Financial Parameters',
-            beneficiaryInfo: '20. Beneficiary Information',
-            eligibleSchemes: '21. Eligible Government Schemes',
-            conclusion: '22. Conclusion',
+            energyEfficiency: '13. Energy Efficiency',
+            waterEfficiency: '14. Water Efficiency',
+            overheadExpenses: '15. Overhead Expenses',
+            financing: '16. Financing',
+            salesDetails: '17. Sales Details',
+            marketAnalysis: '18. Market Analysis',
+            technicalFeasibility: '19. Technical Feasibility',
+            financialProjections: '20. Financial Projections',
+            financialParameters: '21. Financial Parameters',
+            beneficiaryInfo: '22. Beneficiary Information',
+            eligibleSchemes: '23. Eligible Government Schemes',
+            conclusion: '24. Conclusion',
             financialSummary: 'Financial Summary',
             projectCostBreakdown: 'Project Cost Breakdown:',
             meansOfFinance: 'Means of Finance:'
@@ -1153,6 +1157,12 @@ export class DPRService {
 
           // Power Estimate
           renderSection('powerEstimate', sectionLabels.powerEstimate);
+
+          // Energy Efficiency
+          renderSection('energyEfficiency', sectionLabels.energyEfficiency);
+
+          // Water Efficiency
+          renderSection('waterEfficiency', sectionLabels.waterEfficiency);
 
           // Overhead Expenses
           renderSection('overheadExpenses', sectionLabels.overheadExpenses);
@@ -4891,16 +4901,18 @@ export class DPRService {
       salaryDetails: '10. జీత వివరాలు',
       workingCapitalEstimate: '11. పని మూలధన అంచనా',
       powerEstimate: '12. విద్యుత్ అంచనా',
-      overheadExpenses: '13. ఓవర్ హెడ్ ఖర్చులు',
-      financing: '14. ఆర్థిక సహాయం',
-      salesDetails: '15. అమ్మకాల వివరాలు',
-      marketAnalysis: '16. మార్కెట్ విశ్లేషణ',
-      technicalFeasibility: '17. సాంకేతిక సాధ్యత',
-      financialProjections: '18. ఆర్థిక అంచనాలు',
-      financialParameters: '19. ఆర్థిక పారామితులు',
-      beneficiaryInfo: '20. లాభాంశకుడి సమాచారం',
-      eligibleSchemes: '21. అర్హతగల ప్రభుత్వ పథకాలు',
-      conclusion: '22. ముగింపు'
+      energyEfficiency: '13. శక్తి సామర్థ్యం',
+      waterEfficiency: '14. నీటి సామర్థ్యం',
+      overheadExpenses: '15. ఓవర్ హెడ్ ఖర్చులు',
+      financing: '16. ఆర్థిక సహాయం',
+      salesDetails: '17. అమ్మకాల వివరాలు',
+      marketAnalysis: '18. మార్కెట్ విశ్లేషణ',
+      technicalFeasibility: '19. సాంకేతిక సాధ్యత',
+      financialProjections: '20. ఆర్థిక అంచనాలు',
+      financialParameters: '21. ఆర్థిక పారామితులు',
+      beneficiaryInfo: '22. లాభాంశకుడి సమాచారం',
+      eligibleSchemes: '23. అర్హతగల ప్రభుత్వ పథకాలు',
+      conclusion: '24. ముగింపు'
     } : {
       title: 'Detailed Project Report',
       sector: 'Sector',
@@ -4917,16 +4929,18 @@ export class DPRService {
       salaryDetails: '10. Salary Details',
       workingCapitalEstimate: '11. Working Capital Estimate',
       powerEstimate: '12. Power Estimate',
-      overheadExpenses: '13. Overhead Expenses',
-      financing: '14. Financing',
-      salesDetails: '15. Sales Details',
-      marketAnalysis: '16. Market Analysis',
-      technicalFeasibility: '17. Technical Feasibility',
-      financialProjections: '18. Financial Projections',
-      financialParameters: '19. Financial Parameters',
-      beneficiaryInfo: '20. Beneficiary Information',
-      eligibleSchemes: '21. Eligible Government Schemes',
-      conclusion: '22. Conclusion'
+      energyEfficiency: '13. Energy Efficiency',
+      waterEfficiency: '14. Water Efficiency',
+      overheadExpenses: '15. Overhead Expenses',
+      financing: '16. Financing',
+      salesDetails: '17. Sales Details',
+      marketAnalysis: '18. Market Analysis',
+      technicalFeasibility: '19. Technical Feasibility',
+      financialProjections: '20. Financial Projections',
+      financialParameters: '21. Financial Parameters',
+      beneficiaryInfo: '22. Beneficiary Information',
+      eligibleSchemes: '23. Eligible Government Schemes',
+      conclusion: '24. Conclusion'
     };
 
     // Helper to get section title without number
@@ -4990,6 +5004,8 @@ export class DPRService {
       ...addSection('salaryDetails', sectionLabels.salaryDetails),
       ...addSection('workingCapitalEstimate', sectionLabels.workingCapitalEstimate),
       ...addSection('powerEstimate', sectionLabels.powerEstimate),
+      ...addSection('energyEfficiency', sectionLabels.energyEfficiency),
+      ...addSection('waterEfficiency', sectionLabels.waterEfficiency),
       ...addSection('overheadExpenses', sectionLabels.overheadExpenses),
       ...addSection('financing', sectionLabels.financing),
       ...addSection('salesDetails', sectionLabels.salesDetails),

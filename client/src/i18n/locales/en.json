@@ -187,6 +187,8 @@
       "salaryDetails": "Salary Details",
       "workingCapitalEstimate": "Working Capital Estimate",
       "powerEstimate": "Power Estimate",
+      "energyEfficiency": "Energy Efficiency",
+      "waterEfficiency": "Water Efficiency",
       "overheadExpenses": "Overhead Expenses",
       "financing": "Financing",
       "salesDetails": "Sales Details",
@@ -508,6 +510,24 @@
       "description": "Estimate power/energy requirements",
       "powerRequirement": "Power Requirement",
       "monthlyCost": "Monthly Cost"
+    },
+    "energyEfficiency": {
+      "title": "Energy Efficiency",
+      "description": "Document energy consumption and efficiency measures",
+      "monthlyConsumption": "Monthly Energy Consumption (kWh)",
+      "costPerUnit": "Energy Cost Per Unit of Production (₹)",
+      "energySource": "Primary Energy Source",
+      "renewablePercent": "Renewable Energy Usage (%)",
+      "savingMeasures": "Energy Saving Measures"
+    },
+    "waterEfficiency": {
+      "title": "Water Efficiency",
+      "description": "Document water consumption and efficiency measures",
+      "dailyConsumption": "Daily Water Consumption (Liters)",
+      "waterSource": "Water Source",
+      "recyclingPercent": "Water Recycling/Reuse (%)",
+      "treatmentMethod": "Wastewater Treatment Method",
+      "monthlyCost": "Monthly Water Cost (₹)"
     },
     "overheadExpenses": {
       "title": "Overhead Expenses",

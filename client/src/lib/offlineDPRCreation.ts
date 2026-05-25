@@ -93,6 +93,20 @@ export interface DPRCreationData {
     powerRequirement?: string;
     monthlyCost?: string;
   };
+  energyEfficiency?: {
+    monthlyConsumption?: string;
+    costPerUnit?: string;
+    energySource?: string;
+    renewablePercent?: string;
+    savingMeasures?: string;
+  };
+  waterEfficiency?: {
+    dailyConsumption?: string;
+    waterSource?: string;
+    recyclingPercent?: string;
+    treatmentMethod?: string;
+    monthlyCost?: string;
+  };
   overheadExpenses?: {
     repairMaintenance?: string;
     powerFuel?: string;

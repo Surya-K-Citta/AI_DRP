@@ -362,6 +362,8 @@ export const DPRPreview: React.FC = () => {
     { key: 'salaryDetails', titleKey: 'dpr.sections.salaryDetails', title: 'Salary Details', icon: FileText },
     { key: 'workingCapitalEstimate', titleKey: 'dpr.sections.workingCapitalEstimate', title: 'Working Capital Estimate', icon: FileText },
     { key: 'powerEstimate', titleKey: 'dpr.sections.powerEstimate', title: 'Power Estimate', icon: FileText },
+    { key: 'energyEfficiency', titleKey: 'dpr.sections.energyEfficiency', title: 'Energy Efficiency', icon: FileText },
+    { key: 'waterEfficiency', titleKey: 'dpr.sections.waterEfficiency', title: 'Water Efficiency', icon: FileText },
     { key: 'overheadExpenses', titleKey: 'dpr.sections.overheadExpenses', title: 'Overhead Expenses', icon: FileText },
     { key: 'financing', titleKey: 'dpr.sections.financing', title: 'Financing', icon: FileText },
     { key: 'salesDetails', titleKey: 'dpr.sections.salesDetails', title: 'Sales Details', icon: FileText },

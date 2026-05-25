@@ -34,6 +34,8 @@ import {
   ShoppingCart,
   Users,
   Zap,
+  Leaf,
+  Droplets,
   Settings,
   User,
   Calculator,
@@ -54,6 +56,8 @@ interface StepData {
   salaryDetails?: any;
   workingCapitalEstimate?: any;
   powerEstimate?: any;
+  energyEfficiency?: any;
+  waterEfficiency?: any;
   overheadExpenses?: any;
   financialParameters?: any;
   beneficiaryInfo?: any;
@@ -82,6 +86,8 @@ export const AIGuidedDPRBuilder: React.FC = () => {
     { id: 'salary-details', title: t('dprBuilder.salaryDetails.title'), icon: Users },
     { id: 'working-capital-estimate', title: t('dprBuilder.workingCapitalEstimate.title'), icon: Calculator },
     { id: 'power-estimate', title: t('dprBuilder.powerEstimate.title'), icon: Zap },
+    { id: 'energy-efficiency', title: t('dprBuilder.energyEfficiency.title'), icon: Leaf },
+    { id: 'water-efficiency', title: t('dprBuilder.waterEfficiency.title'), icon: Droplets },
     { id: 'overhead-expenses', title: t('dprBuilder.overheadExpenses.title'), icon: Settings },
     { id: 'financial-parameters', title: t('dprBuilder.financialParameters.title'), icon: Calculator },
     { id: 'beneficiary-info', title: t('dprBuilder.beneficiaryInfo.title'), icon: User },
@@ -544,7 +550,37 @@ CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT incl
 
 Provide realistic values. Return ONLY the JSON object, nothing else.`;
           break;
-          
+
+        case 'energy-efficiency':
+          prompt = `You are an energy consultant. Generate ACTUAL SAMPLE VALUES (not guidance) for Energy Efficiency for a ${businessData.industrySector || 'business'} project.
+
+CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON:
+{
+  "monthlyConsumption": "2500",
+  "costPerUnit": "5.5",
+  "energySource": "Grid electricity with solar backup",
+  "renewablePercent": "20",
+  "savingMeasures": "LED lighting, energy-efficient motors, solar panels for lighting"
+}
+
+Provide realistic values. Return ONLY the JSON object, nothing else.`;
+          break;
+
+        case 'water-efficiency':
+          prompt = `You are an environmental consultant. Generate ACTUAL SAMPLE VALUES (not guidance) for Water Efficiency for a ${businessData.industrySector || 'business'} project.
+
+CRITICAL: Return ONLY a valid JSON object with this exact structure. Do NOT include any markdown formatting, explanations, or additional text. Just return the JSON:
+{
+  "dailyConsumption": "5000",
+  "waterSource": "Municipal supply with borewell backup",
+  "recyclingPercent": "30",
+  "treatmentMethod": "Effluent treatment plant (ETP) with zero liquid discharge",
+  "monthlyCost": "8000"
+}
+
+Provide realistic values. Return ONLY the JSON object, nothing else.`;
+          break;
+
         case 'overhead-expenses':
           prompt = `You are a financial consultant. Generate ACTUAL SAMPLE VALUES (not guidance) for Overhead Expenses for a ${businessData.industrySector || 'business'} project.
 
@@ -1184,13 +1220,35 @@ Return ready-to-use content that can be directly filled into form fields. The us
         );
       case 'power-estimate':
         return (
-          <PowerEstimateStep 
-            data={stepData.powerEstimate} 
+          <PowerEstimateStep
+            data={stepData.powerEstimate}
             onChange={(data: any) => setStepData({...stepData, powerEstimate: data})}
             suggestions={aiSuggestions['power-estimate']}
             loading={loadingSuggestions['power-estimate']}
             onGetSuggestions={() => getAISuggestions('power-estimate', stepData, true, true)}
             onClearSuggestions={() => clearSuggestions('power-estimate')}
+          />
+        );
+      case 'energy-efficiency':
+        return (
+          <EnergyEfficiencyStep
+            data={stepData.energyEfficiency}
+            onChange={(data: any) => setStepData({...stepData, energyEfficiency: data})}
+            suggestions={aiSuggestions['energy-efficiency']}
+            loading={loadingSuggestions['energy-efficiency']}
+            onGetSuggestions={() => getAISuggestions('energy-efficiency', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('energy-efficiency')}
+          />
+        );
+      case 'water-efficiency':
+        return (
+          <WaterEfficiencyStep
+            data={stepData.waterEfficiency}
+            onChange={(data: any) => setStepData({...stepData, waterEfficiency: data})}
+            suggestions={aiSuggestions['water-efficiency']}
+            loading={loadingSuggestions['water-efficiency']}
+            onGetSuggestions={() => getAISuggestions('water-efficiency', stepData, true, true)}
+            onClearSuggestions={() => clearSuggestions('water-efficiency')}
           />
         );
       case 'overhead-expenses':
@@ -3653,6 +3711,208 @@ const PowerEstimateStep: React.FC<{ data: any; onChange: (data: any) => void; su
             placeholder="0"
             className="h-12 border-2 focus:border-primary"
           />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Energy Efficiency Step
+const EnergyEfficiencyStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
+  const { t } = useTranslation();
+
+  const handleApplySuggestions = () => {
+    if (suggestions && typeof suggestions === 'object') {
+      onChange({...data, ...suggestions});
+      onClearSuggestions?.();
+      toast.success('Applied AI suggestions');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.energyEfficiency.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.energyEfficiency.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t('common.loading')}</>
+              ) : (
+                <><Sparkles className="h-4 w-4 mr-2" />{t('dprBuilder.generateSampleContent')}</>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">{t('dprBuilder.clickApplyToUse')}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleApplySuggestions} className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white">
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button variant="outline" size="sm" onClick={onGetSuggestions} disabled={loading} className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('dprBuilder.refresh')}
+                </Button>
+              </div>
+            </div>
+            <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
+              {suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions) ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  {suggestions.monthlyConsumption && <div><span className="font-semibold">Monthly Consumption: </span><span className="text-muted-foreground">{suggestions.monthlyConsumption} kWh</span></div>}
+                  {suggestions.energySource && <div><span className="font-semibold">Energy Source: </span><span className="text-muted-foreground">{suggestions.energySource}</span></div>}
+                  {suggestions.renewablePercent && <div><span className="font-semibold">Renewable Energy: </span><span className="text-muted-foreground">{suggestions.renewablePercent}%</span></div>}
+                </div>
+              ) : (
+                <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">{typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}</pre>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.energyEfficiency.monthlyConsumption')}</label>
+          <Input type="number" value={data?.monthlyConsumption || ''} onChange={(e) => onChange({...data, monthlyConsumption: e.target.value})} placeholder="0" className="h-12 border-2 focus:border-primary" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.energyEfficiency.costPerUnit')}</label>
+          <Input type="number" value={data?.costPerUnit || ''} onChange={(e) => onChange({...data, costPerUnit: e.target.value})} placeholder="0" className="h-12 border-2 focus:border-primary" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.energyEfficiency.energySource')}</label>
+          <Input type="text" value={data?.energySource || ''} onChange={(e) => onChange({...data, energySource: e.target.value})} placeholder="e.g. Grid electricity, Solar" className="h-12 border-2 focus:border-primary" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.energyEfficiency.renewablePercent')}</label>
+          <Input type="number" value={data?.renewablePercent || ''} onChange={(e) => onChange({...data, renewablePercent: e.target.value})} placeholder="0" className="h-12 border-2 focus:border-primary" />
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.energyEfficiency.savingMeasures')}</label>
+          <textarea value={data?.savingMeasures || ''} onChange={(e) => onChange({...data, savingMeasures: e.target.value})} placeholder="Describe energy-saving measures adopted..." className="w-full h-24 p-3 border-2 rounded-md focus:border-primary focus:outline-none text-sm resize-none" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Water Efficiency Step
+const WaterEfficiencyStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
+  const { t } = useTranslation();
+
+  const handleApplySuggestions = () => {
+    if (suggestions && typeof suggestions === 'object') {
+      onChange({...data, ...suggestions});
+      onClearSuggestions?.();
+      toast.success('Applied AI suggestions');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.waterEfficiency.title')}</h3>
+            <p className="text-sm text-muted-foreground">{t('dprBuilder.waterEfficiency.description')}</p>
+          </div>
+          {!suggestions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onGetSuggestions}
+              disabled={loading}
+              className="ml-4 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {loading ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t('common.loading')}</>
+              ) : (
+                <><Sparkles className="h-4 w-4 mr-2" />{t('dprBuilder.generateSampleContent')}</>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {suggestions && (
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/5 border-2 border-primary/30 shadow-lg">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0 border-2 border-primary/30">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-bold text-primary mb-2">{t('dprBuilder.aiGeneratedSample')}</p>
+                  <p className="text-sm text-muted-foreground">{t('dprBuilder.clickApplyToUse')}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleApplySuggestions} className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white">
+                  {t('dprBuilder.applyAll')}
+                </Button>
+                <Button variant="outline" size="sm" onClick={onGetSuggestions} disabled={loading} className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('dprBuilder.refresh')}
+                </Button>
+              </div>
+            </div>
+            <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
+              {suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions) ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  {suggestions.dailyConsumption && <div><span className="font-semibold">Daily Consumption: </span><span className="text-muted-foreground">{suggestions.dailyConsumption} L/day</span></div>}
+                  {suggestions.waterSource && <div><span className="font-semibold">Water Source: </span><span className="text-muted-foreground">{suggestions.waterSource}</span></div>}
+                  {suggestions.recyclingPercent && <div><span className="font-semibold">Recycling: </span><span className="text-muted-foreground">{suggestions.recyclingPercent}%</span></div>}
+                </div>
+              ) : (
+                <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">{typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}</pre>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.waterEfficiency.dailyConsumption')}</label>
+          <Input type="number" value={data?.dailyConsumption || ''} onChange={(e) => onChange({...data, dailyConsumption: e.target.value})} placeholder="0" className="h-12 border-2 focus:border-primary" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.waterEfficiency.monthlyCost')}</label>
+          <Input type="number" value={data?.monthlyCost || ''} onChange={(e) => onChange({...data, monthlyCost: e.target.value})} placeholder="0" className="h-12 border-2 focus:border-primary" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.waterEfficiency.waterSource')}</label>
+          <Input type="text" value={data?.waterSource || ''} onChange={(e) => onChange({...data, waterSource: e.target.value})} placeholder="e.g. Municipal supply, Borewell" className="h-12 border-2 focus:border-primary" />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.waterEfficiency.recyclingPercent')}</label>
+          <Input type="number" value={data?.recyclingPercent || ''} onChange={(e) => onChange({...data, recyclingPercent: e.target.value})} placeholder="0" className="h-12 border-2 focus:border-primary" />
+        </div>
+        <div className="md:col-span-2">
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.waterEfficiency.treatmentMethod')}</label>
+          <textarea value={data?.treatmentMethod || ''} onChange={(e) => onChange({...data, treatmentMethod: e.target.value})} placeholder="Describe wastewater treatment and disposal method..." className="w-full h-24 p-3 border-2 rounded-md focus:border-primary focus:outline-none text-sm resize-none" />
         </div>
       </div>
     </div>

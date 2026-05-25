@@ -1355,6 +1355,48 @@ Return only valid JSON without markdown formatting.`;
           ${languageInstruction}
           Format: Detailed with calculations.
         `,
+        energyEfficiency: `
+          Create an Energy Efficiency section for the DPR:
+          Project: ${projectData.projectName}
+
+          ${(projectData as any).stepData?.energyEfficiency ? `
+          Energy Efficiency Data:
+          ${JSON.stringify((projectData as any).stepData.energyEfficiency, null, 2)}
+          ` : ''}
+
+          Include:
+          - Total monthly energy consumption (kWh/month)
+          - Energy cost per unit of production
+          - Energy sources used (grid, diesel, solar, etc.)
+          - Energy-saving measures and technologies adopted
+          - Percentage of renewable energy used
+          - Target energy intensity benchmarks
+          - Expected reduction in energy costs
+
+          ${languageInstruction}
+          Format: Detailed with calculations and tables.
+        `,
+        waterEfficiency: `
+          Create a Water Efficiency section for the DPR:
+          Project: ${projectData.projectName}
+
+          ${(projectData as any).stepData?.waterEfficiency ? `
+          Water Efficiency Data:
+          ${JSON.stringify((projectData as any).stepData.waterEfficiency, null, 2)}
+          ` : ''}
+
+          Include:
+          - Daily/monthly water consumption (liters/day)
+          - Water sources (municipal supply, borewell, rainwater harvesting)
+          - Water recycling and reuse percentage
+          - Wastewater treatment and disposal method
+          - Monthly water cost estimates
+          - Water-saving measures and technologies
+          - Compliance with effluent discharge norms
+
+          ${languageInstruction}
+          Format: Detailed with calculations and tables.
+        `,
         overheadExpenses: `
           Create an Overhead Expenses section for the DPR:
           Project: ${projectData.projectName}
@@ -1715,6 +1757,8 @@ Generate professional, comprehensive, and lender-ready content that inspires con
       'salaryDetails',
       'workingCapitalEstimate',
       'powerEstimate',
+      'energyEfficiency',
+      'waterEfficiency',
       'overheadExpenses',
       'financing',
       'salesDetails',

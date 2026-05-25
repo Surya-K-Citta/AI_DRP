@@ -1057,6 +1057,7 @@ export class DPRController {
         if (language === 'english' || language === 'telugu') {
           const langKey = language as 'english' | 'telugu';
           dpr.content[langKey] = { ...dpr.content[langKey], ...content };
+          dpr.markModified('content');
         }
       }
 
@@ -1544,6 +1545,7 @@ export class DPRController {
         ...dpr.content,
         telugu: teluguContent,
       };
+      dpr.markModified('content');
       await dpr.save();
 
       res.status(200).json({
