@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { Request, Response } from 'express';
 import { OpenAIService } from '../services/openai.service';
+import { DprBuilderAssistService } from '../services/dprBuilderAssist.service';
 import { DPRTemplate } from '../models/DPRTemplate.model';
 import { DPRSession } from '../models/DPRSession.model';
 import { Document } from '../models/Document.model';
@@ -1561,6 +1562,83 @@ export class DPRController {
       res.status(500).json({
         success: false,
         message: 'Failed to translate DPR to Telugu',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * One-shot grounded analysis for Create DPR (AIGuidedDPRBuilder) steps
+   */
+  static async analyzeBuilderStep(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { stepId, stepTitle, factSheet } = req.body || {};
+      if (!stepId) {
+        res.status(400).json({
+          success: false,
+          message: 'stepId is required',
+        });
+        return;
+      }
+
+      const data = await DprBuilderAssistService.analyzeStep({
+        stepId,
+        stepTitle: stepTitle || stepId,
+        factSheet: factSheet || {},
+      });
+
+      res.status(200).json({
+        success: true,
+        data,
+      });
+    } catch (error: any) {
+      console.error('Error analyzing DPR builder step:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to analyze this step',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Step-scoped chat for Create DPR (AIGuidedDPRBuilder)
+   */
+  static async chatBuilderStep(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { stepId, stepTitle, factSheet, message, conversationHistory } = req.body || {};
+      if (!stepId) {
+        res.status(400).json({
+          success: false,
+          message: 'stepId is required',
+        });
+        return;
+      }
+      if (!message || !String(message).trim()) {
+        res.status(400).json({
+          success: false,
+          message: 'message is required',
+        });
+        return;
+      }
+
+      const data = await DprBuilderAssistService.chatStep({
+        stepId,
+        stepTitle: stepTitle || stepId,
+        factSheet: factSheet || {},
+        message: String(message).trim(),
+        conversationHistory: Array.isArray(conversationHistory) ? conversationHistory : [],
+      });
+
+      res.status(200).json({
+        success: true,
+        data,
+      });
+    } catch (error: any) {
+      console.error('Error in DPR builder step chat:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get chat response',
         error: error.message,
       });
     }

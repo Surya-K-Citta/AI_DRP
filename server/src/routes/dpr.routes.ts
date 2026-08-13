@@ -24,6 +24,10 @@ router.get('/sessions/:sessionId/dpr', DPRController.getGeneratedDPR);
 router.post('/generate-from-chat', DPRController.generateDPRFromChat);
 router.post('/generate-enhanced-from-chat', DPRController.generateEnhancedDPRFromChat);
 
+// Create DPR (AIGuidedDPRBuilder) grounded analyze + step chat
+router.post('/builder/analyze', DPRController.analyzeBuilderStep);
+router.post('/builder/chat', DPRController.chatBuilderStep);
+
 // DPR session downloads
 router.get('/sessions/:sessionId/download/pdf', DPRController.downloadSessionPDF);
 

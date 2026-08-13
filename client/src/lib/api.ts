@@ -377,6 +377,53 @@ class APIClient {
   }
 
   // Chat-based DPR generation
+  async analyzeDprBuilderStep(payload: {
+    stepId: string;
+    stepTitle: string;
+    factSheet: any;
+  }) {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/dpr/builder/analyze', payload, { timeout: 45000 });
+        return response.data;
+      },
+      async () => ({
+        success: true,
+        data: {
+          suggestions: [
+            {
+              title: 'Continue with the values you entered',
+              why: 'Live analysis is unavailable in offline/mock mode.',
+              how: 'Fill remaining fields on this step from your own facts, then retry Analyze when online.',
+            },
+          ],
+        },
+      })
+    );
+  }
+
+  async chatDprBuilderStep(payload: {
+    stepId: string;
+    stepTitle: string;
+    factSheet: any;
+    message: string;
+    conversationHistory?: Array<{ role: string; content: string }>;
+  }) {
+    return this.handleRequest(
+      async () => {
+        const response = await this.client.post('/dpr/builder/chat', payload, { timeout: 90000 });
+        return response.data;
+      },
+      async () => ({
+        success: true,
+        data: {
+          response:
+            'I can only discuss this step using the facts already in your project sheet. Live research is unavailable offline — tell me which part of this step you want to improve.',
+        },
+      })
+    );
+  }
+
   async generateDPRFromChat(responses: any, language: string = 'english') {
     const response = await this.client.post('/dpr/generate-from-chat', { responses, language });
     return response.data;

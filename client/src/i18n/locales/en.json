@@ -346,6 +346,21 @@
       "businessDescriptionItems": "Products or services you will produce/offer, Business model and how you will operate, Unique value proposition and competitive advantages, Production capacity or service volume, Business objectives and goals, Target customers and market approach"
     },
     "generateSampleContent": "Generate Sample Content",
+    "assist": {
+      "analyzeButton": "Analyze & Suggestions",
+      "analyzing": "Analyzing...",
+      "helperText": "After filling this step, run a grounded review. Chat appears only after analysis.",
+      "suggestionsHeading": "Improvement suggestions",
+      "suggestionsHint": "These ideas do not change your form fields. Use them to improve what you entered.",
+      "chatTitle": "Step assistant",
+      "openChat": "Open step chat",
+      "closeChat": "Close chat",
+      "chatPlaceholder": "Ask about improving this step…",
+      "thinking": "Thinking…",
+      "chatIntro": "I have your project fact sheet for this step. I can only discuss {{step}} and will not invent numbers or names you have not provided. I can also compare typical similar projects in your sector and region. What would you like to improve?",
+      "analyzeFailed": "Could not analyze this step. Please try again.",
+      "chatFailed": "Could not send your message. Please try again."
+    },
     "aiGeneratedSample": "AI-Generated Sample Content",
     "clickApplyToUse": "Click \"Apply All\" to use the AI-generated suggestions. You can edit them after applying.",
     "applyAll": "Apply All",
@@ -573,6 +588,7 @@
       "products": "Product and By Product"
     },
     "errors": {
+      "completeStepForAnalyze": "Fill the required fields on this step before running Analyze & Suggestions.",
       "completeBusinessOverview": "Please complete Business Overview section (Project Name and Industry Sector are required)",
       "failedToLoadProject": "Failed to load project",
       "failedToCreateProject": "Failed to create project. Please try again.",
