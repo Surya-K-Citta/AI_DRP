@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, MessageCircle, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, MessageCircle, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { StepChatPanel, StepChatMessage } from './StepChatPanel';
+import { DEFAULT_DPR_BUILDER_ASSIST_PROMPT, saveAssistPrompt } from '@/lib/dprBuilderAssistPrompt';
 
 export interface AssistSuggestion {
   title: string;
-  why: string;
-  how: string;
+  observation: string;
+  recommendation: string;
+  offloadingIdea?: string | null;
 }
 
 interface StepAnalyzeAssistProps {
@@ -19,6 +21,8 @@ interface StepAnalyzeAssistProps {
   chatOpen: boolean;
   chatLoading: boolean;
   messages: StepChatMessage[];
+  customInstructions: string;
+  onCustomInstructionsChange: (value: string) => void;
   onAnalyze: () => void;
   onOpenChat: () => void;
   onCloseChat: () => void;
@@ -34,6 +38,8 @@ export const StepAnalyzeAssist: React.FC<StepAnalyzeAssistProps> = ({
   chatOpen,
   chatLoading,
   messages,
+  customInstructions,
+  onCustomInstructionsChange,
   onAnalyze,
   onOpenChat,
   onCloseChat,
@@ -41,30 +47,68 @@ export const StepAnalyzeAssist: React.FC<StepAnalyzeAssistProps> = ({
   children,
 }) => {
   const { t } = useTranslation();
+  const [promptOpen, setPromptOpen] = useState(false);
+
+  const persistPrompt = (value: string) => {
+    onCustomInstructionsChange(value);
+    saveAssistPrompt(value);
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border-2 border-primary/15 bg-primary/5 p-4">
-        <p className="text-sm text-muted-foreground">{t('dprBuilder.assist.helperText')}</p>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onAnalyze}
-          disabled={analyzing}
-          className="border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary flex-shrink-0"
-        >
-          {analyzing ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              {t('dprBuilder.assist.analyzing')}
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4 mr-2" />
-              {t('dprBuilder.assist.analyzeButton')}
-            </>
-          )}
-        </Button>
+      <div className="rounded-lg border-2 border-primary/15 bg-primary/5 p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-sm text-muted-foreground">{t('dprBuilder.assist.helperText')}</p>
+          <div className="flex gap-2 flex-shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPromptOpen((open) => !open)}
+              className="border-2"
+            >
+              {promptOpen ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
+              {t('dprBuilder.assist.customInstructions')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onAnalyze}
+              disabled={analyzing}
+              className="border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
+            >
+              {analyzing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('dprBuilder.assist.analyzing')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {t('dprBuilder.assist.analyzeButton')}
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {promptOpen && (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">{t('dprBuilder.assist.customInstructionsHint')}</p>
+            <textarea
+              value={customInstructions}
+              onChange={(e) => persistPrompt(e.target.value)}
+              rows={14}
+              className="w-full text-xs font-mono p-3 border-2 border-primary/20 rounded-lg focus:border-primary focus:outline-none resize-y bg-white"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => persistPrompt(DEFAULT_DPR_BUILDER_ASSIST_PROMPT)}
+            >
+              {t('dprBuilder.assist.resetPrompt')}
+            </Button>
+          </div>
+        )}
       </div>
 
       {suggestions.length > 0 && (
@@ -83,8 +127,14 @@ export const StepAnalyzeAssist: React.FC<StepAnalyzeAssistProps> = ({
               {suggestions.map((item, index) => (
                 <div key={`${item.title}-${index}`} className="rounded-lg border border-primary/20 bg-white/70 p-3">
                   <p className="font-semibold text-foreground text-sm">{item.title}</p>
-                  {item.why && <p className="text-sm text-muted-foreground mt-1">{item.why}</p>}
-                  {item.how && <p className="text-sm text-foreground mt-2">{item.how}</p>}
+                  {item.observation && <p className="text-sm text-muted-foreground mt-1">{item.observation}</p>}
+                  {item.recommendation && <p className="text-sm text-foreground mt-2">{item.recommendation}</p>}
+                  {item.offloadingIdea && (
+                    <p className="text-sm text-foreground mt-2">
+                      <span className="font-medium">{t('dprBuilder.assist.offloadingLabel')}: </span>
+                      {item.offloadingIdea}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

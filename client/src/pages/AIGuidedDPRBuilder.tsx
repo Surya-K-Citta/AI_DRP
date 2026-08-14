@@ -12,9 +12,11 @@ import { StepAnalyzeAssist, AssistSuggestion } from '@/components/dpr-builder/St
 import { StepChatMessage } from '@/components/dpr-builder/StepChatPanel';
 import {
   buildFactSheet,
+  buildStepChatOpener,
   isAssistStep,
   isStepReadyForAnalyze,
 } from '@/lib/dprBuilderFactSheet';
+import { loadAssistPrompt } from '@/lib/dprBuilderAssistPrompt';
 import {
   ArrowLeft,
   ArrowRight,
@@ -117,6 +119,7 @@ export const AIGuidedDPRBuilder: React.FC = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
+  const [assistPrompt, setAssistPrompt] = useState(() => loadAssistPrompt());
 
   useEffect(() => {
     if (projectId) {
@@ -961,10 +964,17 @@ Return ready-to-use content that can be directly filled into form fields. The us
         stepId: step.id,
         stepTitle: step.title,
         factSheet,
+        customInstructions: assistPrompt,
       });
       const suggestions = response?.data?.suggestions || response?.suggestions || [];
       setAnalysisByStep((prev) => ({ ...prev, [step.id]: suggestions }));
       setAnalyzedSteps((prev) => ({ ...prev, [step.id]: true }));
+      setChatByStep((prev) => {
+        const updated = { ...prev };
+        delete updated[step.id];
+        return updated;
+      });
+      setChatOpen(false);
     } catch (error) {
       console.error('Error analyzing DPR builder step:', error);
       toast.error(t('dprBuilder.assist.analyzeFailed'));
@@ -978,12 +988,18 @@ Return ready-to-use content that can be directly filled into form fields. The us
     if (!analyzedSteps[step.id]) return;
     setChatByStep((prev) => {
       if (prev[step.id]?.length) return prev;
+      const factSheet = buildFactSheet(stepData, step.id);
       return {
         ...prev,
         [step.id]: [
           {
             role: 'assistant',
-            content: t('dprBuilder.assist.chatIntro', { step: step.title }),
+            content: buildStepChatOpener({
+              stepTitle: step.title,
+              currentStep: factSheet.currentStep,
+              suggestions: analysisByStep[step.id] || [],
+              t,
+            }),
           },
         ],
       };
@@ -1006,6 +1022,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
         factSheet,
         message,
         conversationHistory: history.map((m) => ({ role: m.role, content: m.content })),
+        customInstructions: assistPrompt,
       });
       const reply = response?.data?.response || response?.response || '';
       setChatByStep((prev) => ({
@@ -1539,6 +1556,8 @@ Return ready-to-use content that can be directly filled into form fields. The us
                   chatOpen={chatOpen}
                   chatLoading={chatLoading}
                   messages={chatByStep[STEPS[currentStep].id] || []}
+                  customInstructions={assistPrompt}
+                  onCustomInstructionsChange={setAssistPrompt}
                   onAnalyze={handleAnalyzeStep}
                   onOpenChat={handleOpenStepChat}
                   onCloseChat={() => setChatOpen(false)}

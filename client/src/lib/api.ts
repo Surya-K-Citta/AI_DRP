@@ -381,10 +381,11 @@ class APIClient {
     stepId: string;
     stepTitle: string;
     factSheet: any;
+    customInstructions?: string;
   }) {
     return this.handleRequest(
       async () => {
-        const response = await this.client.post('/dpr/builder/analyze', payload, { timeout: 45000 });
+        const response = await this.client.post('/dpr/builder/analyze', payload, { timeout: 90000 });
         return response.data;
       },
       async () => ({
@@ -392,9 +393,10 @@ class APIClient {
         data: {
           suggestions: [
             {
-              title: 'Continue with the values you entered',
-              why: 'Live analysis is unavailable in offline/mock mode.',
-              how: 'Fill remaining fields on this step from your own facts, then retry Analyze when online.',
+              title: 'Looks fine',
+              observation: 'Live analysis is unavailable in offline/mock mode.',
+              recommendation: 'Retry Analyze when online.',
+              offloadingIdea: null,
             },
           ],
         },
@@ -408,6 +410,7 @@ class APIClient {
     factSheet: any;
     message: string;
     conversationHistory?: Array<{ role: string; content: string }>;
+    customInstructions?: string;
   }) {
     return this.handleRequest(
       async () => {

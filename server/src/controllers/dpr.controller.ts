@@ -1572,7 +1572,7 @@ export class DPRController {
    */
   static async analyzeBuilderStep(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { stepId, stepTitle, factSheet } = req.body || {};
+      const { stepId, stepTitle, factSheet, customInstructions } = req.body || {};
       if (!stepId) {
         res.status(400).json({
           success: false,
@@ -1585,6 +1585,7 @@ export class DPRController {
         stepId,
         stepTitle: stepTitle || stepId,
         factSheet: factSheet || {},
+        customInstructions,
       });
 
       res.status(200).json({
@@ -1606,7 +1607,7 @@ export class DPRController {
    */
   static async chatBuilderStep(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { stepId, stepTitle, factSheet, message, conversationHistory } = req.body || {};
+      const { stepId, stepTitle, factSheet, message, conversationHistory, customInstructions } = req.body || {};
       if (!stepId) {
         res.status(400).json({
           success: false,
@@ -1628,6 +1629,7 @@ export class DPRController {
         factSheet: factSheet || {},
         message: String(message).trim(),
         conversationHistory: Array.isArray(conversationHistory) ? conversationHistory : [],
+        customInstructions,
       });
 
       res.status(200).json({

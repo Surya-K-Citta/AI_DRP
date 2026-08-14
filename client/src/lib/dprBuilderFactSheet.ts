@@ -187,3 +187,139 @@ export function isStepReadyForAnalyze(stepId: string, stepData: Record<string, a
       return Object.keys(compactValue(data) || {}).length > 0;
   }
 }
+
+export interface ChatOpenerSuggestion {
+  title?: string;
+  observation?: string;
+  recommendation?: string;
+  offloadingIdea?: string | null;
+  why?: string;
+  how?: string;
+}
+
+type TranslateFn = (key: string, options?: Record<string, any>) => string;
+
+function formatInr(value: any): string | null {
+  const n = Number(value);
+  if (value === '' || value === null || value === undefined || Number.isNaN(n)) return null;
+  return `₹${n.toLocaleString('en-IN')}`;
+}
+
+function formatRow(row: Record<string, any>): string | null {
+  const name = String(row.particulars || row.schemeName || row.schemeCode || '').trim();
+  const bits: string[] = [];
+  if (row.area) bits.push(`${row.area} sq.ft`);
+  if (row.qty) bits.push(`qty ${row.qty}`);
+  if (row.quantity) bits.push(`qty ${row.quantity}`);
+  if (row.noOfWorkers) bits.push(`${row.noOfWorkers} workers`);
+  if (row.noOfStaff) bits.push(`${row.noOfStaff} staff`);
+  if (row.rate) bits.push(formatInr(row.rate) ? `${formatInr(row.rate)}/unit` : `rate ${row.rate}`);
+  if (row.wagesPerMonth) bits.push(`${formatInr(row.wagesPerMonth) || row.wagesPerMonth}/month`);
+  if (row.amount) bits.push(formatInr(row.amount) || String(row.amount));
+  if (!name && !bits.length) return null;
+  if (name && bits.length) return `${name} (${bits.join(', ')})`;
+  return name || bits.join(', ');
+}
+
+function humanizeKey(key: string): string {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^./, (c) => c.toUpperCase());
+}
+
+function summarizeValue(value: any, depth = 0): string | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') return formatInr(value) || String(value);
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return trimmed.length > 80 ? `${trimmed.slice(0, 77)}…` : trimmed;
+  }
+  if (Array.isArray(value)) {
+    const parts = value
+      .slice(0, 4)
+      .map((item) => {
+        if (item && typeof item === 'object') return formatRow(item);
+        return summarizeValue(item, depth + 1);
+      })
+      .filter(Boolean) as string[];
+    if (!parts.length) return null;
+    const extra = value.length > parts.length ? ` (+${value.length - parts.length} more)` : '';
+    return parts.join('; ') + extra;
+  }
+  if (typeof value === 'object' && depth < 1) {
+    const parts: string[] = [];
+    for (const [key, child] of Object.entries(value)) {
+      if (Array.isArray(child)) {
+        const rows = summarizeValue(child, depth + 1);
+        if (rows) parts.push(rows);
+        continue;
+      }
+      const childText = summarizeValue(child, depth + 1);
+      if (childText) parts.push(`${humanizeKey(key)}: ${childText}`);
+      if (parts.length >= 4) break;
+    }
+    return parts.length ? parts.join('; ') : null;
+  }
+  return null;
+}
+
+export function summarizeCurrentStep(currentStep: any): string {
+  const compact = compactValue(currentStep);
+  if (!compact || typeof compact !== 'object') return '';
+  const parts: string[] = [];
+
+  for (const [key, value] of Object.entries(compact)) {
+    if (Array.isArray(value)) {
+      const rows = summarizeValue(value);
+      if (rows) parts.push(rows);
+    } else if (value && typeof value === 'object') {
+      const nested = summarizeValue(value, 0);
+      if (nested) parts.push(nested);
+    } else {
+      const text = summarizeValue(value);
+      if (text) parts.push(`${humanizeKey(key)}: ${text}`);
+    }
+    if (parts.length >= 4) break;
+  }
+
+  const summary = parts.join('; ');
+  return summary.length > 280 ? `${summary.slice(0, 277)}…` : summary;
+}
+
+export function buildStepChatOpener(params: {
+  stepTitle: string;
+  currentStep: any;
+  suggestions?: ChatOpenerSuggestion[];
+  t: TranslateFn;
+}): string {
+  const { stepTitle, currentStep, suggestions = [], t } = params;
+  const details = summarizeCurrentStep(currentStep);
+  const lead = details
+    ? t('dprBuilder.assist.chatOpenerLead', { step: stepTitle, details })
+    : t('dprBuilder.assist.chatOpenerLeadSparse', { step: stepTitle });
+
+  const usable = (suggestions || []).filter(
+    (s) => s && (s.title || s.observation || s.recommendation || s.why || s.how)
+  );
+  let body = '';
+  if (usable.length) {
+    const items = usable
+      .map((s, i) => {
+        const lines = [`${i + 1}. ${s.title || t('dprBuilder.assist.chatOpenerUntitled')}`];
+        const observation = s.observation || s.why;
+        const recommendation = s.recommendation || s.how;
+        if (observation) lines.push(observation);
+        if (recommendation) lines.push(recommendation);
+        if (s.offloadingIdea) lines.push(s.offloadingIdea);
+        return lines.join('\n');
+      })
+      .join('\n\n');
+    body = `\n\n${t('dprBuilder.assist.chatOpenerImprovements')}\n\n${items}`;
+  }
+
+  return `${lead}${body}\n\n${t('dprBuilder.assist.chatOpenerAsk')}`;
+}
