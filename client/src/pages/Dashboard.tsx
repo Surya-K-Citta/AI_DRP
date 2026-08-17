@@ -360,6 +360,14 @@ export const Dashboard: React.FC = () => {
               <FolderPlus className="h-4 w-4" />
               Create DPR
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/venture-match')}
+              className="gap-2 whitespace-nowrap border-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              {t('dashboard.ventureMatch')}
+            </Button>
           </div>
         </div>
 
@@ -674,7 +682,7 @@ export const Dashboard: React.FC = () => {
             <CardDescription>{t('dashboard.accessFrequentlyUsed')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <Button
                 variant="primary"
                 onClick={() => navigate('/cluster-dpr/create?new=true')}
@@ -696,6 +704,17 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <span className="font-semibold">{t('dashboard.createNewDPR')}</span>
                 <span className="text-sm opacity-90">{t('dashboard.aiGuidedBuilder')}</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/venture-match')}
+                className="h-28 flex-col gap-3 border-2 hover:border-primary hover:bg-primary/5"
+              >
+                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <span className="font-semibold">{t('dashboard.ventureMatch')}</span>
+                <span className="text-sm text-muted-foreground">{t('dashboard.ventureMatchHint')}</span>
               </Button>
               <Button
                 onClick={() => navigate('/chat')}

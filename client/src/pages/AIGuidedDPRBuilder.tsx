@@ -17,6 +17,7 @@ import {
   isStepReadyForAnalyze,
 } from '@/lib/dprBuilderFactSheet';
 import { loadAssistPrompt } from '@/lib/dprBuilderAssistPrompt';
+import { consumeHandoff, buildDprPrefill } from '@/lib/ventureMatch/mapToDpr';
 import {
   ArrowLeft,
   ArrowRight,
@@ -125,20 +126,45 @@ export const AIGuidedDPRBuilder: React.FC = () => {
     if (projectId) {
       loadProject();
     } else {
-      // Load saved progress from localStorage if no projectId
+      let nextStepData: StepData = {};
+      let nextStep = 0;
+      let nextAnalyzed = {};
+      let nextAnalysis = {};
+      let nextChat = {};
       const saved = localStorage.getItem('dpr-builder-progress');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          setStepData(parsed.stepData || {});
-          setCurrentStep(parsed.currentStep || 0);
-          setAnalyzedSteps(parsed.analyzedSteps || {});
-          setAnalysisByStep(parsed.analysisByStep || {});
-          setChatByStep(parsed.chatByStep || {});
+          nextStepData = parsed.stepData || {};
+          nextStep = parsed.currentStep || 0;
+          nextAnalyzed = parsed.analyzedSteps || {};
+          nextAnalysis = parsed.analysisByStep || {};
+          nextChat = parsed.chatByStep || {};
         } catch (e) {
           console.error('Failed to load saved progress:', e);
         }
       }
+      const handoff = consumeHandoff();
+      if (handoff) {
+        const prefill = buildDprPrefill(handoff.answers, handoff.matches);
+        nextStepData = {
+          ...nextStepData,
+          businessOverview: {
+            ...(nextStepData.businessOverview || {}),
+            ...prefill.businessOverview,
+          },
+          applicantInfo: {
+            ...(nextStepData.applicantInfo || {}),
+            ...prefill.applicantInfo,
+          },
+          eligibleSchemes: prefill.eligibleSchemes,
+        };
+      }
+      setStepData(nextStepData);
+      setCurrentStep(nextStep);
+      setAnalyzedSteps(nextAnalyzed);
+      setAnalysisByStep(nextAnalysis);
+      setChatByStep(nextChat);
     }
   }, [projectId]);
 

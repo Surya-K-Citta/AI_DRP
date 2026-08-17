@@ -108,7 +108,9 @@
     "untitledProject": "Untitled Project",
     "unknown": "Unknown",
     "unknownSector": "Unknown Sector",
-    "version": "Version"
+    "version": "Version",
+    "ventureMatch": "VentureMatch",
+    "ventureMatchHint": "Find matching schemes"
   },
   "projects": {
     "title": "My Projects",
@@ -606,6 +608,155 @@
       "appliedAllSuggestions": "Applied AI suggestions to all cost fields",
       "appliedCapexSuggestion": "Applied AI suggestion to CAPEX - {{field}}",
       "appliedOpexSuggestion": "Applied AI suggestion to OPEX - {{field}}"
+    }
+  },
+  "ventureMatch": {
+    "title": "VentureMatch",
+    "progress": "Card {{current}} of {{total}}",
+    "remaining": "{{count}} schemes still in play",
+    "selectAll": "Select all that apply, then continue.",
+    "resultsTitle": "Your matching schemes",
+    "resultsSubtitle": "{{count}} schemes fit the answers you gave.",
+    "noMatches": "No schemes remain eligible for this combination of answers.",
+    "notEligible": "{{count}} schemes not eligible",
+    "createDpr": "Create DPR",
+    "startOver": "Start over",
+    "questions": {
+      "activity": {
+        "label": "Activity",
+        "title": "What’s your hustle?",
+        "options": {
+          "mfg": "Manufacturing or Production of Goods (e.g., fabrication, plastics, machinery)",
+          "food": "Food Processing (e.g., bakery, pickle unit, spice grinding)",
+          "craft": "Traditional Craft or Artisanal Trade (e.g., carpentry, pottery, tailor, goldsmith)",
+          "service": "Service Sector (e.g., IT consulting, beauty salon, medical clinic, repair shop)",
+          "trade": "Retail or Wholesale Trade (e.g., grocery/kirana store, clothing boutique)",
+          "vending": "Street Vending (e.g., mobile food cart, daily market stall)",
+          "crop": "Direct Crop Farming (e.g., crop cultivation, direct farm loans)"
+        }
+      },
+      "stage": {
+        "label": "Stage",
+        "title": "Starting fresh or scaling up?",
+        "options": {
+          "greenfield": "Greenfield (Brand new startup)",
+          "brownfield": "Brownfield (Expanding or upgrading my existing business)"
+        }
+      },
+      "budget": {
+        "label": "Project Budget",
+        "title": "What’s the total cash needed to set this up?",
+        "options": {
+          "under2L": "Under ₹2 Lakhs (Micro-budget)",
+          "2to5L": "₹2 Lakhs – ₹5 Lakhs (Small business)",
+          "5to10L": "₹5 Lakhs – ₹10 Lakhs (Early startup)",
+          "10to20L": "₹10 Lakhs – ₹20 Lakhs (Standard Micro)",
+          "20to50L": "₹20 Lakhs – ₹50 Lakhs (Small Enterprise)",
+          "50Lto1Cr": "₹50 Lakhs – ₹1 Crore (Growth-stage startup)",
+          "1to10Cr": "₹1 Crore – ₹10 Crore (Mid-to-large scale)",
+          "above10Cr": "Above ₹10 Crore (Industrial-scale project)"
+        }
+      },
+      "legal": {
+        "label": "Legal Entity",
+        "title": "How are you structured legally?",
+        "options": {
+          "sole": "Sole Proprietorship / Individual Owner",
+          "partnership": "Partnership Firm / LLP",
+          "company": "Private Limited or Public Limited Company"
+        }
+      },
+      "owner": {
+        "label": "Owner Profile",
+        "title": "Who is the majority boss (holding ≥51% ownership)?",
+        "options": {
+          "female": "Female Promoter",
+          "sc": "Scheduled Caste (SC) Promoter",
+          "st": "Scheduled Tribe (ST) Promoter",
+          "bc": "Backward Class (BC) or Minority Promoter",
+          "pwd": "Person with Disability (Specially-Abled)",
+          "generalMale": "General Category Male"
+        }
+      },
+      "domicile": {
+        "label": "Domicile",
+        "title": "Are you a local resident of Andhra Pradesh?",
+        "options": {
+          "ap": "Yes, I am domiciled in AP",
+          "other": "No, I am domiciled in another Indian state"
+        }
+      },
+      "location": {
+        "label": "Location",
+        "title": "Where is your business located?",
+        "options": {
+          "urban": "Urban Area (Municipality or Municipal Corporation)",
+          "rural": "Rural Area (Gram Panchayat / Village limits)",
+          "apiic": "Inside an APIIC Industrial Park"
+        }
+      },
+      "riceCard": {
+        "label": "Economic Status",
+        "title": "Does your household have an active White Rice Card?",
+        "options": {
+          "yes": "Yes",
+          "no": "No"
+        }
+      },
+      "age": {
+        "label": "Age",
+        "title": "What is your age?",
+        "options": {
+          "under18": "Under 18 years",
+          "18to20": "18 – 20 years",
+          "21to50": "21 – 50 years",
+          "51to60": "51 – 60 years",
+          "above60": "Above 60 years"
+        }
+      },
+      "education": {
+        "label": "Education",
+        "title": "What is your highest educational qualification?",
+        "options": {
+          "below8th": "Below 8th Standard",
+          "8thPlus": "8th Standard Pass or higher"
+        }
+      },
+      "udyam": {
+        "label": "Registration",
+        "title": "Do you have a valid Udyam Registration?",
+        "options": {
+          "yes": "Yes",
+          "willing": "No, but I am willing to register (it’s free!)",
+          "refuse": "No, and I do not want to register"
+        }
+      },
+      "priorSubsidy": {
+        "label": "Credit History",
+        "title": "Have you taken any government-subsidized loans in the past 5 years?",
+        "options": {
+          "none": "No",
+          "repaid": "Yes, but I have fully repaid them",
+          "outstanding": "Yes, I have an active, outstanding subsidized loan"
+        }
+      },
+      "govtFamily": {
+        "label": "Exclusions",
+        "title": "Is anyone in your immediate family in a government job?",
+        "options": {
+          "yes": "Yes",
+          "no": "No"
+        }
+      },
+      "market": {
+        "label": "Market Focus",
+        "title": "What is your primary selling channel?",
+        "options": {
+          "offline": "Local offline selling (retail/wholesale)",
+          "ecommerce": "Selling online on e-commerce platforms (ONDC, etc.)",
+          "export": "Direct international exports"
+        }
+      }
     }
   }
 }

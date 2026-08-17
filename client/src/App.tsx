@@ -18,6 +18,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminDocuments } from './pages/AdminDocuments';
 import { Profile } from './pages/Profile';
 import { ClusterDPRCreation } from './pages/ClusterDPRCreation';
+import { VentureMatch } from './pages/VentureMatch';
 import './i18n/config';
 
 function App() {
@@ -151,6 +152,15 @@ function App() {
           element={
             <ProtectedRoute>
               <ClusterDPRCreation />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/venture-match"
+          element={
+            <ProtectedRoute>
+              <VentureMatch />
             </ProtectedRoute>
           }
         />
