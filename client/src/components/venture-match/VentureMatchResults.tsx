@@ -1,14 +1,51 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Award, ChevronDown, ChevronUp, FolderPlus } from 'lucide-react';
+import {
+  Award,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  HelpCircle,
+  FolderPlus,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
-import { EvaluateResult } from '@/lib/ventureMatch/types';
+import { CriterionStatus, EvaluateResult, SchemeCriterion } from '@/lib/ventureMatch/types';
+import { cn } from '@/lib/utils';
 
 interface VentureMatchResultsProps {
   result: EvaluateResult;
   onCreateDpr: () => void;
   onRestart: () => void;
+}
+
+const STATUS_ICON: Record<CriterionStatus, React.ElementType> = {
+  fail: X,
+  unknown: HelpCircle,
+  pass: Check,
+};
+
+function CriterionRow({ item }: { item: SchemeCriterion }) {
+  const { t } = useTranslation();
+  const Icon = STATUS_ICON[item.status];
+  return (
+    <li
+      className={cn(
+        'flex items-start gap-2 text-sm',
+        item.status === 'fail' && 'text-red-700',
+        item.status === 'unknown' && 'text-muted-foreground',
+        item.status === 'pass' && 'text-emerald-700'
+      )}
+    >
+      <Icon className="h-4 w-4 mt-0.5 shrink-0" />
+      <span>
+        {item.status === 'unknown' ? `${t('ventureMatch.notAnswered')}: ` : ''}
+        {t(item.labelKey)}
+      </span>
+    </li>
+  );
 }
 
 export const VentureMatchResults: React.FC<VentureMatchResultsProps> = ({
@@ -27,6 +64,30 @@ export const VentureMatchResults: React.FC<VentureMatchResultsProps> = ({
           {t('ventureMatch.resultsSubtitle', { count: result.matches.length })}
         </p>
       </div>
+
+      {result.showOwnershipHint && (
+        <Card className="border-2 border-amber-300 bg-amber-50">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="h-5 w-5 text-amber-700" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">{t('ventureMatch.ownershipHint.title')}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t('ventureMatch.ownershipHint.body')}
+                </p>
+                <ul className="mt-3 space-y-1.5 text-sm text-foreground">
+                  <li>{t('ventureMatch.ownershipHint.subsidy')}</li>
+                  <li>{t('ventureMatch.ownershipHint.debt')}</li>
+                  <li>{t('ventureMatch.ownershipHint.guarantee')}</li>
+                  <li>{t('ventureMatch.ownershipHint.ecosystem')}</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {result.matches.length === 0 ? (
         <Card>
@@ -72,7 +133,11 @@ export const VentureMatchResults: React.FC<VentureMatchResultsProps> = ({
                   className="rounded-[12px] border border-border px-4 py-3 text-sm"
                 >
                   <p className="font-medium text-foreground">{scheme.name}</p>
-                  <p className="text-muted-foreground mt-0.5">{scheme.reason}</p>
+                  <ul className="mt-2 space-y-1.5">
+                    {scheme.criteria.map((item) => (
+                      <CriterionRow key={`${scheme.code}-${item.id}`} item={item} />
+                    ))}
+                  </ul>
                 </div>
               ))}
             </div>

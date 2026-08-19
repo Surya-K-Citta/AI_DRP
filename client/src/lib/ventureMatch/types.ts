@@ -66,10 +66,31 @@ export interface QuestionDef {
 
 export type SchemeKind = 'loan' | 'subsidy' | 'guarantee' | 'support';
 
+export type CriterionStatus = 'pass' | 'fail' | 'unknown';
+
 export interface SchemeDef {
   code: string;
   name: string;
   kind: SchemeKind;
+}
+
+export interface CriterionDef {
+  id: string;
+  questionId: QuestionId;
+  labelKey: string;
+  test: (answers: VentureMatchAnswers) => CriterionStatus;
+}
+
+export interface SchemeRule extends SchemeDef {
+  benefit: (answers: VentureMatchAnswers) => string;
+  criteria: CriterionDef[];
+}
+
+export interface SchemeCriterion {
+  id: string;
+  questionId: QuestionId;
+  labelKey: string;
+  status: CriterionStatus;
 }
 
 export interface SchemeMatch {
@@ -83,10 +104,11 @@ export interface SchemeExclusion {
   code: string;
   name: string;
   kind: SchemeKind;
-  reason: string;
+  criteria: SchemeCriterion[];
 }
 
 export interface EvaluateResult {
   matches: SchemeMatch[];
   excluded: SchemeExclusion[];
+  showOwnershipHint: boolean;
 }
