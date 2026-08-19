@@ -7,8 +7,10 @@ import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { User, Mail, Building2, MapPin, Save, Loader2 } from 'lucide-react';
+import { User, Mail, Building2, MapPin, Save, Loader2, Shield } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { RoleBadge } from '@/components/auth/RolePicker';
+import { ROLE_META, toAppRole } from '@/lib/rbac';
 
 export const Profile: React.FC = () => {
   const { t } = useTranslation();
@@ -158,20 +160,18 @@ export const Profile: React.FC = () => {
 
                 <div className="space-y-2">
                   <label htmlFor="role" className="text-sm font-medium text-foreground flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
+                    <Shield className="h-4 w-4" />
                     Role
                   </label>
-                  <Input
-                    id="role"
-                    name="role"
-                    type="text"
-                    value={formData.role}
-                    onChange={handleChange}
-                    disabled
-                    className="bg-muted cursor-not-allowed capitalize"
-                    placeholder="Role"
-                  />
-                  <p className="text-xs text-muted-foreground">Role cannot be changed</p>
+                  <div className="flex flex-col gap-2 rounded-md border bg-muted/40 px-3 py-3">
+                    <RoleBadge role={formData.role} />
+                    <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                      {ROLE_META[toAppRole(formData.role)].permissionKeys.map((key) => (
+                        <li key={key}>{t(key)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t('rbac.roleCannotChange')}</p>
                 </div>
 
                 <div className="space-y-2">

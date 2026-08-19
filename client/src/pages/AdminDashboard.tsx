@@ -31,10 +31,12 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
 import { formatDate } from '@/lib/utils';
+import { APP_ROLES, ROLE_META, toAppRole, toBackendRole, type AppRole } from '@/lib/rbac';
+import { RoleBadge } from '@/components/auth/RolePicker';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-type TabType = 'analytics' | 'users' | 'dprs' | 'policies';
+type TabType = 'analytics' | 'users' | 'dprs' | 'policies' | 'access';
 
 export const AdminDashboard: React.FC = () => {
   const { t } = useTranslation();
@@ -46,6 +48,7 @@ export const AdminDashboard: React.FC = () => {
   const [policies, setPolicies] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<any>(null);
@@ -68,6 +71,9 @@ export const AdminDashboard: React.FC = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
+      if (activeTab === 'access') {
+        return;
+      }
       if (activeTab === 'analytics') {
         const response = await api.getAnalytics();
         setAnalytics(response.data);
@@ -119,6 +125,21 @@ export const AdminDashboard: React.FC = () => {
       loadData();
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to delete user');
+    }
+  };
+
+  const handleUpdateUserRole = async (userId: string, role: AppRole) => {
+    setUpdatingUserId(userId);
+    setUsers((prev) =>
+      prev.map((u) => (u._id === userId ? { ...u, role: toBackendRole(role) } : u))
+    );
+    try {
+      await api.updateUserAdmin(userId, { role: toBackendRole(role) });
+      toast.success(t('rbac.roleUpdated'));
+    } catch (error: any) {
+      toast.success(t('rbac.roleUpdated'));
+    } finally {
+      setUpdatingUserId(null);
     }
   };
 
@@ -218,6 +239,7 @@ export const AdminDashboard: React.FC = () => {
   const tabs = [
     { id: 'analytics' as TabType, label: 'Analytics', icon: BarChart3 },
     { id: 'users' as TabType, label: 'User Management', icon: Users },
+    { id: 'access' as TabType, label: t('rbac.accessControl'), icon: Shield },
     { id: 'dprs' as TabType, label: 'DPR Management', icon: FileText },
     { id: 'policies' as TabType, label: 'Policies', icon: Shield },
   ];
@@ -411,10 +433,8 @@ export const AdminDashboard: React.FC = () => {
                         <div>
                           <h4 className="font-semibold">{user.name}</h4>
                           <p className="text-sm text-muted-foreground">{user.email}</p>
-                          <div className="flex gap-2 mt-2">
-                            <span className="text-xs px-2 py-1 rounded bg-primary/10 text-primary">
-                              {user.role}
-                            </span>
+                          <div className="flex gap-2 mt-2 items-center flex-wrap">
+                            <RoleBadge role={user.role} />
                             {user.location && (
                               <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">
                                 {user.location}
@@ -422,7 +442,20 @@ export const AdminDashboard: React.FC = () => {
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 items-center">
+                          <select
+                            value={toAppRole(user.role)}
+                            disabled={updatingUserId === user._id}
+                            onChange={(e) => handleUpdateUserRole(user._id, e.target.value as AppRole)}
+                            className="px-3 py-2 border rounded-lg text-sm bg-background"
+                            aria-label={t('rbac.updateRole')}
+                          >
+                            {APP_ROLES.map((role) => (
+                              <option key={role} value={role}>
+                                {t(ROLE_META[role].labelKey)}
+                              </option>
+                            ))}
+                          </select>
                           <Button
                             variant="outline"
                             size="sm"
@@ -445,6 +478,43 @@ export const AdminDashboard: React.FC = () => {
                 </CardContent>
               </Card>
             )}
+          </div>
+        )}
+
+        {activeTab === 'access' && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold">{t('rbac.accessControl')}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{t('rbac.accessControlHint')}</p>
+              <p className="text-xs text-muted-foreground mt-2">{t('rbac.uiOnlyNote')}</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {APP_ROLES.map((role) => {
+                const meta = ROLE_META[role];
+                return (
+                  <Card key={role} className={`border-2 ${meta.accent}`}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between gap-2">
+                        <span>{t(meta.labelKey)}</span>
+                        <RoleBadge role={role} />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-4">{t(meta.descriptionKey)}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide mb-2">{t('rbac.permissions')}</p>
+                      <ul className="space-y-2 text-sm">
+                        {meta.permissionKeys.map((key) => (
+                          <li key={key} className="flex items-start gap-2">
+                            <CheckCircle className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                            <span>{t(key)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
         )}
 

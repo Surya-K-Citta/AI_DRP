@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
+import { RoleBadge } from '@/components/auth/RolePicker';
+import { canCreateDpr, ROLE_META, toAppRole } from '@/lib/rbac';
 
 interface DPR {
   _id: string;
@@ -336,30 +338,37 @@ export const Dashboard: React.FC = () => {
         {/* Hero Section */}
         <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">
-              {t('dashboard.welcomeBack', { name: user?.name })}
-            </h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold">
+                {t('dashboard.welcomeBack', { name: user?.name })}
+              </h1>
+              <RoleBadge role={user?.role} />
+            </div>
             <p className="text-muted-foreground">
-              {t('dashboard.manageDPRsAndTrack')}
+              {t(ROLE_META[toAppRole(user?.role)].descriptionKey)}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <Button
-              variant="primary"
-              onClick={() => navigate('/cluster-dpr/create?new=true')}
-              className="gap-2 whitespace-nowrap"
-            >
-              <Building className="h-4 w-4" />
-              Create Cluster DPR
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => navigate('/dpr/builder')}
-              className="gap-2 whitespace-nowrap"
-            >
-              <FolderPlus className="h-4 w-4" />
-              Create DPR
-            </Button>
+            {canCreateDpr(user?.role) && (
+              <>
+                <Button
+                  variant="primary"
+                  onClick={() => navigate('/cluster-dpr/create?new=true')}
+                  className="gap-2 whitespace-nowrap"
+                >
+                  <Building className="h-4 w-4" />
+                  Create Cluster DPR
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => navigate('/dpr/builder')}
+                  className="gap-2 whitespace-nowrap"
+                >
+                  <FolderPlus className="h-4 w-4" />
+                  Create DPR
+                </Button>
+              </>
+            )}
             <Button
               variant="outline"
               onClick={() => navigate('/venture-match')}

@@ -4,6 +4,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useLinkHandler } from '@/lib/linkUtils';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/authStore';
+import { canAccessAdmin } from '@/lib/rbac';
+import { RoleBadge } from '@/components/auth/RolePicker';
 import { Button } from '@/components/ui/Button';
 import { Languages, LogOut, User, Menu, X } from 'lucide-react';
 import { useState } from 'react';
@@ -36,7 +38,7 @@ export const Navbar: React.FC = () => {
     { path: '/dprs', label: t('nav.allDPRs'), icon: '📄' },
     { path: '/projects', label: t('nav.projects'), icon: '📁' },
     { path: '/chat', label: t('nav.chat'), icon: '💬' },
-    ...(user?.role === 'admin' ? [
+    ...(canAccessAdmin(user?.role) ? [
       { path: '/admin', label: t('nav.admin'), icon: '⚙️' },
       { path: '/admin/documents', label: t('nav.documents'), icon: '📄' },
     ] : []),
@@ -95,6 +97,7 @@ export const Navbar: React.FC = () => {
                     <Button variant="ghost" size="sm" className="flex items-center gap-2">
                       <User className="h-4 w-4" />
                       <span className="font-medium">{user?.name}</span>
+                      <RoleBadge role={user?.role} />
                     </Button>
                   </a>
                   <Button
@@ -165,6 +168,7 @@ export const Navbar: React.FC = () => {
                 >
                   <User className="h-4 w-4" />
                   <span>{user?.name}</span>
+                  <RoleBadge role={user?.role} />
                 </a>
                 <button
                   onClick={handleLogout}

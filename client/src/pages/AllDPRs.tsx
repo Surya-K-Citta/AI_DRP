@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/store/authStore';
+import { isSuperAdmin } from '@/lib/rbac';
 import { useDPRStore } from '@/store/dprStore';
 import { 
   FileText, 
@@ -46,7 +47,7 @@ export const AllDPRs: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = isSuperAdmin(user?.role);
   const { dprs: cachedDPRs, setDPRs, isStale } = useDPRStore();
   const [dprs, setDprs] = useState<DPR[]>(cachedDPRs);
   const [filteredDprs, setFilteredDprs] = useState<DPR[]>([]);

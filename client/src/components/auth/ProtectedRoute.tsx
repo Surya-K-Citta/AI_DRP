@@ -2,6 +2,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
+import { toAppRole } from '@/lib/rbac';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -51,7 +52,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Check role requirement if specified
-  if (requiredRole && effectiveUser?.role !== requiredRole) {
+  if (requiredRole && toAppRole(effectiveUser?.role) !== toAppRole(requiredRole)) {
     return <Navigate to="/dashboard" replace />;
   }
 

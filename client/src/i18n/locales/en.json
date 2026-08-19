@@ -61,7 +61,47 @@
     "bankReady": "Bank Ready",
     "professionalDPRs": "Professional DPRs for approval",
     "quickSetup": "Quick Setup",
-    "getStartedMinutes": "Get started in minutes"
+    "getStartedMinutes": "Get started in minutes",
+    "chooseRole": "Choose how you will use the platform"
+  },
+  "rbac": {
+    "selectRole": "Select your role",
+    "accessControl": "Access Control",
+    "accessControlHint": "Preview of the three platform roles. Enforcement is UI-only for now.",
+    "permissions": "Permissions",
+    "roleCannotChange": "Your role is assigned by a Super Admin",
+    "updateRole": "Update role",
+    "roleUpdated": "Role updated in the UI",
+    "uiOnlyNote": "Role labels are shown in the UI. Full permission enforcement will come later.",
+    "roles": {
+      "super_admin": {
+        "label": "Super Admin",
+        "description": "Full platform control, users, policies, and analytics.",
+        "p1": "Manage users and assign roles",
+        "p2": "Access admin console and documents",
+        "p3": "Review and approve all DPRs",
+        "p4": "Create and edit policies",
+        "p5": "View platform-wide analytics"
+      },
+      "consultant": {
+        "label": "Consultant",
+        "description": "Create, edit, and generate DPRs for MSME clients.",
+        "p1": "Create and edit DPRs",
+        "p2": "Save drafts and generate documents",
+        "p3": "Use AI-guided builder and chat",
+        "p4": "Match government schemes",
+        "p5": "View own projects and scores"
+      },
+      "govt_official": {
+        "label": "Govt Official",
+        "description": "Review submitted DPRs and scheme alignment.",
+        "p1": "Review submitted DPRs",
+        "p2": "View completeness and quality scores",
+        "p3": "Access scheme and policy information",
+        "p4": "Cannot create or edit DPRs",
+        "p5": "Cannot manage users or admin settings"
+      }
+    }
   },
   "dashboard": {
     "title": "Dashboard",

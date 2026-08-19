@@ -186,7 +186,7 @@ function App() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute requiredRole="admin">
+            <ProtectedRoute requiredRole="super_admin">
               <AdminDashboard />
             </ProtectedRoute>
           }
@@ -195,7 +195,7 @@ function App() {
         <Route
           path="/admin/documents"
           element={
-            <ProtectedRoute requiredRole="admin">
+            <ProtectedRoute requiredRole="super_admin">
               <AdminDocuments />
             </ProtectedRoute>
           }

@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Sparkles, ArrowRight, CheckCircle, Building2 } from 'lucide-react';
+import { RolePicker } from '@/components/auth/RolePicker';
+import { toBackendRole, type AppRole } from '@/lib/rbac';
 
 export const Register: React.FC = () => {
   const { t } = useTranslation();
@@ -24,6 +26,7 @@ export const Register: React.FC = () => {
     phoneNumber: '',
     location: '',
     udyamNumber: '',
+    role: 'consultant' as AppRole,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,7 +34,10 @@ export const Register: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await api.register(formData);
+      const response = await api.register({
+        ...formData,
+        role: toBackendRole(formData.role),
+      });
       login(response.data, response.data.token);
       toast.success(t('auth.registerSuccess'));
       navigate('/dashboard');
@@ -68,9 +74,16 @@ export const Register: React.FC = () => {
             <CardDescription className="text-center">
               {t('auth.fillDetails')}
             </CardDescription>
+            <p className="text-center text-xs text-muted-foreground mt-2">
+              {t('auth.chooseRole')}
+            </p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <RolePicker
+                value={formData.role}
+                onChange={(role) => setFormData({ ...formData, role })}
+              />
               <div className="grid md:grid-cols-2 gap-4">
                 <Input
                   label={t('auth.name')}
