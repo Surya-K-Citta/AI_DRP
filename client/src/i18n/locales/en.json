@@ -138,7 +138,6 @@
     "createFirstDPR": "Create your first Detailed Project Report to get started with AI-powered business planning",
     "createYourFirstDPR": "Create Your First DPR",
     "view": "View",
-    "quickActions": "Quick Actions",
     "accessFrequentlyUsed": "Access frequently used features",
     "aiGuidedBuilder": "AI-Guided Builder",
     "getInstantHelp": "Get instant help",
@@ -149,8 +148,8 @@
     "unknown": "Unknown",
     "unknownSector": "Unknown Sector",
     "version": "Version",
-    "ventureMatch": "VentureMatch",
-    "ventureMatchHint": "Find matching schemes"
+    "ventureMatch": "Scheme Finder",
+    "ventureMatchHint": "Find schemes you can apply for"
   },
   "projects": {
     "title": "My Projects",
@@ -160,7 +159,7 @@
     "individual": "Individual",
     "cluster": "Cluster",
     "industrySector": "Industry Sector",
-    "totalCost": "Total Project Cost",
+    "totalCost": "Total Cost",
     "ownContribution": "Own Contribution",
     "loanAmount": "Loan Amount Required",
     "location": "Location",
@@ -182,7 +181,6 @@
     "tryAdjusting": "Try adjusting your search terms",
     "createFirstProject": "Create your first project to get started with DPR generation",
     "createYourFirstProject": "Create Your First Project",
-    "totalCost": "Total Cost",
     "created": "Created",
     "editProject": "Edit Project",
     "updateProjectDetails": "Update your project details",
@@ -211,37 +209,6 @@
     "bilingual": "Bilingual (English + Telugu)",
     "downloadPDF": "Download PDF",
     "downloadDOCX": "Download DOCX",
-    "preview": "Preview DPR",
-    "notAvailable": "Not Available",
-    "translating": "Translating...",
-    "translateToTelugu": "Translate to Telugu",
-    "failedToLoad": "Failed to load project",
-    "sections": {
-      "executiveSummary": "Executive Summary",
-      "businessProfile": "Business Profile",
-      "applicantInfo": "Applicant Information",
-      "projectAtGlance": "Project at a Glance",
-      "buildingDetails": "Building Details",
-      "machineryDetails": "Machinery Details",
-      "otherCapitalCosts": "Other Capital Costs",
-      "rawMaterials": "Raw Materials",
-      "wages": "Wages",
-      "salaryDetails": "Salary Details",
-      "workingCapitalEstimate": "Working Capital Estimate",
-      "powerEstimate": "Power Estimate",
-      "energyEfficiency": "Energy Efficiency",
-      "waterEfficiency": "Water Efficiency",
-      "overheadExpenses": "Overhead Expenses",
-      "financing": "Financing",
-      "salesDetails": "Sales Details",
-      "marketAnalysis": "Market Analysis",
-      "technicalFeasibility": "Technical Feasibility",
-      "financialProjections": "Financial Projections",
-      "financialParameters": "Financial Parameters",
-      "beneficiaryInfo": "Beneficiary Information",
-      "eligibleSchemes": "Eligible Government Schemes",
-      "conclusion": "Conclusion"
-    },
     "preview": {
       "backToDashboard": "Back to Dashboard",
       "loadingDPR": "Loading DPR...",
@@ -274,6 +241,36 @@
       "submitted": "Submitted",
       "approved": "Approved",
       "rejected": "Rejected"
+    },
+    "notAvailable": "Not Available",
+    "translating": "Translating...",
+    "translateToTelugu": "Translate to Telugu",
+    "failedToLoad": "Failed to load project",
+    "sections": {
+      "executiveSummary": "Executive Summary",
+      "businessProfile": "Business Profile",
+      "applicantInfo": "Applicant Information",
+      "projectAtGlance": "Project at a Glance",
+      "buildingDetails": "Building Details",
+      "machineryDetails": "Machinery Details",
+      "otherCapitalCosts": "Other Capital Costs",
+      "rawMaterials": "Raw Materials",
+      "wages": "Wages",
+      "salaryDetails": "Salary Details",
+      "workingCapitalEstimate": "Working Capital Estimate",
+      "powerEstimate": "Power Estimate",
+      "energyEfficiency": "Energy Efficiency",
+      "waterEfficiency": "Water Efficiency",
+      "overheadExpenses": "Overhead Expenses",
+      "financing": "Financing",
+      "salesDetails": "Sales Details",
+      "marketAnalysis": "Market Analysis",
+      "technicalFeasibility": "Technical Feasibility",
+      "financialProjections": "Financial Projections",
+      "financialParameters": "Financial Parameters",
+      "beneficiaryInfo": "Beneficiary Information",
+      "eligibleSchemes": "Eligible Government Schemes",
+      "conclusion": "Conclusion"
     }
   },
   "schemes": {
@@ -651,132 +648,202 @@
     }
   },
   "ventureMatch": {
-    "title": "VentureMatch",
-    "progress": "Card {{current}} of {{total}}",
-    "remaining": "{{count}} schemes still in play",
-    "selectAll": "Select all that apply, then continue.",
-    "resultsTitle": "Your matching schemes",
-    "resultsSubtitle": "{{count}} schemes fit the answers you gave.",
-    "noMatches": "No schemes remain eligible for this combination of answers.",
-    "notEligible": "{{count}} schemes not eligible",
+    "title": "Scheme Finder",
+    "progress": "Question {{current}} of {{total}}",
+    "remaining": "{{count}} schemes still possible",
+    "selectAll": "Select all that apply, then tap Next.",
+    "resultsTitle": "Schemes that fit your answers",
+    "resultsSubtitle": "{{count}} schemes match what you told us.",
+    "noMatches": "No schemes match these answers.",
+    "notEligible": "{{count}} schemes do not match",
     "createDpr": "Create DPR",
-    "startOver": "Start over",
+    "startOver": "Start again",
     "notAnswered": "Not answered",
     "criteria": {
       "streetVending": "Must be a street vendor",
-      "urban": "Must be in an urban / municipal area",
-      "age18": "Applicant must be 18 or older",
-      "craft": "Must be a traditional craft / artisanal trade",
-      "noOutstandingSubsidy": "No outstanding subsidised loan in the last 5 years",
-      "noGovtFamily": "No immediate family in government service",
-      "foodProcessing": "Must be a food processing unit",
-      "budgetPmFme": "Project budget must be within the individual cap (up to the ₹20–50 lakh band)",
-      "legalSoleOrPartnership": "Must be a proprietorship or partnership (not a company)",
-      "education8th": "Must have passed 8th standard or higher",
-      "greenfield": "Must be a new / greenfield unit",
-      "brownfield": "Must be an existing / brownfield unit",
-      "notCrop": "Not for direct crop farming",
-      "pmegpEducation": "8th standard required above ₹10 lakh (manufacturing) or ₹5 lakh (services)",
-      "womanScSt": "Majority owner must be a woman, SC, or ST promoter",
-      "standupMin": "Loan band starts at ₹10 lakh",
-      "standupMax": "Loan band caps at ₹1 crore",
-      "udyam": "Must have Udyam or be willing to register",
-      "mudraCap": "MUDRA covers up to ₹20 lakh",
-      "budgetUnder10Cr": "Funding required must be under ₹10 crore",
-      "manufacturing": "Must be a manufacturing / production unit",
-      "apDomicile": "Andhra Pradesh domicile required",
-      "socialCategory": "Must belong to SC, ST, BC, or PwD category",
-      "riceCard": "Active White Rice Card required",
-      "age21to60": "Age must be 21–60",
+      "urban": "Must be in a city or town",
+      "age18": "You must be 18 years or older",
+      "craft": "Must be a traditional craft or trade",
+      "noOutstandingSubsidy": "Must not have an unpaid government subsidy loan from the last 5 years",
+      "noGovtFamily": "No close family member should have a government job",
+      "foodProcessing": "Must be a food processing business",
+      "budgetPmFme": "Project cost must be up to about ₹50 lakh",
+      "legalSoleOrPartnership": "Must be a sole owner or partnership, not a company",
+      "education8th": "Must have passed 8th class or higher",
+      "greenfield": "Must be a new business",
+      "brownfield": "Must be an existing business",
+      "notCrop": "Not for growing crops on a farm",
+      "pmegpEducation": "If the project is large, you must have passed 8th class (₹10 lakh for making goods, ₹5 lakh for services)",
+      "womanScSt": "Main owner must be a woman, SC, or ST",
+      "standupMin": "Loan amount starts from ₹10 lakh",
+      "standupMax": "Loan amount can be up to ₹1 crore",
+      "udyam": "Must have Udyam registration, or be ready to get it",
+      "mudraCap": "MUDRA loan is up to ₹20 lakh",
+      "budgetUnder10Cr": "Money needed must be less than ₹10 crore",
+      "manufacturing": "Must make or produce goods",
+      "apDomicile": "You must live in Andhra Pradesh",
+      "socialCategory": "Must belong to SC, ST, BC, or be a person with disability",
+      "riceCard": "Must have a White Rice Card",
+      "age21to60": "Age must be 21 to 60 years",
       "apiic": "Unit must be inside an APIIC industrial park",
-      "ecommerce": "For e-commerce / ONDC sellers",
-      "export": "For direct international exporters"
+      "ecommerce": "For selling online (like ONDC)",
+      "export": "For selling goods to other countries"
     },
     "ownershipHint": {
-      "title": "Consider majority ownership by wife or mother",
-      "body": "You selected general-category male. Shifting ≥51% ownership to your wife or mother can unlock extra benefits:",
-      "subsidy": "Subsidies: AP EDP 4.0 capital subsidy rises from 25% to 35% of FCI (up to 45% for micro/small units under G.O. Ms. 22).",
-      "debt": "Debt: Unlocks Stand-Up India eligibility for up to ₹1 crore.",
-      "guarantee": "Guarantee: CGTMSE cover can rise to 90%, with a 10% discount on annual guarantee fees.",
-      "ecosystem": "Ecosystem: Free ZED quality certification and access to the 50% women’s quota in RAMP TEAM (ONDC)."
+      "title": "Think about putting the business in your wife’s or mother’s name",
+      "body": "You said the main owner is a general category man. If your wife or mother owns 51% or more, you may get extra help:",
+      "subsidy": "Subsidy: AP EDP 4.0 support can go from 25% to 35% of building and machine cost (up to 45% for small units).",
+      "debt": "Loan: You may become eligible for Stand-Up India, up to ₹1 crore.",
+      "guarantee": "Guarantee: Bank guarantee cover can go up to 90%, with a lower yearly fee.",
+      "ecosystem": "Extra support: Free quality certificate (ZED) and a women’s quota in the RAMP TEAM online selling programme."
+    },
+    "schemes": {
+      "SVANIDHI": {
+        "name": "PM SVANidhi"
+      },
+      "VISHWAKARMA": {
+        "name": "PM Vishwakarma"
+      },
+      "PMFME": {
+        "name": "PMFME (food processing scheme)"
+      },
+      "PMEGP": {
+        "name": "PMEGP (new small business scheme)"
+      },
+      "STANDUP": {
+        "name": "Stand-Up India"
+      },
+      "MUDRA": {
+        "name": "PM MUDRA Yojana"
+      },
+      "CGTMSE": {
+        "name": "CGTMSE (loan guarantee)"
+      },
+      "AP_EDP": {
+        "name": "AP MSME-EDP 4.0"
+      },
+      "AP_FPP": {
+        "name": "AP Food Processing Policy 4.0"
+      },
+      "AP_TECH_UPGRADE": {
+        "name": "AP Technology Upgrade Subsidy"
+      },
+      "MSE_SPICE": {
+        "name": "RAMP MSE-SPICE"
+      },
+      "OBMMS": {
+        "name": "AP Welfare Corporation self-employment loan (OBMMS)"
+      },
+      "AP_PARKS": {
+        "name": "AP MSME Parks land cost rebate"
+      },
+      "RAMP_TEAM": {
+        "name": "RAMP TEAM (sell online on ONDC)"
+      },
+      "EPM_NIRYAT": {
+        "name": "EPM Niryat Protsahan (export support)"
+      }
+    },
+    "benefits": {
+      "svanidhi": "Small working-capital loan for street vendors",
+      "vishwakarma": "Toolkit, training, and loan support for traditional trades",
+      "pmfme": "Subsidy for small food processing units",
+      "pmegpRuralSpecial": "35% subsidy (village area, special category)",
+      "pmegpUrbanSpecial": "25% subsidy (city area, special category)",
+      "pmegpRural": "25% subsidy (village area)",
+      "pmegpUrban": "15% subsidy (city area)",
+      "standup": "Bank loan from ₹10 lakh to ₹1 crore for SC, ST, or women-owned new units",
+      "mudra": "Loan without extra property as security, up to ₹20 lakh",
+      "cgtmseWomen": "Up to 90% loan guarantee for women-owned units",
+      "cgtmse": "Loan guarantee without extra property as security",
+      "apEdp": "Andhra Pradesh subsidy for new manufacturing units",
+      "apEdpBoost": "Andhra Pradesh subsidy for new manufacturing units, plus extra 10% for special category",
+      "apFpp": "Andhra Pradesh subsidy for food processing units",
+      "apFppBoost": "Andhra Pradesh subsidy for food processing units, plus extra 10% for special category",
+      "apTech": "20% subsidy to upgrade machines in an existing unit",
+      "mseSpice": "Support to expand or upgrade an existing unit",
+      "obmms": "Subsidy on a self-employment loan from the AP welfare corporation",
+      "apParks": "75% rebate on land cost in APIIC industrial parks",
+      "rampTeam": "Free help to start selling on ONDC",
+      "epmNiryat": "2.75% interest support on export loans"
     },
     "questions": {
       "activity": {
-        "label": "Activity",
-        "title": "What’s your hustle?",
+        "label": "Type of business",
+        "title": "What kind of work do you want to do?",
         "options": {
-          "mfg": "Manufacturing or Production of Goods (e.g., fabrication, plastics, machinery)",
-          "food": "Food Processing (e.g., bakery, pickle unit, spice grinding)",
-          "craft": "Traditional Craft or Artisanal Trade (e.g., carpentry, pottery, tailor, goldsmith)",
-          "service": "Service Sector (e.g., IT consulting, beauty salon, medical clinic, repair shop)",
-          "trade": "Retail or Wholesale Trade (e.g., grocery/kirana store, clothing boutique)",
-          "vending": "Street Vending (e.g., mobile food cart, daily market stall)",
-          "crop": "Direct Crop Farming (e.g., crop cultivation, direct farm loans)"
+          "mfg": "Making goods (for example: machines, plastic items, metal work)",
+          "food": "Food processing (for example: bakery, pickle unit, spice grinding)",
+          "craft": "Traditional craft (for example: carpentry, pottery, tailoring, goldsmith)",
+          "service": "Services (for example: salon, clinic, repair shop, small IT work)",
+          "trade": "Buying and selling (for example: kirana shop, cloth shop)",
+          "vending": "Street vending (for example: food cart or market stall)",
+          "crop": "Growing crops on a farm"
         }
       },
       "stage": {
-        "label": "Stage",
-        "title": "Starting fresh or scaling up?",
+        "label": "Business stage",
+        "title": "Is this a new business or an existing one?",
         "options": {
-          "greenfield": "Greenfield (Brand new startup)",
-          "brownfield": "Brownfield (Expanding or upgrading my existing business)"
+          "greenfield": "New business",
+          "brownfield": "Existing business (I want to expand or upgrade)"
         }
       },
       "budget": {
-        "label": "Project Budget",
-        "title": "What’s the total cash needed to set this up?",
+        "label": "Project cost",
+        "title": "How much money do you need for this project?",
         "options": {
-          "under2L": "Under ₹2 Lakhs (Micro-budget)",
-          "2to5L": "₹2 Lakhs – ₹5 Lakhs (Small business)",
-          "5to10L": "₹5 Lakhs – ₹10 Lakhs (Early startup)",
-          "10to20L": "₹10 Lakhs – ₹20 Lakhs (Standard Micro)",
-          "20to50L": "₹20 Lakhs – ₹50 Lakhs (Small Enterprise)",
-          "50Lto1Cr": "₹50 Lakhs – ₹1 Crore (Growth-stage startup)",
-          "1to10Cr": "₹1 Crore – ₹10 Crore (Mid-to-large scale)",
-          "above10Cr": "Above ₹10 Crore (Industrial-scale project)"
+          "under2L": "Less than ₹2 lakh",
+          "2to5L": "₹2 lakh to ₹5 lakh",
+          "5to10L": "₹5 lakh to ₹10 lakh",
+          "10to20L": "₹10 lakh to ₹20 lakh",
+          "20to50L": "₹20 lakh to ₹50 lakh",
+          "50Lto1Cr": "₹50 lakh to ₹1 crore",
+          "1to10Cr": "₹1 crore to ₹10 crore",
+          "above10Cr": "More than ₹10 crore"
         }
       },
       "legal": {
-        "label": "Legal Entity",
-        "title": "How are you structured legally?",
+        "label": "Business type",
+        "title": "How is your business registered?",
         "options": {
-          "sole": "Sole Proprietorship / Individual Owner",
-          "partnership": "Partnership Firm / LLP",
-          "company": "Private Limited or Public Limited Company"
+          "sole": "Sole owner (only me)",
+          "partnership": "Partnership or LLP",
+          "company": "Private or public limited company"
         }
       },
       "owner": {
-        "label": "Owner Profile",
-        "title": "Who is the majority boss (holding ≥51% ownership)?",
+        "label": "Main owner",
+        "title": "Who owns more than half of the business (51% or more)?",
         "options": {
-          "female": "Female Promoter",
-          "sc": "Scheduled Caste (SC) Promoter",
-          "st": "Scheduled Tribe (ST) Promoter",
-          "bc": "Backward Class (BC) or Minority Promoter",
-          "pwd": "Person with Disability (Specially-Abled)",
-          "generalMale": "General Category Male"
+          "female": "Woman",
+          "sc": "Scheduled Caste (SC)",
+          "st": "Scheduled Tribe (ST)",
+          "bc": "Backward Class (BC) or Minority",
+          "pwd": "Person with disability",
+          "generalMale": "General category man"
         }
       },
       "domicile": {
-        "label": "Domicile",
-        "title": "Are you a local resident of Andhra Pradesh?",
+        "label": "Home state",
+        "title": "Do you live in Andhra Pradesh?",
         "options": {
-          "ap": "Yes, I am domiciled in AP",
-          "other": "No, I am domiciled in another Indian state"
+          "ap": "Yes, I live in Andhra Pradesh",
+          "other": "No, I live in another state"
         }
       },
       "location": {
-        "label": "Location",
-        "title": "Where is your business located?",
+        "label": "Place",
+        "title": "Where is your business?",
         "options": {
-          "urban": "Urban Area (Municipality or Municipal Corporation)",
-          "rural": "Rural Area (Gram Panchayat / Village limits)",
-          "apiic": "Inside an APIIC Industrial Park"
+          "urban": "City or town (municipality)",
+          "rural": "Village (gram panchayat)",
+          "apiic": "Inside an APIIC industrial park"
         }
       },
       "riceCard": {
-        "label": "Economic Status",
-        "title": "Does your household have an active White Rice Card?",
+        "label": "Rice card",
+        "title": "Does your family have a White Rice Card?",
         "options": {
           "yes": "Yes",
           "no": "No"
@@ -784,59 +851,58 @@
       },
       "age": {
         "label": "Age",
-        "title": "What is your age?",
+        "title": "How old are you?",
         "options": {
-          "under18": "Under 18 years",
-          "18to20": "18 – 20 years",
-          "21to50": "21 – 50 years",
-          "51to60": "51 – 60 years",
+          "under18": "Below 18 years",
+          "18to20": "18 to 20 years",
+          "21to50": "21 to 50 years",
+          "51to60": "51 to 60 years",
           "above60": "Above 60 years"
         }
       },
       "education": {
         "label": "Education",
-        "title": "What is your highest educational qualification?",
+        "title": "What is the highest class you have passed?",
         "options": {
-          "below8th": "Below 8th Standard",
-          "8thPlus": "8th Standard Pass or higher"
+          "below8th": "Below 8th class",
+          "8thPlus": "8th class or higher"
         }
       },
       "udyam": {
-        "label": "Registration",
-        "title": "Do you have a valid Udyam Registration?",
+        "label": "Udyam",
+        "title": "Do you have Udyam registration?",
         "options": {
           "yes": "Yes",
-          "willing": "No, but I am willing to register (it’s free!)",
+          "willing": "No, but I am ready to register (it is free)",
           "refuse": "No, and I do not want to register"
         }
       },
       "priorSubsidy": {
-        "label": "Credit History",
-        "title": "Have you taken any government-subsidized loans in the past 5 years?",
+        "label": "Old loans",
+        "title": "In the last 5 years, did you take a government subsidy loan?",
         "options": {
           "none": "No",
-          "repaid": "Yes, but I have fully repaid them",
-          "outstanding": "Yes, I have an active, outstanding subsidized loan"
+          "repaid": "Yes, but I have fully repaid it",
+          "outstanding": "Yes, I still have an unpaid subsidy loan"
         }
       },
       "govtFamily": {
-        "label": "Exclusions",
-        "title": "Is anyone in your immediate family in a government job?",
+        "label": "Family job",
+        "title": "Does anyone in your close family have a government job?",
         "options": {
           "yes": "Yes",
           "no": "No"
         }
       },
       "market": {
-        "label": "Market Focus",
-        "title": "What is your primary selling channel?",
+        "label": "How you sell",
+        "title": "How do you mainly sell your products?",
         "options": {
-          "offline": "Local offline selling (retail/wholesale)",
-          "ecommerce": "Selling online on e-commerce platforms (ONDC, etc.)",
-          "export": "Direct international exports"
+          "offline": "In a shop or local market",
+          "ecommerce": "Online (ONDC or other websites)",
+          "export": "To other countries"
         }
       }
     }
   }
 }
-

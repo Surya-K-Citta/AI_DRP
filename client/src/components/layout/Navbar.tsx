@@ -25,7 +25,7 @@ export const Navbar: React.FC = () => {
   };
 
   const toggleLanguage = () => {
-    const newLang = i18n.language === 'en' ? 'te' : 'en';
+    const newLang = i18n.language.startsWith('te') ? 'en' : 'te';
     i18n.changeLanguage(newLang);
   };
 
@@ -84,10 +84,10 @@ export const Navbar: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={toggleLanguage}
-              className="hidden sm:flex items-center gap-2"
+              className="flex items-center gap-2"
             >
               <Languages className="h-4 w-4" />
-              <span className="font-medium">{i18n.language === 'en' ? 'తెలుగు' : 'English'}</span>
+              <span className="font-medium">{i18n.language.startsWith('te') ? 'English' : 'తెలుగు'}</span>
             </Button>
 
             {isAuthenticated ? (
@@ -158,6 +158,14 @@ export const Navbar: React.FC = () => {
                 </a>
               ))}
               <div className="pt-4 border-t border-border space-y-2">
+                <button
+                  type="button"
+                  onClick={toggleLanguage}
+                  className="w-full flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-accent text-left"
+                >
+                  <Languages className="h-4 w-4" />
+                  {i18n.language.startsWith('te') ? 'English' : 'తెలుగు'}
+                </button>
                 <a
                   href="/profile"
                   onClick={(e) => {

@@ -105,8 +105,10 @@ export const VentureMatchResults: React.FC<VentureMatchResultsProps> = ({
                     <Award className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground">{scheme.name}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{scheme.benefit}</p>
+                    <p className="font-semibold text-foreground">
+                      {t(`ventureMatch.schemes.${scheme.code}.name`, { defaultValue: scheme.name })}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">{t(scheme.benefit)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -132,7 +134,9 @@ export const VentureMatchResults: React.FC<VentureMatchResultsProps> = ({
                   key={scheme.code}
                   className="rounded-[12px] border border-border px-4 py-3 text-sm"
                 >
-                  <p className="font-medium text-foreground">{scheme.name}</p>
+                  <p className="font-medium text-foreground">
+                    {t(`ventureMatch.schemes.${scheme.code}.name`, { defaultValue: scheme.name })}
+                  </p>
                   <ul className="mt-2 space-y-1.5">
                     {scheme.criteria.map((item) => (
                       <CriterionRow key={`${scheme.code}-${item.id}`} item={item} />

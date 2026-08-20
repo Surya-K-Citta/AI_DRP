@@ -1,5 +1,6 @@
 import { HANDOFF_KEY } from './questions';
 import { SchemeMatch, VentureMatchAnswers } from './types';
+import en from '@/i18n/locales/en.json';
 
 const ACTIVITY_SECTOR: Record<string, string> = {
   mfg: 'Manufacturing',
@@ -40,6 +41,16 @@ export interface VentureMatchHandoff {
   matches: SchemeMatch[];
 }
 
+function lookupEn(path: string, fallback: string): string {
+  const value = path.split('.').reduce((acc: unknown, key) => {
+    if (acc && typeof acc === 'object' && key in (acc as Record<string, unknown>)) {
+      return (acc as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }, en as unknown);
+  return typeof value === 'string' ? value : fallback;
+}
+
 export function buildDprPrefill(answers: VentureMatchAnswers, matches: SchemeMatch[]) {
   const owner = answers.owner || [];
   const categories = owner.map((o) => CATEGORY_MAP[o]).filter(Boolean);
@@ -65,8 +76,8 @@ export function buildDprPrefill(answers: VentureMatchAnswers, matches: SchemeMat
       selectedSchemes: matches.map((m) => m.code),
       schemesData: matches.map((m) => ({
         schemeCode: m.code,
-        schemeName: m.name,
-        description: m.benefit,
+        schemeName: lookupEn(`ventureMatch.schemes.${m.code}.name`, m.name),
+        description: lookupEn(m.benefit, m.benefit),
         category: m.kind,
       })),
     },

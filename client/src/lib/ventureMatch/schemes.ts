@@ -62,17 +62,14 @@ export function shouldShowOwnershipHint(answers: VentureMatchAnswers): boolean {
 function pmegpSubsidy(answers: VentureMatchAnswers): string {
   const special = owners(answers) ? isSpecialCategory(answers) : false;
   const rural = answers.location === 'rural';
-  if (rural && special) return '35% margin money subsidy (rural, special category)';
-  if (!rural && special) return '25% margin money subsidy (urban, special category)';
-  if (rural) return '25% margin money subsidy (rural)';
-  return '15% margin money subsidy (urban)';
+  if (rural && special) return 'ventureMatch.benefits.pmegpRuralSpecial';
+  if (!rural && special) return 'ventureMatch.benefits.pmegpUrbanSpecial';
+  if (rural) return 'ventureMatch.benefits.pmegpRural';
+  return 'ventureMatch.benefits.pmegpUrban';
 }
 
-function apSpecialBoost(answers: VentureMatchAnswers): string {
-  if (answers.domicile === 'ap' && isSpecialCategory(answers)) {
-    return ' +10% special category capital subsidy (AP domicile)';
-  }
-  return '';
+function apBoosted(answers: VentureMatchAnswers): boolean {
+  return answers.domicile === 'ap' && isSpecialCategory(answers);
 }
 
 function pmegpEducation(answers: VentureMatchAnswers): CriterionStatus {
@@ -95,7 +92,7 @@ export const SCHEMES: SchemeRule[] = [
     code: 'SVANIDHI',
     name: 'PM SVANidhi',
     kind: 'loan',
-    benefit: () => 'Working-capital loan for street vendors',
+    benefit: () => 'ventureMatch.benefits.svanidhi',
     criteria: [
       {
         id: 'activity',
@@ -121,7 +118,7 @@ export const SCHEMES: SchemeRule[] = [
     code: 'VISHWAKARMA',
     name: 'PM Vishwakarma',
     kind: 'subsidy',
-    benefit: () => 'Toolkit, skill, and credit support for traditional trades',
+    benefit: () => 'ventureMatch.benefits.vishwakarma',
     criteria: [
       {
         id: 'activity',
@@ -153,7 +150,7 @@ export const SCHEMES: SchemeRule[] = [
     code: 'PMFME',
     name: 'PM Formalisation of Micro Food Processing Enterprises (PMFME)',
     kind: 'subsidy',
-    benefit: () => 'Credit-linked subsidy for micro food processing',
+    benefit: () => 'ventureMatch.benefits.pmfme',
     criteria: [
       {
         id: 'activity',
@@ -217,7 +214,7 @@ export const SCHEMES: SchemeRule[] = [
     code: 'STANDUP',
     name: 'Stand-Up India',
     kind: 'loan',
-    benefit: () => 'Bank loan ₹10 lakh–₹1 crore for SC/ST or women-owned greenfield units',
+    benefit: () => 'ventureMatch.benefits.standup',
     criteria: [
       {
         id: 'activity',
@@ -268,7 +265,7 @@ export const SCHEMES: SchemeRule[] = [
     code: 'MUDRA',
     name: 'Pradhan Mantri MUDRA Yojana',
     kind: 'loan',
-    benefit: () => 'Collateral-free micro loan (Shishu / Kishore / Tarun bands)',
+    benefit: () => 'ventureMatch.benefits.mudra',
     criteria: [
       {
         id: 'activity',
@@ -295,9 +292,7 @@ export const SCHEMES: SchemeRule[] = [
     name: 'Credit Guarantee Fund Trust for Micro and Small Enterprises (CGTMSE)',
     kind: 'guarantee',
     benefit: (a) =>
-      isFemale(a)
-        ? 'Up to 90% guarantee cover (women-owned unit)'
-        : 'Credit guarantee cover without collateral',
+      isFemale(a) ? 'ventureMatch.benefits.cgtmseWomen' : 'ventureMatch.benefits.cgtmse',
     criteria: [
       {
         id: 'udyam',
@@ -323,7 +318,7 @@ export const SCHEMES: SchemeRule[] = [
     code: 'AP_EDP',
     name: 'AP MSME-EDP 4.0',
     kind: 'subsidy',
-    benefit: (a) => `AP MSME capital subsidy${apSpecialBoost(a)}`,
+    benefit: (a) => (apBoosted(a) ? 'ventureMatch.benefits.apEdpBoost' : 'ventureMatch.benefits.apEdp'),
     criteria: [
       {
         id: 'activity',
@@ -349,7 +344,7 @@ export const SCHEMES: SchemeRule[] = [
     code: 'AP_FPP',
     name: 'AP Food Processing Policy 4.0',
     kind: 'subsidy',
-    benefit: (a) => `AP food processing capital subsidy${apSpecialBoost(a)}`,
+    benefit: (a) => (apBoosted(a) ? 'ventureMatch.benefits.apFppBoost' : 'ventureMatch.benefits.apFpp'),
     criteria: [
       {
         id: 'domicile',
@@ -375,7 +370,7 @@ export const SCHEMES: SchemeRule[] = [
     code: 'AP_TECH_UPGRADE',
     name: 'AP Technology Upgradation Subsidy',
     kind: 'subsidy',
-    benefit: () => '20% technology upgradation subsidy for existing units',
+    benefit: () => 'ventureMatch.benefits.apTech',
     criteria: [
       {
         id: 'activity',
@@ -401,7 +396,7 @@ export const SCHEMES: SchemeRule[] = [
     code: 'MSE_SPICE',
     name: 'RAMP MSE-SPICE',
     kind: 'subsidy',
-    benefit: () => 'RAMP support for existing unit expansion / circular upgrades',
+    benefit: () => 'ventureMatch.benefits.mseSpice',
     criteria: [
       {
         id: 'stage',
@@ -421,7 +416,7 @@ export const SCHEMES: SchemeRule[] = [
     code: 'OBMMS',
     name: 'AP State Welfare Corporation Self-Employment Loans (OBMMS)',
     kind: 'subsidy',
-    benefit: () => 'Back-ended subsidy on AP welfare corporation self-employment loan',
+    benefit: () => 'ventureMatch.benefits.obmms',
     criteria: [
       {
         id: 'domicile',
@@ -454,7 +449,7 @@ export const SCHEMES: SchemeRule[] = [
     code: 'AP_PARKS',
     name: 'AP MSME-PARKS land-cost rebate',
     kind: 'subsidy',
-    benefit: () => '75% land-cost rebate in APIIC parks',
+    benefit: () => 'ventureMatch.benefits.apParks',
     criteria: [
       {
         id: 'location',
@@ -474,7 +469,7 @@ export const SCHEMES: SchemeRule[] = [
     code: 'RAMP_TEAM',
     name: 'RAMP TEAM (ONDC)',
     kind: 'support',
-    benefit: () => 'Free ONDC onboarding and cataloguing support',
+    benefit: () => 'ventureMatch.benefits.rampTeam',
     criteria: [
       {
         id: 'market',
@@ -488,7 +483,7 @@ export const SCHEMES: SchemeRule[] = [
     code: 'EPM_NIRYAT',
     name: 'EPM Niryat Protsahan',
     kind: 'subsidy',
-    benefit: () => '2.75% export interest subvention',
+    benefit: () => 'ventureMatch.benefits.epmNiryat',
     criteria: [
       {
         id: 'market',
