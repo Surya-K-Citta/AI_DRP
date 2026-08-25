@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Why scheme-aware questions in Individual Latest DPR</title>
+  <style>
+    @page { size: A4; margin: 18mm 16mm 20mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+      color: #1a2332;
+      font-size: 11pt;
+      line-height: 1.45;
+      max-width: 190mm;
+      margin: 0 auto;
+    }
+    h1 { font-size: 22pt; line-height: 1.2; margin: 0 0 8pt; color: #0f2744; }
+    h2 { font-size: 14pt; margin: 22pt 0 8pt; color: #0f2744; page-break-after: avoid; border-bottom: 1px solid #c5d0dc; padding-bottom: 4pt; }
+    h3 { font-size: 12pt; margin: 16pt 0 6pt; color: #1b4d7a; page-break-after: avoid; }
+    p, li { margin: 0 0 8pt; }
+    ul { margin: 0 0 10pt; padding-left: 18pt; }
+    .kicker { font-family: system-ui, sans-serif; font-size: 9pt; letter-spacing: 0.08em; text-transform: uppercase; color: #5a6a7a; margin-bottom: 6pt; }
+    .meta { font-family: system-ui, sans-serif; font-size: 9.5pt; color: #4a5563; margin-bottom: 18pt; }
+    .box {
+      background: #f4f7fb;
+      border: 1px solid #d5dee8;
+      border-left: 4px solid #1b4d7a;
+      padding: 10pt 12pt;
+      margin: 10pt 0 14pt;
+      page-break-inside: avoid;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin: 8pt 0 14pt; page-break-inside: auto; }
+    th, td { border: 1px solid #cfd8e3; padding: 6pt 7pt; vertical-align: top; text-align: left; }
+    th { background: #e8eef5; font-family: system-ui, sans-serif; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.04em; }
+    tr { page-break-inside: avoid; }
+    .why { color: #2c3a4a; }
+    footer.note { font-family: system-ui, sans-serif; font-size: 8.5pt; color: #5a6a7a; margin-top: 24pt; border-top: 1px solid #d5dee8; padding-top: 8pt; }
+    strong { color: #0f2744; }
+  </style>
+</head>
+<body>
+  <div class="kicker">AI DPR · Product rationale</div>
+  <h1>Why Individual Latest DPR is scheme-aware, and why each scheme asks different questions</h1>
+  <p class="meta">Internal briefing · August 2025 · Maps product behaviour in Create New Latest DPR to published scheme / bank practice. Not a legal opinion or a substitute for current MoMSME / bank circulars.</p>
+
+  <div class="box">
+    <p style="margin:0"><strong>One-line answer.</strong> Cluster DPR is written for a group project (SPV, CFC, member units). An individual entrepreneur applying for a specific scheme should not fill that paperwork. Each scheme also has a different <em>decision</em> to make (toolkit vs street-vendor loan vs term loan vs food-processing grant vs state industrial incentive). We only surface questions that feed that decision, and we hide bank-style viability tables when the scheme never uses them.</p>
+  </div>
+
+  <h2>1. Why these product changes exist</h2>
+  <h3>Two users, two documents</h3>
+  <p>The existing Cluster DPR flow is the right shape for MSE-CDP-style work: many units, a Special Purpose Vehicle, a Common Facility Centre, shareholding, and cluster employment grids. Forcing a sole proprietor or street vendor through that form produces empty SPV sections, invented member counts, and a document that a scheme officer will not recognise.</p>
+  <p><strong>Create New Latest DPR</strong> is a parallel builder for one unit. Cluster DPR is left unchanged. Preview, save, generate, and AI suggestions still run on the existing cluster APIs so we do not fork a second 5,000-line document renderer. Individual answers are mapped into the same section slots, tagged <code>isIndividualDPR</code>.</p>
+
+  <h3>Scheme is the form controller</h3>
+  <p>Venture Match already tells the entrepreneur <em>which</em> schemes they appear eligible for. Sending every match into a generic 18-step bank DPR wastes time and collects the wrong proofs. <code>matchedSchemeCode</code> (from the match button, the URL, or the on-page dropdown) is the single switch for extra questions, hidden steps, and uploads. Empty scheme means a vanilla bank term-loan DPR: simplified financials, no scheme extras.</p>
+  <p>Steps 1–14 stay a common “story of this unit” (who, where, what, cost, sales). That story is useful to almost every lender. Steps 15–18 and a few extras on step 1 / 12 / 18 change because <strong>the instrument is different</strong>, not because we enjoy extra fields.</p>
+
+  <h3>Design rules we used</h3>
+  <ul>
+    <li><strong>Ask for a decision, not a biography.</strong> If an officer or bank circular does not use a field, we do not show it.</li>
+    <li><strong>Do not fake cluster machinery.</strong> No SPV board, CFC, member units, or “number of micro/small/medium enterprises” for one firm.</li>
+    <li><strong>Hide what the scheme never underwrites.</strong> A ₹15,000 tool voucher does not need IRR, NPV, or a five-year DSCR table.</li>
+    <li><strong>Proofs match the gazette / SOP, not our imagination.</strong> CoV for SVANidhi, FSSAI for food processing, FCI + CFE/CFO for AP EDP, and so on.</li>
+    <li><strong>Reuse bank language where the product is a term loan.</strong> Cost vs means of finance, BEP, DSCR if there is a loan, CoD, jobs, turnover.</li>
+  </ul>
+
+  <h2>2. Shared individual questions (all schemes)</h2>
+  <p>These stay on the form because any reader—bank, DIC, or SNA—still needs to know the unit. Labels are reworded for one entrepreneur.</p>
+  <table>
+    <thead>
+      <tr><th>Steps</th><th>What we ask</th><th>Why it stays</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1–4</td>
+        <td>Unit name, district, location, nature of business, products, sector, unit profile</td>
+        <td>Identity of the project. Cluster grids (enterprise count, age of enterprises, employment per unit) are dropped: there is only one unit.</td>
+      </tr>
+      <tr>
+        <td>5–9</td>
+        <td>Value chain, market, gaps, SWOT, planned interventions</td>
+        <td>Narrative a credit officer or scheme file still uses to judge whether the activity is real and the gap is genuine.</td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td>Workplace / shed / unit (not CFC)</td>
+        <td>Where production or vending happens. CFC language belongs to cluster infrastructure, not a shop or artisan workplace.</td>
+      </tr>
+      <tr>
+        <td>11</td>
+        <td>Applicant / firm: name, legal status, year, owners</td>
+        <td>Who is contractually liable. SPV, board, shareholding pattern, and member-unit lists are cluster legal structure.</td>
+      </tr>
+      <tr>
+        <td>12–14</td>
+        <td>Project cost, means of finance, operating cost and sales</td>
+        <td>Even small loans need a cost and a repayment story. Heavy land/building tables are hidden only when the scheme is explicitly micro (Mudra Shishu/Kishore).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Vanilla bank term loan (no scheme selected) — steps 15–18</h3>
+  <p>This is the default individual pack when the entrepreneur wants a normal term loan without wrapping a named scheme.</p>
+  <ul>
+    <li><strong>15 Viability.</strong> Cost vs equity + loan; five-year sales, RM, wages, power, net profit; break-even % of capacity. <strong>DSCR only if bank loan &gt; 0</strong>, and we flag if average DSCR &lt; 1.5 (common internal hurdle). No NPV/IRR/sensitivity — those belong to large project finance, not a micro/small unit file.</li>
+    <li><strong>16 Schedule.</strong> Commercial production date plus a few milestones (machinery, power, trial run). Banks care that the asset will exist before disbursement is fully drawn.</li>
+    <li><strong>17 Impact.</strong> Direct jobs and expected annual turnover — enough for priority-sector / MSME reporting without cluster-wide impact essays.</li>
+    <li><strong>18 Proofs.</strong> Aadhaar/PAN, Udyam, passbook, machinery quotations. Identity, MSME status, bank account, and that the capex is priced.</li>
+  </ul>
+
+  <h2>3. Scheme-specific questions and why</h2>
+
+  <h3>PM Vishwakarma</h3>
+  <p class="why">The live benefit in the product is a toolkit / voucher path for traditional artisans (about ₹15,000 of tools), plus identity checks. It is not a factory term loan. Five-year P&amp;L, implementation Gantt, and “expected cluster impact” do not help a Vishwakarma file and they intimidate the applicant.</p>
+  <table>
+    <thead><tr><th>What we show or hide</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>Hide steps 15, 16, 17</td><td>No bank DSCR exercise; no commercial-production schedule for a toolkit; employment/turnover tables are not the appraisal core.</td></tr>
+      <tr><td>Craft / trade (listed trades)</td><td>Eligibility is trade-based. The officer must record which of the notified crafts the applicant practises.</td></tr>
+      <tr><td>Current tools vs new tools</td><td>The voucher is for a defined toolkit upgrade. “What you use today” vs “what you will buy” is the actual procurement justification.</td></tr>
+      <tr><td>Uploads: Aadhaar, savings passbook, ration card</td><td>Identity, bank account for DBT / credit, and household/family verification as used in enrolment practice. Not SPV deeds or member Udyam copies.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>PM SVANidhi</h3>
+  <p class="why">This is a working-capital product for <strong>identified street vendors</strong>, typically in urban local-body areas, with a digital-payments push (UPI). Appraisal is “is this person a vendor we can onboard?”, not “does this CFC have a 1.5 DSCR?”</p>
+  <table>
+    <thead><tr><th>What we show or hide</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>Hide steps 15, 16, 17</td><td>Ticket size and product type do not require a five-year project-finance pack.</td></tr>
+      <tr><td>Certificate of Vending vs Letter of Recommendation</td><td>Scheme SOPs accept CoV or, where CoV is not issued, a LoR from the ULB / Town Vending Committee. That is the eligibility proof, not a DPR.</td></tr>
+      <tr><td>UPI QR / UPI ID</td><td>Digital payment adoption is an explicit scheme objective and often a condition for later tranches / incentives.</td></tr>
+      <tr><td>Upload: CoV or LoR</td><td>Without that document the application is not a SVANidhi file.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>PMMY (Mudra) — Shishu / Kishore (budget under ₹5 lakh in our bands)</h3>
+  <p class="why">Mudra at this size is meant to be a <strong>simple</strong> shop / service / tiny manufacturing loan. RBI / IBA working-capital practice for such units (Nayak Committee lineage, widely used in MSME WC) estimates WC as a share of turnover with a small promoter margin, rather than a full land–building–P&amp;M schedule.</p>
+  <table>
+    <thead><tr><th>What we show or hide</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>Hide heavy capex tables on step 12 (land, building, utilities, pre-operative)</td><td>Shishu/Kishore files are rarely land-and-shed projects. Asking for FCI-style blocks invites made-up numbers.</td></tr>
+      <tr><td>Keep machinery + working-capital margin</td><td>If they are buying a machine or stocking inventory, those two lines are the real cost.</td></tr>
+      <tr><td>Projected annual turnover + Nayak WC (20% of turnover, 5% margin on that WC)</td><td>Gives a transparent WC limit the branch can recognise. 20% / 5% is the product’s operational shorthand, labelled as such in the form.</td></tr>
+      <tr><td>Uploads: shop address proof, bank statements, equipment quotes</td><td>Existence of the activity, banking habit / cashflow, and price of any asset financed.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Mudra Tarun Plus (higher bands, e.g. ₹50 lakh–₹1 crore in our handoff)</h3>
+  <p class="why">Larger Mudra is closer to a normal MSME term/WC loan. We keep the full individual 15–17 pack. We add <strong>previous Mudra closure / repayment certificate</strong> because Tarun Plus-type enhancements are typically for borrowers who have already run a Mudra account cleanly. Without closure proof the higher slab is not the right product.</p>
+
+  <h3>PMEGP</h3>
+  <p class="why">PMEGP is a <strong>margin-money subsidy on a bankable project</strong> (KVIC / KVIB / DIC + bank). The bank still needs a short DPR: cost, means of finance, viability, and implementation. That is why we keep steps 15–16. Extra questions are only the statutory gates that stop a file at the counter.</p>
+  <table>
+    <thead><tr><th>What we show or hide</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>Keep 15–16 (and 17)</td><td>The financing bank appraises a project, not a toolkit. BEP and a production date belong here.</td></tr>
+      <tr><td>Quotations + building estimate</td><td>Capex must be supported; inflated machinery is a classic rejection reason.</td></tr>
+      <tr><td>Caste certificate if Venture Match owner is SC/ST/BC</td><td>Higher subsidy rates for special categories. No certificate means the higher rate cannot be claimed.</td></tr>
+      <tr><td>8th-pass / education certificate if manufacturing cost &gt; ₹10 lakh or service &gt; ₹5 lakh</td><td>PMEGP guidelines tie a minimum education standard to higher project cost. Below those cost ceilings we do not nag for a certificate.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>PMFME (micro food processing)</h3>
+  <p class="why">PMFME subsidises formalisation of food units. Food Safety and Standards Authority of India registration (or a credible plan to obtain it) is not optional: you cannot legally run the unit the grant is paying for without a FSSAI path. Premises and machinery are the two big cost heads the SNA / bank will check.</p>
+  <table>
+    <thead><tr><th>What we show or hide</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>Keep 15–16</td><td>It is still a capital subsidy on a project, so a short viability and commissioning story is needed.</td></tr>
+      <tr><td>FSSAI: already have vs will obtain</td><td>Separates units that are already formal from those whose “formalisation” is the point of the scheme.</td></tr>
+      <tr><td>Uploads: machinery quotes, premises lease, draft FSSAI</td><td>Asset, place of business, and food-licence trail. Lease matters because many micro units do not own the kitchen/shed.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>AP EDP (state industrial incentive / EDP path)</h3>
+  <p class="why">Andhra Pradesh industrial incentives are typically claimed against <strong>Fixed Capital Investment</strong> (land, building, plant &amp; machinery), often with extra land-related benefits inside APIIC parks, and they require pollution and CA certification. Hiding land/building would break the claim.</p>
+  <table>
+    <thead><tr><th>What we show or hide</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>Keep FCI lines (land, building, P&amp;M) on step 12</td><td>Incentive is a % of eligible FCI. If we hide land/building, the claim cannot be computed.</td></tr>
+      <tr><td>APIIC park? yes/no</td><td>Park location can change land cost / rebate treatment. It is a hint for the file, not a full GIS survey.</td></tr>
+      <tr><td>Uploads: land/shed allotment, CFE/CFO (single-desk pollution), CA-certified FCI statement</td><td>Title/allotment, environmental clearance, and a CA number the industries department will actually accept.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Other Venture Match schemes in v1 (Stand-Up India, CGTMSE, OBMMS, AP parks, RAMP, etc.)</h3>
+  <p>Eligibility for those products is already captured in Venture Match (owner category, ticket size, Udyam, greenfield, and so on). The Latest DPR does <strong>not</strong> yet add a unique question pack for each of them. The entrepreneur still gets the individual 18-step bank-style DPR plus default identity/Udyam/quote uploads. That is deliberate v1 scope: we specialised the schemes where the <em>document and proofs</em> are structurally different (toolkit, vendor ID, food licence, FCI incentive), not where the difference is only “who is eligible”.</p>
+
+  <h2>4. How this should feel when you test it</h2>
+  <p>Changing the scheme dropdown will not rewrite steps 2–11. Those are the unit story. You should see: (1) a scheme banner stating what changed; (2) extra fields on step 1 for Vishwakarma, SVANidhi, PMFME, AP EDP; (3) fewer step pills when 15–17 are hidden; (4) a different upload list on step 18; (5) Mudra micro capex/Nayak only if Venture Match handed off a sub-₹5 lakh budget.</p>
+
+  <h2>5. What we explicitly did not do</h2>
+  <ul>
+    <li>Did not alter Cluster DPR questions or layout.</li>
+    <li>Did not ship a separate PDF template per scheme in v1 — same generator, fewer empty sections.</li>
+    <li>Did not add Telugu for every new field in v1.</li>
+    <li>Did not treat this mapping as a replacement for the latest KVIC / MoHUA / MoFPI / GoAP circular. If a guideline changes, <code>schemeFormConfig.ts</code> is the place to update show/hide and uploads.</li>
+  </ul>
+
+  <footer class="note">
+    Prepared for the AI DPR product (Individual Latest DPR). Scheme names: PM Vishwakarma; PM Street Vendor’s AtmaNirbhar Nidhi (PM SVANidhi); Pradhan Mantri MUDRA Yojana; Prime Minister’s Employment Generation Programme; PM Formalisation of Micro Food Processing Enterprises; Andhra Pradesh industrial / EDP incentive path as implemented in-app. Operational percentages (Nayak 20%/5%, DSCR 1.5 flag, PMEGP education cost gates) are product rules aligned to common circular practice and should be re-checked against the circular in force at go-live.
+  </footer>
+</body>
+</html>
