@@ -38,8 +38,15 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
     data,
     setStepData,
     getStepData,
+    isIndividualDPR: true,
     contextHint: 'This is an individual entrepreneur unit (one firm), not a cluster or SPV.',
   };
+  const aiExclude =
+    currentStep === 1
+      ? ['clusterName', 'location', 'district']
+      : hideComplexCapex(schemeCode, data.ventureMatchAnswers?.budget) && currentStep === 12
+        ? ['land', 'building', 'utilitiesAndInfrastructure', 'preliminaryAndPreOperative']
+        : [];
   // Read step data directly from store to ensure reactivity
   // This will trigger re-renders when data is loaded from database
   const stepDataKey = `step${currentStep}` as keyof typeof data;
@@ -324,12 +331,12 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
 
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
             handleInputChange(field, content);
           }}
-          excludeFields={['clusterName', 'location', 'district', 'geographicalSpread', 'natureOfBusiness', 'majorProducts']}
         />
       </div>
     );
@@ -341,6 +348,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -430,6 +438,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -547,6 +556,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -624,6 +634,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -779,6 +790,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -849,6 +861,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -919,6 +932,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -975,6 +989,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -1033,6 +1048,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -1137,6 +1153,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -1255,6 +1272,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -1353,6 +1371,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -1415,6 +1434,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -1541,6 +1561,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -1628,6 +1649,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -1713,6 +1735,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
       <div className="space-y-6">
         <AISuggestions
           {...aiStore}
+          excludeFields={aiExclude}
           currentStep={currentStep}
           currentStepData={stepData}
           onApplySuggestion={(field, content) => {
@@ -1781,14 +1804,6 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
 
     return (
       <div className="space-y-6">
-        <AISuggestions
-          {...aiStore}
-          currentStep={currentStep}
-          currentStepData={stepData}
-          onApplySuggestion={(field, content) => {
-            handleInputChange(field, content);
-          }}
-        />
         {uploads.map((item) => (
           <div key={item.id}>
             {renderLabel(item.id, item.label)}

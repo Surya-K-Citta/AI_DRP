@@ -207,3 +207,102 @@ export const STEP_FIELDS_MAPPING: Record<number, { stepName: string; fields: Arr
     ],
   },
 };
+
+/** Fields that exist on the individual Latest DPR form (not cluster grids / SPV / CFC). */
+export const INDIVIDUAL_STEP_FIELDS_MAPPING: Record<number, { stepName: string; fields: Array<{ name: string; type: string; label: string; sampleValue?: string }> }> = {
+  1: {
+    stepName: 'Your unit – basic details',
+    fields: [
+      { name: 'natureOfBusiness', type: 'shortText', label: 'Nature of Business' },
+      { name: 'majorProducts', type: 'text', label: 'Major Products (specific goods, not a repeat of the sector name)' },
+    ],
+  },
+  2: {
+    stepName: 'Sector overview for this unit',
+    fields: STEP_FIELDS_MAPPING[2].fields,
+  },
+  3: {
+    stepName: 'District & location of this unit',
+    fields: STEP_FIELDS_MAPPING[3].fields,
+  },
+  4: {
+    stepName: 'Your unit profile',
+    fields: [
+      { name: 'yearOfEstablishment', type: 'number', label: 'Year of Establishment' },
+      { name: 'clusterEvolution', type: 'text', label: 'How this unit evolved' },
+      { name: 'presentActivities', type: 'text', label: 'Present Activities' },
+      { name: 'typeOfUnits', type: 'text', label: 'Type of unit' },
+      { name: 'productionCapacity', type: 'text', label: 'Production Capacity' },
+      { name: 'technologyLevel', type: 'text', label: 'Technology Level' },
+      { name: 'stakeholders', type: 'array', label: 'Stakeholders', sampleValue: '["Stakeholder 1", "Stakeholder 2"]' },
+    ],
+  },
+  5: STEP_FIELDS_MAPPING[5],
+  6: STEP_FIELDS_MAPPING[6],
+  7: STEP_FIELDS_MAPPING[7],
+  8: STEP_FIELDS_MAPPING[8],
+  9: {
+    stepName: 'What you plan to do (this unit)',
+    fields: STEP_FIELDS_MAPPING[9].fields,
+  },
+  10: {
+    stepName: 'Workplace / shed / unit (not a CFC)',
+    fields: STEP_FIELDS_MAPPING[10].fields,
+  },
+  11: {
+    stepName: 'Applicant / firm',
+    fields: [
+      { name: 'spvName', type: 'text', label: 'Applicant / firm name' },
+      { name: 'legalStatus', type: 'text', label: 'Legal Status' },
+      { name: 'yearOfIncorporation', type: 'number', label: 'Year of establishment' },
+      { name: 'objectives', type: 'array', label: 'Objectives', sampleValue: '["Objective 1", "Objective 2"]' },
+      { name: 'boardOfDirectors', type: 'array', label: 'Owner(s)', sampleValue: '[{"name": "...", "designation": "Owner"}]' },
+      { name: 'submittedTo', type: 'text', label: 'Submitted To' },
+    ],
+  },
+  12: STEP_FIELDS_MAPPING[12],
+  13: {
+    stepName: 'Means of finance for this unit',
+    fields: [
+      { name: 'spvContribution', type: 'number', label: 'Promoter contribution / equity' },
+      { name: 'governmentGrant', type: 'number', label: 'Government Grant' },
+      { name: 'bankLoan', type: 'number', label: 'Bank Loan' },
+      { name: 'otherSources', type: 'number', label: 'Other Sources' },
+    ],
+  },
+  14: STEP_FIELDS_MAPPING[14],
+  15: {
+    stepName: 'Financial viability (simplified)',
+    fields: [
+      { name: 'yearProjections', type: 'array', label: '5-year sales / RM / wages / power / net profit', sampleValue: '[{"year":1,"sales":0,"rm":0,"wages":0,"power":0,"netProfit":0}]' },
+      { name: 'breakEvenPoint', type: 'number', label: 'Break-even (capacity %)' },
+    ],
+  },
+  16: {
+    stepName: 'Implementation schedule',
+    fields: [
+      { name: 'startDate', type: 'text', label: 'Commercial production date' },
+      { name: 'milestones', type: 'array', label: 'Milestones', sampleValue: '[{"activity":"Machinery order / installation","timeRequired":"","startDate":"","endDate":""}]' },
+    ],
+  },
+  17: {
+    stepName: 'Expected impact of this unit',
+    fields: [
+      { name: 'employmentGeneration', type: 'number', label: 'Direct employment (count)' },
+      { name: 'turnoverGrowth', type: 'number', label: 'Expected annual turnover (₹ Lakhs)' },
+    ],
+  },
+  18: {
+    stepName: 'Document uploads',
+    fields: [],
+  },
+};
+
+export function getStepFieldsMapping(
+  step: number,
+  isIndividualDPR = false
+): { stepName: string; fields: Array<{ name: string; type: string; label: string; sampleValue?: string }> } | undefined {
+  if (isIndividualDPR) return INDIVIDUAL_STEP_FIELDS_MAPPING[step];
+  return STEP_FIELDS_MAPPING[step];
+}
+

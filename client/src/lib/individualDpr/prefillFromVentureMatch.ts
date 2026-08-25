@@ -39,7 +39,7 @@ export function prefillFromVentureMatch(answers: VentureMatchAnswers) {
       district: answers.domicile === 'ap' ? 'Andhra Pradesh' : '',
       location: locationType,
       natureOfBusiness: sector,
-      majorProducts: sector,
+      majorProducts: '',
     },
     step2: {
       sectorType: sector,

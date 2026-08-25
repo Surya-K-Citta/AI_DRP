@@ -14,6 +14,7 @@ interface AISuggestionsProps {
   setStepData?: (step: number, stepData: any) => void;
   getStepData?: (step: number) => any;
   contextHint?: string;
+  isIndividualDPR?: boolean;
 }
 
 export const AISuggestions: React.FC<AISuggestionsProps> = ({
@@ -25,6 +26,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
   setStepData: setStepDataProp,
   getStepData: getStepDataProp,
   contextHint,
+  isIndividualDPR = false,
 }) => {
   const clusterStore = useClusterDPRStore();
   const data = dataProp ?? clusterStore.data;
@@ -49,8 +51,9 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
         previousData[stepKey] = data[stepKey as keyof typeof data];
       }
     }
+    if (isIndividualDPR) previousData._isIndividualDPR = true;
     return previousData;
-  }, [currentStep, data]);
+  }, [currentStep, data, isIndividualDPR]);
 
   const hasPreviousData = previousStepsData.step1 && Object.keys(previousStepsData.step1).length > 0;
 
@@ -86,9 +89,8 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
         currentStepData,
         {
           ...previousStepsData,
-          ...(contextHint
-            ? { _promptContext: contextHint }
-            : {}),
+          ...(isIndividualDPR ? { _isIndividualDPR: true } : {}),
+          ...(contextHint ? { _promptContext: contextHint } : {}),
         },
         excludeFields
       );
@@ -102,9 +104,31 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
       }
       
       // Filter out excluded fields from suggestions
-      const filteredSuggestions = (aiSuggestions || []).filter(
-        (suggestion) => !excludeFields.includes(suggestion.field)
-      );
+      const filteredSuggestions = (aiSuggestions || []).filter((suggestion) => {
+        if (excludeFields.includes(suggestion.field)) return false;
+        if (
+          isIndividualDPR &&
+          [
+            'enterpriseCount',
+            'ageOfEnterprises',
+            'employmentPerUnit',
+            'investmentPerUnit',
+            'turnoverPerUnit',
+            'marketServed',
+            'shareholdingPattern',
+            'memberUnits',
+            'rolesAndResponsibilities',
+            'statutoryRegistrations',
+            'irr',
+            'npv',
+            'sensitivityAnalysis',
+            'increaseInUnits',
+          ].includes(suggestion.field)
+        ) {
+          return false;
+        }
+        return true;
+      });
       setSuggestions(filteredSuggestions);
       setHasGenerated(true);
     } catch (error) {
