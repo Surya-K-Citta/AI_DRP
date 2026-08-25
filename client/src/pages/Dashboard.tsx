@@ -360,6 +360,14 @@ export const Dashboard: React.FC = () => {
                   Create Cluster DPR
                 </Button>
                 <Button
+                  variant="primary"
+                  onClick={() => navigate('/individual-dpr/create?new=true')}
+                  className="gap-2 whitespace-nowrap"
+                >
+                  <FileText className="h-4 w-4" />
+                  Create New Latest DPR
+                </Button>
+                <Button
                   variant="secondary"
                   onClick={() => navigate('/dpr/builder')}
                   className="gap-2 whitespace-nowrap"
@@ -691,7 +699,7 @@ export const Dashboard: React.FC = () => {
             <CardDescription>{t('dashboard.accessFrequentlyUsed')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               <Button
                 variant="primary"
                 onClick={() => navigate('/cluster-dpr/create?new=true')}
@@ -702,6 +710,17 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <span className="font-semibold">Create Cluster DPR</span>
                 <span className="text-sm opacity-90">Cluster Development Projects</span>
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => navigate('/individual-dpr/create?new=true')}
+                className="h-28 flex-col gap-3 bg-gradient-to-br from-primary to-primary/80"
+              >
+                <div className="h-12 w-12 rounded-lg bg-white/20 flex items-center justify-center">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <span className="font-semibold">Create New Latest DPR</span>
+                <span className="text-sm opacity-90">Individual / scheme-aware</span>
               </Button>
               <Button
                 variant="secondary"

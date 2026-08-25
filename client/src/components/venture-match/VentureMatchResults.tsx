@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 interface VentureMatchResultsProps {
   result: EvaluateResult;
   onCreateDpr: () => void;
+  onCreateDprForScheme: (schemeCode: string) => void;
   onRestart: () => void;
 }
 
@@ -51,6 +52,7 @@ function CriterionRow({ item }: { item: SchemeCriterion }) {
 export const VentureMatchResults: React.FC<VentureMatchResultsProps> = ({
   result,
   onCreateDpr,
+  onCreateDprForScheme,
   onRestart,
 }) => {
   const { t } = useTranslation();
@@ -109,6 +111,14 @@ export const VentureMatchResults: React.FC<VentureMatchResultsProps> = ({
                       {t(`ventureMatch.schemes.${scheme.code}.name`, { defaultValue: scheme.name })}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">{t(scheme.benefit)}</p>
+                    <Button
+                      className="mt-3 gap-2"
+                      size="sm"
+                      onClick={() => onCreateDprForScheme(scheme.code)}
+                    >
+                      <FolderPlus className="h-4 w-4" />
+                      Generate DPR for this Match
+                    </Button>
                   </div>
                 </div>
               </CardContent>

@@ -90,6 +90,16 @@ export function saveHandoff(answers: VentureMatchAnswers, matches: SchemeMatch[]
   localStorage.setItem(HANDOFF_KEY, JSON.stringify(payload));
 }
 
+export function peekHandoff(): VentureMatchHandoff | null {
+  const raw = localStorage.getItem(HANDOFF_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as VentureMatchHandoff;
+  } catch {
+    return null;
+  }
+}
+
 export function consumeHandoff(): VentureMatchHandoff | null {
   const raw = localStorage.getItem(HANDOFF_KEY);
   if (!raw) return null;

@@ -18,6 +18,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminDocuments } from './pages/AdminDocuments';
 import { Profile } from './pages/Profile';
 import { ClusterDPRCreation } from './pages/ClusterDPRCreation';
+import { IndividualDPRCreation } from './pages/IndividualDPRCreation';
 import { VentureMatch } from './pages/VentureMatch';
 import './i18n/config';
 
@@ -152,6 +153,15 @@ function App() {
           element={
             <ProtectedRoute>
               <ClusterDPRCreation />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/individual-dpr/create"
+          element={
+            <ProtectedRoute>
+              <IndividualDPRCreation />
             </ProtectedRoute>
           }
         />

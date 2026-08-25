@@ -108,9 +108,14 @@ export const VentureMatch: React.FC = () => {
     localStorage.removeItem(STORAGE_KEY);
   };
 
+  const handleCreateDprForScheme = (schemeCode: string) => {
+    saveHandoff(answers, result.matches);
+    navigate(`/individual-dpr/create?new=true&scheme=${encodeURIComponent(schemeCode)}`);
+  };
+
   const handleCreateDpr = () => {
     saveHandoff(answers, result.matches);
-    navigate('/dpr/builder');
+    navigate('/individual-dpr/create?new=true');
   };
 
   const selected = question ? answers[question.id as QuestionId] : undefined;
@@ -135,6 +140,7 @@ export const VentureMatch: React.FC = () => {
           <VentureMatchResults
             result={result}
             onCreateDpr={handleCreateDpr}
+            onCreateDprForScheme={handleCreateDprForScheme}
             onRestart={handleRestart}
           />
         ) : (

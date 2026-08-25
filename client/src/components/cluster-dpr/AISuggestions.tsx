@@ -10,6 +10,10 @@ interface AISuggestionsProps {
   currentStepData: any;
   onApplySuggestion?: (field: string, content: string) => void;
   excludeFields?: string[];
+  data?: any;
+  setStepData?: (step: number, stepData: any) => void;
+  getStepData?: (step: number) => any;
+  contextHint?: string;
 }
 
 export const AISuggestions: React.FC<AISuggestionsProps> = ({
@@ -17,8 +21,15 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
   currentStepData,
   onApplySuggestion,
   excludeFields = [],
+  data: dataProp,
+  setStepData: setStepDataProp,
+  getStepData: getStepDataProp,
+  contextHint,
 }) => {
-  const { data, setStepData, getStepData } = useClusterDPRStore();
+  const clusterStore = useClusterDPRStore();
+  const data = dataProp ?? clusterStore.data;
+  const setStepData = setStepDataProp ?? clusterStore.setStepData;
+  const getStepData = getStepDataProp ?? clusterStore.getStepData;
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
@@ -73,7 +84,12 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
       const aiSuggestions = await AISuggestionsService.getSuggestionsForStep(
         currentStep,
         currentStepData,
-        previousStepsData,
+        {
+          ...previousStepsData,
+          ...(contextHint
+            ? { _promptContext: contextHint }
+            : {}),
+        },
         excludeFields
       );
       
