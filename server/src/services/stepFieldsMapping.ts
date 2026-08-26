@@ -300,9 +300,55 @@ export const INDIVIDUAL_STEP_FIELDS_MAPPING: Record<number, { stepName: string; 
 
 export function getStepFieldsMapping(
   step: number,
-  isIndividualDPR = false
+  isIndividualDPR = false,
+  schemeCode?: string | null
 ): { stepName: string; fields: Array<{ name: string; type: string; label: string; sampleValue?: string }> } | undefined {
-  if (isIndividualDPR) return INDIVIDUAL_STEP_FIELDS_MAPPING[step];
-  return STEP_FIELDS_MAPPING[step];
+  if (!isIndividualDPR) return STEP_FIELDS_MAPPING[step];
+  const base = INDIVIDUAL_STEP_FIELDS_MAPPING[step];
+  if (!base) return undefined;
+  if (step !== 1) return base;
+  const extras = getIndividualSchemeExtraFields(schemeCode);
+  if (!extras.length) return base;
+  return {
+    stepName: base.stepName,
+    fields: [...base.fields, ...extras],
+  };
 }
+
+const VISHWAKARMA_CRAFT_OPTIONS =
+  'Carpenter (Suthar); Boat Maker; Armourer; Blacksmith; Hammer and Tool Kit Maker; Locksmith; Sculptor; Stone breaker / Stone carver; Goldsmith; Potter; Sculptor (metal/stone/wood); Cobbler / Shoemaker; Mason; Basket/Mat/Broom Maker / Coir Weaver; Doll & Toy Maker; Barber; Garland Maker; Washerman; Tailor; Fishing Net Maker';
+
+export function getIndividualSchemeExtraFields(
+  schemeCode?: string | null
+): Array<{ name: string; type: string; label: string; sampleValue?: string }> {
+  if (schemeCode === 'VISHWAKARMA') {
+    return [
+      {
+        name: 'craft',
+        type: 'shortText',
+        label: 'Craft / trade — MUST be copied exactly from this list: ' + VISHWAKARMA_CRAFT_OPTIONS,
+      },
+      { name: 'currentTools', type: 'text', label: 'Current tools the artisan uses today' },
+      { name: 'newTools', type: 'text', label: 'New tools to buy with the ₹15,000 Vishwakarma voucher' },
+    ];
+  }
+  if (schemeCode === 'SVANIDHI') {
+    return [
+      { name: 'covOrLor', type: 'shortText', label: 'Vending proof: reply only "cov" or "lor"' },
+      { name: 'upiQr', type: 'shortText', label: 'UPI ID or QR details for the vendor' },
+    ];
+  }
+  if (schemeCode === 'PMFME') {
+    return [
+      { name: 'fssai', type: 'shortText', label: 'FSSAI status: reply only "yes" or "planned"' },
+    ];
+  }
+  if (schemeCode === 'AP_EDP') {
+    return [
+      { name: 'apiicPark', type: 'shortText', label: 'Is the unit inside an APIIC park? Reply only "yes" or "no"' },
+    ];
+  }
+  return [];
+}
+
 

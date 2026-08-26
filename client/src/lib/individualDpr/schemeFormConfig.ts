@@ -6,6 +6,25 @@ export const SCHEME_OPTIONS = [
   ...SCHEMES.map((s) => ({ code: s.code, label: s.name })),
 ];
 
+export const SCHEME_EXTRA_FIELDS: Record<string, string[]> = {
+  VISHWAKARMA: ['craft', 'currentTools', 'newTools'],
+  SVANIDHI: ['covOrLor', 'upiQr'],
+  PMFME: ['fssai'],
+  AP_EDP: ['apiicPark'],
+};
+
+export function extraFieldsForScheme(schemeCode: string | null | undefined): string[] {
+  if (!schemeCode) return [];
+  return SCHEME_EXTRA_FIELDS[schemeCode] || [];
+}
+
+export function isSchemeExtraField(field: string, schemeCode?: string | null): boolean {
+  const known = Object.values(SCHEME_EXTRA_FIELDS).flat();
+  if (!known.includes(field)) return false;
+  if (!schemeCode) return true;
+  return extraFieldsForScheme(schemeCode).includes(field);
+}
+
 export const VISHWAKARMA_CRAFTS = [
   'Carpenter (Suthar)',
   'Boat Maker',

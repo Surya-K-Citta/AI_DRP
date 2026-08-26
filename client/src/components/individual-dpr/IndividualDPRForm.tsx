@@ -3,7 +3,7 @@ import React from 'react';
 import { useIndividualDPRStore } from '@/store/individualDPRStore';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'react-hot-toast';
 import { AISuggestions } from '@/components/cluster-dpr/AISuggestions';
@@ -11,6 +11,7 @@ import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { FIELD_DESCRIPTIONS } from '@/data/fieldDescriptions';
 import {
   VISHWAKARMA_CRAFTS,
+  extraFieldsForScheme,
   hideComplexCapex,
   getStep18Uploads,
   showPmegpEducationGate,
@@ -18,6 +19,7 @@ import {
   showDscr,
   isMudraShishuKishore,
 } from '@/lib/individualDpr/schemeFormConfig';
+import { fillAllStepsWithAi, FillAllProgress, normalizeExtraValue } from '@/lib/individualDpr/fillAllStepsWithAi';
 
 interface IndividualDPRFormProps {
   currentStep: number;
@@ -30,10 +32,14 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
   onNext,
   onPrevious,
 }) => {
-  const { data, setStepData, getStepData, setSchemeExtras } = useIndividualDPRStore();
+  const { data, setStepData, getStepData, setSchemeExtras, setCurrentStep } = useIndividualDPRStore();
   const schemeCode = data.matchedSchemeCode || null;
+  const extraFieldNames = extraFieldsForScheme(schemeCode);
   const extras = data.schemeExtras || {};
-  const updateExtras = (patch: Record<string, any>) => setSchemeExtras({ ...extras, ...patch });
+  const updateExtras = (patch: Record<string, any>) => {
+    const current = useIndividualDPRStore.getState().data.schemeExtras || {};
+    setSchemeExtras({ ...current, ...patch });
+  };
   const aiStore = {
     data,
     setStepData,
@@ -54,6 +60,8 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
 
   // State for Step 18 file uploads (must be at top level due to React hooks rules)
   const [uploadingFiles, setUploadingFiles] = React.useState<Record<string, boolean>>({});
+  const [isFillingAll, setIsFillingAll] = React.useState(false);
+  const [fillProgress, setFillProgress] = React.useState<FillAllProgress | null>(null);
 
   // Debug: Log when step data changes (reduced frequency)
   // React.useEffect(() => {
@@ -114,12 +122,57 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
   };
 
   const handleInputChange = (field: string, value: any) => {
-    // Get the latest stepData from store to avoid stale data
+    if (extraFieldNames.includes(field) || ['craft', 'currentTools', 'newTools', 'covOrLor', 'upiQr', 'fssai', 'apiicPark'].includes(field)) {
+      updateExtras({ [field]: normalizeExtraValue(field, value) });
+      return;
+    }
     const latestStepData = getStepData(currentStep) || {};
+    let nextValue = value;
+    if (field === 'startDate' || field === 'endDate') nextValue = toDateInputValue(value) || value;
+    if (field === 'milestones') nextValue = normalizeMilestones(value);
     setStepData(currentStep, {
       ...latestStepData,
-      [field]: value,
+      [field]: nextValue,
     });
+  };
+
+  const handleGenerateAllSteps = async () => {
+    if (!data.step1?.clusterName) {
+      toast.error('Enter the unit / project name first so AI has something to write about.');
+      return;
+    }
+    setIsFillingAll(true);
+    setFillProgress({ step: 1, index: 1, total: 1 });
+    try {
+      const result = await fillAllStepsWithAi({
+        data,
+        setStepData,
+        getStepData,
+        setSchemeExtras,
+        schemeCode,
+        answers: data.ventureMatchAnswers,
+        onProgress: setFillProgress,
+      });
+      if (result.filledSteps.length === 0) {
+        toast.error('AI could not fill any steps. Try again after adding district and location.');
+        return;
+      }
+      if (result.failedSteps.length) {
+        toast.error(`Filled ${result.filledSteps.length} steps. Failed: ${result.failedSteps.join(', ')}.`);
+      } else {
+        toast.success(`Filled ${result.filledSteps.length} steps with AI. Review and edit as needed.`);
+      }
+      if (!['VISHWAKARMA', 'SVANIDHI', 'PMFME', 'AP_EDP'].includes(schemeCode || '')) {
+        setCurrentStep(2);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to generate all steps. Please try again.');
+    } finally {
+      setIsFillingAll(false);
+      setFillProgress(null);
+    }
   };
 
   // Handle comma-separated input fields (for array fields)
@@ -236,6 +289,28 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
           </div>
         </div>
 
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">
+          <p className="text-sm font-medium">Generate the rest of this DPR with AI</p>
+          <p className="text-sm text-muted-foreground">
+            Uses the unit name, district, and location to fill every visible step except document uploads. You can edit anything afterwards.
+          </p>
+          <Button
+            type="button"
+            onClick={handleGenerateAllSteps}
+            disabled={isFillingAll}
+            className="gap-2"
+          >
+            {isFillingAll ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {isFillingAll && fillProgress
+              ? `Filling step ${fillProgress.step} (${fillProgress.index} of ${fillProgress.total})…`
+              : 'Generate all steps with AI'}
+          </Button>
+        </div>
+
         {schemeCode === 'VISHWAKARMA' && (
           <div className="border rounded-lg p-4 space-y-4 bg-amber-50/50">
             <h3 className="text-lg font-semibold">PM Vishwakarma details</h3>
@@ -243,7 +318,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               <label className="block text-sm font-medium mb-2">Craft / trade</label>
               <select
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={extras.craft || ''}
+                value={extras.craft || stepData.craft || ''}
                 onChange={(e) => updateExtras({ craft: e.target.value })}
               >
                 <option value="">Select your craft</option>
@@ -256,7 +331,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               <label className="block text-sm font-medium mb-2">Current tools</label>
               <textarea
                 className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={extras.currentTools || ''}
+                value={extras.currentTools || stepData.currentTools || ''}
                 onChange={(e) => updateExtras({ currentTools: e.target.value })}
                 placeholder="Tools you use today"
               />
@@ -265,7 +340,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               <label className="block text-sm font-medium mb-2">New tools needed (₹15,000 voucher)</label>
               <textarea
                 className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={extras.newTools || ''}
+                value={extras.newTools || stepData.newTools || ''}
                 onChange={(e) => updateExtras({ newTools: e.target.value })}
                 placeholder="Tools you want to buy with the voucher"
               />
@@ -280,7 +355,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               <label className="block text-sm font-medium mb-2">Vending proof</label>
               <select
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={extras.covOrLor || ''}
+                value={extras.covOrLor || stepData.covOrLor || ''}
                 onChange={(e) => updateExtras({ covOrLor: e.target.value })}
               >
                 <option value="">Select</option>
@@ -291,7 +366,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <div>
               <label className="block text-sm font-medium mb-2">UPI QR code</label>
               <Input
-                value={extras.upiQr || ''}
+                value={extras.upiQr || stepData.upiQr || ''}
                 onChange={(e) => updateExtras({ upiQr: e.target.value })}
                 placeholder="UPI ID or QR details"
               />
@@ -304,7 +379,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <h3 className="text-lg font-semibold">FSSAI</h3>
             <select
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={extras.fssai || ''}
+              value={extras.fssai || stepData.fssai || ''}
               onChange={(e) => updateExtras({ fssai: e.target.value })}
             >
               <option value="">FSSAI status</option>
@@ -319,7 +394,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <h3 className="text-lg font-semibold">APIIC industrial park</h3>
             <select
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={extras.apiicPark || ''}
+              value={extras.apiicPark || stepData.apiicPark || ''}
               onChange={(e) => updateExtras({ apiicPark: e.target.value })}
             >
               <option value="">Is the unit inside an APIIC park?</option>
@@ -1645,6 +1720,14 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
 
   // Step 16: Implementation
   if (currentStep === 16) {
+    const milestoneRows = normalizeMilestones(stepData.milestones).length
+      ? normalizeMilestones(stepData.milestones)
+      : [
+          { activity: 'Machinery order / installation', timeRequired: '', startDate: '', endDate: '' },
+          { activity: 'Power connection', timeRequired: '', startDate: '', endDate: '' },
+          { activity: 'Trial run', timeRequired: '', startDate: '', endDate: '' },
+        ];
+
     return (
       <div className="space-y-6">
         <AISuggestions
@@ -1660,33 +1743,21 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
           {renderLabel('startDate', 'Commercial production date (CoD)')}
           <Input
             type="date"
-            value={stepData.startDate || ''}
+            value={toDateInputValue(stepData.startDate)}
             onChange={(e) => handleInputChange('startDate', e.target.value)}
           />
         </div>
         <div>
           {renderLabel('milestones', 'Milestones')}
           <div className="space-y-4">
-            {(Array.isArray(stepData.milestones) && stepData.milestones.length
-              ? stepData.milestones
-              : [
-                  { activity: 'Machinery order / installation', timeRequired: '', startDate: '', endDate: '' },
-                  { activity: 'Power connection', timeRequired: '', startDate: '', endDate: '' },
-                  { activity: 'Trial run', timeRequired: '', startDate: '', endDate: '' },
-                ]
-            ).map((milestone: any, index: number) => (
+            {milestoneRows.map((milestone: any, index: number) => (
               <div key={index} className="p-4 border rounded-lg space-y-2">
                 <Input
                   value={milestone.activity || ''}
                   onChange={(e) => {
-                    const base = Array.isArray(stepData.milestones) && stepData.milestones.length
-                      ? stepData.milestones
-                      : [
-                          { activity: 'Machinery order / installation', timeRequired: '', startDate: '', endDate: '' },
-                          { activity: 'Power connection', timeRequired: '', startDate: '', endDate: '' },
-                          { activity: 'Trial run', timeRequired: '', startDate: '', endDate: '' },
-                        ];
-                    const next = base.map((m: any, i: number) => (i === index ? { ...m, activity: e.target.value } : m));
+                    const next = milestoneRows.map((m: any, i: number) =>
+                      i === index ? { ...m, activity: e.target.value } : m
+                    );
                     handleInputChange('milestones', next);
                   }}
                   placeholder="Activity"
@@ -1694,30 +1765,22 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <Input
                     type="date"
-                    value={milestone.startDate || ''}
+                    value={toDateInputValue(milestone.startDate)}
                     onChange={(e) => {
-                      const base = Array.isArray(stepData.milestones) && stepData.milestones.length
-                        ? stepData.milestones
-                        : [
-                            { activity: 'Machinery order / installation', timeRequired: '', startDate: '', endDate: '' },
-                            { activity: 'Power connection', timeRequired: '', startDate: '', endDate: '' },
-                            { activity: 'Trial run', timeRequired: '', startDate: '', endDate: '' },
-                          ];
-                      handleInputChange('milestones', base.map((m: any, i: number) => (i === index ? { ...m, startDate: e.target.value } : m)));
+                      const next = milestoneRows.map((m: any, i: number) =>
+                        i === index ? { ...m, startDate: e.target.value } : m
+                      );
+                      handleInputChange('milestones', next);
                     }}
                   />
                   <Input
                     type="date"
-                    value={milestone.endDate || ''}
+                    value={toDateInputValue(milestone.endDate)}
                     onChange={(e) => {
-                      const base = Array.isArray(stepData.milestones) && stepData.milestones.length
-                        ? stepData.milestones
-                        : [
-                            { activity: 'Machinery order / installation', timeRequired: '', startDate: '', endDate: '' },
-                            { activity: 'Power connection', timeRequired: '', startDate: '', endDate: '' },
-                            { activity: 'Trial run', timeRequired: '', startDate: '', endDate: '' },
-                          ];
-                      handleInputChange('milestones', base.map((m: any, i: number) => (i === index ? { ...m, endDate: e.target.value } : m)));
+                      const next = milestoneRows.map((m: any, i: number) =>
+                        i === index ? { ...m, endDate: e.target.value } : m
+                      );
+                      handleInputChange('milestones', next);
                     }}
                   />
                 </div>

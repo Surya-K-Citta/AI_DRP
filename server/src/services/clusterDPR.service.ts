@@ -935,7 +935,8 @@ Use exact values from the data above. Write in a formal, persuasive tone suitabl
       }
 
       const isIndividualDPR = previousStepsData?._isIndividualDPR === true;
-      const stepMapping = getStepFieldsMapping(currentStep, isIndividualDPR);
+      const schemeCode = previousStepsData?._schemeCode || null;
+      const stepMapping = getStepFieldsMapping(currentStep, isIndividualDPR, schemeCode);
       if (!stepMapping) {
         console.log(`No field mapping found for step ${currentStep}`);
         return [];
@@ -947,6 +948,7 @@ Use exact values from the data above. Write in a formal, persuasive tone suitabl
       const previousForText = { ...previousStepsData };
       delete previousForText._isIndividualDPR;
       delete previousForText._promptContext;
+      delete previousForText._schemeCode;
 
       const contextText = this.formatStepDataAsText(previousForText);
       const currentStepText = this.formatStepDataAsText({ [`step${currentStep}`]: currentStepData });
@@ -1103,7 +1105,11 @@ CRITICAL REQUIREMENTS:
      ? (isIndividualDPR
        ? `   - This is STEP 1 for a SINGLE UNIT. Unit name: "${clusterName}"${location ? `, Location: ${location}` : ''}${district ? `, District: ${district}` : ''}
    - Suggest natureOfBusiness (what this one unit does) and majorProducts (named goods, not the word Manufacturing/Services).
-   - Do not invent a cluster of many enterprises.`
+   - Do not invent a cluster of many enterprises.
+   ${schemeCode === 'VISHWAKARMA' ? `- This unit is for PM Vishwakarma. You MUST also suggest craft (exact trade name from the field label list), currentTools (what they use today), and newTools (what to buy with the ₹15,000 voucher). Put the actual values in "suggestion", not instructions.` : ''}
+   ${schemeCode === 'SVANIDHI' ? `- This unit is for PM SVANidhi. You MUST suggest covOrLor as exactly "cov" or "lor", and upiQr as a plausible UPI ID.` : ''}
+   ${schemeCode === 'PMFME' ? `- This unit is for PMFME. You MUST suggest fssai as exactly "yes" or "planned".` : ''}
+   ${schemeCode === 'AP_EDP' ? `- This unit is for AP EDP. You MUST suggest apiicPark as exactly "yes" or "no".` : ''}`
        : `   - This is STEP 1 - you have the CLUSTER CONTEXT provided above (Cluster Name: "${clusterName}"${location ? `, Location: ${location}` : ''}${district ? `, District: ${district}` : ''})
    - Use the cluster name "${clusterName}" as the PRIMARY BASIS for generating ALL suggestions
    - For each field, think: "What would be appropriate for a cluster named '${clusterName}'${location ? ` located in ${location}` : ''}${district ? `, ${district} district` : ''}?"
@@ -1499,7 +1505,8 @@ Return only the suggestion text, no JSON or formatting.`;
   ): Promise<string | null> {
     try {
       const isIndividualDPR = previousStepsData?._isIndividualDPR === true;
-      const stepMapping = getStepFieldsMapping(currentStep, isIndividualDPR);
+      const schemeCode = previousStepsData?._schemeCode || null;
+      const stepMapping = getStepFieldsMapping(currentStep, isIndividualDPR, schemeCode);
       if (!stepMapping) {
         console.log(`No field mapping found for step ${currentStep}`);
         return null;
@@ -1508,13 +1515,14 @@ Return only the suggestion text, no JSON or formatting.`;
       const previousForText = { ...previousStepsData };
       delete previousForText._isIndividualDPR;
       delete previousForText._promptContext;
+      delete previousForText._schemeCode;
 
       // Build context from all previous steps
       const contextText = this.formatStepDataAsText(previousForText);
       const currentStepText = this.formatStepDataAsText({ [`step${currentStep}`]: currentStepData });
 
       // Extract Step 1 key information
-      const step1Data = previousStepsData.step1 || {};
+      const step1Data = currentStep === 1 ? (currentStepData || {}) : (previousStepsData.step1 || {});
       const clusterName = step1Data.clusterName || '';
       const district = step1Data.district || '';
       const natureOfBusiness = step1Data.natureOfBusiness || '';
