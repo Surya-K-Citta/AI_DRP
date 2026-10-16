@@ -680,7 +680,8 @@ Return only valid JSON without markdown code blocks.`;
         });
       } else {
         // Update existing project
-        project.stepData = cleanClusterData;
+        project.set('stepData', cleanClusterData);
+        project.markModified('stepData');
         project.totalCost = totalCost || project.totalCost || 100000;
         project.ownContribution = ownContribution || project.ownContribution || 0;
         project.loanAmount = loanAmount || project.loanAmount || 0;

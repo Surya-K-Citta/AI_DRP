@@ -6,7 +6,7 @@ import { User } from '../models/User.model';
 import { AuditService } from './audit.service';
 import { NotifyService } from './notify.service';
 import { retentionIdleDays, retentionWarningDays, auditRetentionDays } from '../lib/kycStorage';
-import { AuditEvent } from '../models/AuditEvent.model';
+import { purgeAuditEvents } from '../lib/auditChain';
 import { CloudinaryService } from './cloudinary.service';
 import fs from 'fs';
 import path from 'path';
@@ -202,8 +202,8 @@ export async function runRetentionJob(): Promise<RetentionResult> {
   }
 
   const auditCutoff = new Date(Date.now() - auditDays * dayMs);
-  const auditDelete = await AuditEvent.deleteMany({ at: { $lt: auditCutoff } });
-  result.auditPurged = auditDelete.deletedCount || 0;
+  // The only place audit rows are removed; it keeps an anchor so the hash chain still verifies.
+  result.auditPurged = await purgeAuditEvents(auditCutoff);
   if (result.auditPurged) {
     console.info(`[retention] erased ${result.auditPurged} audit rows older than ${auditDays} days`);
   }

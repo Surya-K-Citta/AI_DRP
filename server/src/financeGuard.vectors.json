@@ -1,0 +1,477 @@
+[
+  {
+    "name": "balanced standard",
+    "data": {
+      "matchedSchemeCode": null,
+      "step12": {
+        "land": 5,
+        "building": 15,
+        "machinery": 60,
+        "furniture": 5,
+        "preliminaryAndPreOperative": 5,
+        "workingCapitalMargin": 10
+      },
+      "step13": {
+        "spvContribution": 25,
+        "governmentGrant": 0,
+        "bankLoan": 75,
+        "otherSources": 0
+      }
+    },
+    "blockers": []
+  },
+  {
+    "name": "funding short by 0.01",
+    "data": {
+      "matchedSchemeCode": null,
+      "step12": {
+        "land": 5,
+        "building": 15,
+        "machinery": 60,
+        "furniture": 5,
+        "preliminaryAndPreOperative": 5,
+        "workingCapitalMargin": 10
+      },
+      "step13": {
+        "spvContribution": 25,
+        "governmentGrant": 0,
+        "bankLoan": 74.99,
+        "otherSources": 0
+      }
+    },
+    "blockers": [
+      "mof.mismatch"
+    ]
+  },
+  {
+    "name": "funding over by 5",
+    "data": {
+      "matchedSchemeCode": null,
+      "step12": {
+        "land": 5,
+        "building": 15,
+        "machinery": 60,
+        "furniture": 5,
+        "preliminaryAndPreOperative": 5,
+        "workingCapitalMargin": 10
+      },
+      "step13": {
+        "spvContribution": 25,
+        "governmentGrant": 0,
+        "bankLoan": 80,
+        "otherSources": 0
+      }
+    },
+    "blockers": [
+      "debt.equity",
+      "mof.mismatch"
+    ]
+  },
+  {
+    "name": "equity 5% standard",
+    "data": {
+      "matchedSchemeCode": null,
+      "step12": {
+        "land": 5,
+        "building": 15,
+        "machinery": 60,
+        "furniture": 5,
+        "preliminaryAndPreOperative": 5,
+        "workingCapitalMargin": 10
+      },
+      "step13": {
+        "spvContribution": 5,
+        "governmentGrant": 0,
+        "bankLoan": 95,
+        "otherSources": 0
+      }
+    },
+    "blockers": [
+      "debt.equity",
+      "equity.min"
+    ]
+  },
+  {
+    "name": "debt equity 3.17",
+    "data": {
+      "matchedSchemeCode": null,
+      "step12": {
+        "land": 5,
+        "building": 15,
+        "machinery": 60,
+        "furniture": 5,
+        "preliminaryAndPreOperative": 5,
+        "workingCapitalMargin": 10
+      },
+      "step13": {
+        "spvContribution": 24,
+        "governmentGrant": 0,
+        "bankLoan": 76,
+        "otherSources": 0
+      }
+    },
+    "blockers": [
+      "debt.equity"
+    ]
+  },
+  {
+    "name": "subsidy counts as equity",
+    "data": {
+      "matchedSchemeCode": null,
+      "step12": {
+        "land": 5,
+        "building": 15,
+        "machinery": 60,
+        "furniture": 5,
+        "preliminaryAndPreOperative": 5,
+        "workingCapitalMargin": 10
+      },
+      "step13": {
+        "spvContribution": 10,
+        "governmentGrant": 15,
+        "bankLoan": 75,
+        "otherSources": 0
+      }
+    },
+    "blockers": []
+  },
+  {
+    "name": "no bank loan",
+    "data": {
+      "matchedSchemeCode": null,
+      "step12": {
+        "land": 5,
+        "building": 15,
+        "machinery": 60,
+        "furniture": 5,
+        "preliminaryAndPreOperative": 5,
+        "workingCapitalMargin": 10
+      },
+      "step13": {
+        "spvContribution": 100,
+        "governmentGrant": 0,
+        "bankLoan": 0,
+        "otherSources": 0
+      }
+    },
+    "blockers": []
+  },
+  {
+    "name": "pmegp general 5%",
+    "data": {
+      "matchedSchemeCode": "PMEGP",
+      "step12": {
+        "land": 5,
+        "building": 15,
+        "machinery": 60,
+        "furniture": 5,
+        "preliminaryAndPreOperative": 5,
+        "workingCapitalMargin": 10
+      },
+      "step13": {
+        "spvContribution": 5,
+        "governmentGrant": 35,
+        "bankLoan": 60,
+        "otherSources": 0
+      },
+      "schemeExtras": {
+        "pmegpCategory": "general"
+      }
+    },
+    "blockers": [
+      "equity.min"
+    ]
+  },
+  {
+    "name": "pmegp special 5%",
+    "data": {
+      "matchedSchemeCode": "PMEGP",
+      "step12": {
+        "land": 5,
+        "building": 15,
+        "machinery": 60,
+        "furniture": 5,
+        "preliminaryAndPreOperative": 5,
+        "workingCapitalMargin": 10
+      },
+      "step13": {
+        "spvContribution": 5,
+        "governmentGrant": 35,
+        "bankLoan": 60,
+        "otherSources": 0
+      },
+      "schemeExtras": {
+        "pmegpCategory": "special"
+      }
+    },
+    "blockers": []
+  },
+  {
+    "name": "pmfme grant above cap",
+    "data": {
+      "matchedSchemeCode": "PMFME",
+      "step12": {
+        "machinery": 20
+      },
+      "step13": {
+        "spvContribution": 4,
+        "governmentGrant": 7.1,
+        "bankLoan": 8.9
+      }
+    },
+    "blockers": [
+      "grant.cap"
+    ]
+  },
+  {
+    "name": "pmfme grant at cap",
+    "data": {
+      "matchedSchemeCode": "PMFME",
+      "step12": {
+        "machinery": 20
+      },
+      "step13": {
+        "spvContribution": 4,
+        "governmentGrant": 7,
+        "bankLoan": 9
+      }
+    },
+    "blockers": []
+  },
+  {
+    "name": "pmfme ten lakh ceiling",
+    "data": {
+      "matchedSchemeCode": "PMFME",
+      "step12": {
+        "machinery": 100
+      },
+      "step13": {
+        "spvContribution": 10,
+        "governmentGrant": 10.5,
+        "bankLoan": 79.5
+      }
+    },
+    "blockers": [
+      "debt.equity",
+      "grant.cap"
+    ]
+  },
+  {
+    "name": "sclcss grant above cap",
+    "data": {
+      "matchedSchemeCode": "SCLCSS",
+      "step12": {
+        "machinery": 200
+      },
+      "step13": {
+        "spvContribution": 20,
+        "governmentGrant": 30,
+        "bankLoan": 150
+      }
+    },
+    "blockers": [
+      "grant.cap"
+    ]
+  },
+  {
+    "name": "ap edp 75% of fci",
+    "data": {
+      "matchedSchemeCode": "AP_EDP",
+      "step12": {
+        "machinery": 100
+      },
+      "step13": {
+        "spvContribution": 10,
+        "governmentGrant": 76,
+        "bankLoan": 14
+      }
+    },
+    "blockers": [
+      "grant.cap"
+    ]
+  },
+  {
+    "name": "mudra kishore 9 lakh",
+    "data": {
+      "matchedSchemeCode": "MUDRA",
+      "schemeExtras": {
+        "mudraCategory": "kishore"
+      },
+      "step12": {
+        "machinery": 8,
+        "workingCapitalMargin": 2
+      },
+      "step13": {
+        "spvContribution": 1,
+        "bankLoan": 9
+      }
+    },
+    "blockers": [
+      "lending.limit"
+    ]
+  },
+  {
+    "name": "mudra tarun 9.5 lakh",
+    "data": {
+      "matchedSchemeCode": "MUDRA",
+      "schemeExtras": {
+        "mudraCategory": "tarun"
+      },
+      "step12": {
+        "machinery": 8,
+        "workingCapitalMargin": 2
+      },
+      "step13": {
+        "spvContribution": 0.5,
+        "bankLoan": 9.5
+      }
+    },
+    "blockers": []
+  },
+  {
+    "name": "vishwakarma first 3 lakh",
+    "data": {
+      "matchedSchemeCode": "VISHWAKARMA",
+      "schemeExtras": {
+        "loanTranche": "first"
+      },
+      "step12": {
+        "workingCapitalMargin": 3
+      },
+      "step13": {
+        "bankLoan": 3
+      }
+    },
+    "blockers": [
+      "lending.limit"
+    ]
+  },
+  {
+    "name": "vishwakarma second 2 lakh",
+    "data": {
+      "matchedSchemeCode": "VISHWAKARMA",
+      "schemeExtras": {
+        "loanTranche": "second"
+      },
+      "step12": {
+        "workingCapitalMargin": 2
+      },
+      "step13": {
+        "bankLoan": 2
+      }
+    },
+    "blockers": []
+  },
+  {
+    "name": "svanidhi first 0.2 lakh",
+    "data": {
+      "matchedSchemeCode": "SVANIDHI",
+      "schemeExtras": {
+        "loanTranche": "first"
+      },
+      "step12": {
+        "workingCapitalMargin": 0.2
+      },
+      "step13": {
+        "bankLoan": 0.2
+      }
+    },
+    "blockers": [
+      "lending.limit"
+    ]
+  },
+  {
+    "name": "svanidhi third 0.5 lakh",
+    "data": {
+      "matchedSchemeCode": "SVANIDHI",
+      "schemeExtras": {
+        "loanTranche": "third"
+      },
+      "step12": {
+        "workingCapitalMargin": 0.5
+      },
+      "step13": {
+        "bankLoan": 0.5
+      }
+    },
+    "blockers": []
+  },
+  {
+    "name": "standup 135 lakh",
+    "data": {
+      "matchedSchemeCode": "STANDUP",
+      "step12": {
+        "machinery": 150
+      },
+      "step13": {
+        "spvContribution": 15,
+        "bankLoan": 135
+      }
+    },
+    "blockers": [
+      "lending.limit"
+    ]
+  },
+  {
+    "name": "standup 90% debt",
+    "data": {
+      "matchedSchemeCode": "STANDUP",
+      "step12": {
+        "machinery": 50
+      },
+      "step13": {
+        "spvContribution": 5,
+        "bankLoan": 45
+      }
+    },
+    "blockers": []
+  },
+  {
+    "name": "standup 10% equity 90% debt",
+    "data": {
+      "matchedSchemeCode": "STANDUP",
+      "step12": {
+        "machinery": 50
+      },
+      "step13": {
+        "spvContribution": 5,
+        "bankLoan": 45
+      }
+    },
+    "blockers": []
+  },
+  {
+    "name": "eclgs above quantum",
+    "data": {
+      "matchedSchemeCode": "ECLGS",
+      "schemeExtras": {
+        "peakWcOutstanding": 100
+      },
+      "step12": {
+        "workingCapitalMargin": 25
+      },
+      "step13": {
+        "bankLoan": 25
+      }
+    },
+    "blockers": [
+      "lending.limit"
+    ]
+  },
+  {
+    "name": "eclgs within quantum",
+    "data": {
+      "matchedSchemeCode": "ECLGS",
+      "schemeExtras": {
+        "peakWcOutstanding": 100
+      },
+      "step12": {
+        "workingCapitalMargin": 20
+      },
+      "step13": {
+        "bankLoan": 20
+      }
+    },
+    "blockers": []
+  }
+]

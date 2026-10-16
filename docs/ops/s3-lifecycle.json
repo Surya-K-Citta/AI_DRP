@@ -1,0 +1,31 @@
+{
+  "Rules": [
+    {
+      "ID": "abort-incomplete-uploads",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "" },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 2 }
+    },
+    {
+      "ID": "kyc-files-expire-with-retention-policy",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "kyc/" },
+      "Expiration": { "Days": 730 },
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 30 }
+    },
+    {
+      "ID": "cluster-photos-tier-down",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "cluster/" },
+      "Transitions": [{ "Days": 90, "StorageClass": "STANDARD_IA" }],
+      "Expiration": { "Days": 1095 },
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 30 }
+    },
+    {
+      "ID": "generated-exports-short-life",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "exports/" },
+      "Expiration": { "Days": 7 }
+    }
+  ]
+}

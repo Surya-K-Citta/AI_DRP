@@ -11,8 +11,10 @@ import { Send, Mic, MicOff, Trash2, Database, Bot, Languages, Loader2, Copy, Che
 import ReactMarkdown from 'react-markdown';
 import { ttsService, TTSLanguage } from '@/lib/tts';
 
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 export const Chat: React.FC = () => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const { user } = useAuthStore();
   const {
     messages,
@@ -370,8 +372,8 @@ export const Chat: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden max-[1528px]:pl-[4.75rem]">
-      <div className="max-[1528px]:-ml-[4.75rem] max-[1528px]:w-[calc(100%+4.75rem)]">
+    <div className="flex flex-col h-screen bg-background overflow-hidden md:max-[1528px]:pl-[4.75rem]">
+      <div className="md:max-[1528px]:-ml-[4.75rem] md:max-[1528px]:w-[calc(100%+4.75rem)]">
         <Navbar />
       </div>
       {/* Header */}
@@ -408,6 +410,9 @@ export const Chat: React.FC = () => {
                 variant="ghost"
                   size="sm"
                   onClick={clearMessages}
+                  data-confirm-title={tf('Clear this conversation?')}
+                  data-confirm-body={tf('All messages in this chat will be removed. This cannot be undone.')}
+                  data-confirm-label={tf('Clear chat')}
                   disabled={messages.length === 0}
                 className="text-xs h-8"
                 >
@@ -473,7 +478,7 @@ export const Chat: React.FC = () => {
                   </p>
                 </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
+              <div className="motion-stagger grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
                     {exampleQuestions.map((question, index) => (
                   <button
                         key={index}
@@ -593,7 +598,7 @@ export const Chat: React.FC = () => {
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <Sparkles className="h-4 w-4 text-primary" />
-                          <span className="text-xs font-semibold text-foreground">DPR Creation in Progress</span>
+                          <span className="text-xs font-semibold text-foreground">{tf('DPR Creation in Progress')}</span>
                         </div>
                         <span className="text-xs font-bold text-primary">
                           {message.dprAction.progress || 0}%
@@ -606,7 +611,7 @@ export const Chat: React.FC = () => {
                         ></div>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Step {message.dprAction.step} of 10 - Keep going! 🚀
+                        {tf('Step {n} of 10 - Keep going! 🚀').replace('{n}', String(message.dprAction.step))}
                       </p>
                     </div>
                   )}

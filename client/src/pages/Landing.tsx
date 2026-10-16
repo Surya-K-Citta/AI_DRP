@@ -1,12 +1,14 @@
 // @ts-nocheck
-import React, { useEffect, useState } from 'react';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { useLinkHandler } from '@/lib/linkUtils';
 import { buttonVariants } from '@/components/ui/Button';
 import { HeroCarousel } from '@/components/landing/HeroCarousel';
 import { AccessibilityBar } from '@/components/layout/AccessibilityBar';
-import { HowItWorksShowcase } from '@/components/landing/HowItWorksShowcase';
-import { BenefitsAccordion } from '@/components/landing/BenefitsAccordion';
-import { FeaturesScroller } from '@/components/landing/FeaturesScroller';
+const HowItWorksShowcase = lazy(() => import('@/components/landing/HowItWorksShowcase').then((m) => ({ default: m.HowItWorksShowcase })));
+const BenefitsAccordion = lazy(() => import('@/components/landing/BenefitsAccordion').then((m) => ({ default: m.BenefitsAccordion })));
+const FeaturesScroller = lazy(() => import('@/components/landing/FeaturesScroller').then((m) => ({ default: m.FeaturesScroller })));
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 import { useLandingCopy } from '@/i18n/landingCopy';
 import {
   Sparkles,
@@ -84,6 +86,7 @@ const IconTile: React.FC<{ icon: React.ElementType; tone?: Tone; className?: str
 export const Landing: React.FC = () => {
   const handleLinkClick = useLinkHandler();
   const { c } = useLandingCopy();
+  const tf = useClusterFormText();
   // soft shadow under the sticky header only once the page is scrolled (no divider line at rest)
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -127,7 +130,7 @@ export const Landing: React.FC = () => {
           scrolled ? 'shadow-[0_6px_20px_-12px_rgba(16,40,40,0.35)]' : ''
         }`}
       >
-        <nav aria-label="Primary" className="page-container">
+        <nav aria-label={tf('Primary navigation')} className="page-container">
           <div className="flex min-h-[64px] flex-wrap items-center justify-between gap-x-2 gap-y-2 py-2 sm:gap-x-3 md:min-h-[72px]">
             <a
               href="#hero"
@@ -136,7 +139,7 @@ export const Landing: React.FC = () => {
               className="flex min-w-0 items-center gap-2 rounded-lg sm:gap-3"
             >
               <img
-                src="/apmsme_logo.png"
+                src="/apmsme_logo_192.png"
                 alt=""
                 className="h-8 w-auto flex-none object-contain min-[375px]:h-9 sm:h-10 md:h-12"
               />
@@ -146,6 +149,7 @@ export const Landing: React.FC = () => {
               </span>
             </a>
             <div className="flex items-center gap-1.5 max-[349px]:w-full min-[400px]:gap-2 sm:gap-3">
+              <ThemeToggle />
               <a
                 href="/login"
                 onClick={(e) => handleLinkClick(e, '/login')}
@@ -177,8 +181,10 @@ export const Landing: React.FC = () => {
           <div className="page-container pt-12 sm:pt-14 lg:pt-16 lg:[@media(max-height:820px)]:pt-10">
             <div className="relative z-10 mx-auto max-w-[60rem] text-center">
               <img
-                src="/apmsme_logo.png"
-                alt="APMSME Logo"
+                src="/apmsme_logo_192.png"
+                width="78"
+                height="64"
+                alt={tf('APMSME Logo')}
                 className="mx-auto mb-4 h-14 w-auto object-contain md:h-16 lg:[@media(max-height:820px)]:mb-3 lg:[@media(max-height:820px)]:h-12"
               />
               <h1 id="hero-title" className="type-display mx-auto text-ink">
@@ -216,7 +222,9 @@ export const Landing: React.FC = () => {
 
           {/* Curved image carousel (full-bleed) */}
           <div className="mt-4 pb-6 md:pb-8">
-            <HeroCarousel />
+            <div className="theme-light">
+              <HeroCarousel />
+            </div>
           </div>
         </section>
 
@@ -232,11 +240,14 @@ export const Landing: React.FC = () => {
                 <span className="sm:block">{c.benefits.sub[1]}</span>
               </p>
             </div>
-            <BenefitsAccordion items={benefits} />
+            <Suspense fallback={<div className="min-h-[420px]" aria-hidden="true" />}>
+              <BenefitsAccordion items={benefits} />
+            </Suspense>
           </div>
         </section>
 
         {/* Features Section */}
+        <Suspense fallback={<div className="min-h-[640px]" aria-hidden="true" />}>
         <FeaturesScroller
           features={features}
           heading={
@@ -251,6 +262,7 @@ export const Landing: React.FC = () => {
             </>
           }
         />
+        </Suspense>
 
         {/* How It Works Section */}
         <section aria-labelledby="how-title" className="bg-[#f2f6f5] py-16 md:py-24">
@@ -264,7 +276,11 @@ export const Landing: React.FC = () => {
                 <span className="sm:block">{c.how.sub[1]}</span>
               </p>
             </div>
-            <HowItWorksShowcase steps={steps} />
+            <div className="theme-light">
+              <Suspense fallback={<div className="min-h-[420px]" aria-hidden="true" />}>
+                <HowItWorksShowcase steps={steps} />
+              </Suspense>
+            </div>
           </div>
         </section>
 

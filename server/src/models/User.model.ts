@@ -1,7 +1,8 @@
 // @ts-nocheck
 import mongoose, { Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { IUser } from '../types';
+import type { IUser } from '../types';
+import { encryptedFieldsPlugin } from '../lib/fieldCrypto';
 
 const userSchema = new Schema<IUser>(
   {
@@ -28,6 +29,25 @@ const userSchema = new Schema<IUser>(
       enum: ['entrepreneur', 'admin', 'officer'],
       default: 'entrepreneur',
     },
+    // Access control: an admin can switch an account off, which also ends every signed-in session within seconds.
+    isActive: { type: Boolean, default: true, index: true },
+    deactivatedAt: { type: Date },
+    deactivatedBy: { type: String },
+    deactivationReason: { type: String, trim: true },
+    // Any token issued before this moment is refused (sign out everywhere, deactivation, reactivation).
+    sessionsValidFrom: { type: Date },
+    // A pending invitation: only a hash of the one-time token is kept.
+    invite: {
+      tokenHash: { type: String, index: true, sparse: true },
+      expiresAt: { type: Date },
+      invitedBy: { type: String },
+      invitedAt: { type: Date },
+    },
+    // District a District Reviewer (role 'officer') is assigned to. Set by an admin only.
+    reviewDistrict: {
+      type: String,
+      trim: true,
+    },
     udyamNumber: {
       type: String,
       sparse: true,
@@ -40,8 +60,9 @@ const userSchema = new Schema<IUser>(
       type: String,
       trim: true,
     },
+    // Held as encrypted text; the plugin below returns it as a Date.
     dateOfBirth: {
-      type: Date,
+      type: String,
     },
     privacy: {
       noticeVersion: { type: String },
@@ -55,7 +76,7 @@ const userSchema = new Schema<IUser>(
       nominee: {
         name: { type: String, trim: true },
         phone: { type: String, trim: true },
-        email: { type: String, trim: true, lowercase: true },
+        email: { type: String, trim: true },
       },
     },
   },
@@ -63,6 +84,14 @@ const userSchema = new Schema<IUser>(
     timestamps: true,
   }
 );
+
+// Personal data is encrypted with AES-256-GCM before it reaches the database (needs DATA_ENCRYPTION_KEY).
+// Email stays readable because it is the sign-in lookup; name is shown in lists and audit entries.
+userSchema.plugin(encryptedFieldsPlugin, {
+  paths: ['phoneNumber', 'dateOfBirth', 'privacy.nominee.phone', 'privacy.nominee.email'],
+  dates: ['dateOfBirth'],
+  lowercase: ['privacy.nominee.email'],
+});
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {

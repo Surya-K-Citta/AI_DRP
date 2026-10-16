@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef } from 'react';
 import { pageBreakBackground, pageHeightMm, pageWidthMm, type PageSize } from '@/lib/individualDpr/documentStyle';
-import { fitSheetToPages, mmToLayoutPx } from '@/lib/individualDpr/pageFit';
+import { fitSheetToPages, mmToLayoutPx, stampSheetDisclaimers, stampSheetPageNumbers } from '@/lib/individualDpr/pageFit';
 
 export function PageSheet({
   pageSize,
@@ -24,19 +24,22 @@ export function PageSheet({
     if (!sheet) return;
     const pageHeightPx = mmToLayoutPx(sheet, pageHeightMm(pageSize));
     if (!pageHeightPx) return;
+    const edgeBottomPx = mmToLayoutPx(sheet, edgeBottomMm);
     fitSheetToPages(
       sheet,
       pageHeightPx,
       mmToLayoutPx(sheet, edgeTopMm),
-      mmToLayoutPx(sheet, edgeBottomMm)
+      edgeBottomPx
     );
+    stampSheetPageNumbers(sheet, pageHeightPx, edgeBottomPx);
+    stampSheetDisclaimers(sheet, pageHeightPx);
   });
 
   return (
     <div
       ref={ref}
       id={id}
-      className={className}
+      className={`theme-light${className ? ` ${className}` : ''}`}
       style={{
         width: `${pageWidthMm(pageSize)}mm`,
         minHeight: `${pageHeightMm(pageSize)}mm`,

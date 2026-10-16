@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { useBackTarget } from '@/lib/navHistory';
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -13,10 +14,13 @@ import { dprDownloadName } from '@/lib/dprExportName';
 import { dprSchemeCode } from '@/lib/dprSearchTags';
 import { FormattedText } from '@/utils/textFormatter';
 
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 export const DPRGeneration: React.FC = () => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const back = useBackTarget({ path: '/projects' });
   const [project, setProject] = useState<any>(null);
   const [dpr, setDpr] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -78,7 +82,7 @@ export const DPRGeneration: React.FC = () => {
       setDpr(dpr);
       toast.success(t('dpr.generationSuccess'));
     } catch (error) {
-      toast.error('Failed to generate DPR');
+      toast.error(tf('Failed to generate DPR'));
     } finally {
       setIsGenerating(false);
     }
@@ -90,7 +94,7 @@ export const DPRGeneration: React.FC = () => {
       // Handle both dprId (from generateDPR) and _id (from getProjectDPRs)
       const dprId = dpr.dprId || dpr._id;
       if (!dprId) {
-        toast.error('DPR ID not found');
+        toast.error(tf('DPR ID not found'));
         return;
       }
       const blob = await api.downloadPDF(dprId, viewLanguage);
@@ -103,9 +107,9 @@ export const DPRGeneration: React.FC = () => {
           ext: 'pdf',
         })
       );
-      toast.success('PDF downloaded successfully!');
+      toast.success(tf('PDF downloaded successfully!'));
     } catch (error) {
-      toast.error('Failed to download PDF');
+      toast.error(tf('Failed to download PDF'));
     } finally {
       setIsDownloading(false);
     }
@@ -117,7 +121,7 @@ export const DPRGeneration: React.FC = () => {
       // Handle both dprId (from generateDPR) and _id (from getProjectDPRs)
       const dprId = dpr.dprId || dpr._id;
       if (!dprId) {
-        toast.error('DPR ID not found');
+        toast.error(tf('DPR ID not found'));
         return;
       }
       const blob = await api.downloadDOCX(dprId, viewLanguage);
@@ -130,9 +134,9 @@ export const DPRGeneration: React.FC = () => {
           ext: 'docx',
         })
       );
-      toast.success('DOCX downloaded successfully!');
+      toast.success(tf('DOCX downloaded successfully!'));
     } catch (error) {
-      toast.error('Failed to download DOCX');
+      toast.error(tf('Failed to download DOCX'));
     } finally {
       setIsDownloading(false);
     }
@@ -151,9 +155,9 @@ export const DPRGeneration: React.FC = () => {
   return (
     <Layout>
       <div className="max-w-6xl mx-auto space-y-6">
-        <Button variant="ghost" onClick={() => navigate('/projects')}>
+        <Button variant="ghost" onClick={back.go}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          {t('common.back')}
+          {back.label}
         </Button>
 
         <Card>
@@ -167,10 +171,10 @@ export const DPRGeneration: React.FC = () => {
                 <FileText className="h-16 w-16 mx-auto text-muted-foreground" />
                 <div>
                   <h3 className="text-lg font-semibold mb-2">
-                    No DPR Generated Yet
+                    {tf('No DPR Generated Yet')}
                   </h3>
                   <p className="text-muted-foreground mb-6">
-                    Generate a professional DPR for your project
+                    {tf('Generate a professional DPR for your project')}
                   </p>
                   
                   <div className="max-w-sm mx-auto space-y-4">
@@ -207,10 +211,10 @@ export const DPRGeneration: React.FC = () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="text-lg font-semibold">
-                      DPR Generated Successfully
+                      {tf('DPR Generated Successfully')}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Version {dpr.versionNumber || 1} • Generated on{' '}
+                      {tf('Version')} {dpr.versionNumber || 1} • {tf('Generated on')}{' '}
                       {new Date(dpr.generatedAt || dpr.createdAt || new Date()).toLocaleDateString()}
                     </p>
                   </div>
@@ -269,7 +273,7 @@ export const DPRGeneration: React.FC = () => {
                   variant="outline"
                   className="w-full"
                 >
-                  Regenerate DPR
+                  {tf('Regenerate DPR')}
                 </Button>
               </div>
             )}

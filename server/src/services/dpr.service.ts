@@ -1,4 +1,7 @@
 // @ts-nocheck
+import { aiDisclaimerDocxFooters } from '../lib/aiDisclaimer';
+import { lockDownPage } from '../lib/security/pdfPage';
+import { sanitizeHtmlDocument } from '../lib/security/sanitizeHtmlDoc';
 import { IProject } from '../types';
 import { DPRVersion } from '../models/DPRVersion.model';
 import { Project } from '../models/Project.model';
@@ -4073,6 +4076,9 @@ export class DPRService {
         
         try {
           const page = await browser.newPage();
+          // User text ends up in this HTML: no scripts, no network, no files (see lib/security).
+          await lockDownPage(page);
+          const safeHtml = sanitizeHtmlDocument(html);
           
           // Set viewport for A4
           await page.setViewport({
@@ -4084,7 +4090,7 @@ export class DPRService {
           // Set content with longer timeout and error handling
           // Use base64 encoding for images if needed
           try {
-            await page.setContent(html, {
+            await page.setContent(safeHtml, {
               waitUntil: ['load', 'networkidle0'],
               timeout: 90000 // Increased timeout for large documents
             });
@@ -4094,7 +4100,7 @@ export class DPRService {
           } catch (contentError: any) {
             console.warn('⚠️  networkidle0 failed, trying domcontentloaded:', contentError.message);
             // Try with simpler wait condition
-            await page.setContent(html, {
+            await page.setContent(safeHtml, {
               waitUntil: 'domcontentloaded',
               timeout: 90000
             });
@@ -4103,74 +4109,8 @@ export class DPRService {
             console.log('✅ HTML content set with fallback method');
           }
           
-          // Ensure all styles are applied
-          await page.evaluateHandle(() => document.fonts.ready);
-          
-          // Wait for styles to load and render - use Promise-based delay
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          // Verify styles are applied
-          const stylesApplied = await page.evaluate(() => {
-            const firstPage = document.querySelector('.page');
-            if (!firstPage) return false;
-            const computedStyle = window.getComputedStyle(firstPage);
-            const borderWidth = computedStyle.borderWidth;
-            return borderWidth && parseFloat(borderWidth) > 0;
-          });
-          
-          if (!stylesApplied) {
-            console.warn('⚠️  Styles may not be fully applied, but continuing...');
-          } else {
-            console.log('✅ Styles verified and applied');
-          }
-          
-          // Ensure CSS is loaded by checking for styled elements
-          await page.evaluate(() => {
-            // Force style recalculation
-            document.body.style.display = 'none';
-            document.body.offsetHeight; // Trigger reflow
-            document.body.style.display = '';
-          });
-          
-          // Wait a bit more for rendering - use Promise-based delay
+          // Give layout a moment. The page runs with JavaScript off, so no in-page checks are done.
           await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Verify all sections are present in the rendered page
-          const sectionsInPage = await page.evaluate(() => {
-            const sections = [
-              'EXECUTIVE SUMMARY',
-              'INTRODUCTION',
-              'DISTRICT & REGIONAL PROFILE',
-              'CLUSTER PROFILE',
-              'VALUE CHAIN',
-              'MARKET ASPECTS',
-              'SWOT ANALYSIS',
-              'GAP ANALYSIS',
-              'CFC - OPERATION',
-              'SPV MEMBER',
-              'PROJECT COST',
-              'FINANCIAL VIABILITY',
-              'EXPECTED IMPACT',
-              'CONCLUSION',
-              'FINANCIAL STATEMENTS',
-              'ANNEXURES'
-            ];
-            const foundSections: string[] = [];
-            const pageText = document.body.innerText || '';
-            sections.forEach(section => {
-              if (pageText.includes(section)) {
-                foundSections.push(section);
-              }
-            });
-            return { found: foundSections, total: sections.length };
-          });
-          
-          console.log(`📊 Sections found in rendered page: ${sectionsInPage.found.length}/${sectionsInPage.total}`);
-          if (sectionsInPage.found.length < sectionsInPage.total) {
-            console.warn(`⚠️  Some sections may be missing. Found: ${sectionsInPage.found.join(', ')}`);
-          } else {
-            console.log('✅ All sections found in rendered page');
-          }
           
           // Wait one more time to ensure everything is fully rendered
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -4285,9 +4225,10 @@ export class DPRService {
       try {
         const page = await browser.newPage();
 
-        // For safety: we don't need JS execution for printing static HTML
-        // (prevents accidental/injected script execution from user-provided HTML)
-        await page.setJavaScriptEnabled(false);
+        // The HTML came from the browser, so treat it as untrusted: clean it, run it without JavaScript, and
+        // block every network and file request (see lib/security).
+        await lockDownPage(page);
+        const safeHtml = sanitizeHtmlDocument(html);
 
         // Set viewport for A4 (96 DPI)
         const pageFormat = options?.format || 'A4';
@@ -4296,7 +4237,7 @@ export class DPRService {
 
         console.log('🔄 Setting client-rendered HTML content...');
         try {
-          await page.setContent(html, {
+          await page.setContent(safeHtml, {
             waitUntil: ['load', 'networkidle0'],
             timeout: 90000,
           });
@@ -4304,7 +4245,7 @@ export class DPRService {
           await new Promise((resolve) => setTimeout(resolve, 500));
         } catch (contentError: any) {
           console.warn('⚠️  networkidle0 failed, trying domcontentloaded:', contentError.message);
-          await page.setContent(html, {
+          await page.setContent(safeHtml, {
             waitUntil: 'domcontentloaded',
             timeout: 90000,
           });
@@ -5378,6 +5319,7 @@ export class DPRService {
     const doc = new Document({
       sections: [
         {
+          footers: aiDisclaimerDocxFooters(),
           children: allSections,
         },
       ],

@@ -28,7 +28,7 @@ const AP_GUIDE_NOTES: Record<string, string> = {
   legal:
     'AP EDP needs registered sole / partnership / company. OBMMS often allows individual / unregistered. SHG/FPO/coop/trust/society is otherEntity.',
   owner:
-    'AP CMEP enhanced subsidy needs AP domicile plus woman, transgender, ex-serviceman, or PWD. Combinable tags: female, sc, st, bc, pwd, transgender, exServiceman. Exclusive tags: generalMale, notDecided, noMajority, notSure. OBMMS needs SC/ST/BC/PWD.',
+    'AP CMEP enhanced subsidy needs AP domicile plus woman, transgender, ex-serviceman, or PWD. Combinable tags: female, pwd, transgender, exServiceman, plus at most ONE of sc, st, bc, generalMale (pick-one group). Exclusive tags: notDecided, noMajority, notSure. OBMMS needs SC/ST/BC/PWD.',
   domicile:
     'AP CMEP, EDP, FPP, OBMMS, and APIIC park rebates require Andhra Pradesh local domicile.',
   location:
@@ -143,7 +143,8 @@ Rules:
 - Read negation carefully. "I don't own a company yet" / "no firm" / "not registered" is unregistered, not sole owner and not company.
 - "I work on my own" with no registration is unregistered if they say they have no firm; sole only if they are a registered sole proprietor.
 - Do not match on a single keyword if the sentence means the opposite.
-- For questionId "owner": optionIds may be several tags (female, sc, st, bc, pwd, transgender, exServiceman). Never combine generalMale, notDecided, noMajority, or notSure with any other tag.
+- Never guarantee, promise or assure anything (eligibility, approval, subsidy amount, timelines). Do not say "you will get", "you qualify" or "guaranteed". You only point to the answer option that best matches what the person said.
+- For questionId "owner": optionIds may be several tags (female, pwd, transgender, exServiceman) plus at most one of sc, st, bc, generalMale. Never combine notDecided, noMajority, or notSure with any other tag.
 - Ask at most ONE short clarifying question per turn (mode "ask"). Prefer the clarifying script above.
 - suggestedUserReplies: 2–4 short example answers the user might tap (same language as assistantMessage).
 - When you are reasonably sure, use mode "recommend" with optionIds.
@@ -199,7 +200,13 @@ JSON shapes:
     if (parsed.mode === 'recommend') {
       const raw = Array.isArray(parsed.optionIds) ? parsed.optionIds : [parsed.optionIds];
       let optionIds = raw.map((id: any) => String(id || '').trim()).filter((id: string) => allowed.has(id));
-      if (optionIds.includes('generalMale')) optionIds = ['generalMale'];
+      const exclusiveOwner = optionIds.find((id: string) => ['notDecided', 'noMajority', 'notSure'].includes(id));
+      if (exclusiveOwner) optionIds = [exclusiveOwner];
+      else {
+        const pickOne = ['sc', 'st', 'bc', 'generalMale'];
+        const firstPick = optionIds.find((id: string) => pickOne.includes(id));
+        optionIds = optionIds.filter((id: string) => !pickOne.includes(id) || id === firstPick);
+      }
       if (!optionIds.length) return fallbackAsk;
       const names = optionIds.map((id: string) => labels[id] || id).join(', ');
       const confidence = parsed.confidence === 'low' ? 'low' : 'high';

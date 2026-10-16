@@ -1,0 +1,82 @@
+{
+  "catalogVersion": "1.0.0",
+  "formulas": {
+    "cost.total": {
+      "version": "1.0.0",
+      "sha256": "52b9e75c9f0813f551348dedff50cce40983df42ac2d31da09139d2ddd74ba6c"
+    },
+    "mof.total": {
+      "version": "1.0.0",
+      "sha256": "1f24d7e2fa86b0bfba3fe96e6bc769098fad161ed5d86ac1c92fed02b3dfea16"
+    },
+    "mof.difference": {
+      "version": "1.0.0",
+      "sha256": "f031af8dfca87045705dfd35c60feafec2461f3a685e61cd51e837bdafce91c7"
+    },
+    "pl.grossMargin": {
+      "version": "1.0.0",
+      "sha256": "49ccddb5cff1cb3bd9d55a1730eda96d163fa0de6a4479dc644731fb28fb8bcf"
+    },
+    "pl.ebitda": {
+      "version": "1.0.0",
+      "sha256": "5b441e3a74dd60eda2fb838f8a7f610dbde48f63fc11f9dc5aaf1b5f3f12be0b"
+    },
+    "pl.depreciation": {
+      "version": "1.0.0",
+      "sha256": "80c481042911ef02f10dda69b87ffc8c56efed9db49e360549921089c14d2a87"
+    },
+    "pl.interest": {
+      "version": "1.0.0",
+      "sha256": "bd4230ff84615cf99df95441af038d827b8903efcac8d90cda8ec5ec05efd5be"
+    },
+    "pl.pat": {
+      "version": "1.0.0",
+      "sha256": "eec929b738409ac6c200d2f169ca301eb75a2acd803c3cb9aa93e3b20e271d56"
+    },
+    "cf.closingCash": {
+      "version": "1.0.0",
+      "sha256": "4a045689b0153474d96b2e28776fc4c0066828157cbdb0cf74b1c70f4ee348b1"
+    },
+    "bs.identity": {
+      "version": "1.0.0",
+      "sha256": "9cccfc28b6ee607fa0013f479aa1a465c60648c357b616fff76040dbf3d7025a"
+    },
+    "val.npv": {
+      "version": "1.0.0",
+      "sha256": "ab14cfcf524ce484569c281eeede67c21a026a4169873b1ba2f2604292dedb22"
+    },
+    "val.irr": {
+      "version": "1.0.0",
+      "sha256": "6c6f97faccb70d0032563691c43eba02ccaf6c7251ee5b37e8be6450b2556818"
+    },
+    "val.xirr": {
+      "version": "1.0.0",
+      "sha256": "54844d01d2c640d053654dae48118ddae5f5ebf4f62927d04ec35401dcfc9634"
+    },
+    "val.payback": {
+      "version": "1.0.0",
+      "sha256": "9ecbd1e9848b7681a3113855c9b1d039b84e78193ca301a38a12c2e84233a42e"
+    },
+    "ratio.breakEven": {
+      "version": "1.0.0",
+      "sha256": "960102b5fe906e14fc92cbd0b5d32a0b89ba1614082ec7c89dcd60d78cf1a3ab"
+    },
+    "ratio.dscr": {
+      "version": "1.0.0",
+      "sha256": "1bede7674b45ae09f1a38d4edc9592014ecf1179ec79335ce9caa2d55c1868ba"
+    },
+    "ratio.debtEquity": {
+      "version": "1.0.0",
+      "sha256": "0da6a534e3bbb96e0a11fdcfa48b29795fa8f13c934739dde215081c3e58b7ff"
+    },
+    "ratio.promoterEquity": {
+      "version": "1.0.0",
+      "sha256": "92d5d012b2242ea34f951e3e68106eddc18de3c722463a7e51bf7b590031c00c"
+    },
+    "limit.lending": {
+      "version": "1.0.0",
+      "sha256": "9cff25fb29910978daec916a40fee1b8bddcd27882b5bdadc1613bbe73d7b3a5"
+    }
+  },
+  "catalogSha256": "483c839baf63aec71a5828fc366fe035330a2194ad75f6846e56b55df25910c6"
+}

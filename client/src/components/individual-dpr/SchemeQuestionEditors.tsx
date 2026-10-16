@@ -1,3 +1,4 @@
+import { FieldPrompt } from '@/components/ui/FieldPrompt';
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -87,7 +88,7 @@ export function ProductMixEditor({ value, onChange }: { value: unknown; onChange
           </button>
           <div className="grid grid-cols-1 gap-3 pr-8">
             <div className="min-w-0">
-              <label className="mb-2 block text-sm font-medium">{tf('Product Name')}</label>
+              <label className="mb-2 block text-sm font-medium"><FieldPrompt label="Product Name" /></label>
               <Input
                 value={row.name}
                 placeholder={tf('Enter Product Name')}
@@ -95,7 +96,7 @@ export function ProductMixEditor({ value, onChange }: { value: unknown; onChange
               />
             </div>
             <div className="min-w-0">
-              <label className="mb-2 block text-sm font-medium">{tf('Share of Output (%)')}</label>
+              <label className="mb-2 block text-sm font-medium"><FieldPrompt label="Share of Output (%)" /></label>
               <Input
                 type="number"
                 value={row.sharePercent || ''}
@@ -104,7 +105,7 @@ export function ProductMixEditor({ value, onChange }: { value: unknown; onChange
               />
             </div>
             <div className="min-w-0">
-              <label className="mb-2 block text-sm font-medium">{tf('Selling Price (per unit)')}</label>
+              <label className="mb-2 block text-sm font-medium"><FieldPrompt label="Selling Price (per unit)" /></label>
               <Input
                 type="number"
                 value={row.sellingPrice || ''}
@@ -134,7 +135,7 @@ export function RawMaterialEditor({ value, onChange }: { value: unknown; onChang
   const rows = normalizeRawMaterials(value);
   return (
     <RowList
-      title="Raw materials"
+      title={tf('Raw materials')}
       rows={rows}
       onChange={onChange}
       blank={{ name: '', use: '', basis: '' }}
@@ -143,15 +144,15 @@ export function RawMaterialEditor({ value, onChange }: { value: unknown; onChang
       render={(row, _index, update) => (
         <>
           <div className="min-w-0">
-            <label className="block text-sm font-medium mb-2">{tf('Material')}</label>
+            <label className="block text-sm font-medium mb-2"><FieldPrompt label="Material" /></label>
             <Input className={roomyInput} value={row.name} placeholder={tf('Material')} onChange={(e) => update({ name: e.target.value })} />
           </div>
           <div className="min-w-0">
-            <label className="block text-sm font-medium mb-2">{tf('Use')}</label>
+            <label className="block text-sm font-medium mb-2"><FieldPrompt label="Use" /></label>
             <Input className={roomyInput} value={row.use} placeholder={tf('Use')} onChange={(e) => update({ use: e.target.value })} />
           </div>
           <div className="min-w-0">
-            <label className="block text-sm font-medium mb-2">{tf('How it is bought')}</label>
+            <label className="block text-sm font-medium mb-2"><FieldPrompt label="How it is bought" /></label>
             <Input className={roomyInput} value={row.basis} placeholder={tf('How it is bought')} onChange={(e) => update({ basis: e.target.value })} />
           </div>
         </>
@@ -165,7 +166,7 @@ export function StaffRoleEditor({ value, onChange }: { value: unknown; onChange:
   const rows = normalizeStaffRoles(value);
   return (
     <RowList
-      title="Staff by role and monthly pay"
+      title={tf('Staff by role and monthly pay')}
       rows={rows}
       onChange={onChange}
       blank={{ role: '', count: 0, monthlyPay: 0 }}
@@ -174,15 +175,15 @@ export function StaffRoleEditor({ value, onChange }: { value: unknown; onChange:
       render={(row, _index, update) => (
         <>
           <div className="min-w-0">
-            <label className="block text-sm font-medium mb-2">{tf('Role')}</label>
+            <label className="block text-sm font-medium mb-2"><FieldPrompt label="Role" /></label>
             <Input className={roomyInput} value={row.role} placeholder={tf('Role')} onChange={(e) => update({ role: e.target.value })} />
           </div>
           <div className="min-w-0">
-            <label className="block text-sm font-medium mb-2">{tf('Number of people')}</label>
+            <label className="block text-sm font-medium mb-2"><FieldPrompt label="Number of people" /></label>
             <Input className={roomyInput} type="number" value={row.count || ''} placeholder={tf('Number of people')} onChange={(e) => update({ count: parseFloat(e.target.value) || 0 })} />
           </div>
           <div className="min-w-0">
-            <label className="block text-sm font-medium mb-2">{tf('Monthly pay (₹)')}</label>
+            <label className="block text-sm font-medium mb-2"><FieldPrompt label="Monthly pay (₹)" /></label>
             <Input className={roomyInput} type="number" value={row.monthlyPay || ''} placeholder={tf('Monthly pay (₹)')} onChange={(e) => update({ monthlyPay: parseFloat(e.target.value) || 0 })} />
           </div>
         </>
@@ -196,7 +197,7 @@ export function RiskEditor({ value, onChange }: { value: unknown; onChange: (nex
   const rows = normalizeRisks(value);
   return (
     <RowList
-      title="Risks and how they will be handled"
+      title={tf('Risks and how they will be handled')}
       rows={rows}
       onChange={onChange}
       blank={{ risk: '', mitigation: '' }}
@@ -204,11 +205,11 @@ export function RiskEditor({ value, onChange }: { value: unknown; onChange: (nex
       render={(row, _index, update) => (
         <>
           <div className="min-w-0">
-            <label className="block text-sm font-medium mb-2">{tf('Risk')}</label>
+            <label className="block text-sm font-medium mb-2"><FieldPrompt label="Risk" /></label>
             <Input value={row.risk} placeholder={tf('Risk')} onChange={(e) => update({ risk: e.target.value })} />
           </div>
           <div className="min-w-0 sm:col-span-2">
-            <label className="block text-sm font-medium mb-2">{tf('How it will be handled')}</label>
+            <label className="block text-sm font-medium mb-2"><FieldPrompt label="How it will be handled" /></label>
             <Input value={row.mitigation} placeholder={tf('How it will be handled')} onChange={(e) => update({ mitigation: e.target.value })} />
           </div>
         </>
@@ -282,7 +283,7 @@ export function WorkingCapitalBuildupEditor({
       </p>
       {WC_FIELDS.map(([field, label]) => (
         <div key={field}>
-          <label className="block text-sm font-medium mb-2">{tf(label)}</label>
+          <label className="block text-sm font-medium mb-2"><FieldPrompt label={label} /></label>
           <Input type="number" value={(step[field] as number) || ''} onChange={(e) => edit(field, parseFloat(e.target.value) || 0)} />
         </div>
       ))}

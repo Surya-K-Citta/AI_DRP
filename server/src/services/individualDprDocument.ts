@@ -6,6 +6,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { aiDisclaimerDocxFooters } from '../lib/aiDisclaimer';
 import { Document, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType, HeadingLevel, AlignmentType, BorderStyle } from 'docx';
 import catalogs from './individualDprCatalog.json';
 
@@ -2129,7 +2130,7 @@ export async function generateIndividualDprDocx(doc: IndividualDocument): Promis
   });
 
   const word = new Document({
-    sections: [{ children }],
+    sections: [{ footers: aiDisclaimerDocxFooters(), children }],
   });
   return Packer.toBuffer(word);
 }

@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLinkHandler } from '@/lib/linkUtils';
@@ -11,8 +12,10 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Sparkles, ArrowRight, LogIn, CheckCircle, Shield } from 'lucide-react';
 
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 export const Login: React.FC = () => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const navigate = useNavigate();
   const handleLinkClick = useLinkHandler();
   const { login } = useAuthStore();
@@ -60,13 +63,16 @@ export const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="fixed right-4 top-4 z-50">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-md">
         {/* Logo and Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-4">
             <img 
-              src="/apmsme_logo.png" 
-              alt="APMSME Logo" 
+              src="/apmsme_logo_192.png" 
+              alt={tf('APMSME Logo')} 
               className="h-20 w-auto object-contain"
             />
           </div>
@@ -134,7 +140,7 @@ export const Login: React.FC = () => {
             {/* Quick Test Login Section */}
             <div className="mt-6 pt-6 border-t">
               <p className="text-center text-sm font-medium text-foreground mb-4">
-                Want to try the platform quickly?
+                {tf('Want to try the platform quickly?')}
               </p>
               <button
                 onClick={handleDemoLogin}
@@ -142,10 +148,10 @@ export const Login: React.FC = () => {
                 className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-teal-600 to-orange-500 hover:from-teal-700 hover:to-orange-600 text-white font-semibold text-base shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {!isDemoLoading && <Sparkles className="h-5 w-5" />}
-                {isDemoLoading ? 'Logging in...' : 'Quick Test Login'}
+                {isDemoLoading ? tf('Logging in...') : tf('Quick Test Login')}
               </button>
               <p className="text-center text-xs text-muted-foreground mt-3">
-                Instantly login with demo account ({demoCredentials.email})
+                {tf('Instantly login with demo account')} ({demoCredentials.email})
               </p>
             </div>
           </CardContent>
@@ -155,15 +161,15 @@ export const Login: React.FC = () => {
         <div className="mt-8 grid grid-cols-3 gap-4 text-center">
           <div className="p-4 rounded-lg bg-white/50 border border-primary/10">
             <Sparkles className="h-6 w-6 text-primary mx-auto mb-2" />
-            <p className="text-xs font-medium">AI-Powered</p>
+            <p className="text-xs font-medium">{tf('AI-Powered')}</p>
           </div>
           <div className="p-4 rounded-lg bg-white/50 border border-primary/10">
             <Shield className="h-6 w-6 text-secondary mx-auto mb-2" />
-            <p className="text-xs font-medium">Bank-Ready</p>
+            <p className="text-xs font-medium">{tf('Bank-Ready')}</p>
           </div>
           <div className="p-4 rounded-lg bg-white/50 border border-primary/10">
             <ArrowRight className="h-6 w-6 text-success mx-auto mb-2" />
-            <p className="text-xs font-medium">Fast Track</p>
+            <p className="text-xs font-medium">{tf('Fast Track')}</p>
           </div>
         </div>
       </div>

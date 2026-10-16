@@ -145,7 +145,7 @@ function textRows<T>(raw: unknown, blank: () => T, fill: (row: T, item: Record<s
 }
 
 export function normalizeProductMix(raw: unknown): ProductMixRow[] {
-  return textRows(raw, () => ({ name: '', sharePercent: 0, sellingPrice: 0 }), (row, item) => ({
+  return textRows(raw, () => ({ name: '', sharePercent: 0, sellingPrice: 0 }), (_row, item) => ({
     name: String(item.name ?? ''),
     sharePercent: num(item.sharePercent),
     sellingPrice: num(item.sellingPrice),
@@ -153,7 +153,7 @@ export function normalizeProductMix(raw: unknown): ProductMixRow[] {
 }
 
 export function normalizeRawMaterials(raw: unknown): RawMaterialRow[] {
-  return textRows(raw, () => ({ name: '', use: '', basis: '' }), (row, item) => ({
+  return textRows(raw, () => ({ name: '', use: '', basis: '' }), (_row, item) => ({
     name: String(item.name ?? item.material ?? ''),
     use: String(item.use ?? ''),
     basis: String(item.basis ?? ''),
@@ -161,7 +161,7 @@ export function normalizeRawMaterials(raw: unknown): RawMaterialRow[] {
 }
 
 export function normalizeStaffRoles(raw: unknown): StaffRoleRow[] {
-  return textRows(raw, () => ({ role: '', count: 0, monthlyPay: 0 }), (row, item) => ({
+  return textRows(raw, () => ({ role: '', count: 0, monthlyPay: 0 }), (_row, item) => ({
     role: String(item.role ?? ''),
     count: num(item.count),
     monthlyPay: num(item.monthlyPay),
@@ -169,14 +169,14 @@ export function normalizeStaffRoles(raw: unknown): StaffRoleRow[] {
 }
 
 export function normalizeRisks(raw: unknown): RiskRow[] {
-  return textRows(raw, () => ({ risk: '', mitigation: '' }), (row, item) => ({
+  return textRows(raw, () => ({ risk: '', mitigation: '' }), (_row, item) => ({
     risk: String(item.risk ?? ''),
     mitigation: String(item.mitigation ?? ''),
   }));
 }
 
 export function normalizeUtilisationYears(raw: unknown): UtilisationYear[] {
-  return textRows(raw, () => ({ label: '', percent: 0 }), (row, item) => ({
+  return textRows(raw, () => ({ label: '', percent: 0 }), (_row, item) => ({
     label: String(item.label ?? ''),
     percent: num(item.percent),
   }));

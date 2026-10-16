@@ -1,4 +1,5 @@
 import { getUnitName, withSyncedUnitName } from './toIndividualPayload.ts';
+import { isTownInDistrict } from './apDistricts.ts';
 
 const TABLE_NUMBERS = new Set([
   'sharePercent',
@@ -21,6 +22,8 @@ const TABLE_NUMBERS = new Set([
   'year',
   'age',
   'experienceYears',
+  'yearOfEstablishment',
+  'yearOfIncorporation',
 ]);
 
 function numericName(name: string): boolean {
@@ -92,5 +95,8 @@ export function patchFromDocEdit(
     return { step, stepData: withSyncedUnitName(current, String(next ?? '')) };
   }
   current[name] = next;
+  if (step === 1 && name === 'district' && !isTownInDistrict(String(next ?? ''), current.location)) {
+    current.location = '';
+  }
   return { step, stepData: current };
 }

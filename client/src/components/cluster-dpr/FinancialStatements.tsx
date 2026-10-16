@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Plus, Trash2, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'react-hot-toast';
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 
 interface FinancialStatementsProps {
   data: any;
@@ -13,6 +14,7 @@ interface FinancialStatementsProps {
 }
 
 export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, onChange, projectData }) => {
+  const tf = useClusterFormText();
   const [generating, setGenerating] = useState<string | null>(null);
   
   const financialStatements = data || {};
@@ -43,9 +45,9 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
       const response = await api.generateFinancialStatements(projectData || {});
       if (response.success && response.data) {
         onChange('financialStatements', response.data);
-        toast.success('Financial statements generated successfully!');
+        toast.success(tf('Financial statements generated successfully!'));
       } else {
-        toast.error('Failed to generate financial statements');
+        toast.error(tf('Failed to generate financial statements'));
       }
     } catch (error: any) {
       console.error('Error generating financial statements:', error);
@@ -60,10 +62,8 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
       {/* Header with AI Generate Button */}
       <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h3 className="text-xl font-semibold">Financial Statements</h3>
-          <p className="text-sm text-muted-foreground">
-            Enter data manually or generate using AI based on project details
-          </p>
+          <h3 className="text-xl font-semibold">{tf('Financial Statements')}</h3>
+          <p className="text-sm text-muted-foreground">{tf('Enter data manually or generate using AI based on project details')}</p>
         </div>
         <Button
           variant="outline"
@@ -72,16 +72,16 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
           className="gap-2"
         >
           <Sparkles className="h-4 w-4" />
-          {generating === 'all' ? 'Generating...' : 'Generate All with AI'}
+          {generating === 'all' ? tf('Generating...') : tf('Generate All with AI')}
         </Button>
       </div>
 
       {/* Statement 1: Cost of Project & Means of Finance */}
       <div className="border rounded-lg p-6 space-y-4">
-        <h4 className="text-lg font-semibold">Statement 1: Cost of Project & Means of Finance</h4>
+        <h4 className="text-lg font-semibold">{tf('Statement 1: Cost of Project & Means of Finance')}</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Cost of Project (₹ Lakhs)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Cost of Project (₹ Lakhs)')}</label>
             <Input
               type="number"
               value={financialStatements.costOfProject || ''}
@@ -90,7 +90,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">SPV Share (₹ Lakhs)</label>
+            <label className="block text-sm font-medium mb-2">{tf('SPV Share (₹ Lakhs)')}</label>
             <Input
               type="number"
               value={financialStatements.spvShare || ''}
@@ -99,7 +99,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">State Govt. Grant (₹ Lakhs)</label>
+            <label className="block text-sm font-medium mb-2">{tf('State Govt. Grant (₹ Lakhs)')}</label>
             <Input
               type="number"
               value={financialStatements.stateGovtGrant || ''}
@@ -108,7 +108,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Bank Loan (₹ Lakhs)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Bank Loan (₹ Lakhs)')}</label>
             <Input
               type="number"
               value={financialStatements.bankLoan || ''}
@@ -121,10 +121,10 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
 
       {/* Statement 2: Assessment of Working Capital */}
       <div className="border rounded-lg p-6 space-y-4">
-        <h4 className="text-lg font-semibold">Statement 2: Assessment of Working Capital</h4>
+        <h4 className="text-lg font-semibold">{tf('Statement 2: Assessment of Working Capital')}</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Raw Materials (₹ Lakhs)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Raw Materials (₹ Lakhs)')}</label>
             <Input
               type="number"
               value={financialStatements.workingCapital?.rawMaterials || ''}
@@ -133,7 +133,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Work in Progress (₹ Lakhs)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Work in Progress (₹ Lakhs)')}</label>
             <Input
               type="number"
               value={financialStatements.workingCapital?.workInProgress || ''}
@@ -142,7 +142,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Finished Goods (₹ Lakhs)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Finished Goods (₹ Lakhs)')}</label>
             <Input
               type="number"
               value={financialStatements.workingCapital?.finishedGoods || ''}
@@ -151,7 +151,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Debtors (₹ Lakhs)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Debtors (₹ Lakhs)')}</label>
             <Input
               type="number"
               value={financialStatements.workingCapital?.debtors || ''}
@@ -160,7 +160,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Cash & Bank Balance (₹ Lakhs)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Cash & Bank Balance (₹ Lakhs)')}</label>
             <Input
               type="number"
               value={financialStatements.workingCapital?.cashBankBalance || ''}
@@ -169,7 +169,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Creditors (₹ Lakhs)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Creditors (₹ Lakhs)')}</label>
             <Input
               type="number"
               value={financialStatements.workingCapital?.creditors || ''}
@@ -182,14 +182,14 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
 
       {/* Statement 3: Cost of Production & Profitability (5 years) */}
       <div className="border rounded-lg p-6 space-y-4">
-        <h4 className="text-lg font-semibold">Statement 3: Cost of Production & Profitability (5 Years)</h4>
+        <h4 className="text-lg font-semibold">{tf('Statement 3: Cost of Production & Profitability (5 Years)')}</h4>
         <div className="space-y-4">
           {[1, 2, 3, 4, 5].map((year) => (
             <div key={year} className="border rounded p-4 space-y-3">
-              <h5 className="font-medium">Year {year}</h5>
+              <h5 className="font-medium">{tf('Year {n}').replace('{n}', String(year))}</h5>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Sales Realization (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Sales Realization (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.costOfProduction?.[`year${year}`]?.salesRealization || ''}
@@ -204,7 +204,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Total Cost (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Total Cost (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.costOfProduction?.[`year${year}`]?.totalCost || ''}
@@ -219,7 +219,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Profit Before Tax (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Profit Before Tax (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.costOfProduction?.[`year${year}`]?.profitBeforeTax || ''}
@@ -241,10 +241,10 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
 
       {/* Statement 4: Assumptions for Cost of Production & Profitability */}
       <div className="border rounded-lg p-6 space-y-4">
-        <h4 className="text-lg font-semibold">Statement 4: Assumptions for Cost of Production & Profitability</h4>
+        <h4 className="text-lg font-semibold">{tf('Statement 4: Assumptions for Cost of Production & Profitability')}</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Capacity Utilization Year 1 (%)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Capacity Utilization Year 1 (%)')}</label>
             <Input
               type="number"
               value={financialStatements.assumptions?.capacityUtilizationYear1 || ''}
@@ -253,7 +253,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Capacity Utilization Year 2 (%)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Capacity Utilization Year 2 (%)')}</label>
             <Input
               type="number"
               value={financialStatements.assumptions?.capacityUtilizationYear2 || ''}
@@ -262,7 +262,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Capacity Utilization Year 3+ (%)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Capacity Utilization Year 3+ (%)')}</label>
             <Input
               type="number"
               value={financialStatements.assumptions?.capacityUtilizationYear3Onwards || ''}
@@ -271,7 +271,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Raw Material Cost (% of Revenue)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Raw Material Cost (% of Revenue)')}</label>
             <Input
               type="number"
               value={financialStatements.assumptions?.rawMaterialCostPercentage || ''}
@@ -284,10 +284,10 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
 
       {/* Statement 5: Estimation of Power Cost */}
       <div className="border rounded-lg p-6 space-y-4">
-        <h4 className="text-lg font-semibold">Statement 5: Estimation of Power Cost</h4>
+        <h4 className="text-lg font-semibold">{tf('Statement 5: Estimation of Power Cost')}</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Connected Load (KW)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Connected Load (KW)')}</label>
             <Input
               type="number"
               value={financialStatements.powerCost?.connectedLoad || ''}
@@ -296,7 +296,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Monthly Consumption (Units)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Monthly Consumption (Units)')}</label>
             <Input
               type="number"
               value={financialStatements.powerCost?.monthlyConsumption || ''}
@@ -305,7 +305,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Rate per Unit (₹)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Rate per Unit (₹)')}</label>
             <Input
               type="number"
               value={financialStatements.powerCost?.ratePerUnit || ''}
@@ -314,7 +314,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Annual Power Cost (₹ Lakhs)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Annual Power Cost (₹ Lakhs)')}</label>
             <Input
               type="number"
               value={financialStatements.powerCost?.annualCost || ''}
@@ -327,12 +327,12 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
 
       {/* Statement 6: Manpower Requirement & Estimation of Cost */}
       <div className="border rounded-lg p-6 space-y-4">
-        <h4 className="text-lg font-semibold">Statement 6: Manpower Requirement & Estimation of Cost</h4>
+        <h4 className="text-lg font-semibold">{tf('Statement 6: Manpower Requirement & Estimation of Cost')}</h4>
         <div className="space-y-4">
           {(financialStatements.manpower || []).map((mp: any, index: number) => (
             <div key={index} className="border rounded p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <h5 className="font-medium">Employee Category {index + 1}</h5>
+                <h5 className="font-medium">{tf('Employee Category {n}').replace('{n}', String(index + 1))}</h5>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -347,7 +347,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Category</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Category')}</label>
                   <Input
                     value={mp.category || ''}
                     onChange={(e) => {
@@ -355,11 +355,11 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                       newManpower[index] = { ...newManpower[index], category: e.target.value };
                       handleNestedChange(['manpower'], newManpower);
                     }}
-                    placeholder="e.g., Executive, Worker"
+                    placeholder={tf('e.g., Executive, Worker')}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">No. of Employees</label>
+                  <label className="block text-sm font-medium mb-2">{tf('No. of Employees')}</label>
                   <Input
                     type="number"
                     value={mp.count || ''}
@@ -372,7 +372,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Annual Salary (₹)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Annual Salary (₹)')}</label>
                   <Input
                     type="number"
                     value={mp.annualSalary || ''}
@@ -385,7 +385,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Total Cost (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Total Cost (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={mp.totalCost || ''}
@@ -410,19 +410,19 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             className="gap-2"
           >
             <Plus className="h-4 w-4" />
-            Add Employee Category
+            {tf('Add Employee Category')}
           </Button>
         </div>
       </div>
 
       {/* Statement 7: Estimation of Depreciation */}
       <div className="border rounded-lg p-6 space-y-4">
-        <h4 className="text-lg font-semibold">Statement 7: Estimation of Depreciation</h4>
+        <h4 className="text-lg font-semibold">{tf('Statement 7: Estimation of Depreciation')}</h4>
         <div className="space-y-4">
           {(financialStatements.depreciation || []).map((dep: any, index: number) => (
             <div key={index} className="border rounded p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <h5 className="font-medium">Asset {index + 1}</h5>
+                <h5 className="font-medium">{tf('Asset {n}').replace('{n}', String(index + 1))}</h5>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -437,7 +437,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Asset Name</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Asset Name')}</label>
                   <Input
                     value={dep.asset || ''}
                     onChange={(e) => {
@@ -445,11 +445,11 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                       newDep[index] = { ...newDep[index], asset: e.target.value };
                       handleNestedChange(['depreciation'], newDep);
                     }}
-                    placeholder="e.g., Building, Machinery"
+                    placeholder={tf('e.g., Building, Machinery')}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Cost (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Cost (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={dep.cost || ''}
@@ -462,7 +462,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Depreciation Rate (%)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Depreciation Rate (%)')}</label>
                   <Input
                     type="number"
                     value={dep.rate || ''}
@@ -475,7 +475,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Annual Depreciation (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Annual Depreciation (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={dep.annualDepreciation || ''}
@@ -500,21 +500,21 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             className="gap-2"
           >
             <Plus className="h-4 w-4" />
-            Add Asset
+            {tf('Add Asset')}
           </Button>
         </div>
       </div>
 
       {/* Statement 8: Calculation of Income Tax */}
       <div className="border rounded-lg p-6 space-y-4">
-        <h4 className="text-lg font-semibold">Statement 8: Calculation of Income Tax (5 Years)</h4>
+        <h4 className="text-lg font-semibold">{tf('Statement 8: Calculation of Income Tax (5 Years)')}</h4>
         <div className="space-y-4">
           {[1, 2, 3, 4, 5].map((year) => (
             <div key={year} className="border rounded p-4 space-y-3">
-              <h5 className="font-medium">Year {year}</h5>
+              <h5 className="font-medium">{tf('Year {n}').replace('{n}', String(year))}</h5>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Profit Before Tax (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Profit Before Tax (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.incomeTax?.[`year${year}`]?.profitBeforeTax || ''}
@@ -529,7 +529,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Tax Rate (%)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Tax Rate (%)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.incomeTax?.[`year${year}`]?.taxRate || ''}
@@ -544,7 +544,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Tax Amount (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Tax Amount (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.incomeTax?.[`year${year}`]?.taxAmount || ''}
@@ -559,7 +559,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Profit After Tax (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Profit After Tax (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.incomeTax?.[`year${year}`]?.profitAfterTax || ''}
@@ -581,14 +581,14 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
 
       {/* Statement 9: Projected Cash Flow Statement */}
       <div className="border rounded-lg p-6 space-y-4">
-        <h4 className="text-lg font-semibold">Statement 9: Projected Cash Flow Statement (5 Years)</h4>
+        <h4 className="text-lg font-semibold">{tf('Statement 9: Projected Cash Flow Statement (5 Years)')}</h4>
         <div className="space-y-4">
           {[1, 2, 3, 4, 5].map((year) => (
             <div key={year} className="border rounded p-4 space-y-3">
-              <h5 className="font-medium">Year {year}</h5>
+              <h5 className="font-medium">{tf('Year {n}').replace('{n}', String(year))}</h5>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Cash Inflow (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Cash Inflow (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.cashFlow?.[`year${year}`]?.inflow || ''}
@@ -603,7 +603,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Cash Outflow (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Cash Outflow (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.cashFlow?.[`year${year}`]?.outflow || ''}
@@ -618,7 +618,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Net Cash Flow (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Net Cash Flow (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.cashFlow?.[`year${year}`]?.netCashFlow || ''}
@@ -640,14 +640,14 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
 
       {/* Statement 10: Projected Balance Sheet */}
       <div className="border rounded-lg p-6 space-y-4">
-        <h4 className="text-lg font-semibold">Statement 10: Projected Balance Sheet (5 Years)</h4>
+        <h4 className="text-lg font-semibold">{tf('Statement 10: Projected Balance Sheet (5 Years)')}</h4>
         <div className="space-y-4">
           {[1, 2, 3, 4, 5].map((year) => (
             <div key={year} className="border rounded p-4 space-y-3">
-              <h5 className="font-medium">Year {year}</h5>
+              <h5 className="font-medium">{tf('Year {n}').replace('{n}', String(year))}</h5>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Total Assets (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Total Assets (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.balanceSheet?.[`year${year}`]?.totalAssets || ''}
@@ -662,7 +662,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Total Liabilities (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Total Liabilities (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.balanceSheet?.[`year${year}`]?.totalLiabilities || ''}
@@ -684,14 +684,14 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
 
       {/* Statement 11: Estimation of Break Even Point */}
       <div className="border rounded-lg p-6 space-y-4">
-        <h4 className="text-lg font-semibold">Statement 11: Estimation of Break Even Point (5 Years)</h4>
+        <h4 className="text-lg font-semibold">{tf('Statement 11: Estimation of Break Even Point (5 Years)')}</h4>
         <div className="space-y-4">
           {[1, 2, 3, 4, 5].map((year) => (
             <div key={year} className="border rounded p-4 space-y-3">
-              <h5 className="font-medium">Year {year}</h5>
+              <h5 className="font-medium">{tf('Year {n}').replace('{n}', String(year))}</h5>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Fixed Expenses (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Fixed Expenses (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.breakEven?.[`year${year}`]?.fixedExpenses || ''}
@@ -706,7 +706,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Variable Expenses (₹ Lakhs)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Variable Expenses (₹ Lakhs)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.breakEven?.[`year${year}`]?.variableExpenses || ''}
@@ -721,7 +721,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Break Even Point (%)</label>
+                  <label className="block text-sm font-medium mb-2">{tf('Break Even Point (%)')}</label>
                   <Input
                     type="number"
                     value={financialStatements.breakEven?.[`year${year}`]?.breakEvenPoint || ''}
@@ -743,10 +743,10 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
 
       {/* Statement 12: Estimation of NPV & IRR */}
       <div className="border rounded-lg p-6 space-y-4">
-        <h4 className="text-lg font-semibold">Statement 12: Estimation of NPV & IRR</h4>
+        <h4 className="text-lg font-semibold">{tf('Statement 12: Estimation of NPV & IRR')}</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">NPV (₹ Lakhs)</label>
+            <label className="block text-sm font-medium mb-2">{tf('NPV (₹ Lakhs)')}</label>
             <Input
               type="number"
               value={financialStatements.npvIrr?.npv || ''}
@@ -755,7 +755,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">IRR (%)</label>
+            <label className="block text-sm font-medium mb-2">{tf('IRR (%)')}</label>
             <Input
               type="number"
               value={financialStatements.npvIrr?.irr || ''}
@@ -764,7 +764,7 @@ export const FinancialStatements: React.FC<FinancialStatementsProps> = ({ data, 
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Discount Rate (%)</label>
+            <label className="block text-sm font-medium mb-2">{tf('Discount Rate (%)')}</label>
             <Input
               type="number"
               value={financialStatements.npvIrr?.discountRate || ''}

@@ -1,22 +1,34 @@
 // @ts-nocheck
+import { ReviewDialog, StepChecks } from '@/components/individual-dpr/DataChecks';
+import { dismissalKey, openFindings, runDataChecks, KIND_ORDER, type Finding } from '@/lib/individualDpr/dataChecks';
+import { auditSubmission, financeWarnings } from '@/lib/individualDpr/submissionAudit';
+import { StepIntro } from '@/components/ui/FieldPrompt';
+import { ResumeDrafts } from '@/components/individual-dpr/ResumeDrafts';
+import { draftSignature, hasDraftContent } from '@/lib/individualDpr/draftState';
+import { registerDraftFlusher } from '@/lib/draftFlush';
+import { useDraftAutosave } from '@/lib/useDraftAutosave';
+import { AuthoringStepper } from '@/components/individual-dpr/AuthoringStepper';
+import { computeSections, overallProgress, sectionsUnsaved } from '@/lib/individualDpr/authoringProgress';
+import { useBackTarget } from '@/lib/navHistory';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { ArrowLeft, Save, ChevronRight, ChevronLeft, ZoomIn, ZoomOut, Maximize2, RotateCcw, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
+import { ClipboardCheck, ArrowLeft, Save, ChevronRight, ChevronLeft, ZoomIn, ZoomOut, Maximize2, RotateCcw, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useIndividualDPRStore } from '@/store/individualDPRStore';
 import { IndividualDPRForm } from '@/components/individual-dpr/IndividualDPRForm';
 import { IndividualDPRDocumentView } from '@/components/individual-dpr/IndividualDPRDocumentView';
 import { StyleEditor } from '@/components/individual-dpr/StyleEditor';
 import { getSchemeDocSteps, sectionTitleFromStep } from '@/lib/individualDpr/individualDocModel';
 import { defaultStyleForScheme, pageEdgeMm, parseBlockFrameSlot, resolveDocumentStyle, selectionStepOrder, setBlockFrame, setBlockText, setPictureFrame } from '@/lib/individualDpr/documentStyle';
+import { styleFromGuide } from '@/lib/individualDpr/reportGuide';
+import { useReportGuideStore } from '@/store/reportGuideStore';
 import { PageSheet } from '@/components/individual-dpr/PageSheet';
 import { toast } from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { useTranslation } from 'react-i18next';
-import { LanguageToggle } from '@/components/ui/LanguageToggle';
-import { DevModeToggle } from '@/components/ui/DevModeToggle';
+import { useDevModeStore } from '@/store/devModeStore';
 import { useAuthStore } from '@/store/authStore';
 import { isSuperAdmin } from '@/lib/rbac';
 import { useClusterFormText } from '@/lib/clusterDprFormText';
@@ -24,11 +36,11 @@ import { toIndividualPayload, getUnitName } from '@/lib/individualDpr/toIndividu
 import { individualDprApi } from '@/lib/individualDpr/individualDprApi';
 import { getVisibleSteps, getStepTitle, getSchemeImpact, SCHEME_OPTIONS, getContentStep } from '@/lib/individualDpr/schemeFormConfig';
 import { missingIndividualRequired } from '@/lib/requiredStepFields';
+import { invalidFormats } from '@/lib/validation/stepFormats';
 import { contentToLocal, getSchemeStepCount } from '@/lib/individualDpr/schemeStepCatalog';
 import { patchFromDocEdit } from '@/lib/individualDpr/liveDocEdit';
 import { peekHandoff } from '@/lib/ventureMatch/mapToDpr';
 import { hasUnder18Applicant } from '@/lib/privacy/under18';
-import { GuardianNotice } from '@/components/privacy/GuardianNotice';
 import { SchemeBriefPanel } from '@/components/individual-dpr/SchemeBriefPanel';
 import { SchemePickerGrid } from '@/components/individual-dpr/SchemePickerGrid';
 import { getSchemeUiTemplate } from '@/lib/individualDpr/schemeUiTemplate';
@@ -45,6 +57,7 @@ export const IndividualDPRCreation: React.FC = () => {
   const { t, i18n } = useTranslation();
   const tf = useClusterFormText();
   const navigate = useNavigate();
+  const back = useBackTarget({ path: '/dashboard' });
   const params = useParams();
   const [searchParams] = useSearchParams();
   const {
@@ -69,12 +82,39 @@ export const IndividualDPRCreation: React.FC = () => {
   const [isStepping, setIsStepping] = useState(false);
   const [invalidFields, setInvalidFields] = useState<string[]>([]);
   const [requiredNotice, setRequiredNotice] = useState('');
-  const [devMode, setDevMode] = useState(false);
+  const devMode = useDevModeStore((s) => s.on);
+  const setDevMode = useDevModeStore((s) => s.setOn);
+  useEffect(() => {
+    setDevMode(false);
+    return () => setDevMode(false);
+  }, [setDevMode]);
+  useEffect(() => {
+    if (devMode) {
+      setInvalidFields([]);
+      setRequiredNotice('');
+    }
+  }, [devMode]);
   const isAdmin = isSuperAdmin(useAuthStore((s) => s.user?.role));
   const [previewZoom, setPreviewZoom] = useState(0.6);
   const [project, setProject] = useState<any>(null);
   const isNewDraft = searchParams.get('new') === 'true';
   const [isLoadingData, setIsLoadingData] = useState(!isNewDraft);
+  const isEditing = Boolean(params.projectId || searchParams.get('projectId'));
+  // Opened straight onto a saved report (Edit from the dashboard, a resumed draft): Back leaves the page.
+  // The under-18 notice appears as a notification (once each time it starts to apply), not as a banner that pushes the form down.
+  const under18Applicant = hasUnder18Applicant(data);
+  const under18Shown = useRef(false);
+  useEffect(() => {
+    if (under18Applicant && !under18Shown.current) {
+      under18Shown.current = true;
+      toast.error(t('privacy.guardianMessage'), { id: 'under18-applicant', duration: 9000 });
+    } else if (!under18Applicant) {
+      under18Shown.current = false;
+    }
+  }, [under18Applicant, t]);
+
+  const enteredAtForm = useRef(Boolean(params.projectId || searchParams.get('projectId')));
+  const enteredAtBrief = useRef(isNewDraft && Boolean(searchParams.get('scheme')));
   const [setupPhase, setSetupPhase] = useState<SetupPhase>(
     isNewDraft && searchParams.get('scheme') ? 'brief' : 'pick'
   );
@@ -94,9 +134,64 @@ export const IndividualDPRCreation: React.FC = () => {
   const [previewHitIndex, setPreviewHitIndex] = useState(0);
   const [previewHitCount, setPreviewHitCount] = useState(0);
   const [styling, setStyling] = useState(false);
+  const [styleTab, setStyleTab] = useState<'form' | 'sections' | 'style'>('form');
   const [docStyle, setDocStyle] = useState<any>(null);
   const selectionSteps = selectionStepOrder(getSchemeDocSteps(schemeCode), docStyle?.sectionOrder, visibleSteps);
   const lastVisible = selectionSteps[selectionSteps.length - 1] || getSchemeStepCount(schemeCode);
+  // Automated checks: missing, unclear, mismatched or unusual answers (advisory, never block on their own).
+  const contentOf = (step: number) => getContentStep(step, schemeCode);
+  const visibleContent = new Set(selectionSteps.map(contentOf));
+  const dismissedChecks: string[] = data.schemeExtras?.dismissedChecks || [];
+  const stepFindings = openFindings(runDataChecks(data), dismissedChecks).filter((f) => f.step === contentOf(currentStep));
+  // Hard stops first (required fields, funding rules), then the advisory notes. A blocker replaces the advisory note of the same kind.
+  const blockers = auditSubmission(data, [...visibleContent], (step, stepData) => missingIndividualRequired(step, stepData, schemeCode)).filter((f) => visibleContent.has(f.step));
+  const blockerIds = new Set(blockers.map((f) => f.id));
+  const advisory = openFindings([...runDataChecks(data, { final: true }), ...financeWarnings(data)], dismissedChecks).filter(
+    (f) => visibleContent.has(f.step) && !blockerIds.has(f.id)
+  );
+  const allFindings = [...blockers, ...advisory].sort((x, y) => KIND_ORDER.indexOf(x.kind) - KIND_ORDER.indexOf(y.kind) || x.step - y.step);
+  const canBypassBlocks = isAdmin && devMode;
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const dismissFinding = (finding: Finding) =>
+    setSchemeExtras({ ...(data.schemeExtras || {}), dismissedChecks: [...dismissedChecks, dismissalKey(finding)] });
+  const goToFinding = (finding: Finding) => {
+    const local = selectionSteps.find((step) => contentOf(step) === finding.step);
+    setReviewOpen(false);
+    if (!local) return;
+    setInvalidFields(finding.field ? [finding.field] : []);
+    setCurrentStep(local);
+    setEditStepN(local);
+    setEditNonce((n) => n + 1);
+    // Bring the field into view once its step has rendered.
+    if (finding.field) {
+      window.setTimeout(() => {
+        const el = document.querySelector(`[data-required-field="${finding.field}"]`) as HTMLElement | null;
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el?.focus?.();
+      }, 250);
+    }
+  };
+  // Section-by-section progress: live from what is on screen, and "saved" from the last saved copy.
+  const sectionDefs = getSchemeDocSteps(schemeCode);
+  // Progress reads the answers as typed (the store), not the outgoing payload, which adds defaults such as the unit name.
+  const sections = computeSections(data, schemeCode, sectionDefs, selectionSteps);
+  const overall = overallProgress(sections);
+  const [savedPayload, setSavedPayload] = useState<any>(null);
+  const savedSections = savedPayload ? computeSections(savedPayload, schemeCode, sectionDefs, selectionSteps) : null;
+  const savedPercent = savedSections ? overallProgress(savedSections).percent : 0;
+  const unsavedSections = sectionsUnsaved(sections, savedSections);
+  // Anything typed since the last save (whole draft, not just the answers the stepper counts).
+  const draftIsDirty = savedPayload
+    ? draftSignature(data) !== draftSignature(savedPayload)
+    : hasDraftContent(data);
+  const dirtyRef = useRef(false);
+  dirtyRef.current = draftIsDirty;
+  // A report opened from the server starts out saved.
+  useEffect(() => {
+    if (!isLoadingData && data.projectId && savedPayload === null) setSavedPayload(JSON.parse(JSON.stringify(data)));
+  }, [isLoadingData, data.projectId]);
+
+
   const stepOrdinal = Math.max(1, selectionSteps.indexOf(currentStep) + 1);
   const docStyleRef = useRef<any>(null);
   docStyleRef.current = docStyle;
@@ -180,8 +275,12 @@ export const IndividualDPRCreation: React.FC = () => {
         const dprIdFromUrl = params.dprId || searchParams.get('dprId');
         const isNew = searchParams.get('new') === 'true';
         const schemeFromUrl = searchParams.get('scheme');
+        setSavedPayload(null);
+        setLastSavedAt(null);
+        setSaveStatus('idle');
 
         if (isNew) {
+          enteredAtForm.current = false;
           resetData();
           setDprIds('', '');
           setProject(null);
@@ -193,6 +292,9 @@ export const IndividualDPRCreation: React.FC = () => {
 
           const scheme = schemeFromUrl || null;
           setMatchedSchemeCode(scheme);
+          if (searchParams.get('guide') !== '1') {
+            useReportGuideStore.getState().setPending(null);
+          }
 
           setCurrentStep(1);
           // Scheme Finder with a code → brief; otherwise show cards first
@@ -203,6 +305,8 @@ export const IndividualDPRCreation: React.FC = () => {
 
         setIsLoadingData(true);
         if (projectIdFromUrl) {
+          // Opened onto a saved report (Resume, Edit): Back leaves the page rather than stepping inside it.
+          enteredAtForm.current = true;
           try {
             const projectResponse = await api.getProject(projectIdFromUrl);
             const projectData = projectResponse.data || projectResponse;
@@ -221,8 +325,14 @@ export const IndividualDPRCreation: React.FC = () => {
             setDprIds(dprData?._id || dprData?.id || '', pid);
             setSetupPhase('form');
             const loaded = useIndividualDPRStore.getState().data;
-            const first = getVisibleSteps(loaded.matchedSchemeCode)[0] || 1;
-            void openStyleEditor(first);
+            const visible = getVisibleSteps(loaded.matchedSchemeCode);
+            const first = visible[0] || 1;
+            // Resume where the person left off (a legacy step number is mapped to this scheme's numbering).
+            const saved = Number(loaded.currentStep) || first;
+            const mapped = visible.includes(saved) ? saved : contentToLocal(loaded.matchedSchemeCode, saved);
+            const start = mapped && visible.includes(mapped) ? mapped : first;
+            setCurrentStep(start);
+            void openStyleEditor(start);
           } catch {
             resetData();
             setSetupPhase('pick');
@@ -236,7 +346,10 @@ export const IndividualDPRCreation: React.FC = () => {
       }
     };
     load();
-  }, []);
+    // Runs again when the address points at a different report (for example Resume on the scheme picker,
+    // which stays on this same page). The save that follows a first draft only rewrites the address bar
+    // without going through the router, so it does not trigger this.
+  }, [params.projectId, params.dprId, searchParams.get('projectId'), searchParams.get('dprId'), searchParams.get('new')]);
 
   useEffect(() => {
     // Remap legacy content-step numbers (e.g. 12) to scheme-local consecutive steps (e.g. PMEGP step 8)
@@ -246,41 +359,102 @@ export const IndividualDPRCreation: React.FC = () => {
     }
   }, [schemeCode]);
 
-  const saveToDatabase = useCallback(async () => {
-    try {
-      if (hasUnder18Applicant(data)) {
-        toast.error(t('privacy.guardianMessage'));
-        return false;
-      }
-      const hasAnyData = Object.keys(data).some((key) => {
-        if (key.startsWith('step')) {
-          const stepData = data[key];
-          return stepData && typeof stepData === 'object' && Object.keys(stepData).length > 0;
-        }
-        return false;
-      });
-      if (hasAnyData || data.projectId) {
-        const response = await individualDprApi.saveDraft(dprPayload);
-        if (response.success && response.data) {
-          if (response.data.dprId && response.data.projectId) {
-            setDprIds(response.data.dprId, response.data.projectId);
-            const schemeQ = data.matchedSchemeCode ? `&scheme=${data.matchedSchemeCode}` : '';
-            window.history.replaceState(
-              {},
-              '',
-              `/individual-dpr/create?projectId=${response.data.projectId}&dprId=${response.data.dprId}${schemeQ}`
-            );
+  // Saving: one at a time. A manual save, an automatic one and the save on moving between steps never overlap,
+  // so a draft cannot be created twice, and each save sends the newest answers (read fresh from the store).
+  const saveChain = useRef<Promise<boolean>>(Promise.resolve(true));
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'error'>('idle');
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const autosaveWarned = useRef(false);
+
+  const saveToDatabase = useCallback(
+    (options?: { silent?: boolean }): Promise<boolean> => {
+      const silent = Boolean(options?.silent);
+      const run = async (): Promise<boolean> => {
+        const fresh = useIndividualDPRStore.getState().data;
+        try {
+          if (hasUnder18Applicant(fresh)) {
+            if (!silent) toast.error(t('privacy.guardianMessage'));
+            return false;
           }
-          return true;
+          if (silent && !getUnitName(fresh.step1)) return false;
+          if (!hasDraftContent(fresh) && !fresh.projectId) return false;
+          setSaveStatus('saving');
+          const response = await individualDprApi.saveDraft(toIndividualPayload(fresh));
+          if (response.success && response.data) {
+            setSavedPayload(JSON.parse(JSON.stringify(fresh)));
+            setLastSavedAt(new Date());
+            setSaveStatus('idle');
+            autosaveWarned.current = false;
+            if (response.data.dprId && response.data.projectId) {
+              setDprIds(response.data.dprId, response.data.projectId);
+              const schemeQ = fresh.matchedSchemeCode ? `&scheme=${fresh.matchedSchemeCode}` : '';
+              const url = `/individual-dpr/create?projectId=${response.data.projectId}&dprId=${response.data.dprId}${schemeQ}`;
+              // Keep the router's own history entry (replacing it with `{}` would break going back).
+              if (`${window.location.pathname}${window.location.search}` !== url) {
+                window.history.replaceState(window.history.state, '', url);
+              }
+            }
+            return true;
+          }
+          setSaveStatus('error');
+          return false;
+        } catch (error) {
+          console.error('Error saving draft:', error);
+          setSaveStatus('error');
+          if (!silent) toast.error(t('individualDpr.toasts.saveFailedDb'));
+          else if (!autosaveWarned.current) {
+            autosaveWarned.current = true;
+            toast.error(tf('Could not auto-save. We will keep trying every 30 seconds.'));
+          }
+          return false;
         }
-      }
-      return false;
-    } catch (error) {
-      console.error('Error saving draft:', error);
-      toast.error(t('individualDpr.toasts.saveFailedDb'));
-      return false;
-    }
-  }, [dprPayload, data, setDprIds, t]);
+      };
+      const next = saveChain.current.then(run, run);
+      saveChain.current = next.catch(() => false);
+      return next;
+    },
+    [setDprIds, t]
+  );
+
+  // Automatic draft saving every 30 seconds while the form is open and something has changed. It stays quiet
+  // (no toasts) and waits until there is a unit name, which the server needs to create the draft.
+  useDraftAutosave({
+    enabled: setupPhase === 'form' && !isLoadingData,
+    intervalMs: 30_000,
+    shouldSave: () => {
+      const latest = useIndividualDPRStore.getState().data;
+      return dirtyRef.current && !!getUnitName(latest.step1) && !hasUnder18Applicant(latest);
+    },
+    save: () => saveToDatabase({ silent: true }),
+  });
+
+  // Last chance to keep changes: before signing out (the top bar asks us), when the tab is hidden, when
+  // leaving this page, and a browser warning if the tab is closed with changes that are not saved yet.
+  useEffect(() => {
+    const flush = async () => {
+      const latest = useIndividualDPRStore.getState().data;
+      if (!dirtyRef.current) return { dirty: false, ok: true };
+      if (!getUnitName(latest.step1) || hasUnder18Applicant(latest)) return { dirty: true, ok: false };
+      return { dirty: true, ok: await saveToDatabase({ silent: true }) };
+    };
+    const unregister = registerDraftFlusher(flush);
+    const onHide = () => {
+      if (document.visibilityState === 'hidden' && dirtyRef.current) void flush();
+    };
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!dirtyRef.current) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      unregister();
+      if (dirtyRef.current) void flush();
+    };
+  }, [saveToDatabase]);
 
   const warnRequired = (missing: { key: string; label: string }[]) => {
     const keys = missing.map((field) => field.key);
@@ -302,6 +476,26 @@ export const IndividualDPRCreation: React.FC = () => {
     }, 80);
   };
 
+  const warnFormats = (problems: ReturnType<typeof invalidFormats>) => {
+    const root = document.getElementById('individual-dpr-form');
+    problems.forEach((problem) => {
+      const el = root?.querySelector(`[data-format-field="${problem.key}"]`) as HTMLInputElement | null;
+      if (el) {
+        el.focus();
+        el.blur();
+      }
+    });
+    toast.error(
+      `${tf('Correct these fields before continuing')}: ${problems
+        .map((problem) => tf(problem.label))
+        .join(', ')}`
+    );
+    (root?.querySelector(`[data-format-field="${problems[0].key}"]`) as HTMLElement | null)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+  };
+
   const guardForward = (targetStep: number) => {
     if (isAdmin && devMode) return true;
     const from = selectionSteps.indexOf(currentStep);
@@ -314,6 +508,12 @@ export const IndividualDPRCreation: React.FC = () => {
       if (missing.length) {
         if (step !== currentStep) setCurrentStep(step);
         warnRequired(missing);
+        return false;
+      }
+      const badFormats = invalidFormats(data[`step${content}`]);
+      if (badFormats.length) {
+        if (step !== currentStep) setCurrentStep(step);
+        window.setTimeout(() => warnFormats(badFormats), step !== currentStep ? 120 : 0);
         return false;
       }
     }
@@ -447,11 +647,27 @@ export const IndividualDPRCreation: React.FC = () => {
     }
   };
 
-  const handleGenerateDPR = async () => {
+  const handleGenerateDPR = async (bypassReview = false) => {
+    if (blockers.length && !canBypassBlocks) {
+      setReviewOpen(true);
+      toast.error(tf('The DPR cannot be generated yet. Fix the items marked "Must fix first".'));
+      return;
+    }
+    if (!bypassReview && allFindings.length) {
+      setReviewOpen(true);
+      return;
+    }
     setIsGenerating(true);
     try {
       if (!data.step1 || !getUnitName(data.step1)) {
         toast.error(t('individualDpr.toasts.needUnitNameGenerate'));
+        setIsGenerating(false);
+        return;
+      }
+      const badFormats = invalidFormats(data.step11);
+      if (badFormats.length) {
+        setCurrentStep(11);
+        window.setTimeout(() => warnFormats(badFormats), 120);
         setIsGenerating(false);
         return;
       }
@@ -506,10 +722,28 @@ export const IndividualDPRCreation: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleBriefNext = () => {
+  const handleBriefNext = async () => {
     const step = visibleSteps[0] || 1;
     setSetupPhase('form');
     setCurrentStep(step);
+    const guide = searchParams.get('guide') === '1'
+      ? useReportGuideStore.getState().takePending()
+      : null;
+    if (guide) {
+      const code = useIndividualDPRStore.getState().data.matchedSchemeCode || schemeCode;
+      let savedSchemeStyle = null;
+      if (guide.look === 'match' && code) {
+        try {
+          const res = await api.getSchemeDocumentStyle(code);
+          if (res?.data?.documentStyle) savedSchemeStyle = resolveDocumentStyle(res.data.documentStyle, code);
+        } catch {
+          /* the built-in scheme look is enough */
+        }
+      }
+      const style = styleFromGuide(guide, code, savedSchemeStyle);
+      const current = useIndividualDPRStore.getState().data.schemeExtras || {};
+      setSchemeExtras({ ...current, documentStyle: style });
+    }
     void openStyleEditor(step);
   };
 
@@ -523,7 +757,7 @@ export const IndividualDPRCreation: React.FC = () => {
   };
 
   const selectedSchemeLabel =
-    SCHEME_OPTIONS.find((o) => o.code === (data.matchedSchemeCode || ''))?.label ||
+    tf(SCHEME_OPTIONS.find((o) => o.code === (data.matchedSchemeCode || ''))?.label || '') ||
     tf(schemeImpact.title);
   const schemeUi = getSchemeUiTemplate(data.matchedSchemeCode || null);
 
@@ -538,12 +772,44 @@ export const IndividualDPRCreation: React.FC = () => {
             defaultValue: `Step ${stepOrdinal} of ${visibleSteps.length}`,
           });
 
+  const liveDpr = {
+    content: { english: { clusterData: dprPayload } },
+    metadata: {
+      clusterData: dprPayload,
+      isIndividualDPR: true,
+      matchedSchemeCode: data.matchedSchemeCode || null,
+    },
+  };
+  const liveProject = project || {
+    _id: data.projectId,
+    id: data.projectId,
+    projectName: getUnitName(data.step1),
+    projectType: 'individual',
+    stepData: dprPayload,
+  };
+
   return (
     <Layout fullBleed={Boolean(styling && docStyle)}>
+      {reviewOpen ? (
+        <ReviewDialog
+          findings={allFindings}
+          stepTitle={(step) => {
+            const local = selectionSteps.find((st) => contentOf(st) === step);
+            return local ? getStepTitle(local, data.matchedSchemeCode) : `Step ${step}`;
+          }}
+          onClose={() => setReviewOpen(false)}
+          onGo={goToFinding}
+          onDismiss={dismissFinding}
+          onGenerate={() => {
+            setReviewOpen(false);
+            void handleGenerateDPR(true);
+          }}
+        />
+      ) : null}
       <div className={styling && docStyle ? 'flex min-h-0 flex-1 flex-col overflow-hidden bg-background' : 'min-h-screen bg-background'}>
         <div className={styling && docStyle
           ? 'shrink-0 border-b border-border bg-background px-4 pb-4 pt-2'
-          : 'sticky top-16 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'}>
+          : 'sm:sticky top-16 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'}>
           <div className={styling && docStyle ? '' : 'max-w-[1920px] mx-auto px-4 py-4 sm:px-6 lg:px-8'}>
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4">
@@ -552,27 +818,43 @@ export const IndividualDPRCreation: React.FC = () => {
                   size="sm"
                   onClick={() => {
                     if (setupPhase === 'brief') {
+                      if (enteredAtBrief.current && back.fromHistory) {
+                        back.go();
+                        return;
+                      }
                       setSetupPhase('pick');
                       return;
                     }
                     if (setupPhase === 'form') {
+                      if (enteredAtForm.current) {
+                        back.go();
+                        return;
+                      }
                       setStyling(false);
                       setSetupPhase('brief');
                       return;
                     }
-                    navigate('/dashboard');
+                    back.go();
                   }}
                   className="gap-2"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   {setupPhase === 'pick'
-                    ? t('common.back')
+                    ? back.label
                     : setupPhase === 'brief'
-                      ? t('individualDpr.picker.backToSchemes', { defaultValue: 'All Schemes' })
-                      : t('common.previous')}
+                      ? enteredAtBrief.current && back.fromHistory
+                        ? back.label
+                        : t('individualDpr.picker.backToSchemes', { defaultValue: 'All Schemes' })
+                      : enteredAtForm.current
+                        ? back.label
+                        : t('common.previous')}
                 </Button>
                 <div>
-                  <h1 className="text-2xl font-bold">{t('individualDpr.title')}</h1>
+                  <h1 className="text-2xl font-bold">
+                    {isEditing
+                      ? t('individualDpr.editTitle', { defaultValue: 'Edit DPR' })
+                      : t('individualDpr.title')}
+                  </h1>
                   {setupPhase === 'form' ? (
                     <p className="text-sm font-semibold text-foreground mt-0.5">
                       {t('individualDpr.schemeSelected', {
@@ -582,29 +864,15 @@ export const IndividualDPRCreation: React.FC = () => {
                     </p>
                   ) : null}
                   <p className="text-sm text-muted-foreground">{headerSubtitle}</p>
-                  {hasUnder18Applicant(data) && <GuardianNotice className="mt-3" />}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="ml-auto flex items-center justify-end gap-2 flex-wrap">
                 {setupPhase === 'brief' && (
                   <Button variant="primary" onClick={handleBriefNext} className="gap-2">
                     {t('individualDpr.picker.continueToForm', { defaultValue: 'Start DPR steps' })}
                     <ChevronRight className="h-4 w-4" />
                   </Button>
-                )}
-                {setupPhase === 'form' && <LanguageToggle />}
-                {setupPhase === 'form' && (
-                  <DevModeToggle
-                    on={devMode}
-                    onChange={(next) => {
-                      setDevMode(next);
-                      if (next) {
-                        setInvalidFields([]);
-                        setRequiredNotice('');
-                      }
-                    }}
-                  />
                 )}
                 {setupPhase === 'form' && (
                   <>
@@ -620,37 +888,27 @@ export const IndividualDPRCreation: React.FC = () => {
                       >
                         {SCHEME_OPTIONS.map((opt) => (
                           <option key={opt.code || 'vanilla'} value={opt.code}>
-                            {opt.label}
+                            {tf(opt.label)}
                           </option>
                         ))}
                       </select>
                     </label>
-                    <Button variant="outline" size="sm" onClick={handleSaveDraft} className="gap-2">
+                    <Button variant="outline" size="sm" onClick={handleSaveDraft} className="gap-2" title={tf('Saves your answers and current step so you can resume later. Also runs every 30 seconds.')}>
                       <Save className="h-4 w-4" />
                       {t('individualDpr.saveDraft')}
                     </Button>
-                    <div className="flex items-center gap-1 border rounded-lg p-1">
-                      <Button
-                        variant={!styling ? 'primary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setStyling(false)}
-                      >
-                        {t('individualDpr.form')}
-                      </Button>
-                      <Button
-                        variant={styling ? 'primary' : 'ghost'}
-                        size="sm"
-                        onClick={() => { void openStyleEditor(); }}
-                      >
-                        {t('individualDpr.customise', { defaultValue: 'Customise' })}
-                      </Button>
-                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setReviewOpen(true)} className="gap-2" title={tf('Looks for missing, unclear or unusual answers across the whole form.')}>
+                      <ClipboardCheck className="h-4 w-4" />
+                      {tf('Check my answers')}
+                      {allFindings.length ? <span className="rounded-full bg-amber-500 px-1.5 text-xs font-semibold text-white">{allFindings.length}</span> : null}
+                    </Button>
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={handleGenerateDPR}
+                      onClick={() => void handleGenerateDPR()}
                       isLoading={isGenerating}
                       className="gap-2"
+                      title={tf('Creates the final DPR from your answers. Available on the last step.')}
                       disabled={currentStep !== lastVisible}
                     >
                       {t('individualDpr.generateDpr')}
@@ -670,7 +928,12 @@ export const IndividualDPRCreation: React.FC = () => {
                 <p className="text-sm text-muted-foreground">{t('individualDpr.loading')}</p>
               </div>
             ) : (
-              <SchemePickerGrid onSelect={handlePickScheme} />
+              <>
+                <div className="mx-auto max-w-6xl">
+                  <ResumeDrafts />
+                </div>
+                <SchemePickerGrid onSelect={handlePickScheme} />
+              </>
             )}
           </div>
         )}
@@ -689,81 +952,34 @@ export const IndividualDPRCreation: React.FC = () => {
           </div>
         )}
 
-        {setupPhase === 'form' && styling && docStyle && (
-          <div className="shrink-0 border-b border-border bg-background px-3 py-2">
-            <div className="flex items-center gap-2 overflow-x-auto">
-              {selectionSteps.map((step) => {
-                const isCompleted = getStepCompletion(step);
-                const isCurrent = step === currentStep;
-                return (
-                  <button
-                    key={step}
-                    type="button"
-                    onClick={() => {
-                      if (step !== currentStep && !guardForward(step)) return;
-                      setInvalidFields([]);
-                      setRequiredNotice('');
-                      setCurrentStep(step);
-                      setEditStepN(step);
-                      setEditNonce((n) => n + 1);
-                    }}
-                    className={`
-                      flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-all
-                      ${isCurrent
-                        ? (schemeUi?.stepActiveClass || 'bg-primary text-primary-foreground shadow-sm')
-                        : isCompleted
-                        ? 'border border-success/20 bg-success/10 text-success hover:bg-success/20'
-                        : (schemeUi?.stepIdleClass || 'bg-muted/50 text-muted-foreground hover:bg-muted')}
-                    `}
-                  >
-                    <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${isCurrent ? 'bg-primary-foreground/20' : isCompleted ? 'bg-success' : 'bg-muted-foreground/20'}`}>
-                      {isCompleted && !isCurrent ? '✓' : step}
-                    </span>
-                    <span>{t('individualDpr.stepShort', { n: step })}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {setupPhase === 'form' && (
           <>
         {!styling && (
-        <div className="sticky top-[8.75rem] z-20 bg-background/95 backdrop-blur border-b border-border">
+        <div className="sm:sticky top-[8.75rem] z-20 bg-background/95 backdrop-blur border-b border-border">
           <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
-            <div className="flex items-center gap-2 overflow-x-auto pb-2">
-              {selectionSteps.map((step) => {
-                const isCompleted = getStepCompletion(step);
-                const isCurrent = step === currentStep;
-                return (
-                  <button
-                    key={step}
-                    onClick={() => {
-                      if (step === currentStep) return;
-                      if (!guardForward(step)) return;
-                      setInvalidFields([]);
-                      setRequiredNotice('');
-                      setCurrentStep(step);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className={`
-                      flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap
-                      ${isCurrent
-                        ? (schemeUi?.stepActiveClass || 'bg-primary text-primary-foreground shadow-sm')
-                        : isCompleted
-                        ? 'bg-success/10 text-success border border-success/20 hover:bg-success/20'
-                        : (schemeUi?.stepIdleClass || 'bg-muted/50 text-muted-foreground hover:bg-muted')}
-                    `}
-                  >
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${isCurrent ? 'bg-primary-foreground/20' : isCompleted ? 'bg-success' : 'bg-muted-foreground/20'}`}>
-                      {isCompleted && !isCurrent ? '✓' : step}
-                    </span>
-                    <span className="hidden sm:inline">{t('individualDpr.stepShort', { n: step })}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <AuthoringStepper
+              variant="full"
+              sections={sections}
+              overall={overall}
+              savedPercent={savedPercent}
+              unsaved={unsavedSections}
+              dirty={draftIsDirty}
+              saveStatus={saveStatus}
+              lastSavedAt={lastSavedAt}
+              currentStep={currentStep}
+              onSelect={(step) => {
+                if (step === currentStep) return;
+                if (!guardForward(step)) return;
+                setInvalidFields([]);
+                setRequiredNotice('');
+                setCurrentStep(step);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              activeClass={schemeUi?.stepActiveClass}
+              idleClass={schemeUi?.stepIdleClass}
+              stepLabel={(step) => t('individualDpr.stepShort', { n: step })}
+              lang={viewLanguage === 'telugu' ? 'te' : 'en'}
+            />
           </div>
         </div>
         )}
@@ -838,50 +1054,72 @@ export const IndividualDPRCreation: React.FC = () => {
               onEditSection={(step) => {
                 if (step?.n && visibleSteps.includes(step.n)) setCurrentStep(step.n);
               }}
-              renderEditor={(step) => (
-                <div className="space-y-4">
-                  {requiredNotice ? (
-                    <div role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
-                      {requiredNotice}
-                    </div>
-                  ) : null}
-                  <IndividualDPRForm
-                    currentStep={step.n}
-                    invalidFields={invalidFields}
-                    onNext={() => goAdjacent(1)}
-                    onPrevious={() => goAdjacent(-1)}
-                  />
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+              renderEditor={() => (
+                <div className="space-y-6">
+                  <Card className={schemeUi?.formShellClass || undefined}>
+                    <CardHeader>
+                      <CardTitle>
+                        {tf(getStepTitle(currentStep, data.matchedSchemeCode))}
+                      </CardTitle>
+                      <StepIntro title={getStepTitle(currentStep, data.matchedSchemeCode)} />
+                      {schemeUi ? (
+                        <p className="text-xs text-muted-foreground mt-1">{tf(schemeUi.badge)}</p>
+                      ) : null}
+                    </CardHeader>
+                    <CardContent>
+                      {requiredNotice ? (
+                        <div
+                          id="required-fields-notice"
+                          role="alert"
+                          className="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+                        >
+                          {requiredNotice}
+                        </div>
+                      ) : null}
+                      {(data.schemeExtras?.aiAssistedSteps || []).includes(
+                        getContentStep(currentStep, data.matchedSchemeCode)
+                      ) ? (
+                        <p className="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                          {tf(
+                            'AI-generated content. Please cross-check all details. The submitter is responsible for the accuracy of the final document.'
+                          )}
+                        </p>
+                      ) : null}
+                      <StepChecks findings={stepFindings} onDismiss={dismissFinding} />
+                      <IndividualDPRForm
+                        key={`step-${currentStep}-${data.projectId || 'new'}-${data.matchedSchemeCode || 'vanilla'}`}
+                        currentStep={currentStep}
+                        invalidFields={invalidFields}
+                        onNext={() => goAdjacent(1)}
+                        onPrevious={() => goAdjacent(-1)}
+                      />
+                    </CardContent>
+                  </Card>
+                  <div className="flex items-center justify-between">
                     <Button
-                      type="button"
                       variant="outline"
-                      size="sm"
                       onClick={() => goAdjacent(-1)}
-                      disabled={step.n === selectionSteps[0] || isStepping}
-                      className="shrink-0 gap-2"
+                      disabled={currentStep === selectionSteps[0] || isStepping}
+                      className="gap-2"
                     >
                       <ChevronLeft className="h-4 w-4" />
                       {t('common.previous')}
                     </Button>
-                    {step.n === lastVisible ? (
+                    {currentStep === lastVisible ? (
                       <Button
-                        type="button"
                         variant="primary"
-                        size="sm"
-                        onClick={handleGenerateDPR}
+                        onClick={() => void handleGenerateDPR()}
                         isLoading={isGenerating}
-                        className="shrink-0 gap-2"
+                        className="gap-2"
                       >
                         {t('individualDpr.generateDpr')}
                       </Button>
                     ) : (
                       <Button
-                        type="button"
                         variant="primary"
-                        size="sm"
                         onClick={() => goAdjacent(1)}
                         isLoading={isStepping}
-                        className="shrink-0 gap-2"
+                        className="gap-2"
                       >
                         {t('common.next')}
                         <ChevronRight className="h-4 w-4" />
@@ -892,6 +1130,41 @@ export const IndividualDPRCreation: React.FC = () => {
               )}
               editNonce={editNonce}
               editStepN={editStepN}
+              stepsBar={(
+            <AuthoringStepper
+              variant="compact"
+              sections={sections}
+              overall={overall}
+              savedPercent={savedPercent}
+              unsaved={unsavedSections}
+              dirty={draftIsDirty}
+              saveStatus={saveStatus}
+              lastSavedAt={lastSavedAt}
+              currentStep={currentStep}
+              onSelect={(step) => {
+                if (step !== currentStep && !guardForward(step)) return;
+                setInvalidFields([]);
+                setRequiredNotice('');
+                setCurrentStep(step);
+                setEditStepN(step);
+                setEditNonce((n) => n + 1);
+              }}
+              activeClass={schemeUi?.stepActiveClass}
+              idleClass={schemeUi?.stepIdleClass}
+              stepLabel={(step) => t('individualDpr.stepShort', { n: step })}
+              lang={viewLanguage === 'telugu' ? 'te' : 'en'}
+            />
+              )}
+              finalPreview={
+                <IndividualDPRDocumentView
+                  documentStyle={docStyle}
+                  dpr={liveDpr}
+                  project={liveProject}
+                  viewLanguage={viewLanguage}
+                />
+              }
+              tab={styleTab}
+              onTab={setStyleTab}
               onChange={onStyleChange}
               onSave={saveReportStyle}
               onClose={() => {
@@ -905,6 +1178,7 @@ export const IndividualDPRCreation: React.FC = () => {
                 }
                 setDocStyle(null);
                 setStyling(false);
+                setStyleTab('form');
                 setSetupPhase('brief');
               }}
               saving={styleSaving}
@@ -916,24 +1190,12 @@ export const IndividualDPRCreation: React.FC = () => {
             >
               <IndividualDPRDocumentView
                 trackFieldHits
+                showEmpty
                 onEditField={onEditField}
                 documentStyle={docStyle}
                 activeSectionId={hotSectionId}
-                dpr={{
-                  content: { english: { clusterData: dprPayload } },
-                  metadata: {
-                    clusterData: dprPayload,
-                    isIndividualDPR: true,
-                    matchedSchemeCode: data.matchedSchemeCode || null,
-                  },
-                }}
-                project={project || {
-                  _id: data.projectId,
-                  id: data.projectId,
-                  projectName: getUnitName(data.step1),
-                  projectType: 'individual',
-                  stepData: dprPayload,
-                }}
+                dpr={liveDpr}
+                project={liveProject}
                 viewLanguage={viewLanguage}
                 onEditBlock={(sectionId, blockId, text) => {
                   const raw = docStyleRef.current;
@@ -945,6 +1207,17 @@ export const IndividualDPRCreation: React.FC = () => {
                   onStyleChange(parseBlockFrameSlot(slot)
                     ? setBlockFrame(docStyleRef.current, slot, box)
                     : setPictureFrame(docStyleRef.current, slot, box));
+                }}
+                onSectionFocus={(stepNumber: number, sectionId: string) => {
+                  setHotSectionId(sectionId);
+                  setStyleTab('form');
+                  if (!visibleSteps.includes(stepNumber) || stepNumber === currentStep) return;
+                  setInvalidFields([]);
+                  setRequiredNotice('');
+                  setCurrentStep(stepNumber);
+                  document.querySelectorAll('.fill-edit-scroll').forEach((node) => {
+                    node.scrollTo({ top: 0 });
+                  });
                 }}
                 onSectionClick={(stepNumber: number) => {
                   if (visibleSteps.includes(stepNumber)) setCurrentStep(stepNumber);
@@ -971,6 +1244,7 @@ export const IndividualDPRCreation: React.FC = () => {
                       <CardTitle>
                         {tf(getStepTitle(currentStep, data.matchedSchemeCode))}
                       </CardTitle>
+                      <StepIntro title={getStepTitle(currentStep, data.matchedSchemeCode)} />
                       {schemeUi ? (
                         <p className="text-xs text-muted-foreground mt-1">{tf(schemeUi.badge)}</p>
                       ) : null}
@@ -994,6 +1268,7 @@ export const IndividualDPRCreation: React.FC = () => {
                           )}
                         </p>
                       ) : null}
+                      <StepChecks findings={stepFindings} onDismiss={dismissFinding} />
                       <IndividualDPRForm
                         key={`step-${currentStep}-${data.projectId || 'new'}-${data.matchedSchemeCode || 'vanilla'}`}
                         currentStep={currentStep}
@@ -1013,7 +1288,7 @@ export const IndividualDPRCreation: React.FC = () => {
                   {currentStep === lastVisible ? (
                     <Button
                       variant="primary"
-                      onClick={handleGenerateDPR}
+                      onClick={() => void handleGenerateDPR()}
                       isLoading={isGenerating}
                       className="gap-2"
                     >
@@ -1071,10 +1346,10 @@ export const IndividualDPRCreation: React.FC = () => {
                             size="sm"
                             className="h-8 px-2 bg-white/95 shadow"
                             onClick={() => goToPreviewHit(previewHitIndex - 1)}
-                            title="Previous changed place"
+                            title={tf('Previous changed place')}
                           >
                             <ChevronUp className="h-4 w-4 mr-1" />
-                            Up
+                            {tf('Up')}
                           </Button>
                         )}
                         {previewHitIndex < previewHitCount - 1 && (
@@ -1084,10 +1359,10 @@ export const IndividualDPRCreation: React.FC = () => {
                             size="sm"
                             className="h-8 px-2 bg-white/95 shadow"
                             onClick={() => goToPreviewHit(previewHitIndex + 1)}
-                            title="Next changed place"
+                            title={tf('Next changed place')}
                           >
                             <ChevronDown className="h-4 w-4 mr-1" />
-                            Down
+                            {tf('Down')}
                           </Button>
                         )}
                         <span className="text-[10px] text-center text-gray-600 bg-white/90 rounded px-1 py-0.5 shadow">

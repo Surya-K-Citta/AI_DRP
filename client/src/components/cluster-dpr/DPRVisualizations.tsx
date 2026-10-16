@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 import React from 'react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -10,35 +11,36 @@ interface DPRVisualizationsProps {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 export const DPRVisualizations: React.FC<DPRVisualizationsProps> = ({ data }) => {
+  const tf = useClusterFormText();
   // Enterprise Count Chart
   const enterpriseData = data.step1?.enterpriseCount ? [
-    { name: 'Micro', value: data.step1.enterpriseCount.micro || 0 },
-    { name: 'Small', value: data.step1.enterpriseCount.small || 0 },
-    { name: 'Medium', value: data.step1.enterpriseCount.medium || 0 },
+    { name: tf('Micro'), value: data.step1.enterpriseCount.micro || 0 },
+    { name: tf('Small'), value: data.step1.enterpriseCount.small || 0 },
+    { name: tf('Medium'), value: data.step1.enterpriseCount.medium || 0 },
   ] : [];
 
   // Market Served Pie Chart
   const marketData = data.step1?.marketServed ? [
-    { name: 'Domestic', value: data.step1.marketServed.domestic || 0 },
-    { name: 'Export', value: data.step1.marketServed.export || 0 },
+    { name: tf('Domestic'), value: data.step1.marketServed.domestic || 0 },
+    { name: tf('Export'), value: data.step1.marketServed.export || 0 },
   ] : [];
 
   // Project Cost Breakdown
   const costData = data.step12 ? [
-    { name: 'Land', value: data.step12.land || 0 },
-    { name: 'Building', value: data.step12.building || 0 },
-    { name: 'Machinery', value: data.step12.machinery || 0 },
-    { name: 'Utilities', value: data.step12.utilitiesAndInfrastructure || 0 },
-    { name: 'Preliminary', value: data.step12.preliminaryAndPreOperative || 0 },
-    { name: 'Working Capital', value: data.step12.workingCapitalMargin || 0 },
+    { name: tf('Land'), value: data.step12.land || 0 },
+    { name: tf('Building'), value: data.step12.building || 0 },
+    { name: tf('Machinery'), value: data.step12.machinery || 0 },
+    { name: tf('Utilities'), value: data.step12.utilitiesAndInfrastructure || 0 },
+    { name: tf('Preliminary'), value: data.step12.preliminaryAndPreOperative || 0 },
+    { name: tf('Working Capital'), value: data.step12.workingCapitalMargin || 0 },
   ].filter(item => item.value > 0) : [];
 
   // Means of Finance
   const financeData = data.step13 ? [
-    { name: 'SPV Contribution', value: data.step13.spvContribution || 0 },
-    { name: 'Government Grant', value: data.step13.governmentGrant || 0 },
-    { name: 'Bank Loan', value: data.step13.bankLoan || 0 },
-    { name: 'Other Sources', value: data.step13.otherSources || 0 },
+    { name: tf('SPV Contribution'), value: data.step13.spvContribution || 0 },
+    { name: tf('Government Grant'), value: data.step13.governmentGrant || 0 },
+    { name: tf('Bank Loan'), value: data.step13.bankLoan || 0 },
+    { name: tf('Other Sources'), value: data.step13.otherSources || 0 },
   ].filter(item => item.value > 0) : [];
 
   return (
@@ -47,7 +49,7 @@ export const DPRVisualizations: React.FC<DPRVisualizationsProps> = ({ data }) =>
       {enterpriseData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Enterprise Distribution</CardTitle>
+            <CardTitle>{tf('Enterprise Distribution')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -68,7 +70,7 @@ export const DPRVisualizations: React.FC<DPRVisualizationsProps> = ({ data }) =>
       {marketData.length > 0 && marketData.some(d => d.value > 0) && (
         <Card>
           <CardHeader>
-            <CardTitle>Market Served Distribution</CardTitle>
+            <CardTitle>{tf('Market Served Distribution')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -98,7 +100,7 @@ export const DPRVisualizations: React.FC<DPRVisualizationsProps> = ({ data }) =>
       {costData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Project Cost Breakdown</CardTitle>
+            <CardTitle>{tf('Project Cost Breakdown')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -129,7 +131,7 @@ export const DPRVisualizations: React.FC<DPRVisualizationsProps> = ({ data }) =>
       {financeData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Means of Finance</CardTitle>
+            <CardTitle>{tf('Means of Finance')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>

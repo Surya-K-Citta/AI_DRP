@@ -8,6 +8,7 @@ export interface IUser extends Document {
   email: string;
   passwordHash: string;
   role: 'entrepreneur' | 'admin' | 'officer';
+  reviewDistrict?: string;
   udyamNumber?: string;
   location?: string;
   phoneNumber?: string;
@@ -237,6 +238,7 @@ export interface AuthRequest extends Request {
     userId: string;
     email: string;
     role: string;
+    reviewDistrict?: string | null;
   };
 }
 

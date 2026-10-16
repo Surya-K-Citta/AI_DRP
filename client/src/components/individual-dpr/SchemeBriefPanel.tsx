@@ -1,3 +1,4 @@
+import { safeUrl } from '@/lib/security/sanitizeText';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check, ExternalLink, FileText, HelpCircle, ListChecks, MapPinned, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -120,7 +121,7 @@ export const SchemeBriefPanel: React.FC<SchemeBriefPanelProps> = ({ schemeCode, 
 
           {brief.sourceUrl ? (
             <a
-              href={brief.sourceUrl}
+              href={safeUrl(brief.sourceUrl)}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-6 inline-flex items-center gap-1.5 text-xs text-primary hover:underline"

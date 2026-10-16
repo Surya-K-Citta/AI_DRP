@@ -31,8 +31,11 @@ export const connectDatabase = async (): Promise<void> => {
     serverSelectionTimeoutMS: SERVER_SELECTION_TIMEOUT_MS,
     connectTimeoutMS: CONNECT_TIMEOUT_MS,
     socketTimeoutMS: SOCKET_TIMEOUT_MS,
-    maxPoolSize: 10,
-    minPoolSize: 1,
+    // Connection pool: every API server keeps up to maxPoolSize connections open and reuses them across requests.
+    maxPoolSize: Math.max(1, parseInt(process.env.MONGODB_MAX_POOL_SIZE || '20', 10)),
+    minPoolSize: Math.max(0, parseInt(process.env.MONGODB_MIN_POOL_SIZE || '2', 10)),
+    maxIdleTimeMS: parseInt(process.env.MONGODB_MAX_IDLE_MS || '60000', 10),
+    waitQueueTimeoutMS: parseInt(process.env.MONGODB_WAIT_QUEUE_MS || '10000', 10),
   };
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {

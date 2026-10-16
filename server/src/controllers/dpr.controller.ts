@@ -1,4 +1,7 @@
 // @ts-nocheck
+import { financeBlockers } from '../lib/financeGuard';
+import { extensionForMime, safeFileName } from '../lib/security/uploadGuard';
+import { staffMayViewProject } from '../lib/staffScope';
 import { Request, Response } from 'express';
 import { OpenAIService } from '../services/openai.service';
 import { DprBuilderAssistService } from '../services/dprBuilderAssist.service';
@@ -7,6 +10,7 @@ import { DPRSession } from '../models/DPRSession.model';
 import { Document } from '../models/Document.model';
 import { DPRService } from '../services/dpr.service';
 import { pdfOptionsFromCapturedHtml } from '../lib/pdfPageOptions';
+import { stampAiDisclaimer } from '../lib/aiDisclaimer';
 import { QualityService } from '../services/quality.service';
 import { DPRVersion } from '../models/DPRVersion.model';
 import { AuthRequest } from '../types';
@@ -72,7 +76,7 @@ const upload = multer({
     },
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + path.extname(file.originalname));
+      cb(null, uniqueSuffix + extensionForMime(file.mimetype));
     },
   }),
   limits: {
@@ -584,7 +588,8 @@ export class DPRController {
           steps: stepKeys,
           totalKeys: Object.keys(stepData).length,
         });
-        project.stepData = stepData;
+        project.set('stepData', stepData);
+        project.markModified('stepData');
         await project.save();
         console.log('✅ Project updated with stepData from request');
       } else {
@@ -734,7 +739,7 @@ export class DPRController {
 
       // Check if project belongs to the current user
       const isOwner = project.userId?.toString() === userId.toString();
-      const isStaff = req.user?.role === 'admin' || req.user?.role === 'officer';
+      const isStaff = !isOwner && (await staffMayViewProject(userId, project));
       if (!isOwner && !isStaff) {
         res.status(403).json({
           success: false,
@@ -780,7 +785,7 @@ export class DPRController {
   static async downloadPDF(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { dprId } = req.params;
-      const { language = 'english' } = req.query;
+      const language: string = 'english'; // Exported documents are English only, whatever the request asks for.
       // Get enhanced paragraphs from request body (for POST) or query (for GET backward compatibility)
       const enhancedParagraphs = req.body?.enhancedParagraphs || req.query?.enhancedParagraphs;
 
@@ -789,11 +794,12 @@ export class DPRController {
         console.log(`📝 Received enhanced paragraphs for ${Object.keys(enhancedParagraphs).length} sections`);
       }
 
-      const pdfBuffer = await DPRService.generatePDF(
+      let pdfBuffer = await DPRService.generatePDF(
         dprId,
         language as 'english' | 'telugu',
         enhancedParagraphs
       );
+      if (Buffer.isBuffer(pdfBuffer)) pdfBuffer = await stampAiDisclaimer(pdfBuffer);
 
       // Validate PDF buffer
       if (!pdfBuffer || !Buffer.isBuffer(pdfBuffer)) {
@@ -856,7 +862,7 @@ export class DPRController {
   static async downloadPDFHtml(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { dprId } = req.params;
-      const { language = 'english' } = req.query;
+      const language: string = 'english'; // Exported documents are English only, whatever the request asks for.
       const html = req.body?.html;
 
       if (!html || typeof html !== 'string' || html.trim().length === 0) {
@@ -890,6 +896,8 @@ export class DPRController {
         console.warn('⚠️ Exact HTML PDF failed, falling back to scheme/server PDF:', htmlError?.message);
         pdfBuffer = await DPRService.generatePDF(dprId, language === 'telugu' ? 'telugu' : 'english');
       }
+
+      if (Buffer.isBuffer(pdfBuffer) && pdfBuffer.length >= 4) pdfBuffer = await stampAiDisclaimer(pdfBuffer);
 
       // Validate PDF header (PDF files start with %PDF)
       if (!pdfBuffer || !Buffer.isBuffer(pdfBuffer) || pdfBuffer.length < 4) {
@@ -941,7 +949,7 @@ export class DPRController {
   static async downloadDOCX(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { dprId } = req.params;
-      const { language = 'english' } = req.query;
+      const language: string = 'english'; // Exported documents are English only, whatever the request asks for.
 
       const docxBuffer = await DPRService.generateDOCX(
         dprId,
@@ -981,12 +989,13 @@ export class DPRController {
   static async downloadSessionPDF(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { sessionId } = req.params;
-      const { language = 'english' } = req.query;
+      const language: string = 'english'; // Exported documents are English only, whatever the request asks for.
 
-      const pdfBuffer = await DPRService.generatePDFFromSession(
+      let pdfBuffer = await DPRService.generatePDFFromSession(
         sessionId,
         language as 'english' | 'telugu'
       );
+      if (Buffer.isBuffer(pdfBuffer)) pdfBuffer = await stampAiDisclaimer(pdfBuffer);
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
@@ -1251,6 +1260,17 @@ export class DPRController {
         return;
       }
 
+      // An individual DPR is submitted only when its money side holds together.
+      const stored: any = dpr.content?.english?.clusterData || (project as any).stepData || null;
+      const isIndividual = Boolean(stored?.isIndividualDPR || dpr.content?.english?.isIndividualDPR || dpr.content?.english?.metadata?.isIndividualDPR);
+      if (isIndividual && req.user?.role !== 'admin') {
+        const blockers = financeBlockers(stored);
+        if (blockers.length) {
+          res.status(422).json({ success: false, code: 'DPR_NOT_READY', message: 'The DPR cannot be submitted yet. Fix the items listed and try again.', blockers });
+          return;
+        }
+      }
+
       // Update DPR status
       dpr.status = 'submitted';
       dpr.submittedAt = new Date();
@@ -1338,6 +1358,7 @@ export class DPRController {
         return [{
           _id: dpr._id,
           projectId: {
+            _id: project._id,
             projectName: project.projectName || 'Unknown Project',
             industrySector: project.industrySector || 'Unknown',
             subSector: project.subSector || '',
@@ -1372,6 +1393,59 @@ export class DPRController {
   }
 
   /**
+   * Delete one of the signed-in user's DPRs. When it was the last DPR of a project that exists only for
+   * the individual / cluster DPR flow, that project goes with it so no empty draft is left behind.
+   */
+  static async deleteDPR(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'User not authenticated' });
+        return;
+      }
+
+      const { dprId } = req.params;
+      const dpr = await DPRVersion.findById(dprId).select('_id projectId');
+      if (!dpr) {
+        res.status(404).json({ success: false, message: 'DPR not found' });
+        return;
+      }
+
+      const { Project } = await import('../models/Project.model');
+      const project = await Project.findById(dpr.projectId).select('_id userId projectType');
+      if (!project || project.userId?.toString() !== userId.toString()) {
+        res.status(403).json({ success: false, message: 'You can only delete your own DPRs' });
+        return;
+      }
+
+      const { ClusterSection } = await import('../models/ClusterSection.model');
+      await ClusterSection.deleteMany({ dprId: String(dpr._id) });
+      await DPRVersion.findByIdAndDelete(dpr._id);
+
+      let projectDeleted = false;
+      const remaining = await DPRVersion.countDocuments({ projectId: String(project._id) });
+      if (remaining === 0 && (project.projectType === 'individual' || project.projectType === 'cluster')) {
+        await Project.findByIdAndDelete(project._id);
+        projectDeleted = true;
+      }
+
+      await AuditService.log({
+        action: 'dpr_delete',
+        userId,
+        role: req.user?.role,
+        targetType: 'dpr',
+        targetId: dprId,
+        req,
+      });
+
+      res.status(200).json({ success: true, message: 'DPR deleted', data: { projectDeleted } });
+    } catch (error: any) {
+      console.error('Delete DPR error:', error);
+      res.status(500).json({ success: false, message: 'Failed to delete DPR', error: error.message });
+    }
+  }
+
+  /**
    * Download DPR as XLS (Excel) - CSV format as fallback
    */
   static async downloadXLS(req: AuthRequest, res: Response): Promise<void> {
@@ -1386,7 +1460,7 @@ export class DPRController {
       }
 
       const { dprId } = req.params;
-      const { language = 'english' } = req.query;
+      const language: string = 'english'; // Exported documents are English only, whatever the request asks for.
 
       const dpr = await DPRService.getDPR(dprId);
       

@@ -388,6 +388,7 @@ export const AccountPrivacy: React.FC = () => {
             <Button
               variant="destructive"
               onClick={handleDelete}
+              data-no-auto-confirm
               disabled={deleting || deleteConfirm !== 'DELETE'}
             >
               {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}

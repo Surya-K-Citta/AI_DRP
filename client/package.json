@@ -9,8 +9,12 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "test": "node --experimental-strip-types --test src/lib/dprFixes.test.ts src/lib/production.ui.test.ts",
-    "test:screens": "playwright test"
+    "test": "node --experimental-strip-types --test src/lib/dprFixes.test.ts src/lib/finance/finance.test.ts src/lib/production.ui.test.ts src/lib/reportGuide.test.ts src/lib/aiDisclaimer.test.ts",
+    "test:screens": "playwright test",
+    "vectors": "node --experimental-strip-types scripts/finance-vectors.mjs",
+    "lock:formulas": "node --experimental-strip-types scripts/lock-formulas.mjs",
+    "audit:i18n": "node scripts/i18n-audit.mjs --strict",
+    "audit:responsive": "node scripts/responsive-audit.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
@@ -21,6 +25,7 @@
     "axios": "^1.6.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dompurify": "^3.3.1",
     "html2canvas": "^1.4.1",
     "i18next": "^23.7.6",
     "jspdf": "^4.1.0",
@@ -39,6 +44,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.5",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@typescript-eslint/eslint-plugin": "^6.13.0",

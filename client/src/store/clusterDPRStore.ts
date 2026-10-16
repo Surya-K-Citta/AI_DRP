@@ -379,14 +379,16 @@ export const useClusterDPRStore = create<ClusterDPRState>()(
       // Create a new object that properly preserves all nested structures
       // Directly spread clusterDataToLoad to preserve all nested objects (step1, step2, etc.)
       const loadedData: ClusterDPRData = {
-        // Start with current state to preserve any unsaved changes
-        ...currentState.data,
+        // Start clean. Merging into whatever was on screen before would carry another draft's (or another
+        // user's) leftovers into this one, so a restored draft would not match what was saved.
+        ...defaultData,
         // Directly spread clusterDataToLoad - this preserves all nested objects like step1.enterpriseCount
         ...clusterDataToLoad,
         // Override metadata fields to preserve current state or use loaded values
-        currentStep: currentState.data.currentStep || clusterDataToLoad.currentStep || 1,
-        dprId: dprData?._id || dprData?.id || currentState.data.dprId,
-        projectId: projectData._id || projectData.id || currentState.data.projectId,
+        // Come back to the step the person was on when it was saved.
+        currentStep: clusterDataToLoad.currentStep || 1,
+        dprId: dprData?._id || dprData?.id || clusterDataToLoad.dprId || '',
+        projectId: projectData._id || projectData.id || clusterDataToLoad.projectId || '',
         lastSaved: new Date(),
       };
       

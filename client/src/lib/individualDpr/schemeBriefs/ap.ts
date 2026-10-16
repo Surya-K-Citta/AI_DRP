@@ -41,6 +41,10 @@ export const AP_BRIEFS: Record<string, SchemeBrief> = {
       L('AP domicile of the promoter. Unit in a city, village, or APIIC park — not a home-only setup.', 'ప్రమోటర్ AP నివాసి. యూనిట్ నగరం, గ్రామం లేదా APIIC పార్క్‌లో — ఇంటి నుండి మాత్రమే కాదు.'),
       L('Registered sole / partnership / company with Udyam (or willing to obtain it).', 'ఉద్యమ్ ఉన్న (లేదా తీసుకోవడానికి సిద్ధం) నమోదైన ఏకస్వామ్యం / భాగస్వామ్యం / కంపెనీ.'),
       L('Must meet MSMED Act classification and commence production in the policy period.', 'MSMED చట్టం వర్గీకరణ పాటించాలి; విధాన కాలంలో ఉత్పత్తి మొదలు పెట్టాలి.'),
+      L(
+        'Capital subsidy for a new unit and technology-upgradation support for an expansion cannot both be claimed on the same fixed capital. Incentives under this policy together stay within 75% of FCI. Do not claim the same capital subsidy again under the Food Processing Policy.',
+        'కొత్త యూనిట్ క్యాపిటల్ సబ్సిడీని, విస్తరణకు టెక్ అప్‌గ్రేడ్ సహాయాన్ని అదే స్థిర మూలధనంపై రెండూ తీసుకోలేరు. ఈ విధానం కింద ప్రోత్సాహకాలు కలిపి FCIలో 75% లోపు ఉండాలి. అదే క్యాపిటల్ సబ్సిడీని ఆహార ప్రాసెసింగ్ విధానం కింద మళ్లీ తీసుకోకండి.'
+      ),
     ],
     howToApply: [
       L('Apply on the State incentives / AP MSME One channel after Udyam and CFE as required.', 'ఉద్యమ్ మరియు అవసరమైతే CFE తర్వాత రాష్ట్ర ఇన్సెంటివ్స్ / AP MSME One ద్వారా దరఖాస్తు చేయండి.'),
@@ -95,6 +99,10 @@ export const AP_BRIEFS: Record<string, SchemeBrief> = {
       L('Food processing enterprise (agri, dairy, aqua, meat, spices, bakery, and similar) located in Andhra Pradesh.', 'ఆంధ్రప్రదేశ్‌లో ఆహార ప్రాసెసింగ్ యూనిట్ (వ్యవసాయం, డెయిరీ, ఆక్వా, మాంసం, మసాలా, బేకరీ).'),
       L('AP domicile in Scheme Finder. New or expansion project that obtains CFO and starts commercial production in the policy period.', 'స్కీమ్ ఫైండర్‌లో AP నివాసం. విధాన కాలంలో CFO తీసుకుని ఉత్పత్తి మొదలు పెట్టే కొత్త లేదా విస్తరణ ప్రాజెక్ట్.'),
       L('Udyam-ready registered firm (sole, partnership, company, SHG/FPO/co-op). FSSAI and food-safety compliance.', 'ఉద్యమ్ సిద్ధం ఉన్న నమోదైన సంస్థ. FSSAI మరియు ఆహార భద్రత పాటింపు.'),
+      L(
+        'The similar capital incentives under the Industrial Development Policy or MSME-EDP cannot be claimed as well. The same capital item cannot be subsidised twice, including with PMFME.',
+        'పారిశ్రామిక అభివృద్ధి విధానం లేదా MSME-EDP కింద ఇలాంటి క్యాపిటల్ ప్రోత్సాహకాలు మళ్లీ తీసుకోలేరు. అదే మూలధన అంశంపై రెండు సార్లు సబ్సిడీ లేదు, PMFMEతో సహా.'
+      ),
     ],
     howToApply: [
       L('File on the State food-processing / incentives portal via GM-DIC after Udyam and statutory consents.', 'ఉద్యమ్ మరియు అనుమతుల తర్వాత GM-DIC ద్వారా రాష్ట్ర ఆహార-ప్రాసెసింగ్ / ఇన్సెంటివ్స్ పోర్టల్‌లో దాఖలు చేయండి.'),
@@ -144,6 +152,10 @@ export const AP_BRIEFS: Record<string, SchemeBrief> = {
       L('Existing (brownfield) or restarting manufacturing unit in Andhra Pradesh (Scheme Finder).', 'ఆంధ్రప్రదేశ్‌లో ఉన్న (బ్రౌన్‌ఫీల్డ్) లేదా మళ్లీ మొదలుపెట్టే తయారీ యూనిట్.'),
       L('AP domicile, registered firm, unit located in AP. Expansion / diversification / tech upgrade — not greenfield capital subsidy.', 'AP నివాసం, నమోదైన సంస్థ. విస్తరణ / టెక్ అప్‌గ్రేడ్ — కొత్త-యూనిట్ క్యాపిటల్ సబ్సిడీ కాదు.'),
       L('Cannot stack this with the new-unit EDP capital subsidy on the same FCI.', 'అదే FCIపై కొత్త-యూనిట్ EDP క్యాపిటల్ సబ్సిడీతో కలపలేరు.'),
+      L(
+        'Incentives claimed together under MSME-EDP 4.0 stay within 75% of fixed capital investment.',
+        'MSME-EDP 4.0 కింద కలిపి తీసుకునే ప్రోత్సాహకాలు స్థిర మూలధన పెట్టుబడిలో 75% లోపు ఉండాలి.'
+      ),
     ],
     howToApply: [
       L('Apply through GM-DIC / AP MSME One / Single Desk after placing orders for eligible new machinery.', 'అర్హ కొత్త యంత్రాల ఆర్డర్ల తర్వాత GM-DIC / AP MSME One / సింగిల్ డెస్క్ ద్వారా దరఖాస్తు చేయండి.'),
@@ -192,6 +204,10 @@ export const AP_BRIEFS: Record<string, SchemeBrief> = {
       L('Unit must be inside an APIIC industrial / MSME park (Scheme Finder location = APIIC park).', 'యూనిట్ APIIC పారిశ్రామిక / MSME పార్క్‌లో ఉండాలి (స్కీమ్ ఫైండర్ స్థానం = APIIC పార్క్).'),
       L('AP domicile and a registered firm.', 'AP నివాసం మరియు నమోదైన సంస్థ.'),
       L('Allotment follows APIIC regulations (lease / lease-cum-sale, implementation timelines).', 'కేటాయింపు APIIC నిబంధనల ప్రకారం (లీజు / లీజు-కమ్-సేల్, అమలు గడువులు).'),
+      L(
+        'The 75% land-cost rebate for SC/ST micro and small units in APIIC parks is for a new unit and can be taken only once on that land. Combined incentives under the MSME policy stay within 75% of FCI.',
+        'APIIC పార్కుల్లో SC/ST సూక్ష్మ మరియు చిన్న యూనిట్లకు 75% భూమి రాయితీ కొత్త యూనిట్‌కు, ఆ భూమిపై ఒక్కసారి మాత్రమే. MSME విధానం కింద కలిపిన ప్రోత్సాహకాలు FCIలో 75% లోపు ఉండాలి.'
+      ),
     ],
     howToApply: [
       L('Check vacant plots on the APIIC portal, apply for allotment, then claim any eligible rebate through GM-DIC if the GO requires it.', 'APIIC పోర్టల్‌లో ఖాళీ ప్లాట్లు చూసి కేటాయింపుకు దరఖాస్తు చేయండి; GO కోరితే GM-DIC ద్వారా రాయితీ క్లెయిమ్ చేయండి.'),

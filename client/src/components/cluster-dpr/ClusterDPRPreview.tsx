@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 import React, { useState } from 'react';
 import { ClusterDPRData } from '@/store/clusterDPRStore';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -11,6 +12,7 @@ interface ClusterDPRPreviewProps {
 }
 
 export const ClusterDPRPreview: React.FC<ClusterDPRPreviewProps> = ({ data }) => {
+  const tf = useClusterFormText();
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState<Record<string, string>>({});
 
@@ -48,7 +50,8 @@ export const ClusterDPRPreview: React.FC<ClusterDPRPreviewProps> = ({ data }) =>
               className="gap-2"
             >
               <Save className="h-4 w-4" />
-              Save
+              
+              {tf('Save')}
             </Button>
             <Button
               variant="outline"
@@ -57,7 +60,8 @@ export const ClusterDPRPreview: React.FC<ClusterDPRPreviewProps> = ({ data }) =>
               className="gap-2"
             >
               <X className="h-4 w-4" />
-              Cancel
+              
+              {tf('Cancel')}
             </Button>
           </div>
         </div>
@@ -76,7 +80,8 @@ export const ClusterDPRPreview: React.FC<ClusterDPRPreviewProps> = ({ data }) =>
           className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity gap-2"
         >
           <Edit2 className="h-4 w-4" />
-          Edit
+          
+          {tf('Edit')}
         </Button>
       </div>
     );
@@ -418,34 +423,37 @@ ${Array.isArray(s18.supportingDocuments) && s18.supportingDocuments.length > 0
       <Card className="min-h-[500px] flex items-center justify-center" style={{ backgroundColor: '#FFFFFF' }}>
         <CardContent className="text-center" style={{ padding: '3cm 2cm' }}>
           <h1 className="text-5xl font-bold mb-8" style={{ color: '#1F2937', letterSpacing: '0.05em' }}>
-            DETAILED PROJECT REPORT
+            
+            {tf('DETAILED PROJECT REPORT')}
           </h1>
           <div className="my-8">
             <h2 className="text-3xl font-semibold mb-4" style={{ color: '#1F2937' }}>
-              On
+              {tf('On')}
             </h2>
             <h2 className="text-3xl font-semibold mb-2" style={{ color: '#1F2937' }}>
-              Establishment of Common Facility Centre for
+              
+              {tf('Establishment of Common Facility Centre for')}
             </h2>
             <h2 className="text-4xl font-bold mb-6 uppercase" style={{ color: '#059669', letterSpacing: '0.05em' }}>
-              {data.step1?.clusterName || 'CLUSTER NAME'}
+              {data.step1?.clusterName || tf('CLUSTER NAME')}
             </h2>
             <p className="text-xl font-semibold" style={{ color: '#1F2937' }}>
-              under 'Micro Cluster Development Programme'
+              
+              {tf('under \'Micro Cluster Development Programme\'')}
             </p>
           </div>
           <div className="mt-16 space-y-6 text-left max-w-md mx-auto" style={{ fontSize: '14px' }}>
             <div className="border-t-2 border-b-2 border-gray-800 py-4" style={{ borderColor: '#1F2937' }}>
-              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Submitted to:</p>
-              <p className="text-sm" style={{ color: '#1F2937' }}>DIC, {data.step1?.district || 'District'}</p>
+              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>{tf('Submitted to:')}</p>
+              <p className="text-sm" style={{ color: '#1F2937' }}>{'DIC, '}{data.step1?.district || tf('District')}</p>
             </div>
             <div className="border-b-2 border-gray-800 py-4" style={{ borderColor: '#1F2937' }}>
-              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Submitted by:</p>
+              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>{tf('Submitted by:')}</p>
               <p className="text-sm" style={{ color: '#1F2937' }}>{data.step11?.spvName || 'SPV Name'}</p>
               <p className="text-sm" style={{ color: '#1F2937' }}>{data.step1?.location || 'Location'}</p>
             </div>
             <div className="py-4">
-              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>Prepared by:</p>
+              <p className="text-sm font-semibold mb-1" style={{ color: '#1F2937' }}>{tf('Prepared by:')}</p>
               <p className="text-sm" style={{ color: '#1F2937' }}>{data.step11?.spvName || 'SPV Name'}</p>
             </div>
           </div>
@@ -455,23 +463,23 @@ ${Array.isArray(s18.supportingDocuments) && s18.supportingDocuments.length > 0
       {/* Table of Contents - Matching PDF Format */}
       <Card style={{ backgroundColor: '#FFFFFF' }}>
         <CardHeader>
-          <CardTitle className="text-3xl font-bold text-center" style={{ color: '#1F2937' }}>CONTENTS</CardTitle>
+          <CardTitle className="text-3xl font-bold text-center" style={{ color: '#1F2937' }}>{tf('CONTENTS')}</CardTitle>
         </CardHeader>
         <CardContent>
           <table className="w-full border-collapse border border-gray-800 text-sm" style={{ borderColor: '#1F2937' }}>
             <thead>
               <tr style={{ backgroundColor: '#E5E7EB' }}>
-                <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Chapter</th>
-                <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Title</th>
-                <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Page No</th>
+                <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>{tf('Chapter')}</th>
+                <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>{tf('Title')}</th>
+                <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>{tf('Page No')}</th>
               </tr>
             </thead>
             <tbody>
-              <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}></td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>Executive Summary</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>i-iv</td></tr>
+              <tr style={{ backgroundColor: '#FFFFFF' }}><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}></td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>{tf('Executive Summary')}</td><td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>i-iv</td></tr>
               {sectionTitles.map((title, index) => (
                 <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }}>
                   <td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>{index + 1}.</td>
-                  <td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>{title}</td>
+                  <td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>{tf(title)}</td>
                   <td className="border border-gray-800 px-4 py-2" style={{ borderColor: '#1F2937' }}>{index + 1}</td>
                 </tr>
               ))}
@@ -493,7 +501,7 @@ ${Array.isArray(s18.supportingDocuments) && s18.supportingDocuments.length > 0
           <Card key={sectionId} id={sectionId}>
             <CardHeader>
               <CardTitle className="text-xl">
-                {step}. {title}
+                {step}. {tf(title)}
               </CardTitle>
             </CardHeader>
             <CardContent>

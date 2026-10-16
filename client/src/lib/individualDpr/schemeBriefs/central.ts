@@ -95,6 +95,10 @@ export const CENTRAL_BRIEFS: Record<string, SchemeBrief> = {
         'Eligible activities include manufacturing, services, trade, food processing, crafts, and knowledge/tech services — not crop-only farming.',
         'అర్హమైన కార్యకలాపాలు: తయారీ, సేవలు, వ్యాపారం, ఆహార ప్రాసెసింగ్, హస్తకళలు, నాలెడ్జ్/టెక్ సేవలు — కేవలం పంటల వ్యవసాయం కాదు.'
       ),
+      L(
+        'A unit that has already received a government subsidy under PMRY, REGP, PMEGP, CMEGP, or any other central or state scheme is not eligible for a new PMEGP project. Only one person in the family (self, spouse, and unmarried children) can take it. A second loan is a separate path, and only for an existing PMEGP, REGP, or MUDRA unit whose first loan was repaid on time.',
+        'PMRY, REGP, PMEGP, CMEGP లేదా ఇతర కేంద్ర/రాష్ట్ర పథకం కింద ప్రభుత్వ సబ్సిడీ ఇప్పటికే పొందిన యూనిట్ కొత్త PMEGPకు అర్హం కాదు. కుటుంబంలో ఒకరు మాత్రమే (మీరు, భార్య/భర్త, అవివాహిత పిల్లలు). రెండవ రుణం వేరు మార్గం — ఇప్పటికే PMEGP, REGP లేదా MUDRA ఉండి మొదటి రుణం సమయానికి చెల్లించిన యూనిట్‌కు మాత్రమే.'
+      ),
     ],
     howToApply: [
       L('Apply online on the KVIC PMEGP portal (kviconline.gov.in) choosing KVIC, KVIB, or DIC as the implementing agency.', 'KVIC PMEGP పోర్టల్ (kviconline.gov.in)లో KVIC, KVIB లేదా DICని అమలు సంస్థగా ఎంచుకుని ఆన్‌లైన్ దరఖాస్తు చేయండి.'),
@@ -178,6 +182,10 @@ export const CENTRAL_BRIEFS: Record<string, SchemeBrief> = {
       L('New or existing micro units; ODOP products are preferred but not compulsory.', 'కొత్త లేదా ఉన్న సూక్ష్మ యూనిట్లు; ODOPకు ప్రాధాన్యం కానీ తప్పనిసరి కాదు.'),
       L('Sole owner, partnership, SHG, FPO, or cooperative. Project cost in Scheme Finder is treated as up to about ₹50 lakh.', 'ఏకస్వామ్యం, భాగస్వామ్యం, SHG, FPO లేదా సహకారం. స్కీమ్ ఫైండర్‌లో ప్రాజెక్ట్ ఖర్చు సుమారు ₹50 లక్షల వరకు.'),
       L('8th-class pass (Scheme Finder gate). Plan for FSSAI registration.', '8వ తరగతి ఉత్తీర్ణత (స్కీమ్ ఫైండర్ నియమం). FSSAI నమోదు ప్లాన్ చేయండి.'),
+      L(
+        'You may apply even after a loan under another subsidy-linked scheme, and you may use other schemes at the same time, as long as the same benefit is not paid twice. Only one person in the family (self, spouse, and children) can take this assistance.',
+        'మరో సబ్సిడీ-లింక్డ్ పథకం కింద రుణం తీసుకున్నా దరఖాస్తు చేయవచ్చు. ఇతర పథకాలు కలిపి వాడవచ్చు, అదే ప్రయోజనం రెండు సార్లు రాకూడదు. కుటుంబంలో ఒకరు మాత్రమే (మీరు, భార్య/భర్త, పిల్లలు).'
+      ),
     ],
     howToApply: [
       L('Apply on the national PMFME portal through the State Nodal Agency (Andhra Pradesh).', 'జాతీయ PMFME పోర్టల్‌లో రాష్ట్ర నోడల్ ఏజెన్సీ (ఆంధ్రప్రదేశ్) ద్వారా దరఖాస్తు చేయండి.'),
@@ -405,8 +413,8 @@ export const CENTRAL_BRIEFS: Record<string, SchemeBrief> = {
       L('Self-employed artisan in one of the 18 family-based traditional trades, working with hands and tools in the unorganised sector.', '18 సాంప్రదాయ వృత్తుల్లో ఒకదానిలో చేతులు/పనిముట్లతో పనిచేసే స్వయం ఉపాధి కళాకారుడు.'),
       L('Minimum age 18 on the date of registration.', 'నమోదు రోజున కనీసం 18 ఏళ్లు.'),
       L(
-        'Should not have taken a similar central/state self-employment loan (PMEGP, PM SVANidhi, MUDRA, etc.) in the last 5 years.',
-        'గత 5 ఏళ్లలో ఇలాంటి కేంద్ర/రాష్ట్ర స్వయం ఉపాధి రుణం (PMEGP, PM SVANidhi, MUDRA మొదలైనవి) తీసుకోకూడదు.'
+        'Should not have taken a similar central or state self-employment loan in the past 5 years, counted from the sanction date. A person who received PMEGP cannot apply. MUDRA or PM SVANidhi borrowers can apply only after that loan is fully repaid.',
+        'గత 5 ఏళ్లలో ఇలాంటి కేంద్ర/రాష్ట్ర స్వయం ఉపాధి రుణం తీసుకోకూడదు; గడువు మంజూరు తేదీ నుండి. PMEGP పొందినవారు దరఖాస్తు చేయలేరు. MUDRA లేదా PM SVANidhi రుణం పూర్తిగా చెల్లించాక మాత్రమే దరఖాస్తు చేయవచ్చు.'
       ),
       L('Only one member per family (spouse and unmarried children). Government employees and their family members are not eligible.', 'కుటుంబంలో ఒక సభ్యుడు మాత్రమే (భార్యాభర్తలు, అవివాహిత పిల్లలు). ప్రభుత్వ ఉద్యోగులు మరియు వారి కుటుంబం అనర్హం.'),
     ],
@@ -642,6 +650,10 @@ export const CENTRAL_BRIEFS: Record<string, SchemeBrief> = {
       L('Existing PMEGP / REGP / MUDRA unit; first margin money adjusted; first loan repaid in time.', 'ఇప్పటికే ఉన్న PMEGP / REGP / MUDRA యూనిట్; మార్జిన్ మనీ అడ్జస్ట్; మొదటి లోన్ సమయానికి చెల్లింపు.'),
       L('Profit-making with growth potential (guidelines expect about 3 years of profit). Udyam mandatory.', 'లాభాలు / వృద్ధి సామర్థ్యం (సుమారు 3 ఏళ్ల లాభం). ఉద్యమ్ తప్పనిసరి.'),
       L('Must not be a brand-new greenfield application.', 'కొత్త గ్రీన్‌ఫీల్డ్ దరఖాస్తు కాకూడదు.'),
+      L(
+        'Having already received PMEGP, REGP, or MUDRA is required here, not a bar. An unpaid first loan does not qualify. The unit should have been in profit for about three years.',
+        'PMEGP, REGP లేదా MUDRA ఇప్పటికే పొందిఉండటం ఇక్కడ అవసరం, అడ్డు కాదు. మొదటి రుణం బాకీగా ఉంటే అర్హత లేదు. సుమారు మూడేళ్లు లాభంలో ఉండాలి.'
+      ),
     ],
     howToApply: [
       L('Apply on the PMEGP e-portal upgrade module; IA (KVIC / KVIB / DIC) forwards to bank.', 'PMEGP ఇ-పోర్టల్ అప్‌గ్రేడ్ మాడ్యూల్‌లో దరఖాస్తు; IA బ్యాంకుకు పంపుతుంది.'),

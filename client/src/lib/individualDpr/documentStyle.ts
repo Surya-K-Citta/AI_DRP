@@ -382,7 +382,7 @@ function readSectionBlocks(raw: unknown): Record<string, SectionBlock[]> {
   const out: Record<string, SectionBlock[]> = {};
   for (const [sectionId, value] of Object.entries(raw as Record<string, unknown>)) {
     if (!/^[A-Za-z0-9_-]{1,80}$/.test(sectionId) || !Array.isArray(value)) continue;
-    const blocks = value.flatMap((rawBlock) => {
+    const blocks: SectionBlock[] = value.flatMap((rawBlock): SectionBlock[] => {
       if (!rawBlock || typeof rawBlock !== 'object') return [];
       const item = rawBlock as { id?: unknown; kind?: unknown; text?: unknown; name?: unknown; src?: unknown; hidden?: unknown; frame?: Partial<ImageBox> };
       const id = typeof item.id === 'string' ? item.id.replace(/[^A-Za-z0-9_]/g, '').slice(0, 40) : '';
@@ -829,6 +829,25 @@ export function pageHeightMm(size: PageSize): number {
   if (size === 'Letter') return 279;
   if (size === 'Legal') return 356;
   return 297;
+}
+
+/** How many sheets a fitted report occupies. A sliver under one page does not add a blank sheet. */
+export function pageCountForHeight(sheetHeightPx: number, pageHeightPx: number): number {
+  if (!(pageHeightPx > 0) || !(sheetHeightPx > 0)) return 1;
+  return Math.max(1, Math.ceil(sheetHeightPx / pageHeightPx - 0.02));
+}
+
+/** `plain` is the number. `of` fills {n} and {total} in the pattern. */
+export function formatPageNumber(
+  style: string,
+  n: number,
+  total: number,
+  ofPattern = 'Page {n} of {total}'
+): string {
+  if (style === 'of') {
+    return ofPattern.split('{n}').join(String(n)).split('{total}').join(String(total));
+  }
+  return String(n);
 }
 
 export function pageBreakBackground(size: PageSize): string {

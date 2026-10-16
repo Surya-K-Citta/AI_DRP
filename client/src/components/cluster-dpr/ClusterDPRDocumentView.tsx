@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { FormattedText } from '@/utils/textFormatter';
 import { DPRVisualizations } from './DPRVisualizations';
@@ -39,6 +40,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
   trackFieldHits = false,
   isIndividualDPR: isIndividualProp = false,
 }) => {
+  const tf = useClusterFormText();
   // Get store functions to update data
   const { data: storeData, setStepData } = useClusterDPRStore();
 
@@ -176,16 +178,16 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             }
           }
 
-          toast.success(`Document uploaded successfully!`);
+          toast.success(tf('Document uploaded successfully!'));
         } else {
-          toast.error('Project not found');
+          toast.error(tf('Project not found'));
         }
       } else {
-        toast.error(uploadResult.message || 'Failed to upload document');
+        toast.error(uploadResult.message || tf('Failed to upload document'));
       }
     } catch (error: any) {
       console.error('Error uploading document:', error);
-      toast.error(error.message || 'Failed to upload document');
+      toast.error(error.message || tf('Failed to upload document'));
     } finally {
       setUploadingDocuments((prev) => ({ ...prev, [documentType]: false }));
     }
@@ -484,12 +486,12 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
           }}
           onClick={isClickable ? () => onSectionClick!(step!) : undefined}
-          title={isClickable ? `Click to edit Step ${step}` : undefined}
+          title={isClickable ? tf('Click to edit Step {n}').replace('{n}', String(step)) : undefined}
         >
           <h2 className="text-3xl font-bold text-center" style={{ color: '#1F2937' }}>
-            {title}
+            {tf(title)}
             {isClickable && (
-              <span className="ml-2 text-sm text-blue-600 opacity-70">(Click to edit)</span>
+              <span className="ml-2 text-sm text-blue-600 opacity-70">{tf('(Click to edit)')}</span>
             )}
           </h2>
         </div>
@@ -509,9 +511,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
         {title && (
           <div className="" style={{ pageBreakAfter: 'avoid' }}>
             {statementNumber && (
-              <p className="text-xs text-gray-600 mb-1 font-semibold">Statement {statementNumber}</p>
+              <p className="text-xs text-gray-600 mb-1 font-semibold">{tf('Statement {n}').replace('{n}', String(statementNumber))}</p>
             )}
-            <h4 className="text-lg font-bold text-gray-900">{title}</h4>
+            <h4 className="text-lg font-bold text-gray-900">{tf(title)}</h4>
             {enhancedContent[`tableExplanation-${explanationKey}`] && (
               <div className="mt-2 p-3">
                 <p className="text-xs text-justify leading-relaxed" style={{ color: '#1F2937' }}>
@@ -541,7 +543,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                       color: '#1F2937'
                     }}
                   >
-                    {header}
+                    {typeof header === 'string' ? tf(header) : header}
                   </th>
                 ))}
               </tr>
@@ -561,7 +563,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                       className="border border-gray-800 px-3 py-2 text-xs"
                       style={{ borderColor: '#1F2937' }}
                     >
-                      {cell}
+                      {typeof cell === 'string' && cellIdx === 0 ? tf(cell) : cell}
                     </td>
                   ))}
                 </tr>
@@ -600,13 +602,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           }
         }
 
-        toast.success('Image generated successfully!');
+        toast.success(tf('Image generated successfully!'));
       } else {
-        toast.error(result.message || 'Failed to generate image');
+        toast.error(result.message || tf('Failed to generate image'));
       }
     } catch (error: any) {
       console.error('Error generating image:', error);
-      toast.error(error.message || 'Failed to generate image');
+      toast.error(error.message || tf('Failed to generate image'));
     } finally {
       setGeneratingImages({ ...generatingImages, [imageId]: false });
     }
@@ -643,13 +645,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           }
         }
 
-        toast.success('Image uploaded successfully!');
+        toast.success(tf('Image uploaded successfully!'));
       } else {
-        toast.error(result.message || 'Failed to upload image');
+        toast.error(result.message || tf('Failed to upload image'));
       }
     } catch (error: any) {
       console.error('Error uploading image:', error);
-      toast.error(error.message || 'Failed to upload image');
+      toast.error(error.message || tf('Failed to upload image'));
     }
   };
 
@@ -667,22 +669,22 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
         delete newImages[imageId];
         setImages(newImages);
         if (result.success) {
-          toast.success('Image removed and deleted from storage');
+          toast.success(tf('Image removed and deleted from storage'));
         } else {
-          toast.success('Image removed');
+          toast.success(tf('Image removed'));
         }
       } catch (error: any) {
         console.error('Error deleting image:', error);
         const newImages = { ...images };
         delete newImages[imageId];
         setImages(newImages);
-        toast.success('Image removed');
+        toast.success(tf('Image removed'));
       }
     } else {
       const newImages = { ...images };
       delete newImages[imageId];
       setImages(newImages);
-      toast.success('Image removed');
+      toast.success(tf('Image removed'));
     }
   };
 
@@ -710,7 +712,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           } catch (error) {
             console.error('Error saving enhanced content to database:', error);
             if (!silent) {
-              toast.error('Failed to save to database. Please try again.');
+              toast.error(tf('Failed to save to database. Please try again.'));
             }
             // Don't throw error - enhanced content is still in state for preview
           }
@@ -723,18 +725,18 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
         }
 
         if (!silent) {
-          toast.success('Section enhanced and saved successfully!');
+          toast.success(tf('Section enhanced and saved successfully!'));
         }
       } else {
         if (!silent) {
-          toast.error(result.message || 'Failed to enhance section');
+          toast.error(result.message || tf('Failed to enhance section'));
         }
-        throw new Error(result.message || 'Failed to enhance section');
+        throw new Error(result.message || tf('Failed to enhance section'));
       }
     } catch (error: any) {
       console.error('Error enhancing section:', error);
       if (!silent) {
-        toast.error(error.message || 'Failed to enhance section');
+        toast.error(error.message || tf('Failed to enhance section'));
       }
       throw error;
     } finally {
@@ -746,7 +748,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
   const handleApplyGeneratedSection = async (sectionName: string) => {
     const dprId = dpr?._id || dpr?.id;
     if (!dprId) {
-      toast.error('DPR not found. Please generate DPR first.');
+      toast.error(tf('DPR not found. Please generate DPR first.'));
       return;
     }
 
@@ -754,15 +756,15 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
     try {
       const result = await api.applyClusterDPRGeneratedSection(dprId, sectionName, viewLanguage);
       if (result.success) {
-        toast.success(`Section "${sectionName}" applied successfully!`);
+        toast.success(tf('Section "{sectionName}" applied successfully!').replace('{sectionName}', String(sectionName)));
         // Reload the page or refresh content
         window.location.reload();
       } else {
-        toast.error(result.message || 'Failed to apply section');
+        toast.error(result.message || tf('Failed to apply section'));
       }
     } catch (error: any) {
       console.error('Error applying generated section:', error);
-      toast.error(error.message || 'Failed to apply section');
+      toast.error(error.message || tf('Failed to apply section'));
     } finally {
       setApplyingSections((prev) => ({ ...prev, [sectionName]: false }));
     }
@@ -790,7 +792,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
     }
 
     if (!dprId) {
-      toast.error('DPR not found. Please generate DPR first to apply enhanced content permanently.');
+      toast.error(tf('DPR not found. Please generate DPR first to apply enhanced content permanently.'));
       return;
     }
 
@@ -800,7 +802,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
       const enhancedContentToApply = enhancedContent[sectionName];
 
       if (!enhancedContentToApply) {
-        toast.error(`No enhanced content found for "${sectionName}". Please enhance the section first.`);
+        toast.error(tf('No enhanced content found for "{sectionName}". Please enhance the section first.').replace('{sectionName}', String(sectionName)));
         return;
       }
 
@@ -859,7 +861,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 delete updated[sectionName];
                 return updated;
               });
-              toast.success(`Enhanced content for "${sectionName}" applied successfully!`);
+              toast.success(tf('Enhanced content for "{sectionName}" applied successfully!').replace('{sectionName}', String(sectionName)));
               setContentRefreshKey(prev => prev + 1);
               return;
             }
@@ -875,7 +877,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
         const contentField = result.data.contentField || sectionName;
 
         if (!appliedContent) {
-          toast.error('No content to apply');
+          toast.error(tf('No content to apply'));
           return;
         }
 
@@ -898,7 +900,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           dpr.content.english.enhancedContent = updatedEnhanced;
         }
 
-        toast.success(`Enhanced content for "${sectionName}" applied successfully!`);
+        toast.success(tf('Enhanced content for "{sectionName}" applied successfully!').replace('{sectionName}', String(sectionName)));
 
         // Reload DPR data from database to ensure we have the latest state with applied content
         try {
@@ -932,11 +934,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           setContentRefreshKey(prev => prev + 1);
         }
       } else {
-        toast.error(result.message || 'Failed to apply enhanced content');
+        toast.error(result.message || tf('Failed to apply enhanced content'));
       }
     } catch (error: any) {
       console.error('Error applying enhanced content:', error);
-      toast.error(error.message || 'Failed to apply enhanced content');
+      toast.error(error.message || tf('Failed to apply enhanced content'));
     } finally {
       setApplyingSections((prev) => ({ ...prev, [`enhanced-${sectionName}`]: false }));
     }
@@ -945,13 +947,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
   const handleRegenerateSection = async (sectionName: string, mode: 'generated' | 'enhanced') => {
     const dprId = dpr?._id || dpr?.id;
     if (!dprId) {
-      toast.error('DPR not found. Please generate DPR first.');
+      toast.error(tf('DPR not found. Please generate DPR first.'));
       return;
     }
 
     const instruction = (regenerateInstructions[sectionName] || '').trim();
     if (!instruction) {
-      toast.error('Please enter what you want to change/improve.');
+      toast.error(tf('Please enter what you want to change/improve.'));
       return;
     }
 
@@ -967,13 +969,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           setGeneratedSections((prev) => ({ ...prev, [sectionName]: candidate }));
         }
 
-        toast.success('New version generated. Compare and click Apply when ready.');
+        toast.success(tf('New version generated. Compare and click Apply when ready.'));
       } else {
-        toast.error(result.message || 'Failed to regenerate section');
+        toast.error(result.message || tf('Failed to regenerate section'));
       }
     } catch (error: any) {
       console.error('Error regenerating section:', error);
-      toast.error(error.message || 'Failed to regenerate section');
+      toast.error(error.message || tf('Failed to regenerate section'));
     } finally {
       setRegeneratingSections((prev) => ({ ...prev, [`${mode}-${sectionName}`]: false }));
     }
@@ -991,7 +993,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
     return (
       <div className="mb-6 p-4 border-2 border-blue-300 rounded-lg bg-blue-50/30">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-lg font-semibold text-blue-800">Generated {sectionTitle}</h4>
+          <h4 className="text-lg font-semibold text-blue-800">{tf('Generated: {title}').replace('{title}', String(sectionTitle))}</h4>
           <Button
             onClick={() => handleApplyGeneratedSection(sectionName)}
             disabled={isApplying}
@@ -1002,19 +1004,21 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             {isApplying ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Applying...
+                
+                {tf('Applying...')}
               </>
             ) : (
               <>
                 <Sparkles className="h-4 w-4" />
-                Apply Section
+                
+                {tf('Apply Section')}
               </>
             )}
           </Button>
         </div>
         {currentText?.trim() ? (
           <div className="mb-3 p-3 bg-white rounded border border-blue-200">
-            <div className="text-xs font-semibold text-blue-700 mb-2">Current (Applied)</div>
+            <div className="text-xs font-semibold text-blue-700 mb-2">{tf('Current (Applied)')}</div>
             <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
               {currentText}
             </p>
@@ -1026,13 +1030,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           </p>
         </div>
         <div className="mt-3">
-          <div className="text-xs font-semibold text-blue-700 mb-2">What should be improved/expanded?</div>
+          <div className="text-xs font-semibold text-blue-700 mb-2">{tf('What should be improved/expanded?')}</div>
           <textarea
             className="w-full border border-blue-200 rounded p-2 text-sm"
             rows={3}
             value={regenerateInstructions[sectionName] || ''}
             onChange={(e) => setRegenerateInstructions((prev) => ({ ...prev, [sectionName]: e.target.value }))}
-            placeholder="e.g., Add more details, include implementation timeline, clarify costs, improve clarity..."
+            placeholder={tf('e.g., Add more details, include implementation timeline, clarify costs, improve clarity...')}
           />
           <div className="mt-2 flex justify-end">
             <Button
@@ -1045,12 +1049,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               {isRegenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Regenerating...
+                  
+                  {tf('Regenerating...')}
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4" />
-                  Regenerate
+                  
+                  {tf('Regenerate')}
                 </>
               )}
             </Button>
@@ -1073,7 +1079,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
       <div className="mb-6 p-4 border-2 border-purple-300 rounded-lg bg-purple-50/30">
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-lg font-semibold text-purple-800">
-            Enhanced {sectionTitle || sectionName}
+            
+            {tf('Enhanced: {title}').replace('{title}', String(sectionTitle || sectionName))}
           </h4>
           <Button
             onClick={() => handleApplyEnhancedContent(sectionName)}
@@ -1085,19 +1092,21 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             {isApplying ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Applying...
+                
+                {tf('Applying...')}
               </>
             ) : (
               <>
                 <Wand2 className="h-4 w-4" />
-                Apply Enhanced
+                
+                {tf('Apply Enhanced')}
               </>
             )}
           </Button>
         </div>
         {currentText?.trim() ? (
           <div className="mb-3 p-3 bg-white rounded border border-purple-200">
-            <div className="text-xs font-semibold text-purple-700 mb-2">Current (Applied)</div>
+            <div className="text-xs font-semibold text-purple-700 mb-2">{tf('Current (Applied)')}</div>
             <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
               {currentText}
             </p>
@@ -1109,13 +1118,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           </p>
         </div>
         <div className="mt-3">
-          <div className="text-xs font-semibold text-purple-700 mb-2">What should be improved/expanded?</div>
+          <div className="text-xs font-semibold text-purple-700 mb-2">{tf('What should be improved/expanded?')}</div>
           <textarea
             className="w-full border border-purple-200 rounded p-2 text-sm"
             rows={3}
             value={regenerateInstructions[sectionName] || ''}
             onChange={(e) => setRegenerateInstructions((prev) => ({ ...prev, [sectionName]: e.target.value }))}
-            placeholder="e.g., Add more details, refine language, include specific impacts, make it more formal..."
+            placeholder={tf('e.g., Add more details, refine language, include specific impacts, make it more formal...')}
           />
           <div className="mt-2 flex justify-end">
             <Button
@@ -1128,12 +1137,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               {isRegenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Regenerating...
+                  
+                  {tf('Regenerating...')}
                 </>
               ) : (
                 <>
                   <Wand2 className="h-4 w-4" />
-                  Regenerate
+                  
+                  {tf('Regenerate')}
                 </>
               )}
             </Button>
@@ -1196,7 +1207,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 <button
                   onClick={() => handleRemoveImage(imageId)}
                   className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md hover:bg-red-50 hover:text-red-600 transition-colors z-10"
-                  title="Remove image"
+                  title={tf('Remove image')}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -1206,7 +1217,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {isGenerating ? (
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-                    <p className="text-sm font-medium text-gray-600">Generating image...</p>
+                    <p className="text-sm font-medium text-gray-600">{tf('Generating image...')}</p>
                   </div>
                 ) : (
                   <>
@@ -1224,7 +1235,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                       </svg>
                     </div>
                     <p className="text-base font-medium text-gray-700 mb-1">
-                      No image
+                      
+                      {tf('No image')}
                     </p>
                   </>
                 )}
@@ -1255,7 +1267,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               className="bg-white border-gray-300 hover:bg-gray-50"
             >
               <Upload className="h-4 w-4 mr-1.5" />
-              Upload
+              
+              {tf('Upload')}
             </Button>
             {sectionType && defaultPrompt && (
               <Button
@@ -1268,12 +1281,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {isGenerating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                    Generating...
+                    
+                    {tf('Generating...')}
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-1.5" />
-                    Generate
+                    
+                    {tf('Generate')}
                   </>
                 )}
               </Button>
@@ -1417,7 +1432,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                       }
 
                       if (!dprId && !projectId) {
-                        toast.error('Project not found. Please save your project first.');
+                        toast.error(tf('Project not found. Please save your project first.'));
                         return;
                       }
 
@@ -1428,7 +1443,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                       });
                       setEnhancingSections(enhancingState);
 
-                      toast.loading(`Enhancing and applying all sections: 0/${totalSections}`, { id: 'enhance-all', duration: Infinity });
+                      toast.loading(tf('Enhancing and applying all sections: 0/{totalSections}').replace('{totalSections}', String(totalSections)), { id: 'enhance-all', duration: Infinity });
 
                       try {
                         // Enhance all sections and automatically apply them
@@ -1440,12 +1455,12 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                         for (let i = 0; i < validSections.length; i++) {
                           const section = validSections[i];
                           try {
-                            toast.loading(`Enhancing and applying: ${i + 1}/${totalSections} - ${section.name}`, { id: 'enhance-all' });
+                            toast.loading(tf('Enhancing and applying: {n1}/{totalSections} - {n2}').replace('{n1}', String(i + 1)).replace('{totalSections}', String(totalSections)).replace('{n2}', String(section.name)), { id: 'enhance-all' });
 
                             // Step 1: Enhance the section and get the enhanced content
                             const enhanceResult = await api.enhanceClusterDPRSection(section.name, section.data, clusterData);
                             if (!enhanceResult.success || !enhanceResult.data?.enhancedParagraph) {
-                              throw new Error(enhanceResult.message || 'Failed to enhance section');
+                              throw new Error(enhanceResult.message || tf('Failed to enhance section'));
                             }
 
                             const enhancedParagraph = enhanceResult.data.enhancedParagraph;
@@ -1534,18 +1549,18 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
 
                         if (failedCount === 0) {
                           const message = dprId
-                            ? `Successfully enhanced and applied ${appliedCount} sections! Enhanced content has been directly added to the DPR.`
-                            : `Successfully enhanced ${successCount} sections! Enhanced content is now visible in the preview. Note: Generate DPR to apply enhanced content permanently.`;
+                            ? tf('Successfully enhanced and applied {appliedCount} sections! Enhanced content has been directly added to the DPR.').replace('{appliedCount}', String(appliedCount))
+                            : tf('Successfully enhanced {successCount} sections! Enhanced content is now visible in the preview. Note: Generate DPR to apply enhanced content permanently.').replace('{successCount}', String(successCount));
                           toast.success(message, { id: 'enhance-all', duration: 5000 });
                         } else {
                           const message = dprId
-                            ? `Enhanced and applied ${appliedCount}/${totalSections} sections. ${failedCount} failed. Enhanced content has been directly added to the DPR.`
-                            : `Enhanced ${successCount}/${totalSections} sections. ${failedCount} failed. Enhanced content is now visible in the preview. Note: Generate DPR to apply enhanced content permanently.`;
+                            ? tf('Enhanced and applied {appliedCount}/{totalSections} sections. {failedCount} failed. Enhanced content has been directly added to the DPR.').replace('{appliedCount}', String(appliedCount)).replace('{totalSections}', String(totalSections)).replace('{failedCount}', String(failedCount))
+                            : tf('Enhanced {successCount}/{totalSections} sections. {failedCount} failed. Enhanced content is now visible in the preview. Note: Generate DPR to apply enhanced content permanently.').replace('{successCount}', String(successCount)).replace('{totalSections}', String(totalSections)).replace('{failedCount}', String(failedCount));
                           toast.success(message, { id: 'enhance-all', duration: 5000 });
                         }
                       } catch (error: any) {
                         console.error('Error enhancing all sections:', error);
-                        toast.error(error.message || 'Failed to enhance sections', { id: 'enhance-all' });
+                        toast.error(error.message || tf('Failed to enhance sections'), { id: 'enhance-all' });
                       } finally {
                         setEnhancingSections({});
                       }
@@ -1556,12 +1571,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                     {Object.values(enhancingSections).some(v => v) ? (
                       <>
                         <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        Enhancing DPR...
+                        
+                        {tf('Enhancing DPR...')}
                       </>
                     ) : (
                       <>
                         <Wand2 className="h-5 w-5 mr-2" />
-                        Enhance Complete DPR
+                        
+                        {tf('Enhance Complete DPR')}
                       </>
                     )}
                   </Button>
@@ -1579,7 +1596,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                   onClick={async () => {
                     const projectId = project?._id || project?.id;
                     if (!projectId) {
-                      toast.error('Project not found. Please save your project first.');
+                      toast.error(tf('Project not found. Please save your project first.'));
                       return;
                     }
 
@@ -1634,14 +1651,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                     });
                     setGeneratingImages(generatingState);
 
-                    toast.loading(`Generating all images: 0/${totalImages}`, { id: 'generate-all-images', duration: Infinity });
+                    toast.loading(tf('Generating all images: 0/{totalImages}').replace('{totalImages}', String(totalImages)), { id: 'generate-all-images', duration: Infinity });
 
                     try {
                       // Process images sequentially to avoid overwhelming the API
                       for (let i = 0; i < imagesToGenerate.length; i++) {
                         const imageConfig = imagesToGenerate[i];
                         try {
-                          toast.loading(`Generating image ${i + 1}/${totalImages}: ${imageConfig.imageId}`, { id: 'generate-all-images' });
+                          toast.loading(tf('Generating image {n1}/{totalImages}: {n2}').replace('{n1}', String(i + 1)).replace('{totalImages}', String(totalImages)).replace('{n2}', String(imageConfig.imageId)), { id: 'generate-all-images' });
 
                           const result = await api.generateClusterDPRImage(
                             imageConfig.prompt,
@@ -1669,7 +1686,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
 
                             successCount++;
                           } else {
-                            throw new Error(result.message || 'Failed to generate image');
+                            throw new Error(result.message || tf('Failed to generate image'));
                           }
                         } catch (error: any) {
                           console.error(`Error generating image ${imageConfig.imageId}:`, error);
@@ -1678,13 +1695,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                       }
 
                       if (failedCount === 0) {
-                        toast.success(`Successfully generated ${successCount} images!`, { id: 'generate-all-images', duration: 5000 });
+                        toast.success(tf('Successfully generated {successCount} images!').replace('{successCount}', String(successCount)), { id: 'generate-all-images', duration: 5000 });
                       } else {
-                        toast.success(`Generated ${successCount}/${totalImages} images. ${failedCount} failed.`, { id: 'generate-all-images', duration: 5000 });
+                        toast.success(tf('Generated {successCount}/{totalImages} images. {failedCount} failed.').replace('{successCount}', String(successCount)).replace('{totalImages}', String(totalImages)).replace('{failedCount}', String(failedCount)), { id: 'generate-all-images', duration: 5000 });
                       }
                     } catch (error: any) {
                       console.error('Error generating all images:', error);
-                      toast.error(error.message || 'Failed to generate images', { id: 'generate-all-images' });
+                      toast.error(error.message || tf('Failed to generate images'), { id: 'generate-all-images' });
                     } finally {
                       setGeneratingImages({});
                     }
@@ -1695,12 +1712,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                   {Object.values(generatingImages).some(v => v) ? (
                     <>
                       <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                      Generating Images...
+                      
+                      {tf('Generating Images...')}
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-5 w-5 mr-2" />
-                      Generate All Images
+                      
+                      {tf('Generate All Images')}
                     </>
                   )}
                 </Button>
@@ -1725,10 +1744,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               }}
             >
               <h1 className="text-4xl font-bold text-center " style={{ color: '#1F2937', letterSpacing: '0.05em' }}>
-                DETAILED PROJECT REPORT
+                
+                {tf('DETAILED PROJECT REPORT')}
               </h1>
               <h2 className="text-2xl font-semibold text-center " style={{ color: '#1F2937' }}>
-                On
+                {tf('On')}
               </h2>
               {(() => {
                 if (isIndividualDPR) {
@@ -1754,13 +1774,15 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 return (
                   <>
                     <h2 className="text-2xl font-semibold text-center" style={{ color: '#1F2937' }}>
-                      Establishment of Common Facility Centre for
+                      
+                      {tf('Establishment of Common Facility Centre for')}
                     </h2>
                     <h2 className="text-3xl font-bold text-center uppercase" style={{ color: '#059669', letterSpacing: '0.05em' }}>
-                      {fieldHit('step1.clusterName', s1.clusterName || 'CLUSTER NAME')}
+                      {fieldHit('step1.clusterName', s1.clusterName || tf('CLUSTER NAME'))}
                     </h2>
                     <p className="text-lg font-semibold text-center items-center px-32" style={{ color: '#1F2937' }}>
-                      under 'Micro Cluster Development Programme'
+                      
+                      {tf('under \'Micro Cluster Development Programme\'')}
                     </p>
                   </>
                 );
@@ -1773,7 +1795,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             {renderImage(
               'cover-image',
               '',
-              isIndividualDPR ? 'Unit Cover Image' : 'Cluster Cover Image',
+              isIndividualDPR ? tf('Unit Cover Image') : tf('Cluster Cover Image'),
               '',
               'coverPage',
               { clusterName: s1.clusterName, location: s1.location, district: s1.district },
@@ -1796,7 +1818,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 className="text-sm font-semibold w-32"
                 style={{ color: '#1F2937' }}
               >
-                Submitted to:
+                
+                {tf('Submitted to:')}
               </p>
               <p className="text-sm" style={{ color: '#1F2937' }}>
                 {'DIC, District'}
@@ -1813,13 +1836,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                   className="text-sm font-semibold w-32"
                   style={{ color: '#1F2937' }}
                 >
-                  Submitted by:
+                  
+                  {tf('Submitted by:')}
                 </p>
                 <div>
                   <p className="text-sm" style={{ color: '#1F2937' }}>
-                    {fieldHit('step1.clusterName', s1.clusterName || 'Cluster Name')}
+                    {fieldHit('step1.clusterName', s1.clusterName || tf('Cluster Name'))}
                     {s1.clusterName ? ', ' : null}
-                    {fieldHit('step1.location', s1.location || 'Location')}
+                    {fieldHit('step1.location', s1.location || tf('Location'))}
                   </p>
                 </div>
               </div>
@@ -1831,10 +1855,12 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 className="text-sm font-semibold w-32"
                 style={{ color: '#1F2937' }}
               >
-                Prepared by:
+                
+                {tf('Prepared by:')}
               </p>
               <p className="text-sm" style={{ color: '#1F2937' }}>
-                CittaAI
+                
+                {tf('CittaAI')}
               </p>
             </div>
           </div>
@@ -1880,64 +1906,64 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
 
             // Executive Summary
             if (hasExecutiveSummary) {
-              sections.push({ chapter: '', title: 'Executive Summary', page: 'i-iv' });
+              sections.push({ chapter: '', title: tf('Executive Summary'), page: 'i-iv' });
             }
 
             // Main sections
             if (hasIntroduction) {
-              sections.push({ chapter: '1.', title: 'Introduction', page: currentPage.toString() });
+              sections.push({ chapter: '1.', title: tf('Introduction'), page: currentPage.toString() });
               currentPage++;
             }
             if (hasDistrictProfile) {
-              sections.push({ chapter: '1.5', title: 'District & Regional Profile', page: currentPage.toString() });
+              sections.push({ chapter: '1.5', title: tf('District & Regional Profile'), page: currentPage.toString() });
               currentPage++;
             }
             if (hasClusterProfile) {
-              sections.push({ chapter: '2.', title: 'Cluster Profile', page: currentPage.toString() });
+              sections.push({ chapter: '2.', title: tf('Cluster Profile'), page: currentPage.toString() });
               currentPage++;
             }
             if (hasValueChain) {
-              sections.push({ chapter: '3.', title: 'Cluster value chain mapping', page: currentPage.toString() });
+              sections.push({ chapter: '3.', title: tf('Cluster value chain mapping'), page: currentPage.toString() });
               currentPage++;
             }
             if (hasMarketAspects) {
-              sections.push({ chapter: '4.', title: 'Market Aspects', page: currentPage.toString() });
+              sections.push({ chapter: '4.', title: tf('Market Aspects'), page: currentPage.toString() });
               currentPage++;
             }
             if (hasSWOT) {
-              sections.push({ chapter: '5.', title: 'SWOT Analysis', page: currentPage.toString() });
+              sections.push({ chapter: '5.', title: tf('SWOT Analysis'), page: currentPage.toString() });
               currentPage++;
             }
             if (hasGapAnalysis) {
-              sections.push({ chapter: '6.', title: 'Need Gap Analysis', page: currentPage.toString() });
+              sections.push({ chapter: '6.', title: tf('Need Gap Analysis'), page: currentPage.toString() });
               currentPage++;
             }
             if (hasCFCDetails) {
-              sections.push({ chapter: '7.', title: 'CFC - Operation & Management', page: currentPage.toString() });
+              sections.push({ chapter: '7.', title: tf('CFC - Operation & Management'), page: currentPage.toString() });
               currentPage++;
             }
             if (hasSPVDetails) {
-              sections.push({ chapter: '8.', title: 'SPV Member Units', page: currentPage.toString() });
+              sections.push({ chapter: '8.', title: tf('SPV Member Units'), page: currentPage.toString() });
               currentPage++;
             }
             if (hasProjectCost) {
-              sections.push({ chapter: '9.', title: 'Project Cost & Means Of Finance', page: currentPage.toString() });
+              sections.push({ chapter: '9.', title: tf('Project Cost & Means Of Finance'), page: currentPage.toString() });
               currentPage++;
             }
             if (hasOperatingCostRevenue) {
-              sections.push({ chapter: '9.5', title: 'Operating Cost & Revenue', page: currentPage.toString() });
+              sections.push({ chapter: '9.5', title: tf('Operating Cost & Revenue'), page: currentPage.toString() });
               currentPage++;
             }
             if (hasFinancialViability) {
-              sections.push({ chapter: '10.', title: 'Financial viability', page: currentPage.toString() });
+              sections.push({ chapter: '10.', title: tf('Financial viability'), page: currentPage.toString() });
               currentPage++;
             }
             if (hasImplementationSchedule) {
-              sections.push({ chapter: '10.5', title: 'Project Implementation Schedule', page: currentPage.toString() });
+              sections.push({ chapter: '10.5', title: tf('Project Implementation Schedule'), page: currentPage.toString() });
               currentPage++;
             }
             if (hasExpectedImpact) {
-              sections.push({ chapter: '11.', title: 'Expected Impact', page: currentPage.toString() });
+              sections.push({ chapter: '11.', title: tf('Expected Impact'), page: currentPage.toString() });
               currentPage++;
             }
 
@@ -1947,92 +1973,92 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             // Financial Statements
             const financialStatementsSections: Array<{ chapter: string, title: string, page: string, isHeader?: boolean }> = [];
             if (hasFinancialStatements) {
-              financialStatementsSections.push({ chapter: '', title: 'Financial Statements', page: '', isHeader: true });
-              financialStatementsSections.push({ chapter: 'SI.No.', title: 'Financial Statements', page: '' });
+              financialStatementsSections.push({ chapter: '', title: tf('Financial Statements'), page: '', isHeader: true });
+              financialStatementsSections.push({ chapter: 'SI.No.', title: tf('Financial Statements'), page: '' });
 
               let statementNum = 1;
               let statementPage = currentPage;
 
               // Cost of Project & Means of Finance (always shown if project cost exists)
               if (hasProjectCost) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Cost of Project & Means of Finance', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Cost of Project & Means of Finance'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Assessment of Working Capital
               if (s12.workingCapitalMargin && s12.workingCapitalMargin > 0) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Assessment of Working Capital', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Assessment of Working Capital'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Cost of Production & Profitability
               if (s15.profitAndLossProjections?.length > 0) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Cost of Production & Profitability', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Cost of Production & Profitability'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Assumptions
               if (s14.capacityUtilization || s14.rawMaterialCostPercentage || s14.powerCost || s14.depreciationRate || s14.interestRate) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Assumptions for Cost of Production & Profitability', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Assumptions for Cost of Production & Profitability'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Power Cost
               if (s14.powerCost) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of Power cost', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Estimation of Power cost'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Manpower
               if (s14.manpowerRequirement?.length > 0 || (s17.employmentGeneration && s17.employmentGeneration > 0)) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Manpower requirement & estimation of cost', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Manpower requirement & estimation of cost'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Depreciation
               if ((s12.building && s12.building > 0) || (s12.machinery && s12.machinery > 0) || s14.depreciationDetails) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of Depreciation', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Estimation of Depreciation'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Income Tax
               if (s15.profitAndLossProjections?.length > 0) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Calculation of Income Tax', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Calculation of Income Tax'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Cash Flow
               if (s15.cashFlowProjections?.length > 0) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Projected Cash Flow Statement', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Projected Cash Flow Statement'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Balance Sheet
               if (s15.balanceSheetProjections?.length > 0) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Projected Balance Sheet', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Projected Balance Sheet'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Break Even Point
               if (s15.breakEvenPoint) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of Break Even Point', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Estimation of Break Even Point'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // NPV & IRR
               if (s15.npv || s15.irr) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of NPV & IRR', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Estimation of NPV & IRR'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
@@ -2042,7 +2068,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
 
             // Conclusion
             if (hasConclusion) {
-              financialStatementsSections.push({ chapter: '', title: 'Conclusion', page: currentPage.toString() });
+              financialStatementsSections.push({ chapter: '', title: tf('Conclusion'), page: currentPage.toString() });
               currentPage++;
             }
 
@@ -2064,7 +2090,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               const annexureEndPage = annexureFileCount > 0 ? currentPage + annexureFileCount : currentPage;
               // If only cover page, show single page number, otherwise show range
               const annexurePageNumber = annexureFileCount > 0 ? `${annexureStartPage}-${annexureEndPage}` : annexureStartPage.toString();
-              financialStatementsSections.push({ chapter: '', title: 'Annexures', page: annexurePageNumber });
+              financialStatementsSections.push({ chapter: '', title: tf('Annexures'), page: annexurePageNumber });
             }
 
             // Page 1: Main sections (up to Expected Impact)
@@ -2074,9 +2100,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               <table className="w-full border-collapse border border-gray-800 text-sm" style={{ borderColor: '#1F2937' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#E5E7EB' }}>
-                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Chapter</th>
-                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Title</th>
-                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Page No</th>
+                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>{tf('Chapter')}</th>
+                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>{tf('Title')}</th>
+                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>{tf('Page No')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2158,92 +2184,92 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             // Financial Statements
             const financialStatementsSections: Array<{ chapter: string, title: string, page: string, isHeader?: boolean }> = [];
             if (hasFinancialStatements) {
-              financialStatementsSections.push({ chapter: '', title: 'Financial Statements', page: '', isHeader: true });
-              financialStatementsSections.push({ chapter: 'SI.No.', title: 'Financial Statements', page: '' });
+              financialStatementsSections.push({ chapter: '', title: tf('Financial Statements'), page: '', isHeader: true });
+              financialStatementsSections.push({ chapter: 'SI.No.', title: tf('Financial Statements'), page: '' });
 
               let statementNum = 1;
               let statementPage = currentPage;
 
               // Cost of Project & Means of Finance (always shown if project cost exists)
               if (hasProjectCost) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Cost of Project & Means of Finance', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Cost of Project & Means of Finance'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Assessment of Working Capital
               if (s12.workingCapitalMargin && s12.workingCapitalMargin > 0) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Assessment of Working Capital', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Assessment of Working Capital'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Cost of Production & Profitability
               if (s15.profitAndLossProjections?.length > 0) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Cost of Production & Profitability', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Cost of Production & Profitability'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Assumptions
               if (s14.capacityUtilization || s14.rawMaterialCostPercentage || s14.powerCost || s14.depreciationRate || s14.interestRate) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Assumptions for Cost of Production & Profitability', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Assumptions for Cost of Production & Profitability'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Power Cost
               if (s14.powerCost) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of Power cost', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Estimation of Power cost'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Manpower
               if (s14.manpowerRequirement?.length > 0 || (s17.employmentGeneration && s17.employmentGeneration > 0)) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Manpower requirement & estimation of cost', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Manpower requirement & estimation of cost'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Depreciation
               if ((s12.building && s12.building > 0) || (s12.machinery && s12.machinery > 0) || s14.depreciationDetails) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of Depreciation', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Estimation of Depreciation'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Income Tax
               if (s15.profitAndLossProjections?.length > 0) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Calculation of Income Tax', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Calculation of Income Tax'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Cash Flow
               if (s15.cashFlowProjections?.length > 0) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Projected Cash Flow Statement', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Projected Cash Flow Statement'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Balance Sheet
               if (s15.balanceSheetProjections?.length > 0) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Projected Balance Sheet', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Projected Balance Sheet'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // Break Even Point
               if (s15.breakEvenPoint) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of Break Even Point', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Estimation of Break Even Point'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
 
               // NPV & IRR
               if (s15.npv || s15.irr) {
-                financialStatementsSections.push({ chapter: statementNum.toString(), title: 'Estimation of NPV & IRR', page: statementPage.toString() });
+                financialStatementsSections.push({ chapter: statementNum.toString(), title: tf('Estimation of NPV & IRR'), page: statementPage.toString() });
                 statementNum++;
                 statementPage++;
               }
@@ -2253,7 +2279,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
 
             // Conclusion
             if (hasConclusion) {
-              financialStatementsSections.push({ chapter: '', title: 'Conclusion', page: currentPage.toString() });
+              financialStatementsSections.push({ chapter: '', title: tf('Conclusion'), page: currentPage.toString() });
               currentPage++;
             }
 
@@ -2275,7 +2301,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               const annexureEndPage = annexureFileCount > 0 ? currentPage + annexureFileCount : currentPage;
               // If only cover page, show single page number, otherwise show range
               const annexurePageNumber = annexureFileCount > 0 ? `${annexureStartPage}-${annexureEndPage}` : annexureStartPage.toString();
-              financialStatementsSections.push({ chapter: '', title: 'Annexures', page: annexurePageNumber });
+              financialStatementsSections.push({ chapter: '', title: tf('Annexures'), page: annexurePageNumber });
             }
 
             // Page 2: Financial Statements, Conclusion, and Annexures
@@ -2285,9 +2311,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               <table className="w-full border-collapse border border-gray-800 text-sm" style={{ borderColor: '#1F2937' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#E5E7EB' }}>
-                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Chapter</th>
-                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Title</th>
-                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>Page No</th>
+                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>{tf('Chapter')}</th>
+                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>{tf('Title')}</th>
+                    <th className="border border-gray-800 px-4 py-2 text-left font-bold" style={{ backgroundColor: '#E5E7EB', borderColor: '#1F2937' }}>{tf('Page No')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2322,14 +2348,14 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           {renderTable(
             ['Particulars', 'Details'],
             [
-              ['Name of the cluster', <>{fieldHit('step1.clusterName', s1.clusterName || 'N/A')}, {fieldHit('step1.district', s1.district || 'N/A')} District</>],
+              ['Name of the cluster', <>{fieldHit('step1.clusterName', s1.clusterName || 'N/A')}, {fieldHit('step1.district', s1.district || 'N/A')} {' '}{tf('District')}</>],
               ['Location & Spread of the cluster', fieldHit('step1.geographicalSpread', s1.geographicalSpread || s1.location || 'N/A')],
               ['Product range', fieldHit('step1.majorProducts', s1.majorProducts || 'N/A')],
-              ['Existing cluster scenario', 'See table below'],
-              ['Existing employment in the Cluster', fieldHit('step1.employmentPerUnit', `${(s1.employmentPerUnit?.lessThan5 || 0) + (s1.employmentPerUnit?.between5And10 || 0) + (s1.employmentPerUnit?.moreThan10 || 0)} workers (Male workers: ${s1.employmentPerUnit?.male || 0}, Female workers: ${s1.employmentPerUnit?.female || 0})`)],
+              ['Existing cluster scenario', tf('See table below')],
+              ['Existing employment in the Cluster', fieldHit('step1.employmentPerUnit', tf('{n} workers (Male workers: {m}, Female workers: {f})').replace('{n}', String((s1.employmentPerUnit?.lessThan5 || 0) + (s1.employmentPerUnit?.between5And10 || 0) + (s1.employmentPerUnit?.moreThan10 || 0))).replace('{m}', String(s1.employmentPerUnit?.male || 0)).replace('{f}', String(s1.employmentPerUnit?.female || 0)))],
               ['Name of the SPV', fieldHit('step11.spvName', s11.spvName || 'N/A')],
               ['Legal Status', fieldHit('step11.legalStatus', s11.legalStatus || 'N/A')],
-              ['Number of SPV members(Micro unit holders)', fieldHit('step11.memberUnits', `${(s11.memberUnits?.length || 0)} member units`)],
+              ['Number of SPV members(Micro unit holders)', fieldHit('step11.memberUnits', tf('{n} member units').replace('{n}', String(s11.memberUnits?.length || 0)))],
             ]
           )}
         </div>
@@ -2344,7 +2370,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           {/* Existing Cluster Scenario Table - Only show if data is available */}
           {(s1.enterpriseCount || s4.productionCapacity || s14.annualProductionVolume) && (
             <div className="-mt-2">
-              <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Existing cluster scenario</h4>
+              <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>{tf('Existing cluster scenario')}</h4>
               {(() => {
                 // Build table rows dynamically from available data
                 const rows: any[][] = [];
@@ -2398,11 +2424,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           )}
 
           <div className="my-6">
-            <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Key Concern areas of the cluster</h4>
+            <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>{tf('Key Concern areas of the cluster')}</h4>
             {s7.technologyGaps && (
               <div className="mb-4">
                 <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
-                  <strong>Technology:</strong> {fieldHit('step7.technologyGaps', s7.technologyGaps)}
+                  <strong>{tf('Technology:')}</strong> {fieldHit('step7.technologyGaps', s7.technologyGaps)}
                 </p>
               </div>
             )}
@@ -2415,25 +2441,25 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
         <div className="-mt-4">
           {/* {renderSectionTitle('PROJECT SNAPSHOT (Continued)')} */}
           <div className="-mt-8">
-            <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Key Concern areas of the cluster (Continued)</h4>
+            <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>{tf('Key Concern areas of the cluster (Continued)')}</h4>
             {s7.infrastructureGaps && (
               <div className="mb-4">
                 <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
-                  <strong>Infrastructure:</strong> {fieldHit('step7.infrastructureGaps', s7.infrastructureGaps)}
+                  <strong>{tf('Infrastructure:')}</strong> {fieldHit('step7.infrastructureGaps', s7.infrastructureGaps)}
                 </p>
               </div>
             )}
             {s7.skillGaps && (
               <div className="mb-4">
                 <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
-                  <strong>Skill:</strong> {fieldHit('step7.skillGaps', s7.skillGaps)}
+                  <strong>{tf('Skill:')}</strong> {fieldHit('step7.skillGaps', s7.skillGaps)}
                 </p>
               </div>
             )}
             {s7.marketingGaps && (
               <div className="mb-4">
                 <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
-                  <strong>Marketing:</strong> {fieldHit('step7.marketingGaps', s7.marketingGaps)}
+                  <strong>{tf('Marketing:')}</strong> {fieldHit('step7.marketingGaps', s7.marketingGaps)}
                 </p>
               </div>
             )}
@@ -2446,18 +2472,18 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
         <div className="-mt-2">
           {/* {renderSectionTitle('PROJECT SNAPSHOT (Continued)')} */}
           <div className="-mt-8">
-            <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Key Concern areas of the cluster (Continued)</h4>
+            <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>{tf('Key Concern areas of the cluster (Continued)')}</h4>
             {s7.financialGaps && (
               <div className="mb-4">
                 <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
-                  <strong>Finance:</strong> {fieldHit('step7.financialGaps', s7.financialGaps)}
+                  <strong>{tf('Finance:')}</strong> {fieldHit('step7.financialGaps', s7.financialGaps)}
                 </p>
               </div>
             )}
           </div>
 
           <div className="my-6">
-            <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Project Rationale</h4>
+            <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>{tf('Project Rationale')}</h4>
             <p className="text-sm text-justify leading-relaxed" style={{ color: '#1F2937' }}>
               {fieldHit('step7.justificationForIntervention', s7.justificationForIntervention || 'N/A')}
             </p>
@@ -2470,10 +2496,10 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
         <div>
           {/* {renderSectionTitle('PROJECT SNAPSHOT (Continued)')} */}
           <div className="-mt-8">
-            <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>Proposed Interventions</h4>
+            <h4 className="text-lg font-bold mb-3" style={{ color: '#1F2937' }}>{tf('Proposed Interventions')}</h4>
             {s9.interventionType && (
               <p className="text-sm mb-2" style={{ color: '#1F2937' }}>
-                <strong>Intervention Type:</strong> {fieldHit('step9.interventionType', s9.interventionType)}
+                <strong>{tf('Intervention Type:')}</strong> {fieldHit('step9.interventionType', s9.interventionType)}
               </p>
             )}
             {s9.description ? (
@@ -2485,7 +2511,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             )}
             {s9.objectives && s9.objectives.length > 0 && (
               <div className="mt-3">
-                <p className="text-sm font-semibold mb-2" style={{ color: '#1F2937' }}>Objectives:</p>
+                <p className="text-sm font-semibold mb-2" style={{ color: '#1F2937' }}>{tf('Objectives:')}</p>
                 <ul className="list-disc list-inside space-y-2 text-sm" style={{ color: '#1F2937' }}>
                   {s9.objectives.map((objective: string, idx: number) => (
                     <li key={idx}>{objective}</li>
@@ -2495,7 +2521,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             )}
             {s9.expectedBenefits && s9.expectedBenefits.length > 0 && (
               <div className="mt-3">
-                <p className="text-sm font-semibold mb-2" style={{ color: '#1F2937' }}>Expected Benefits:</p>
+                <p className="text-sm font-semibold mb-2" style={{ color: '#1F2937' }}>{tf('Expected Benefits:')}</p>
                 <ul className="list-disc list-inside space-y-2 text-sm" style={{ color: '#1F2937' }}>
                   {s9.expectedBenefits.map((benefit: string, idx: number) => (
                     <li key={idx}>{benefit}</li>
@@ -2518,7 +2544,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           ) : (
             <div className="space-y-6 text-sm">
               <div>
-                <h3 className="text-xl font-semibold mb-3">1.1 Basic Cluster Details</h3>
+                <h3 className="text-xl font-semibold mb-3">{tf('1.1 Basic Cluster Details')}</h3>
                 {renderTable(
                   ['Parameter', 'Details'],
                   [
@@ -2532,7 +2558,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 )}
               </div>
               <div>
-                <h3 className="text-xl font-semibold mb-3">1.2 Enterprise Profile</h3>
+                <h3 className="text-xl font-semibold mb-3">{tf('1.2 Enterprise Profile')}</h3>
                 {renderTable(
                   ['Category', 'Count'],
                   [
@@ -2544,7 +2570,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 )}
               </div>
               <div>
-                <h3 className="text-xl font-semibold mb-3">1.3 Employment Profile</h3>
+                <h3 className="text-xl font-semibold mb-3">{tf('1.3 Employment Profile')}</h3>
                 {renderTable(
                   ['Category', 'Count'],
                   [
@@ -2557,7 +2583,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 )}
               </div>
               <div>
-                <h3 className="text-xl font-semibold mb-3">1.4 Financial Indicators</h3>
+                <h3 className="text-xl font-semibold mb-3">{tf('1.4 Financial Indicators')}</h3>
                 {renderTable(
                   ['Indicator', 'Value'],
                   [
@@ -2584,8 +2610,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             </div>
           ) : (
             <div className="text-sm leading-relaxed space-y-4">
-              <p><strong>1.1 Sector/Industry Type:</strong> {fieldHit('step2.sectorType', s2.sectorType || 'N/A')}</p>
-              <p><strong>1.2 Sector Description:</strong></p>
+              <p><strong>{tf('1.1 Sector/Industry Type:')}</strong> {fieldHit('step2.sectorType', s2.sectorType || 'N/A')}</p>
+              <p><strong>{tf('1.2 Sector Description:')}</strong></p>
               <p className="text-justify">{fieldHit('step2.sectorDescription', s2.sectorDescription || 'N/A')}</p>
             </div>
           )}
@@ -2597,9 +2623,9 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
         <div>
           {/* {renderSectionTitle('1. INTRODUCTION (Continued)', 2)} */}
           <div className="text-sm leading-relaxed space-y-4">
-            <p><strong>1.3 National Importance:</strong></p>
+            <p><strong>{tf('1.3 National Importance:')}</strong></p>
             <p className="text-justify">{fieldHit('step2.nationalImportance', s2.nationalImportance || 'N/A')}</p>
-            <p><strong>1.4 State-level Importance:</strong></p>
+            <p><strong>{tf('1.4 State-level Importance:')}</strong></p>
             <p className="text-justify">{fieldHit('step2.stateLevelImportance', s2.stateLevelImportance || 'N/A')}</p>
           </div>
         </div>
@@ -2634,19 +2660,19 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             <div className="space-y-6 text-sm">
               {s3.geography && (
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">1.5.1 Geography</h3>
+                  <h3 className="text-xl font-semibold mb-3">{tf('1.5.1 Geography')}</h3>
                   {renderEnhancedSubsection('districtProfile-geography', s3.geography)}
                 </div>
               )}
               {s3.climate && (
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">1.5.2 Climate</h3>
+                  <h3 className="text-xl font-semibold mb-3">{tf('1.5.2 Climate')}</h3>
                   {renderEnhancedSubsection('districtProfile-climate', s3.climate)}
                 </div>
               )}
               {s3.infrastructure && (
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">1.5.3 Infrastructure</h3>
+                  <h3 className="text-xl font-semibold mb-3">{tf('1.5.3 Infrastructure')}</h3>
                   {renderEnhancedSubsection('districtProfile-infrastructure', s3.infrastructure)}
                 </div>
               )}
@@ -2683,13 +2709,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             <div className="space-y-6 text-sm">
               {s3.keyEconomicActivities && (
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">1.5.4 Key Economic Activities</h3>
+                  <h3 className="text-xl font-semibold mb-3">{tf('1.5.4 Key Economic Activities')}</h3>
                   {renderEnhancedSubsection('districtProfile-keyEconomicActivities', s3.keyEconomicActivities)}
                 </div>
               )}
               {(s3.rawMaterialAvailability || s3.rawMaterialQuantity) && (
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">1.5.5 Raw Material Availability</h3>
+                  <h3 className="text-xl font-semibold mb-3">{tf('1.5.5 Raw Material Availability')}</h3>
                   {renderTable(
                     ['Parameter', 'Details'],
                     [
@@ -2732,13 +2758,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             <div className="space-y-6 text-sm">
               {s3.industrialInfrastructure && (
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">1.5.6 Industrial Infrastructure</h3>
+                  <h3 className="text-xl font-semibold mb-3">{tf('1.5.6 Industrial Infrastructure')}</h3>
                   {renderEnhancedSubsection('districtProfile-industrialInfrastructure', s3.industrialInfrastructure)}
                 </div>
               )}
               {(s3.connectivity?.road || s3.connectivity?.rail || s3.connectivity?.port) && (
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">1.5.7 Connectivity</h3>
+                  <h3 className="text-xl font-semibold mb-3">{tf('1.5.7 Connectivity')}</h3>
                   {renderTable(
                     ['Mode', 'Details'],
                     [
@@ -2781,11 +2807,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           {renderEnhancedContent('clusterProfile', 'Cluster Profile')}
           <div className="space-y-6 text-sm">
             <div>
-              <h3 className="text-xl font-semibold mb-3">2.1 Evolution of the Cluster</h3>
+              <h3 className="text-xl font-semibold mb-3">{tf('2.1 Evolution of the Cluster')}</h3>
               {renderEnhancedSubsection('clusterProfile-evolution', s4.clusterEvolution)}
             </div>
             <div>
-              <h3 className="text-xl font-semibold mb-3">2.2 Present Status of Cluster Units</h3>
+              <h3 className="text-xl font-semibold mb-3">{tf('2.2 Present Status of Cluster Units')}</h3>
               {renderTable(
                 ['Parameter', 'Details'],
                 [
@@ -2825,7 +2851,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           {/* {renderSectionTitle('2. CLUSTER PROFILE (Continued)', 4)} */}
           <div className="-mt-6 text-sm">
             <div>
-              <h3 className="text-xl font-semibold mb-3">2.2 Present Status of Cluster Units (Continued)</h3>
+              <h3 className="text-xl font-semibold mb-3">{tf('2.2 Present Status of Cluster Units (Continued)')}</h3>
               {renderTable(
                 ['Parameter', 'Details'],
                 [
@@ -2837,7 +2863,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             </div>
             {s4.stakeholders && Array.isArray(s4.stakeholders) && s4.stakeholders.length > 0 && (
               <div className="-mt-2">
-                <h3 className="text-xl font-semibold mb-3">2.3 Key Stakeholders</h3>
+                <h3 className="text-xl font-semibold mb-3">{tf('2.3 Key Stakeholders')}</h3>
 
                 <div className="flex flex-wrap gap-3">
                   {s4.stakeholders.map((stakeholder: string, idx: number) => (
@@ -2855,13 +2881,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             )}
             {/* Image placeholder for cluster photos */}
             <div className="my-6">
-              <h4 className="text-lg font-semibold mb-3">📸 Cluster Photos</h4>
+              <h4 className="text-lg font-semibold mb-3">{tf('📸 Cluster Photos')}</h4>
               <div className="grid grid-cols-2 gap-4">
                 {renderImage(
                   'cluster-photo-1',
                   '',
-                  'Cluster Unit Photo 1',
-                  'Sample cluster unit',
+                  tf('Cluster Unit Photo 1'),
+                  tf('Sample cluster unit'),
                   'clusterProfile',
                   { clusterName: s1.clusterName, location: s1.location, majorProducts: s1.majorProducts },
                   `Professional photograph of ${s1.clusterName || 'a cluster'} unit showing ${s1.majorProducts || 'production facilities'} in ${s1.location || 'the cluster location'}. Realistic, documentary style, business document quality.`
@@ -2869,8 +2895,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {renderImage(
                   'cluster-photo-2',
                   '',
-                  'Cluster Unit Photo 2',
-                  'Production process',
+                  tf('Cluster Unit Photo 2'),
+                  tf('Production process'),
                   'clusterProfile',
                   { clusterName: s1.clusterName, productionProcess: s4.productionProcess },
                   `Professional photograph showing production process at ${s1.clusterName || 'the cluster'} unit. Workers engaged in manufacturing ${s1.majorProducts || 'products'}. Realistic, documentary style, business document quality.`
@@ -2888,11 +2914,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           {renderEnhancedContent('valueChain', 'Value Chain')}
           <div className="space-y-6 text-sm">
             <div>
-              <h3 className="text-xl font-semibold mb-3">3.1 Value Chain Stages</h3>
-              <p className="mb-4">Raw Material → Processing → Value Addition → Marketing → End Customer</p>
+              <h3 className="text-xl font-semibold mb-3">{tf('3.1 Value Chain Stages')}</h3>
+              <p className="mb-4">{tf('Raw Material → Processing → Value Addition → Marketing → End Customer')}</p>
               {s5.rawMaterials && Array.isArray(s5.rawMaterials) && s5.rawMaterials.length > 0 && (
                 <div className="my-4">
-                  <h4 className="font-semibold mb-2">Raw Materials:</h4>
+                  <h4 className="font-semibold mb-2">{tf('Raw Materials:')}</h4>
                   {renderTable(
                     ['Material', 'Source'],
                     s5.rawMaterials.map((m: any) => [m.name || 'N/A', m.source || 'N/A'])
@@ -2901,7 +2927,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               )}
               {s5.valueAdditionStages && Array.isArray(s5.valueAdditionStages) && s5.valueAdditionStages.length > 0 && (
                 <div className="my-4">
-                  <h4 className="font-semibold mb-2">Value Addition Stages:</h4>
+                  <h4 className="font-semibold mb-2">{tf('Value Addition Stages:')}</h4>
                   {renderTable(
                     ['Stage', 'Selling Price (₹ Lakhs)'],
                     s5.valueAdditionStages.map((s: any) => [s.stage || 'N/A', `${(s.sellingPrice || 0).toLocaleString('en-IN')} Lakhs`])
@@ -2924,7 +2950,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               <div className='flex flex-row align-center justify-space-between gap-12'>
                 {s5.intermediateProducts && Array.isArray(s5.intermediateProducts) && s5.intermediateProducts.length > 0 && (
                   <div className="mb-4">
-                    <h4 className="font-semibold mb-2">Intermediate Products:</h4>
+                    <h4 className="font-semibold mb-2">{tf('Intermediate Products:')}</h4>
                     <ul className="list-disc list-inside space-y-1 text-sm">
                       {s5.intermediateProducts.map((product: string, idx: number) => (
                         <li key={idx}>{product}</li>
@@ -2934,7 +2960,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 )}
                 {s5.finalProducts && Array.isArray(s5.finalProducts) && s5.finalProducts.length > 0 && (
                   <div>
-                    <h4 className="font-semibold mb-2">Final Products:</h4>
+                    <h4 className="font-semibold mb-2">{tf('Final Products:')}</h4>
                     <ul className="list-disc list-inside space-y-1 text-sm">
                       {s5.finalProducts.map((product: string, idx: number) => (
                         <li key={idx}>{product}</li>
@@ -2946,7 +2972,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               <div>
                 {s5.majorBuyers && Array.isArray(s5.majorBuyers) && s5.majorBuyers.length > 0 && (
                   <div>
-                    <h4 className="font-semibold mb-2">Major Buyers:</h4>
+                    <h4 className="font-semibold mb-2">{tf('Major Buyers:')}</h4>
                     <ul className="list-disc list-inside space-y-1 text-sm">
                       {s5.majorBuyers.map((buyer: string, idx: number) => (
                         <li key={idx}>{buyer}</li>
@@ -2958,12 +2984,12 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             </div>
             {/* Value chain diagram placeholder */}
             <div className="my-6">
-              <h4 className="text-lg font-semibold mb-3">📊 Value Chain Flow Diagram</h4>
+              <h4 className="text-lg font-semibold mb-3">{tf('📊 Value Chain Flow Diagram')}</h4>
               {renderImage(
                 'value-chain-diagram',
                 '',
-                'Value Chain Diagram',
-                'Value chain flow from raw material to end customer',
+                tf('Value Chain Diagram'),
+                tf('Value chain flow from raw material to end customer'),
                 'valueChain',
                 { rawMaterials: s5.rawMaterials, valueAdditionStages: s5.valueAdditionStages, clusterName: s1.clusterName },
                 `Create a professional flow diagram illustrating the value chain for ${s1.clusterName || 'the cluster'}, showing the process from raw materials through processing and value addition to the end customer. Use the following manufacturing process as a guide: ${s10.manufacturingProcess || 'N/A'}. The diagram should be clean, realistic, and professional, with clear visual flow, but absolutely no text, labels, diagrams, or watermarks visible.`
@@ -2981,15 +3007,15 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           {renderEnhancedContent('marketAspects', 'Market Aspects')}
           <div className="space-y-6 text-sm">
             <div>
-              <h3 className="text-xl font-semibold mb-3">4.1 Demand–Supply Analysis</h3>
+              <h3 className="text-xl font-semibold mb-3">{tf('4.1 Demand–Supply Analysis')}</h3>
               {renderEnhancedSubsection('marketAspects-demandSupply', s6.existingDemand)}
             </div>
             <div>
-              <h3 className="text-xl font-semibold mb-3">4.2 Competition Analysis</h3>
+              <h3 className="text-xl font-semibold mb-3">{tf('4.2 Competition Analysis')}</h3>
               {renderEnhancedSubsection('marketAspects-competition', s6.competitorAnalysis)}
             </div>
             <div>
-              <h3 className="text-xl font-semibold mb-3">4.3 Price Trends</h3>
+              <h3 className="text-xl font-semibold mb-3">{tf('4.3 Price Trends')}</h3>
               {(() => {
                 const text = enhancedContent['marketAspects-priceTrends'] || s6.priceTrends || '';
                 if (!text) return <div className="text-justify leading-relaxed">N/A</div>;
@@ -3009,7 +3035,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
       {renderPageWrapper(
         <div className="space-y-6 text-sm">
           <div>
-            <h3 className="text-xl font-semibold mb-3">4.3 Price Trends (Continued)</h3>
+            <h3 className="text-xl font-semibold mb-3">{tf('4.3 Price Trends (Continued)')}</h3>
             {(() => {
               const text = enhancedContent['marketAspects-priceTrends'] || s6.priceTrends || '';
               if (!text) return null;
@@ -3021,12 +3047,12 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             })()}
           </div>
           <div>
-            <h3 className="text-xl font-semibold mb-3">4.4 Export Potential</h3>
+            <h3 className="text-xl font-semibold mb-3">{tf('4.4 Export Potential')}</h3>
             {renderEnhancedSubsection('marketAspects-exportPotential', s6.exportPotential)}
           </div>
           {s6.targetMarket && (
             <div>
-              <h3 className="text-xl font-semibold mb-3">4.5 Target Market</h3>
+              <h3 className="text-xl font-semibold mb-3">{tf('4.5 Target Market')}</h3>
               {renderEnhancedSubsection('marketAspects-targetMarket', s6.targetMarket)}
             </div>
           )}
@@ -3061,7 +3087,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           {renderEnhancedContent('swotAnalysis', 'SWOT Analysis')}
           <div className="grid grid-cols-2 gap-6 text-sm">
             <div>
-              <h3 className="text-lg font-semibold mb-3 text-green-700">Strengths</h3>
+              <h3 className="text-lg font-semibold mb-3 text-green-700">{tf('Strengths')}</h3>
               <ul className="list-disc list-inside space-y-1">
                 {(Array.isArray(s8.strengths) ? s8.strengths : []).map((s: string, idx: number) => (
                   <li key={idx}>{s}</li>
@@ -3069,7 +3095,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-3 text-orange-700">Weaknesses</h3>
+              <h3 className="text-lg font-semibold mb-3 text-orange-700">{tf('Weaknesses')}</h3>
               <ul className="list-disc list-inside space-y-1">
                 {(Array.isArray(s8.weaknesses) ? s8.weaknesses : []).map((w: string, idx: number) => (
                   <li key={idx}>{w}</li>
@@ -3077,7 +3103,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-3 text-blue-700">Opportunities</h3>
+              <h3 className="text-lg font-semibold mb-3 text-blue-700">{tf('Opportunities')}</h3>
               <ul className="list-disc list-inside space-y-1">
                 {(Array.isArray(s8.opportunities) ? s8.opportunities : []).map((o: string, idx: number) => (
                   <li key={idx}>{o}</li>
@@ -3085,7 +3111,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-3 text-red-700">Threats</h3>
+              <h3 className="text-lg font-semibold mb-3 text-red-700">{tf('Threats')}</h3>
               <ul className="list-disc list-inside space-y-1">
                 {(Array.isArray(s8.threats) ? s8.threats : []).map((t: string, idx: number) => (
                   <li key={idx}>{t}</li>
@@ -3125,7 +3151,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             ]
           )}
           <div className="my-6">
-            <h3 className="text-xl font-semibold mb-3">Justification for Intervention</h3>
+            <h3 className="text-xl font-semibold mb-3">{tf('Justification for Intervention')}</h3>
             <p className="text-sm text-justify leading-relaxed">{fieldHit('step7.justificationForIntervention', s7.justificationForIntervention || 'N/A')}</p>
           </div>
         </div>,
@@ -3142,7 +3168,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               {renderEnhancedContent('cfcDetails', 'CFC Details')}
               <div className="space-y-6 text-sm">
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">7.1 CFC Overview</h3>
+                  <h3 className="text-xl font-semibold mb-3">{tf('7.1 CFC Overview')}</h3>
                   {renderTable(
                     ['Parameter', 'Details'],
                     [
@@ -3163,11 +3189,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               {/* {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT (Continued)', 10)} */}
               <div className="space-y-6 text-sm">
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">7.2 Plant & Machinery</h3>
+                  <h3 className="text-xl font-semibold mb-3">{tf('7.2 Plant & Machinery')}</h3>
                   <p className="text-justify leading-relaxed">{fieldHit('step10.plantAndMachinery', s10.plantAndMachinery || 'N/A')}</p>
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">7.3 Manufacturing Process</h3>
+                  <h3 className="text-xl font-semibold mb-3">{tf('7.3 Manufacturing Process')}</h3>
                   <p className="text-justify leading-relaxed">{fieldHit('step10.manufacturingProcess', s10.manufacturingProcess || 'N/A')}</p>
                 </div>
               </div>
@@ -3180,11 +3206,11 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               {/* {renderSectionTitle('7. CFC - OPERATION & MANAGEMENT (Continued)', 10)} */}
               <div className="-mt-6 text-sm">
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">7.4 Capacity</h3>
+                  <h3 className="text-xl font-semibold mb-3">{tf('7.4 Capacity')}</h3>
                   <p>{fieldHit('step10.capacity', s10.capacity || 'N/A')}</p>
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">7.5 Requirements</h3>
+                  <h3 className="text-xl font-semibold mb-3">{tf('7.5 Requirements')}</h3>
                   {renderTable(
                     ['Requirement', 'Details'],
                     [
@@ -3205,24 +3231,24 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               <div className="space-y-6 text-sm">
                 {/* Process flow diagram and machinery images */}
                 <div className="my-6">
-                  <h4 className="text-lg font-semibold mb-3">📊 Process Flow Diagram</h4>
+                  <h4 className="text-lg font-semibold mb-3">{tf('📊 Process Flow Diagram')}</h4>
                   {renderImage(
                     'process-flow-diagram',
                     '',
-                    'Process Flow',
-                    'Manufacturing process flow',
+                    tf('Process Flow'),
+                    tf('Manufacturing process flow'),
                     'cfcDetails',
                     { manufacturingProcess: s10.manufacturingProcess, cfcName: s10.name, clusterName: s1.clusterName },
                     `Professional diagram showing manufacturing process flow for ${s10.name || 'the CFC'} at ${s1.clusterName || 'the cluster'}. Clean, professional business diagram style showing process steps.`
                   )}
                 </div>
                 <div className="my-6">
-                  <h4 className="text-lg font-semibold mb-3">📸 Machinery Layout</h4>
+                  <h4 className="text-lg font-semibold mb-3">{tf('📸 Machinery Layout')}</h4>
                   {renderImage(
                     'machinery-layout',
                     '',
-                    'Machinery Layout',
-                    'CFC machinery layout and reference images',
+                    tf('Machinery Layout'),
+                    tf('CFC machinery layout and reference images'),
                     'cfcDetails',
                     { plantAndMachinery: s10.plantAndMachinery, cfcName: s10.name, clusterName: s1.clusterName },
                     `Professional photograph or diagram showing machinery layout at ${s10.name || 'the CFC'} for ${s1.clusterName || 'the cluster'}. Modern industrial equipment arranged in a facility. Realistic, documentary style, business document quality.`
@@ -3244,27 +3270,27 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               {renderEnhancedContent('spvDetails', 'SPV Details')}
               <div className="space-y-6 text-sm">
                 <div>
-                  <h3 className="text-xl font-semibold mb-3">8.1 SPV Profile</h3>
+                  <h3 className="text-xl font-semibold mb-3">{tf('8.1 SPV Profile')}</h3>
                   {renderTable(
                     ['Parameter', 'Details'],
                     [
                       ['Name', fieldHit('step11.spvName', s11.spvName || 'N/A')],
                       ['Legal Status', fieldHit('step11.legalStatus', s11.legalStatus || 'N/A')],
                       ['Year of Incorporation', fieldHit('step11.yearOfIncorporation', s11.yearOfIncorporation || 'N/A')],
-                      ['Members', (s11.memberUnits?.length || 0) + ' member units'],
+                      ['Members', tf('{n} member units').replace('{n}', String(s11.memberUnits?.length || 0))],
                     ]
                   )}
                 </div>
                 {s11.shareholdingPattern && Array.isArray(s11.shareholdingPattern) && s11.shareholdingPattern.length > 0 && (
                   <div>
-                    <h3 className="text-xl font-semibold mb-3">8.2 Shareholding Pattern</h3>
+                    <h3 className="text-xl font-semibold mb-3">{tf('8.2 Shareholding Pattern')}</h3>
                     {renderTable(
                       ['Stakeholder', 'Percentage (%)'],
                       s11.shareholdingPattern.map((s: any) => [s.stakeholder || 'N/A', `${s.percentage || 0}%`])
                     )}
                     {/* Pie chart for shareholding */}
                     <div className="my-6">
-                      <h4 className="text-lg font-semibold mb-3">📊 Shareholding Pattern</h4>
+                      <h4 className="text-lg font-semibold mb-3">{tf('📊 Shareholding Pattern')}</h4>
                       {enhancedContent[`graphExplanation-shareholding`] && (
                         <div className="mb-3 p-3">
                           <p className="text-xs text-justify leading-relaxed" style={{ color: '#1F2937' }}>
@@ -3305,7 +3331,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               <div className="space-y-6 text-sm">
                 {s11.memberUnits && Array.isArray(s11.memberUnits) && s11.memberUnits.length > 0 && (
                   <div>
-                    <h3 className="text-xl font-semibold mb-3">8.3 Member Units</h3>
+                    <h3 className="text-xl font-semibold mb-3">{tf('8.3 Member Units')}</h3>
                     {renderTable(
                       ['Sl. No', 'Unit Name', 'Registration'],
                       s11.memberUnits.map((u: any, idx: number) => [idx + 1, u.name || 'N/A', u.registration || 'N/A'])
@@ -3314,7 +3340,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 )}
                 {s11.objectives && Array.isArray(s11.objectives) && s11.objectives.length > 0 && (
                   <div className="-mt-6">
-                    <h3 className="text-xl font-semibold mb-3">8.4 SPV Objectives</h3>
+                    <h3 className="text-xl font-semibold mb-3">{tf('8.4 SPV Objectives')}</h3>
                     <ul className="list-disc list-inside space-y-2 text-sm">
                       {s11.objectives.map((objective: string, idx: number) => (
                         <li key={idx}>{objective}</li>
@@ -3324,7 +3350,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 )}
                 {s11.rolesAndResponsibilities && Array.isArray(s11.rolesAndResponsibilities) && s11.rolesAndResponsibilities.length > 0 && (
                   <div>
-                    <h3 className="text-xl font-semibold mb-3">8.5 Roles and Responsibilities</h3>
+                    <h3 className="text-xl font-semibold mb-3">{tf('8.5 Roles and Responsibilities')}</h3>
                     <ul className="list-disc list-inside space-y-2 text-sm">
                       {s11.rolesAndResponsibilities.map((role: string, idx: number) => (
                         <li key={idx}>{role}</li>
@@ -3334,7 +3360,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 )}
                 {s11.boardOfDirectors && Array.isArray(s11.boardOfDirectors) && s11.boardOfDirectors.length > 0 && (
                   <div>
-                    <h3 className="text-xl font-semibold mb-3">8.6 Board of Directors</h3>
+                    <h3 className="text-xl font-semibold mb-3">{tf('8.6 Board of Directors')}</h3>
                     {renderTable(
                       ['Name', 'Designation'],
                       s11.boardOfDirectors.map((director: any) => [director.name || 'N/A', director.designation || 'N/A'])
@@ -3343,7 +3369,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 )}
                 {s11.statutoryRegistrations && Array.isArray(s11.statutoryRegistrations) && s11.statutoryRegistrations.length > 0 && (
                   <div>
-                    <h3 className="text-xl font-semibold mb-3">8.7 Statutory Registrations</h3>
+                    <h3 className="text-xl font-semibold mb-3">{tf('8.7 Statutory Registrations')}</h3>
 
                     <div className="flex flex-wrap gap-3">
                       {s11.statutoryRegistrations.map((registration: string, idx: number) => (
@@ -3390,7 +3416,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           {renderSectionTitle('9. PROJECT COST & MEANS OF FINANCE', 12)}
           <div className="space-y-6 text-sm">
             <div>
-              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.1 Project Cost</h3>
+              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('9.1 Project Cost')}</h3>
               {(() => {
                 const totalCost = (s12.land || 0) + (s12.building || 0) + (s12.machinery || 0) +
                   (s12.utilitiesAndInfrastructure || 0) + (s12.preliminaryAndPreOperative || 0) +
@@ -3412,7 +3438,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               })()}
             </div>
             <div>
-              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.2 Means of Finance</h3>
+              <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('9.2 Means of Finance')}</h3>
               {(() => {
                 const totalFinance = (s13.spvContribution || 0) + (s13.governmentGrant || 0) +
                   (s13.bankLoan || 0) + (s13.otherSources || 0);
@@ -3432,17 +3458,17 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             </div>
             {/* Cost breakup chart */}
             <div className="-mt-2">
-              <h4 className="text-lg font-semibold mb-3">📊 Cost Breakup</h4>
+              <h4 className="text-lg font-semibold mb-3">{tf('📊 Cost Breakup')}</h4>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
                     data={[
-                      { name: 'Land', value: s12.land || 0 },
-                      { name: 'Building', value: s12.building || 0 },
-                      { name: 'Machinery', value: s12.machinery || 0 },
-                      { name: 'Utilities', value: s12.utilitiesAndInfrastructure || 0 },
-                      { name: 'Preliminary', value: s12.preliminaryAndPreOperative || 0 },
-                      { name: 'Working Capital', value: s12.workingCapitalMargin || 0 },
+                      { name: tf('Land'), value: s12.land || 0 },
+                      { name: tf('Building'), value: s12.building || 0 },
+                      { name: tf('Machinery'), value: s12.machinery || 0 },
+                      { name: tf('Utilities'), value: s12.utilitiesAndInfrastructure || 0 },
+                      { name: tf('Preliminary'), value: s12.preliminaryAndPreOperative || 0 },
+                      { name: tf('Working Capital'), value: s12.workingCapitalMargin || 0 },
                     ].filter(item => item.value > 0)}
                     cx="50%"
                     cy="50%"
@@ -3492,7 +3518,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             {renderSectionTitle('9.5 OPERATING COST & REVENUE', 14)}
             <div className="space-y-6 text-sm">
               <div>
-                <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.5.1 Operating Costs</h3>
+                <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('9.5.1 Operating Costs')}</h3>
                 {renderTable(
                   ['Cost Component', 'Amount (₹ Lakhs)'],
                   [
@@ -3512,7 +3538,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 )}
               </div>
               <div>
-                <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>9.5.2 Revenue Projections</h3>
+                <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('9.5.2 Revenue Projections')}</h3>
                 {renderTable(
                   ['Parameter', 'Value'],
                   [
@@ -3562,7 +3588,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
 
                   {/* Financial Indicators - Summary only */}
                   <div>
-                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.2 Financial Indicators</h3>
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('10.2 Financial Indicators')}</h3>
                     {renderTable(
                       ['Indicator', 'Value'],
                       [
@@ -3574,14 +3600,15 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                       undefined
                     )}
                     <p className="text-sm text-gray-600 mt-4" style={{ color: '#1F2937' }}>
-                      Note: Detailed financial statements including Cash Flow Statement, Balance Sheet, Break Even Point, and NPV & IRR are provided in the Financial Statements section below.
+                      
+                      {tf('Note: Detailed financial statements including Cash Flow Statement, Balance Sheet, Break Even Point, and NPV & IRR are provided in the Financial Statements section below.')}
                     </p>
                   </div>
 
                   {/* Sensitivity Analysis */}
                   {s15.sensitivityAnalysis && (
                     <div>
-                      <h3 className="text-xl font-semibold mb-3">10.5 Sensitivity Analysis</h3>
+                      <h3 className="text-xl font-semibold mb-3">{tf('10.5 Sensitivity Analysis')}</h3>
                       <p className="text-justify leading-relaxed">{fieldHit('step15.sensitivityAnalysis', s15.sensitivityAnalysis)}</p>
                     </div>
                   )}
@@ -3621,13 +3648,13 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
             <div className="space-y-6 text-sm">
               {s16.startDate && (
                 <div>
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.5.1 Project Start Date</h3>
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('10.5.1 Project Start Date')}</h3>
                   <p className="text-justify leading-relaxed">{fieldHit('step16.startDate', s16.startDate)}</p>
                 </div>
               )}
               {s16.milestones && s16.milestones.length > 0 && (
                 <div>
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.5.2 Implementation Milestones</h3>
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('10.5.2 Implementation Milestones')}</h3>
                   {renderTable(
                     ['Activity', 'Time Required', 'Start Date', 'End Date'],
                     s16.milestones.map((m: any) => [
@@ -3641,7 +3668,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               )}
               {s16.totalImplementationPeriod && (
                 <div>
-                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>10.5.3 Total Implementation Period</h3>
+                  <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('10.5.3 Total Implementation Period')}</h3>
                   <p className="text-justify leading-relaxed">{fieldHit('step16.totalImplementationPeriod', s16.totalImplementationPeriod)}</p>
                 </div>
               )}
@@ -3686,7 +3713,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
           )}
           {s17.sustainabilityOutcomes && s17.sustainabilityOutcomes.length > 0 && (
             <div className="my-6">
-              <h3 className="text-xl font-semibold mb-3">Sustainability Outcomes</h3>
+              <h3 className="text-xl font-semibold mb-3">{tf('Sustainability Outcomes')}</h3>
               <ul className="list-disc list-inside space-y-2 text-sm">
                 {s17.sustainabilityOutcomes.map((outcome: string, idx: number) => (
                   <li key={idx}>{outcome}</li>
@@ -3737,7 +3764,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {/* Statement 1: Cost of Project & Means of Finance */}
                 {(financialStatements.costOfProject || financialStatements.spvShare || financialStatements.stateGovtGrant || financialStatements.bankLoan || s12.totalProjectCost || s13.spvContribution || s13.governmentGrant || s13.bankLoan) && (
                   <div className="my-6">
-                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 1: Cost of Project & Means of Finance</h3>
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('Statement 1: Cost of Project & Means of Finance')}</h3>
                     {(() => {
                       const costOfProject = financialStatements.costOfProject || s12.totalProjectCost || 0;
                       const spvShare = financialStatements.spvShare || s13.spvContribution || 0;
@@ -3756,7 +3783,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                         <EditableFinancialTable
                           headers={['Particulars', 'Amount (₹ Lakhs)']}
                           rows={rows}
-                          title="Cost of Project & Means of Finance"
+                          title={tf('Cost of Project & Means of Finance')}
                           statementNumber="1"
                           editableCells={[
                             [false, true], // Cost of Project - label not editable, value editable
@@ -3809,7 +3836,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {/* Statement 2: Assessment of Working Capital */}
                 {(financialStatements.workingCapital || s12.workingCapitalMargin) && (
                   <div className="my-6">
-                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 2: Assessment of Working Capital</h3>
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('Statement 2: Assessment of Working Capital')}</h3>
                     {(() => {
                       const wc = financialStatements.workingCapital || {};
                       const workingCapital = s12.workingCapitalMargin || 0;
@@ -3837,7 +3864,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                         <EditableFinancialTable
                           headers={['Particulars', 'Amount (₹ Lakhs)']}
                           rows={rows}
-                          title="Assessment of Working Capital"
+                          title={tf('Assessment of Working Capital')}
                           statementNumber="2"
                           editableCells={[
                             [false, true], // Raw Materials
@@ -3937,7 +3964,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {/* Statement 3: Cost of Production & Profitability - Matching PDF format */}
                 {(financialStatements.costOfProduction || s15.profitAndLossProjections) && (
                   <div className="-mt-8">
-                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 3: Cost of Production & Profitability</h3>
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('Statement 3: Cost of Production & Profitability')}</h3>
                     {(() => {
                       const cop = financialStatements.costOfProduction || {};
 
@@ -3973,7 +4000,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                         <EditableFinancialTable
                           headers={['Years', '', '1', '2', '3', '4', '5']}
                           rows={rows}
-                          title="COST OF PRODUCTION & PROFITABILITY"
+                          title={tf('COST OF PRODUCTION & PROFITABILITY')}
                           statementNumber="3"
                           editableCells={[
                             [false, false, true, true, true, true, true], // Sales Realisation - editable for all years
@@ -4025,7 +4052,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {/* Statement 4: Assumptions for Cost of Production & Profitability */}
                 {(financialStatements.assumptions || s14.capacityUtilization || s14.rawMaterialCostPercentage) && (
                   <div className="my-6">
-                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 4: Assumptions for Cost of Production & Profitability</h3>
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('Statement 4: Assumptions for Cost of Production & Profitability')}</h3>
                     {(() => {
                       const assump = financialStatements.assumptions || {};
                       const capUtil = s14.capacityUtilization || {};
@@ -4045,7 +4072,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                         <EditableFinancialTable
                           headers={['Assumption', 'Value (%)']}
                           rows={rows}
-                          title="Assumptions for Cost of Production & Profitability"
+                          title={tf('Assumptions for Cost of Production & Profitability')}
                           statementNumber="4"
                           editableCells={[
                             [false, true],
@@ -4114,7 +4141,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {/* Statement 5: Estimation of Power Cost */}
                 {(financialStatements.powerCost || s14.powerCost) && (
                   <div className="-mt-8">
-                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 5: Estimation of Power Cost</h3>
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('Statement 5: Estimation of Power Cost')}</h3>
                     {(() => {
                       const pc = financialStatements.powerCost || {};
                       const connectedLoad = pc.connectedLoad || s14.connectedLoad || 0;
@@ -4133,7 +4160,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                         <EditableFinancialTable
                           headers={['Particulars', 'Units', 'Rate (₹)', 'Amount (₹ Lakhs)']}
                           rows={rows}
-                          title="Estimation of Power cost"
+                          title={tf('Estimation of Power cost')}
                           statementNumber="5"
                           editableCells={[
                             [false, true, true, false], // Connected Load - units and rate editable
@@ -4207,7 +4234,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {/* Statement 6: Manpower Requirement & Estimation of Cost */}
                 {(financialStatements.manpower || s14.manpowerRequirement) && (
                   <div className="my-6">
-                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 6: Manpower Requirement & Estimation of Cost</h3>
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('Statement 6: Manpower Requirement & Estimation of Cost')}</h3>
                     {(() => {
                       const manpower = financialStatements.manpower || s14.manpowerRequirement || [];
                       if (Array.isArray(manpower) && manpower.length > 0) {
@@ -4233,7 +4260,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                           <EditableFinancialTable
                             headers={['Category', 'No. of Employees', 'Annual Salary (₹)', 'Total Cost (₹ Lakhs)']}
                             rows={rows}
-                            title="Manpower requirement & estimation of cost"
+                            title={tf('Manpower requirement & estimation of cost')}
                             statementNumber="6"
                             editableCells={editableCells}
                             calculatedCells={calculatedCells}
@@ -4300,7 +4327,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {/* Statement 7: Estimation of Depreciation */}
                 {(financialStatements.depreciation || s14.depreciationDetails || (s12.building && s12.machinery)) && (
                   <div className="-mt-8">
-                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 7: Estimation of Depreciation</h3>
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('Statement 7: Estimation of Depreciation')}</h3>
                     {(() => {
                       const dep = financialStatements.depreciation || s14.depreciationDetails || [];
                       let rows: any[][] = [];
@@ -4379,7 +4406,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                           <EditableFinancialTable
                             headers={['Asset', 'Cost (₹ Lakhs)', 'Depreciation Rate (%)', 'Annual Depreciation (₹ Lakhs)']}
                             rows={rows}
-                            title="Estimation of Depreciation"
+                            title={tf('Estimation of Depreciation')}
                             statementNumber="7"
                             editableCells={editableCells}
                             calculatedCells={calculatedCells}
@@ -4420,7 +4447,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {/* Statement 8: Calculation of Income Tax */}
                 {(financialStatements.incomeTax || s15.profitAndLossProjections) && (
                   <div className="my-6">
-                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 8: Calculation of Income Tax</h3>
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('Statement 8: Calculation of Income Tax')}</h3>
                     {(() => {
                       const it = financialStatements.incomeTax || {};
                       const rows: any[][] = [];
@@ -4469,7 +4496,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                           <EditableFinancialTable
                             headers={['Year', 'Profit Before Tax (₹ Lakhs)', 'Tax Rate (%)', 'Tax Amount (₹ Lakhs)', 'Profit After Tax (₹ Lakhs)']}
                             rows={rows}
-                            title="Calculation of Income Tax"
+                            title={tf('Calculation of Income Tax')}
                             statementNumber="8"
                             editableCells={rows.map(() => [false, true, true, false, false])}
                             calculatedCells={calculatedCells}
@@ -4539,8 +4566,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {/* Note: This statement is calculated from other statements. Edit values in Statements 1-8 to update this. */}
                 {(financialStatements.cashFlow || s15.cashFlowProjections) && (
                   <div className="-mt-8">
-                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 9: Projected Cash Flow Statement</h3>
-                    <p className="text-xs text-gray-500 mb-2 italic">Note: This statement is automatically calculated from other financial statements.</p>
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('Statement 9: Projected Cash Flow Statement')}</h3>
+                    <p className="text-xs text-gray-500 mb-2 italic">{tf('Note: This statement is automatically calculated from other financial statements.')}</p>
                     {(() => {
                       const cf = financialStatements.cashFlow || {};
                       const totalProjectCost = (s12.land || 0) + (s12.building || 0) + (s12.machinery || 0) +
@@ -4683,8 +4710,8 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {/* Note: This statement is calculated from other statements. Edit values in Statements 1-8 to update this. */}
                 {(financialStatements.balanceSheet || s15.balanceSheetProjections) && (
                   <div className="-mt-8">
-                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 10: Projected Balance Sheet</h3>
-                    <p className="text-xs text-gray-500 mb-2 italic">Note: This statement is automatically calculated from other financial statements.</p>
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('Statement 10: Projected Balance Sheet')}</h3>
+                    <p className="text-xs text-gray-500 mb-2 italic">{tf('Note: This statement is automatically calculated from other financial statements.')}</p>
                     {(() => {
                       const bs = financialStatements.balanceSheet || {};
                       const spvShare = financialStatements.spvShare || s13.spvContribution || 0;
@@ -4824,7 +4851,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {/* Statement 11: Estimation of Break Even Point - Matching PDF format */}
                 {(financialStatements.breakEven || s15.breakEvenPoint || financialStatements.costOfProduction) && (
                   <div className="-mt-8">
-                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 11: Estimation of Break Even Point</h3>
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('Statement 11: Estimation of Break Even Point')}</h3>
                     {(() => {
                       const be = financialStatements.breakEven || {};
                       const cop = financialStatements.costOfProduction || {};
@@ -4969,7 +4996,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                         <EditableFinancialTable
                           headers={['Years', '', '1', '2', '3', '4', '5']}
                           rows={rows}
-                          title="ESTIMATION OF BREAK-EVEN POINT"
+                          title={tf('ESTIMATION OF BREAK-EVEN POINT')}
                           statementNumber="11"
                           editableCells={editableCells}
                           onCellChange={(rowIndex, colIndex, value) => {
@@ -5035,7 +5062,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                 {/* Statement 12: Estimation of NPV & IRR - Matching PDF format */}
                 {(financialStatements.npvIrr || s15.npv || s15.irr || financialStatements.cashFlow) && (
                   <div className="-mt-8">
-                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>Statement 12: Estimation of NPV & IRR</h3>
+                    <h3 className="text-xl font-semibold mb-3" style={{ color: '#1F2937' }}>{tf('Statement 12: Estimation of NPV & IRR')}</h3>
                     {(() => {
                       const npvIrr = financialStatements.npvIrr || {};
                       const cf = financialStatements.cashFlow || {};
@@ -5114,7 +5141,7 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                         <EditableFinancialTable
                           headers={['Years', 'PR. PERIOD', '1', '2', '3', '4', '5', '6']}
                           rows={rows}
-                          title="ESTIMATION OF NET PRESENT VALUE AND INTERNAL RATE OF RETURN"
+                          title={tf('ESTIMATION OF NET PRESENT VALUE AND INTERNAL RATE OF RETURN')}
                           statementNumber="12"
                           editableCells={rows.map((row, idx) => {
                             if (row[0] === 'Net Present Value') {
@@ -5368,23 +5395,23 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
               const annexureFiles: Array<{ title: string, file: any, index: number }> = [];
 
               if (clusterData.step18?.spvRegistration) {
-                annexureFiles.push({ title: 'SPV Registration', file: clusterData.step18.spvRegistration, index: 1 });
+                annexureFiles.push({ title: tf('SPV Registration'), file: clusterData.step18.spvRegistration, index: 1 });
               }
               if (clusterData.step18?.landDocuments) {
-                annexureFiles.push({ title: 'Land Documents', file: clusterData.step18.landDocuments, index: 2 });
+                annexureFiles.push({ title: tf('Land Documents'), file: clusterData.step18.landDocuments, index: 2 });
               }
               if (clusterData.step18?.buildingEstimates) {
-                annexureFiles.push({ title: 'Building Estimates', file: clusterData.step18.buildingEstimates, index: 3 });
+                annexureFiles.push({ title: tf('Building Estimates'), file: clusterData.step18.buildingEstimates, index: 3 });
               }
               if (clusterData.step18?.machineryQuotations) {
-                annexureFiles.push({ title: 'Machinery Quotations', file: clusterData.step18.machineryQuotations, index: 4 });
+                annexureFiles.push({ title: tf('Machinery Quotations'), file: clusterData.step18.machineryQuotations, index: 4 });
               }
               if (clusterData.step18?.memberRegistrations) {
-                annexureFiles.push({ title: 'Member Registrations', file: clusterData.step18.memberRegistrations, index: 5 });
+                annexureFiles.push({ title: tf('Member Registrations'), file: clusterData.step18.memberRegistrations, index: 5 });
               }
               if (clusterData.step18?.supportingDocuments && Array.isArray(clusterData.step18.supportingDocuments)) {
                 clusterData.step18.supportingDocuments.forEach((doc: any, idx: number) => {
-                  annexureFiles.push({ title: `Supporting Document ${idx + 1}`, file: doc, index: 6 + idx });
+                  annexureFiles.push({ title: tf('Supporting Document {n1}').replace('{n1}', String(idx + 1)), file: doc, index: 6 + idx });
                 });
               }
 
@@ -5398,26 +5425,28 @@ export const ClusterDPRDocumentView: React.FC<ClusterDPRDocumentViewProps> = ({
                   }}
                 >
                   <h3 className="text-2xl font-bold mb-4" style={{ color: '#1F2937' }}>
-                    Annexures — document status
+                    
+                    {tf('Annexures — document status')}
                   </h3>
                   <p className="text-sm mb-6" style={{ color: '#4B5563' }}>
-                    Identity and supporting scans are stored privately. This report shows Uploaded or Pending only. Attach originals at the bank or DIC.
+                    
+                    {tf('Identity and supporting scans are stored privately. This report shows Uploaded or Pending only. Attach originals at the bank or DIC.')}
                   </p>
                   {annexureFiles.length === 0 ? (
-                    <p className="text-sm text-gray-500">No annexure files marked as uploaded.</p>
+                    <p className="text-sm text-gray-500">{tf('No annexure files marked as uploaded.')}</p>
                   ) : (
                     <table className="w-full text-sm">
                       <thead>
                         <tr>
-                          <th className="text-left py-2 border-b">Document</th>
-                          <th className="text-left py-2 border-b">Status</th>
+                          <th className="text-left py-2 border-b">{tf('Document')}</th>
+                          <th className="text-left py-2 border-b">{tf('Status')}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {annexureFiles.map((annexure, idx) => (
                           <tr key={idx} className="border-b">
                             <td className="py-2">{annexure.title}</td>
-                            <td className="py-2">Uploaded</td>
+                            <td className="py-2">{tf('Uploaded')}</td>
                           </tr>
                         ))}
                       </tbody>

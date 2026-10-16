@@ -6,7 +6,7 @@ import { VentureMatchHelpService } from '../services/ventureMatchHelp.service';
 import multer from 'multer';
 
 // Setup multer for audio file uploads
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024, files: 1 } });
 
 export class AIController {
   /**

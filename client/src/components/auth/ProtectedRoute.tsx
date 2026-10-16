@@ -4,10 +4,13 @@ import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { ConsentGate } from '@/components/privacy/ConsentGate';
 import { toAppRole } from '@/lib/rbac';
+import { Forbidden } from '@/components/auth/Forbidden';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: string;
+  /** Any of these roles may open the page. Everyone else sees the 403 page. */
+  allowedRoles?: string[];
 }
 
 // Helper function to get user from localStorage - more robust parsing
@@ -34,6 +37,7 @@ const getUserFromStorage = () => {
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRole,
+  allowedRoles,
 }) => {
   const { isAuthenticated, user, token } = useAuthStore();
   
@@ -53,8 +57,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Check role requirement if specified
-  if (requiredRole && toAppRole(effectiveUser?.role) !== toAppRole(requiredRole)) {
-    return <Navigate to="/dashboard" replace />;
+  const userRole = toAppRole(effectiveUser?.role);
+  if (requiredRole && userRole !== toAppRole(requiredRole)) {
+    return <Forbidden />;
+  }
+  if (allowedRoles && !allowedRoles.some((role) => toAppRole(role) === userRole)) {
+    return <Forbidden />;
   }
 
   return (

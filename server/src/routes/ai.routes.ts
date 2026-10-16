@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { uploadGuard } from '../lib/security/uploadGuard';
 import { Router } from 'express';
 import { body } from 'express-validator';
 import { AIController } from '../controllers/ai.controller';
@@ -24,6 +25,7 @@ router.post(
 router.post(
   '/transcribe',
   AIController.getUploadMiddleware(),
+  uploadGuard(['audio']),
   AIController.transcribe
 );
 

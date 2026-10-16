@@ -11,6 +11,7 @@ import {
   SceneQuality,
   SceneExport,
 } from './FeaturesBento';
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 import type { BentoFeature } from './FeaturesBento';
 
 /*
@@ -75,6 +76,7 @@ const ArrowButton: React.FC<{ dir: 'prev' | 'next'; onClick: () => void }> = ({ 
 };
 
 export const FeaturesShowcase: React.FC<{ features: BentoFeature[]; heading: React.ReactNode }> = ({ features, heading }) => {
+  const tf = useClusterFormText();
   const n = features.length;
   const { active, setActive, running, bind } = useDeck(n);
   const panelId = `features-deck-${useId()}`;
@@ -88,7 +90,7 @@ export const FeaturesShowcase: React.FC<{ features: BentoFeature[]; heading: Rea
         {heading}
 
         {/* feature index (desktop) */}
-        <ol role="tablist" aria-label="Features" aria-orientation="vertical" className="mt-8 hidden space-y-0.5 lg:block">
+        <ol role="tablist" aria-label={tf('Features')} aria-orientation="vertical" className="mt-8 hidden space-y-0.5 lg:block">
           {features.map((f, i) => {
             const selected = i === active;
             return (
@@ -133,7 +135,7 @@ export const FeaturesShowcase: React.FC<{ features: BentoFeature[]; heading: Rea
       </div>
 
       {/* ---------- moving deck ---------- */}
-      <div id={panelId} role="tabpanel" aria-roledescription="carousel" aria-label="Comprehensive features">
+      <div id={panelId} role="tabpanel" aria-roledescription="carousel" aria-label={tf('Comprehensive features')}>
         <div className="relative grid pb-10">
           {features.map((f, i) => {
             const pos = (i - active + n) % n; // 0 front, 1–2 peeking behind, n-1 just left

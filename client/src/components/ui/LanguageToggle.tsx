@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 import { Languages } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -9,6 +10,7 @@ interface LanguageToggleProps {
 
 export const LanguageToggle: React.FC<LanguageToggleProps> = ({ className }) => {
   const { i18n } = useTranslation();
+  const tf = useClusterFormText();
   const isTe = i18n.language.startsWith('te');
 
   return (
@@ -18,7 +20,7 @@ export const LanguageToggle: React.FC<LanguageToggleProps> = ({ className }) => 
         className
       )}
       role="group"
-      aria-label="Language"
+      aria-label={tf('Language')}
     >
       <Languages className="h-4 w-4 text-muted-foreground ml-2 hidden sm:block" />
       <button

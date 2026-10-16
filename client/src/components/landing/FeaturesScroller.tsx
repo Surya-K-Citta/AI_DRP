@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   SceneAIDpr,
@@ -68,6 +69,7 @@ const FeatureCard: React.FC<{ f: BentoFeature; i: number; n: number; active?: bo
 };
 
 export const FeaturesScroller: React.FC<{ features: BentoFeature[]; heading: React.ReactNode }> = ({ features, heading }) => {
+  const tf = useClusterFormText();
   const n = features.length;
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -170,7 +172,7 @@ export const FeaturesScroller: React.FC<{ features: BentoFeature[]; heading: Rea
     <div className="mt-8 flex justify-center px-4">
       <div
         role="tablist"
-        aria-label="Features"
+        aria-label={tf('Features')}
         className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-line bg-white p-1.5 shadow-[0_6px_20px_-14px_rgba(16,52,50,0.4)] scrollbar-hide"
       >
         {features.map((f, i) => {

@@ -1,4 +1,11 @@
 // @ts-nocheck
+import { FieldPrompt } from '@/components/ui/FieldPrompt';
+import { AssetListEditor, BusinessKindPicker } from '@/components/individual-dpr/AssetItems';
+import { businessKind, kindLabel, scaleOf } from '@/lib/individualDpr/businessKind';
+import { projectCost as draftProjectCost } from '@/lib/individualDpr/dataChecks';
+import { FinanceModelPanel } from '@/components/individual-dpr/FinanceModel';
+import { FinanceCalcStrip } from '@/components/individual-dpr/FinanceCalculators';
+import { ReusedNote, ScheduleParties } from '@/components/individual-dpr/ScheduleParties';
 import React from 'react';
 import { useIndividualDPRStore } from '@/store/individualDPRStore';
 import { ExpandableInput as Input, ExpandableTextarea, ExpandableSelect } from '@/components/ui/ExpandableField';
@@ -309,12 +316,8 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
 
     const missed = invalidFields.includes(fieldName);
     return (
-      <label className={`block text-sm font-medium mb-2 flex items-center gap-2 ${missed ? 'text-red-600' : ''}`}>
-        {tf(label)}
-        {required && <span className="text-red-500">*</span>}
-        {description && (
-          <InfoTooltip content={tf(description)} />
-        )}
+      <label className={`block text-sm font-medium mb-2 ${missed ? 'text-red-600' : ''}`}>
+        <FieldPrompt label={label} extra={description} required={required} />
       </label>
     );
   };
@@ -349,6 +352,15 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
     }
     return '';
   };
+
+  /** A calculator writes its answers straight into the step they belong to. */
+  const applyCalc = (step: number, patch: Record<string, number>) => {
+    setStepData(step, { ...(getStepData(step) || {}), ...patch });
+  };
+
+  const kind = businessKind(data);
+  const scale = scaleOf(data, draftProjectCost(data));
+  const setKind = (next: string) => setSchemeExtras({ ...(data.schemeExtras || {}), businessKind: next });
 
   const handleInputChange = (field: string, value: any) => {
     if (extraFieldNames.includes(field) || ['craft', 'currentTools', 'newTools', 'covOrLor', 'upiQr', 'fssai', 'apiicPark'].includes(field)) {
@@ -428,14 +440,8 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
           }}
         />
           <div>
-            <label className={`block text-sm font-medium mb-2 flex items-center gap-2 ${invalidFields.includes('unitName') ? 'text-red-600' : ''}`}>
-              {tf('Unit / Project Name *')}
-            {stepDescriptions.unitName && (
-              <InfoTooltip content={tf(stepDescriptions.unitName)} />
-            )}
-            {!stepDescriptions.unitName && stepDescriptions.clusterName && (
-                <InfoTooltip content={tf(stepDescriptions.clusterName)} />
-              )}
+            <label className={`block text-sm font-medium mb-2 ${invalidFields.includes('unitName') ? 'text-red-600' : ''}`}>
+              <FieldPrompt label="Unit / Project Name *" extra={stepDescriptions.unitName || stepDescriptions.clusterName} />
             </label>
             <Input
             data-required-field="unitName"
@@ -480,11 +486,8 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
 
         <div className="form-field-grid">
           <div>
-            <label className={`block text-sm font-medium mb-2 flex items-center gap-2 ${invalidFields.includes('district') ? 'text-red-600' : ''}`}>
-              {tf('District *')}
-              {stepDescriptions.district && (
-                <InfoTooltip content={tf(stepDescriptions.district)} />
-              )}
+            <label className={`block text-sm font-medium mb-2 ${invalidFields.includes('district') ? 'text-red-600' : ''}`}>
+              <FieldPrompt label="District *" extra={stepDescriptions.district} />
             </label>
             <ExpandableSelect
               data-required-field="district"
@@ -509,12 +512,9 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             {requiredHint('district')}
           </div>
         <div>
-          <label className={`block text-sm font-medium mb-2 flex items-center gap-2 ${invalidFields.includes('location') ? 'text-red-600' : ''}`}>
-            {tf('Location *')}
-            {stepDescriptions.location && (
-              <InfoTooltip content={tf(stepDescriptions.location)} />
-            )}
-          </label>
+          <label className={`block text-sm font-medium mb-2 ${invalidFields.includes('location') ? 'text-red-600' : ''}`}>
+              <FieldPrompt label="Location *" extra={stepDescriptions.location} />
+            </label>
             <ExpandableSelect
               data-required-field="location"
               className={fieldRing('location', 'w-full h-10 rounded-[10px] border border-input bg-background px-3 py-2 text-sm')}
@@ -538,11 +538,8 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
 
         <div className="form-field-grid">
           <div>
-            <label className="block text-sm font-medium mb-2 flex items-center gap-2">
-              {tf('Nature of Business')}
-              {stepDescriptions.natureOfBusiness && (
-                <InfoTooltip content={tf(stepDescriptions.natureOfBusiness)} />
-              )}
+            <label className="block text-sm font-medium mb-2">
+              <FieldPrompt label="Nature of Business" extra={stepDescriptions.natureOfBusiness} />
             </label>
             <Input
               value={stepData.natureOfBusiness || ''}
@@ -618,11 +615,8 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2 flex items-center gap-2">
-              {tf('Major Products')}
-              {stepDescriptions.majorProducts && (
-                <InfoTooltip content={tf(stepDescriptions.majorProducts)} />
-              )}
+            <label className="block text-sm font-medium mb-2">
+              <FieldPrompt label="Major Products" extra={stepDescriptions.majorProducts} />
             </label>
             <Input
               value={stepData.majorProducts || ''}
@@ -642,7 +636,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             </p>
             <div className="form-field-grid">
             <div>
-                <label className="block text-sm font-medium mb-2">{tf('Craft / trade (18 notified)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Craft / trade (18 notified)" /></label>
                 <ExpandableSelect
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.craft || ''}
@@ -657,7 +651,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
             </div>
             <div>
-                <label className="block text-sm font-medium mb-2">{tf('Training stage')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Training stage" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.trainingStage || ''}
@@ -672,7 +666,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Enterprise loan tranche')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Enterprise loan tranche" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.loanTranche || ''}
@@ -688,7 +682,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('Similar self-employment loan in last 5 years?')}
+                  <FieldPrompt label="Similar self-employment loan in last 5 years?" />
                 </label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -704,7 +698,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur full name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur full name" /></label>
                 <Input
                   value={extras.entrepreneurName || ''}
                   onChange={(e) => updateExtras({ entrepreneurName: e.target.value })}
@@ -712,18 +706,18 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Age (≥ 18)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Age (≥ 18)" /></label>
                 <Input
-                  type="number"
+                  type="number" min={18} max={100}
                   value={extras.entrepreneurAge || ''}
                   onChange={(e) => updateExtras({ entrepreneurAge: e.target.value })}
                   placeholder={tf('e.g. 32')}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Years practising this craft')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Years practising this craft" /></label>
                 <Input
-                  type="number"
+                  type="number" min={0} max={80}
                   value={extras.experienceYears || ''}
                   onChange={(e) => updateExtras({ experienceYears: e.target.value })}
                   placeholder={tf('e.g. 8')}
@@ -731,7 +725,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">{tf('Current tools')}</label>
+              <label className="block text-sm font-medium mb-2"><FieldPrompt label="Current tools" /></label>
               <ExpandableTextarea
                 className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={extras.currentTools || ''}
@@ -741,7 +735,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">
-                {tf('New tools needed (₹15,000 toolkit voucher)')}
+                <FieldPrompt label="New tools needed (₹15,000 toolkit voucher)" />
               </label>
               <ExpandableTextarea
                 className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -770,7 +764,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             </p>
             <div className="form-field-grid">
             <div>
-                <label className="block text-sm font-medium mb-2">{tf('Vending proof')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Vending proof" /></label>
                 <ExpandableSelect
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.covOrLor || ''}
@@ -785,7 +779,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
             </div>
             <div>
-                <label className="block text-sm font-medium mb-2">{tf('Loan tranche')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Loan tranche" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.loanTranche || ''}
@@ -800,7 +794,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Vending type / pitch')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Vending type / pitch" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.vendingType || extras.workplaceType || ''}
@@ -818,7 +812,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('UPI ID (linked to bank account) — mandatory')}
+                  <FieldPrompt label="UPI ID (linked to bank account) — mandatory" />
                 </label>
               <Input
                   value={extras.upiQr || ''}
@@ -827,7 +821,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               />
             </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Vendor full name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Vendor full name" /></label>
                 <Input
                   value={extras.entrepreneurName || ''}
                   onChange={(e) => updateExtras({ entrepreneurName: e.target.value })}
@@ -835,16 +829,16 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Age (≥ 18)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Age (≥ 18)" /></label>
                 <Input
-                  type="number"
+                  type="number" min={18} max={100}
                   value={extras.entrepreneurAge || ''}
                   onChange={(e) => updateExtras({ entrepreneurAge: e.target.value })}
                   placeholder={tf('e.g. 35')}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Years in street vending')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Years in street vending" /></label>
                 <Input
                   type="number"
                   value={extras.yearsVending || ''}
@@ -853,7 +847,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Approx daily sales (₹)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Approx daily sales (₹)" /></label>
                 <Input
                   type="number"
                   value={extras.dailySales || ''}
@@ -895,7 +889,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             </p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Unit stage')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Unit stage" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.unitStage || ''}
@@ -910,7 +904,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('ODOP aligned?')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="ODOP aligned?" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.odopAligned || ''}
@@ -925,7 +919,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('FSSAI')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="FSSAI" /></label>
                 <ExpandableSelect
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={extras.fssai || stepData.fssai || ''}
@@ -940,7 +934,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur full name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur full name" /></label>
                 <Input
                   value={extras.entrepreneurName || ''}
                   onChange={(e) => updateExtras({ entrepreneurName: e.target.value })}
@@ -948,9 +942,9 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur age')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur age" /></label>
                 <Input
-                  type="number"
+                  type="number" min={18} max={100}
                   value={extras.entrepreneurAge || ''}
                   onChange={(e) => updateExtras({ entrepreneurAge: e.target.value })}
                   placeholder={tf('e.g. 32')}
@@ -959,7 +953,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               {extras.unitStage === 'existing' && (
                 <div>
                   <label className="block text-sm font-medium mb-2">
-                    {tf('Existing annual turnover (₹ Lakhs)')}
+                    <FieldPrompt label="Existing annual turnover (₹ Lakhs)" />
                   </label>
                   <Input
                     type="number"
@@ -983,7 +977,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             </p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Enterprise size')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Enterprise size" /></label>
                 <ExpandableSelect
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.enterpriseSize || ''}
@@ -999,7 +993,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('Special category (wholly owned, AP domicile)?')}
+                  <FieldPrompt label="Special category (wholly owned, AP domicile)?" />
                 </label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -1015,7 +1009,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('SC/ST wholly owned?')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="SC/ST wholly owned?" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.scStOwned || ''}
@@ -1030,7 +1024,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('AP domicile confirmed?')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="AP domicile confirmed?" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.apDomicile || ''}
@@ -1046,7 +1040,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('Unit inside an APIIC park / estate?')}
+                  <FieldPrompt label="Unit inside an APIIC park / estate?" />
                 </label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -1059,7 +1053,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur full name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur full name" /></label>
                 <Input
                   value={extras.entrepreneurName || ''}
                   onChange={(e) => updateExtras({ entrepreneurName: e.target.value })}
@@ -1067,9 +1061,9 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur age')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur age" /></label>
                 <Input
-                  type="number"
+                  type="number" min={18} max={100}
                   value={extras.entrepreneurAge || ''}
                   onChange={(e) => updateExtras({ entrepreneurAge: e.target.value })}
                   placeholder={tf('e.g. 35')}
@@ -1083,7 +1077,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               {apEdpSubsidyCapLakhs(extras.enterpriseSize, extras.specialCategory).toLocaleString(
                 'en-IN'
               )}{' '}
-              {tf('L')} · {extras.enterpriseSize || '—'} / special {extras.specialCategory || '—'}.
+              {tf('L')} · {extras.enterpriseSize || '—'} / {tf('special')} {extras.specialCategory || '—'}.
               {apEdpLandRebateEligible(
                 extras.apiicPark,
                 extras.scStOwned,
@@ -1107,19 +1101,19 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             </p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Existing fund-based WC limit (₹ Lakhs)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Existing fund-based WC limit (₹ Lakhs)" /></label>
                 <Input type="number" value={extras.existingLimit || ''} onChange={(e) => updateExtras({ existingLimit: e.target.value })} placeholder={tf('e.g. 50')} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Peak Q4 WC outstanding (₹ Lakhs)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Peak Q4 WC outstanding (₹ Lakhs)" /></label>
                 <Input type="number" value={extras.peakWcOutstanding || ''} onChange={(e) => updateExtras({ peakWcOutstanding: e.target.value })} placeholder={tf('e.g. 40')} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Additional ECLGS WC sought (₹ Lakhs)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Additional ECLGS WC sought (₹ Lakhs)" /></label>
                 <Input type="number" value={extras.additionalWcSought || ''} onChange={(e) => updateExtras({ additionalWcSought: e.target.value })} placeholder={tf('e.g. 8')} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Account status')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Account status" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.accountStatus || ''} onChange={(e) => updateExtras({ accountStatus: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {ECLGS_ACCOUNT_STATUS_OPTIONS.map((o) => (
@@ -1128,17 +1122,17 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Authorised signatory')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Authorised signatory" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">{tf('Why additional liquidity is needed')}</label>
+              <label className="block text-sm font-medium mb-2"><FieldPrompt label="Why additional liquidity is needed" /></label>
               <ExpandableTextarea className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.liquidityReason || ''} onChange={(e) => updateExtras({ liquidityReason: e.target.value })} />
             </div>
             <p className="text-sm font-medium text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
               {tf('Indicative quantum')} {ECLGS_QUANTUM_PERCENT}% ≈ ₹
-              {eclgsIndicativeQuantumLakhs(extras.peakWcOutstanding).toLocaleString('en-IN')} {tf('L')} · ROI cap {ECLGS_INTEREST_CAP_PERCENT}% · tenor {ECLGS_TENOR_YEARS} {tf('yrs')}.
+              {eclgsIndicativeQuantumLakhs(extras.peakWcOutstanding).toLocaleString('en-IN')} {tf('L')} · {tf('ROI cap')} {ECLGS_INTEREST_CAP_PERCENT}% · {tf('tenor')} {ECLGS_TENOR_YEARS} {tf('yrs')}.
             </p>
           </div>
         )}
@@ -1149,7 +1143,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/ZED/zed.md')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Current ZED level')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Current ZED level" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.zedCurrentLevel || ''} onChange={(e) => updateExtras({ zedCurrentLevel: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {ZED_LEVEL_OPTIONS.map((o) => (
@@ -1158,7 +1152,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Target ZED level')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Target ZED level" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.zedTargetLevel || ''} onChange={(e) => updateExtras({ zedTargetLevel: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {ZED_LEVEL_OPTIONS.filter((o) => o.value !== 'none').map((o) => (
@@ -1167,12 +1161,12 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">{tf('Quality / sustainability focus')}</label>
+              <label className="block text-sm font-medium mb-2"><FieldPrompt label="Quality / sustainability focus" /></label>
               <ExpandableTextarea className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.qualityFocus || ''} onChange={(e) => updateExtras({ qualityFocus: e.target.value })} />
             </div>
           </div>
@@ -1183,21 +1177,21 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <h3 className="text-lg font-semibold">{tf('LEAN — process bottleneck')}</h3>
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/LEAN/lean.md')}</p>
             <div>
-              <label className="block text-sm font-medium mb-2">{tf('Main process bottleneck')}</label>
+              <label className="block text-sm font-medium mb-2"><FieldPrompt label="Main process bottleneck" /></label>
               <ExpandableTextarea className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.processBottleneck || ''} onChange={(e) => updateExtras({ processBottleneck: e.target.value })} placeholder={tf('e.g. changeover time, scrap, inventory')} />
             </div>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Shop-floor size / lines')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Shop-floor size / lines" /></label>
                 <Input value={extras.shopFloorSize || ''} onChange={(e) => updateExtras({ shopFloorSize: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">{tf('Expected lean gain')}</label>
+              <label className="block text-sm font-medium mb-2"><FieldPrompt label="Expected lean gain" /></label>
               <ExpandableTextarea className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.expectedLeanGain || ''} onChange={(e) => updateExtras({ expectedLeanGain: e.target.value })} />
             </div>
           </div>
@@ -1209,7 +1203,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/MSME_IPR/msmeIpr.md')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('IP type')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="IP type" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.ipType || ''} onChange={(e) => updateExtras({ ipType: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {MSME_IPR_TYPE_OPTIONS.map((o) => (
@@ -1218,7 +1212,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Filing stage')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Filing stage" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.filingStage || ''} onChange={(e) => updateExtras({ filingStage: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {MSME_IPR_STAGE_OPTIONS.map((o) => (
@@ -1227,11 +1221,11 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Invention / mark title')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Invention / mark title" /></label>
                 <Input value={extras.inventionTitle || ''} onChange={(e) => updateExtras({ inventionTitle: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
@@ -1244,23 +1238,23 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/PMS/pms.md')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Event / fair name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Event / fair name" /></label>
                 <Input value={extras.eventName || ''} onChange={(e) => updateExtras({ eventName: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Stall size')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Stall size" /></label>
                 <Input value={extras.stallSize || ''} onChange={(e) => updateExtras({ stallSize: e.target.value })} placeholder={tf('e.g. 9 sqm')} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Fair city')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Fair city" /></label>
                 <Input value={extras.fairCity || ''} onChange={(e) => updateExtras({ fairCity: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Estimated fair cost (₹ Lakhs)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Estimated fair cost (₹ Lakhs)" /></label>
                 <Input type="number" value={extras.estimatedFairCost || ''} onChange={(e) => updateExtras({ estimatedFairCost: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
@@ -1273,7 +1267,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/SCST_HUB/scstHub.md')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Category')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Category" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.sclcssCategory || ''} onChange={(e) => updateExtras({ sclcssCategory: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {SCST_HUB_CATEGORY_OPTIONS.map((o) => (
@@ -1282,7 +1276,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('GeM experience')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="GeM experience" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.gemExperience || ''} onChange={(e) => updateExtras({ gemExperience: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {SCST_HUB_GEM_OPTIONS.map((o) => (
@@ -1291,12 +1285,12 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">{tf('Procurement focus')}</label>
+              <label className="block text-sm font-medium mb-2"><FieldPrompt label="Procurement focus" /></label>
               <ExpandableTextarea className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.procurementFocus || ''} onChange={(e) => updateExtras({ procurementFocus: e.target.value })} />
             </div>
           </div>
@@ -1308,11 +1302,11 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/ASPIRE/aspire.md')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Incubator / LBI name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Incubator / LBI name" /></label>
                 <Input value={extras.incubatorName || ''} onChange={(e) => updateExtras({ incubatorName: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Premises type')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Premises type" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.premisesType || ''} onChange={(e) => updateExtras({ premisesType: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {ASPIRE_PREMISES_OPTIONS.map((o) => (
@@ -1321,16 +1315,16 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Age')}</label>
-                <Input type="number" value={extras.entrepreneurAge || ''} onChange={(e) => updateExtras({ entrepreneurAge: e.target.value })} />
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Age" /></label>
+                <Input type="number" min={18} max={100} value={extras.entrepreneurAge || ''} onChange={(e) => updateExtras({ entrepreneurAge: e.target.value })} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">{tf('Innovation / livelihood brief')}</label>
+              <label className="block text-sm font-medium mb-2"><FieldPrompt label="Innovation / livelihood brief" /></label>
               <ExpandableTextarea className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.innovationBrief || extras.livelihoodFocus || ''} onChange={(e) => updateExtras({ innovationBrief: e.target.value, livelihoodFocus: e.target.value })} />
             </div>
           </div>
@@ -1342,7 +1336,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/NHDP/nhdp.md')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Loom type')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Loom type" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.loomType || ''} onChange={(e) => updateExtras({ loomType: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {NHDP_LOOM_OPTIONS.map((o) => (
@@ -1351,11 +1345,11 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Weaver ID / corp membership')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Weaver ID / corp membership" /></label>
                 <Input value={extras.weaverId || ''} onChange={(e) => updateExtras({ weaverId: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Workplace')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Workplace" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.premisesType || ''} onChange={(e) => updateExtras({ premisesType: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {NHDP_PREMISES_OPTIONS.map((o) => (
@@ -1364,15 +1358,15 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Product line')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Product line" /></label>
                 <Input value={extras.productLine || ''} onChange={(e) => updateExtras({ productLine: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Yarn source')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Yarn source" /></label>
                 <Input value={extras.yarnSource || ''} onChange={(e) => updateExtras({ yarnSource: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Weaver name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Weaver name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
@@ -1386,11 +1380,11 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/CVY/cvy.md')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Coir product line')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Coir product line" /></label>
                 <Input value={extras.coirProductLine || ''} onChange={(e) => updateExtras({ coirProductLine: e.target.value })} placeholder={tf('e.g. coir fibre, pith, mats')} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Coir Board status')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Coir Board status" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.coirBoardStatus || ''} onChange={(e) => updateExtras({ coirBoardStatus: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {CVY_BOARD_STATUS_OPTIONS.map((o) => (
@@ -1399,7 +1393,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Premises')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Premises" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.premisesType || ''} onChange={(e) => updateExtras({ premisesType: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {CVY_PREMISES_OPTIONS.map((o) => (
@@ -1408,7 +1402,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
@@ -1421,19 +1415,19 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/MSE_GIFT/mseGift.md')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Energy baseline (kWh / month)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Energy baseline (kWh / month)" /></label>
                 <Input type="number" value={extras.energyBaselineKwh || ''} onChange={(e) => updateExtras({ energyBaselineKwh: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Expected saving (%)')}</label>
-                <Input type="number" value={extras.expectedSaving || ''} onChange={(e) => updateExtras({ expectedSaving: e.target.value })} />
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Expected saving (%)" /></label>
+                <Input type="number" min={0} max={100} value={extras.expectedSaving || ''} onChange={(e) => updateExtras({ expectedSaving: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('EE equipment focus')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="EE equipment focus" /></label>
                 <Input value={extras.eeEquipment || ''} onChange={(e) => updateExtras({ eeEquipment: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
@@ -1446,7 +1440,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/PTUAS/ptuas.md')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('GMP status')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="GMP status" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.gmpStatus || ''} onChange={(e) => updateExtras({ gmpStatus: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {PTUAS_GMP_OPTIONS.map((o) => (
@@ -1455,19 +1449,19 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Product licence')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Product licence" /></label>
                 <Input value={extras.productLicence || ''} onChange={(e) => updateExtras({ productLicence: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Existing tech')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Existing tech" /></label>
                 <Input value={extras.existingTech || ''} onChange={(e) => updateExtras({ existingTech: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Proposed tech')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Proposed tech" /></label>
                 <Input value={extras.proposedTech || ''} onChange={(e) => updateExtras({ proposedTech: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
@@ -1480,7 +1474,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/PMPDS/pmpds.md')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Focus')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Focus" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.deviceOrFormulation || ''} onChange={(e) => updateExtras({ deviceOrFormulation: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {PMPDS_FOCUS_OPTIONS.map((o) => (
@@ -1489,12 +1483,12 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">{tf('Promotion / development need')}</label>
+              <label className="block text-sm font-medium mb-2"><FieldPrompt label="Promotion / development need" /></label>
               <ExpandableTextarea className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.promotionNeed || ''} onChange={(e) => updateExtras({ promotionNeed: e.target.value })} />
             </div>
           </div>
@@ -1506,7 +1500,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/CGTMSE/cgtmse.md')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Loan purpose')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Loan purpose" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.loanPurpose || ''} onChange={(e) => updateExtras({ loanPurpose: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {CGTMSE_PURPOSE_OPTIONS.map((o) => (
@@ -1515,7 +1509,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Women-owned')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Women-owned" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.womenOwned || ''} onChange={(e) => updateExtras({ womenOwned: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {CGTMSE_WOMEN_OPTIONS.map((o) => (
@@ -1524,11 +1518,11 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Proposed limit (₹ Lakhs)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Proposed limit (₹ Lakhs)" /></label>
                 <Input type="number" value={extras.proposedLimit || ''} onChange={(e) => updateExtras({ proposedLimit: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
@@ -1541,7 +1535,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/AP_FPP/apFpp.md — do not double-claim with AP_EDP')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Enterprise size')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Enterprise size" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.enterpriseSize || ''} onChange={(e) => updateExtras({ enterpriseSize: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {AP_FPP_SIZE_OPTIONS.map((o) => (
@@ -1550,7 +1544,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Special category')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Special category" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.specialCategory || ''} onChange={(e) => updateExtras({ specialCategory: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {AP_FPP_YES_NO.map((o) => (
@@ -1559,7 +1553,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('FPO / SHG')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="FPO / SHG" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.fpoShg || ''} onChange={(e) => updateExtras({ fpoShg: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {AP_FPP_YES_NO.map((o) => (
@@ -1568,7 +1562,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('AP domicile')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="AP domicile" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.apDomicile || ''} onChange={(e) => updateExtras({ apDomicile: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {AP_FPP_YES_NO.map((o) => (
@@ -1577,7 +1571,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Premises')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Premises" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.premisesType || ''} onChange={(e) => updateExtras({ premisesType: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {AP_FPP_PREMISES_OPTIONS.map((o) => (
@@ -1586,7 +1580,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
@@ -1599,7 +1593,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-indigo-900/70">{tf('Spec: docs/schemes/AP_CMEP/apCmep.md — bank loan required')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Activity band')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Activity band" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.activityBand || ''} onChange={(e) => updateExtras({ activityBand: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {AP_CMEP_ACTIVITY_OPTIONS.map((o) => (
@@ -1608,7 +1602,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Booster category')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Booster category" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.boosterCategory || ''} onChange={(e) => updateExtras({ boosterCategory: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {AP_CMEP_BOOSTER_OPTIONS.map((o) => (
@@ -1617,7 +1611,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('AP domicile')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="AP domicile" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.apDomicile || ''} onChange={(e) => updateExtras({ apDomicile: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {AP_CMEP_YES_NO.map((o) => (
@@ -1626,11 +1620,11 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Urban or rural')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Urban or rural" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.cmepArea || ''} onChange={(e) => updateExtras({ cmepArea: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {AP_CMEP_AREA_OPTIONS.map((o) => (
@@ -1639,7 +1633,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('EDP training')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="EDP training" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.edpStatus || ''} onChange={(e) => updateExtras({ edpStatus: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {AP_CMEP_EDP_OPTIONS.map((o) => (
@@ -1648,7 +1642,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Earlier government subsidy')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Earlier government subsidy" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.priorSubsidy || ''} onChange={(e) => updateExtras({ priorSubsidy: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {AP_CMEP_YES_NO.map((o) => (
@@ -1657,7 +1651,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Only one person in the family for this scheme')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Only one person in the family for this scheme" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.familyExclusive || ''} onChange={(e) => updateExtras({ familyExclusive: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {AP_CMEP_YES_NO.map((o) => (
@@ -1675,7 +1669,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/OBMMS/obmms.md')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Welfare corporation')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Welfare corporation" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.welfareCorporation || ''} onChange={(e) => updateExtras({ welfareCorporation: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {OBMMS_CORP_OPTIONS.map((o) => (
@@ -1684,7 +1678,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('White rice card')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="White rice card" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.whiteRiceCard || ''} onChange={(e) => updateExtras({ whiteRiceCard: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {OBMMS_YES_NO.map((o) => (
@@ -1693,15 +1687,15 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Activity / trade')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Activity / trade" /></label>
                 <Input value={extras.activityTrade || ''} onChange={(e) => updateExtras({ activityTrade: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Age')}</label>
-                <Input type="number" value={extras.entrepreneurAge || ''} onChange={(e) => updateExtras({ entrepreneurAge: e.target.value })} />
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Age" /></label>
+                <Input type="number" min={18} max={100} value={extras.entrepreneurAge || ''} onChange={(e) => updateExtras({ entrepreneurAge: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
@@ -1714,7 +1708,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/MSE_SPICE/mseSpice.md — 25% P&M cap ₹12.5 L')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Circular sector')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Circular sector" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.circularSector || ''} onChange={(e) => updateExtras({ circularSector: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {MSE_SPICE_SECTOR_OPTIONS.map((o) => (
@@ -1723,15 +1717,15 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Existing unit years')}</label>
-                <Input type="number" value={extras.existingUnitYears || ''} onChange={(e) => updateExtras({ existingUnitYears: e.target.value })} />
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Existing unit years" /></label>
+                <Input type="number" min={0} max={100} value={extras.existingUnitYears || ''} onChange={(e) => updateExtras({ existingUnitYears: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Proposed P&M cost (₹ Lakhs)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Proposed P&M cost (₹ Lakhs)" /></label>
                 <Input type="number" value={extras.proposedPmCost || ''} onChange={(e) => updateExtras({ proposedPmCost: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
@@ -1744,15 +1738,15 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/AP_PARKS/apParks.md')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('APIIC / park name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="APIIC / park name" /></label>
                 <Input value={extras.apiicParkName || ''} onChange={(e) => updateExtras({ apiicParkName: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Plot area')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Plot area" /></label>
                 <Input value={extras.plotArea || ''} onChange={(e) => updateExtras({ plotArea: e.target.value })} placeholder={tf('e.g. 500 sq.yd')} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Land rebate claim')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Land rebate claim" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.landRebateClaim || ''} onChange={(e) => updateExtras({ landRebateClaim: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {AP_PARKS_REBATE_OPTIONS.map((o) => (
@@ -1761,7 +1755,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('AP domicile')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="AP domicile" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.apDomicile || ''} onChange={(e) => updateExtras({ apDomicile: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {AP_PARKS_YES_NO.map((o) => (
@@ -1770,7 +1764,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
@@ -1783,7 +1777,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/RAMP_TEAM/rampTeam.md')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('ONDC readiness')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="ONDC readiness" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.ondcReady || ''} onChange={(e) => updateExtras({ ondcReady: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {RAMP_TEAM_ONDC_OPTIONS.map((o) => (
@@ -1792,16 +1786,16 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Catalogue SKUs (approx)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Catalogue SKUs (approx)" /></label>
                 <Input type="number" value={extras.catalogueSkus || ''} onChange={(e) => updateExtras({ catalogueSkus: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">{tf('Product list note')}</label>
+              <label className="block text-sm font-medium mb-2"><FieldPrompt label="Product list note" /></label>
               <ExpandableTextarea className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.productListNote || ''} onChange={(e) => updateExtras({ productListNote: e.target.value })} />
             </div>
           </div>
@@ -1813,15 +1807,15 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             <p className="text-xs text-muted-foreground">{tf('Spec: docs/schemes/EPM_NIRYAT/epmNiryat.md — 2.75% interest subvention')}</p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Export markets')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Export markets" /></label>
                 <Input value={extras.exportMarkets || ''} onChange={(e) => updateExtras({ exportMarkets: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('HSN lines')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="HSN lines" /></label>
                 <Input value={extras.hsnLines || ''} onChange={(e) => updateExtras({ hsnLines: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Pre / post shipment')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Pre / post shipment" /></label>
                 <ExpandableSelect className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={extras.prePostShipment || ''} onChange={(e) => updateExtras({ prePostShipment: e.target.value })}>
                   <option value="">{tf('Select')}</option>
                   {EPM_NIRYAT_CREDIT_OPTIONS.map((o) => (
@@ -1830,11 +1824,11 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Export credit sought (₹ Lakhs)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Export credit sought (₹ Lakhs)" /></label>
                 <Input type="number" value={extras.exportCreditSought || ''} onChange={(e) => updateExtras({ exportCreditSought: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur name" /></label>
                 <Input value={extras.entrepreneurName || ''} onChange={(e) => updateExtras({ entrepreneurName: e.target.value })} />
               </div>
             </div>
@@ -1851,7 +1845,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             </p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Category')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Category" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.pmegpCategory || ''}
@@ -1875,7 +1869,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Area (rural / urban)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Area (rural / urban)" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.pmegpArea || ''}
@@ -1898,7 +1892,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Implementing agency')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Implementing agency" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.pmegpAgency || ''}
@@ -1913,7 +1907,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Education')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Education" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.educationStatus || ''}
@@ -1928,7 +1922,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur full name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur full name" /></label>
                 <Input
                   value={extras.entrepreneurName || ''}
                   onChange={(e) => updateExtras({ entrepreneurName: e.target.value })}
@@ -1936,9 +1930,9 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur age')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur age" /></label>
                 <Input
-                  type="number"
+                  type="number" min={18} max={100}
                   value={extras.entrepreneurAge || ''}
                   onChange={(e) => updateExtras({ entrepreneurAge: e.target.value })}
                   placeholder={tf('Must be 18 or older')}
@@ -1965,7 +1959,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             </p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Prior scheme')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Prior scheme" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.priorScheme || ''}
@@ -1981,7 +1975,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('First sanction / project cost (₹ Lakhs)')}
+                  <FieldPrompt label="First sanction / project cost (₹ Lakhs)" />
                 </label>
                 <Input
                   type="number"
@@ -1991,7 +1985,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Year of first subsidy')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Year of first subsidy" /></label>
                 <Input
                   value={extras.firstSubsidyYear || ''}
                   onChange={(e) => updateExtras({ firstSubsidyYear: e.target.value })}
@@ -1999,7 +1993,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Implementing agency')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Implementing agency" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.pmegpAgency || ''}
@@ -2014,7 +2008,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Sector band')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Sector band" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.sectorBand || ''}
@@ -2029,7 +2023,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('NER / Hill State?')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="NER / Hill State?" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.nerHill || ''}
@@ -2045,7 +2039,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('First margin money adjusted?')}
+                  <FieldPrompt label="First margin money adjusted?" />
                 </label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -2062,7 +2056,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('First loan repaid in time?')}
+                  <FieldPrompt label="First loan repaid in time?" />
                 </label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -2079,10 +2073,10 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('Years of continuous profit')}
+                  <FieldPrompt label="Years of continuous profit" />
                 </label>
                 <Input
-                  type="number"
+                  type="number" min={0} max={100}
                   value={extras.yearsProfitable || ''}
                   onChange={(e) => updateExtras({ yearsProfitable: e.target.value })}
                   placeholder={tf('Expect ≥ 3')}
@@ -2090,7 +2084,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('Latest annual turnover (₹ Lakhs)')}
+                  <FieldPrompt label="Latest annual turnover (₹ Lakhs)" />
                 </label>
                 <Input
                   type="number"
@@ -2100,7 +2094,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur full name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur full name" /></label>
                 <Input
                   value={extras.entrepreneurName || ''}
                   onChange={(e) => updateExtras({ entrepreneurName: e.target.value })}
@@ -2108,9 +2102,9 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur age')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur age" /></label>
                 <Input
-                  type="number"
+                  type="number" min={18} max={100}
                   value={extras.entrepreneurAge || ''}
                   onChange={(e) => updateExtras({ entrepreneurAge: e.target.value })}
                   placeholder={tf('Must be 18 or older')}
@@ -2134,7 +2128,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             </p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('SC / ST category')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="SC / ST category" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.sclcssCategory || ''}
@@ -2149,7 +2143,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Unit stage')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Unit stage" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.unitStage || ''}
@@ -2165,17 +2159,17 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('SC/ST controlling stake % (if not sole prop)')}
+                  <FieldPrompt label="SC/ST controlling stake % (if not sole prop)" />
                 </label>
                 <Input
-                  type="number"
+                  type="number" min={0} max={100}
                   value={extras.controllingStakePercent || ''}
                   onChange={(e) => updateExtras({ controllingStakePercent: e.target.value })}
                   placeholder={tf(`Must be ≥ ${SCLCSS_MIN_STAKE_PERCENT} for firms`)}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Udyam status / number')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Udyam status / number" /></label>
                 <Input
                   value={extras.udyamStatus || ''}
                   onChange={(e) => updateExtras({ udyamStatus: e.target.value })}
@@ -2183,7 +2177,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur full name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur full name" /></label>
                 <Input
                   value={extras.entrepreneurName || ''}
                   onChange={(e) => updateExtras({ entrepreneurName: e.target.value })}
@@ -2191,9 +2185,9 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur age')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur age" /></label>
                 <Input
-                  type="number"
+                  type="number" min={18} max={100}
                   value={extras.entrepreneurAge || ''}
                   onChange={(e) => updateExtras({ entrepreneurAge: e.target.value })}
                   placeholder={tf('e.g. 35')}
@@ -2218,7 +2212,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             </p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Enterprise size')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Enterprise size" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.enterpriseSize || ''}
@@ -2234,7 +2228,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('Special category (wholly owned, AP domicile)?')}
+                  <FieldPrompt label="Special category (wholly owned, AP domicile)?" />
                 </label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -2250,7 +2244,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('AP domicile confirmed?')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="AP domicile confirmed?" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.apDomicile || ''}
@@ -2265,9 +2259,9 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Years in operation')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Years in operation" /></label>
                 <Input
-                  type="number"
+                  type="number" min={0} max={100}
                   value={extras.yearsInOperation || ''}
                   onChange={(e) => updateExtras({ yearsInOperation: e.target.value })}
                   placeholder={tf('e.g. 5')}
@@ -2275,7 +2269,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('Latest annual turnover (₹ Lakhs)')}
+                  <FieldPrompt label="Latest annual turnover (₹ Lakhs)" />
                 </label>
                 <Input
                   type="number"
@@ -2285,7 +2279,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur full name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur full name" /></label>
                 <Input
                   value={extras.entrepreneurName || ''}
                   onChange={(e) => updateExtras({ entrepreneurName: e.target.value })}
@@ -2293,9 +2287,9 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur age')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur age" /></label>
                 <Input
-                  type="number"
+                  type="number" min={18} max={100}
                   value={extras.entrepreneurAge || ''}
                   onChange={(e) => updateExtras({ entrepreneurAge: e.target.value })}
                   placeholder={tf('e.g. 38')}
@@ -2309,7 +2303,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               {apTechSubsidyCapLakhs(extras.enterpriseSize, extras.specialCategory).toLocaleString(
                 'en-IN'
               )}{' '}
-              {tf('L')} · {extras.enterpriseSize || '—'} / special {extras.specialCategory || '—'}.
+              {tf('L')} · {extras.enterpriseSize || '—'} / {tf('special')} {extras.specialCategory || '—'}.
             </p>
           </div>
         )}
@@ -2322,7 +2316,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             </p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('PMMY category')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="PMMY category" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.mudraCategory || ''}
@@ -2337,7 +2331,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Loan purpose')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Loan purpose" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.loanPurpose || ''}
@@ -2352,7 +2346,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 </ExpandableSelect>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur full name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur full name" /></label>
                 <Input
                   value={extras.entrepreneurName || ''}
                   onChange={(e) => updateExtras({ entrepreneurName: e.target.value })}
@@ -2360,9 +2354,9 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur age')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur age" /></label>
                 <Input
-                  type="number"
+                  type="number" min={18} max={100}
                   value={extras.entrepreneurAge || ''}
                   onChange={(e) => updateExtras({ entrepreneurAge: e.target.value })}
                   placeholder={tf('Must be 18 or older')}
@@ -2370,10 +2364,10 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('Experience in this line (years)')}
+                  <FieldPrompt label="Experience in this line (years)" />
                 </label>
                 <Input
-                  type="number"
+                  type="number" min={0} max={80}
                   value={extras.experienceYears || ''}
                   onChange={(e) => updateExtras({ experienceYears: e.target.value })}
                   placeholder={tf('e.g. 3')}
@@ -2393,7 +2387,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             </p>
             <div className="form-field-grid">
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Eligible category')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Eligible category" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={extras.standupCategory || ''}
@@ -2409,7 +2403,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('Composite loan sought (₹ Lakhs)')}
+                  <FieldPrompt label="Composite loan sought (₹ Lakhs)" />
                 </label>
                 <Input
                   type="number"
@@ -2419,7 +2413,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur full name')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur full name" /></label>
                 <Input
                   value={extras.entrepreneurName || ''}
                   onChange={(e) => updateExtras({ entrepreneurName: e.target.value })}
@@ -2427,9 +2421,9 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Entrepreneur age')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Entrepreneur age" /></label>
                 <Input
-                  type="number"
+                  type="number" min={18} max={100}
                   value={extras.entrepreneurAge || ''}
                   onChange={(e) => updateExtras({ entrepreneurAge: e.target.value })}
                   placeholder={tf('Must be 18 or older')}
@@ -2437,10 +2431,10 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {tf('Controlling stake % (if not sole prop)')}
+                  <FieldPrompt label="Controlling stake % (if not sole prop)" />
                 </label>
                 <Input
-                  type="number"
+                  type="number" min={0} max={100}
                   value={extras.controllingStakePercent || ''}
                   onChange={(e) => updateExtras({ controllingStakePercent: e.target.value })}
                   placeholder={tf('Must be ≥ 51 for firms')}
@@ -2458,7 +2452,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               <h3 className="text-lg font-semibold">{tf('Scheme-specific details')}</h3>
               {extraFieldNames.map((field) => (
                 <div key={field}>
-                  <label className="block text-sm font-medium mb-2">{tf(field)}</label>
+                  <label className="block text-sm font-medium mb-2"><FieldPrompt label={field} /></label>
                   <Input
                     value={String(extras[field] ?? stepData[field] ?? '')}
                     onChange={(e) => updateExtras({ [field]: e.target.value })}
@@ -2523,7 +2517,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             }
           >
             <label className="block text-sm font-semibold text-foreground">
-              {tf('Executive summary')}
+              <FieldPrompt label="Executive summary" />
             </label>
             <p className="text-xs text-muted-foreground">
               {tf(
@@ -2552,7 +2546,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
           isVishwakarma ||
           isSvanidhi) && (
           <div>
-            <label className="block text-sm font-medium mb-2">{tf('Process of manufacture')}</label>
+            <label className="block text-sm font-medium mb-2"><FieldPrompt label="Process of manufacture" /></label>
             <ExpandableTextarea
               className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={extras.processOfManufacture || ''}
@@ -2582,7 +2576,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
         {(isPmegp2nd || isSclcss || isApTech) && (
           <div className="form-field-grid">
             <div>
-              <label className="block text-sm font-medium mb-2">{tf('Existing technology')}</label>
+              <label className="block text-sm font-medium mb-2"><FieldPrompt label="Existing technology" /></label>
               <ExpandableTextarea
                 className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={extras.existingTech || ''}
@@ -2591,7 +2585,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">{tf('Proposed technology / upgrade')}</label>
+              <label className="block text-sm font-medium mb-2"><FieldPrompt label="Proposed technology / upgrade" /></label>
               <ExpandableTextarea
                 className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={extras.proposedTech || ''}
@@ -2610,7 +2604,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
         {isApTech && (
           <div>
             <label className="block text-sm font-medium mb-2">
-              {tf('Expected productivity / quality / cost gain')}
+              <FieldPrompt label="Expected productivity / quality / cost gain" />
             </label>
             <ExpandableTextarea
               className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -2890,6 +2884,8 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
           {renderLabel('yearOfEstablishment', 'Year of Establishment')}
           <Input
             type="number"
+            min={1900}
+            max={new Date().getFullYear()}
             value={stepData.yearOfEstablishment || ''}
             onChange={(e) => handleInputChange('yearOfEstablishment', parseInt(e.target.value) || 0)}
             placeholder={tf('YYYY')}
@@ -2929,7 +2925,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
         {(isPmegp2nd || isApTech) && (
         <div>
             <label className="block text-sm font-medium mb-2">
-              {tf('Existing capacity (before upgrade)')}
+              <FieldPrompt label="Existing capacity (before upgrade)" />
             </label>
           <Input
               value={extras.existingCapacity || ''}
@@ -2941,10 +2937,10 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
         {(isPmegp || isPmegp2nd || isStandup || isPmfme || isSclcss || isApTech || isApEdp) && (
         <div>
             <label className="block text-sm font-medium mb-2">
-              {tf('Capacity utilisation Year 1 (%)')}
+              <FieldPrompt label="Capacity utilisation Year 1 (%)" />
             </label>
           <Input
-              type="number"
+              type="number" min={0} max={100}
               value={extras.capacityUtilisationY1 || ''}
               onChange={(e) => updateExtras({ capacityUtilisationY1: e.target.value })}
               placeholder={isPmfme ? tf('e.g. 60 (NIFTEM models ramp 60→70→80)') : tf('e.g. 60')}
@@ -2957,18 +2953,18 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
         {isApCmep && (
           <div className="form-field-grid">
         <div>
-              <label className="block text-sm font-medium mb-2">{tf('Number of looms / machines')}</label>
+              <label className="block text-sm font-medium mb-2"><FieldPrompt label="Number of looms / machines" /></label>
               <Input type="number" value={stepData.loomCount || ''} onChange={(e) => handleInputChange('loomCount', parseFloat(e.target.value) || 0)} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">{tf('Shifts per day')}</label>
+              <label className="block text-sm font-medium mb-2"><FieldPrompt label="Shifts per day" /></label>
               <Input type="number" value={stepData.shifts || ''} onChange={(e) => handleInputChange('shifts', parseFloat(e.target.value) || 0)} />
             </div>
           </div>
         )}
         {isPmfme && (
         <div>
-            <label className="block text-sm font-medium mb-2">{tf('Proposed workers (nos.)')}</label>
+            <label className="block text-sm font-medium mb-2"><FieldPrompt label="Proposed workers (nos.)" /></label>
           <Input
               type="number"
               value={extras.proposedWorkers || ''}
@@ -3205,7 +3201,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
         {isPmfme && (
         <div>
             <label className="block text-sm font-medium mb-2">
-              {tf('Sources of raw material')}
+              <FieldPrompt label="Sources of raw material" />
             </label>
             <ExpandableTextarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -3538,7 +3534,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               isVishwakarma ||
               isSvanidhi) && (
               <div>
-                <label className="block text-sm font-medium mb-2">{tf('Premises — owned / rented')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Premises — owned / rented" /></label>
                 <ExpandableSelect
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={
@@ -3582,7 +3578,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             )}
             <div>
               <label className="block text-sm font-medium mb-2">
-                {tf('Power requirement (HP / kW) — optional')}
+                <FieldPrompt label="Power requirement (HP / kW) — optional" />
               </label>
               <Input
                 value={extras.powerRequirement || stepData.powerRequirements || ''}
@@ -3606,27 +3602,27 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             {isApCmep && (
               <div className="form-field-grid">
                 <div>
-                  <label className="block text-sm font-medium mb-2">{tf('Workshop area (sq.ft.)')}</label>
+                  <label className="block text-sm font-medium mb-2"><FieldPrompt label="Workshop area (sq.ft.)" /></label>
                   <Input type="number" value={stepData.workshopAreaSqft || ''} onChange={(e) => handleInputChange('workshopAreaSqft', parseFloat(e.target.value) || 0)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">{tf('Production floor (sq.ft.)')}</label>
+                  <label className="block text-sm font-medium mb-2"><FieldPrompt label="Production floor (sq.ft.)" /></label>
                   <Input type="number" value={stepData.productionAreaSqft || ''} onChange={(e) => handleInputChange('productionAreaSqft', parseFloat(e.target.value) || 0)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">{tf('Storage / packing area (sq.ft.)')}</label>
+                  <label className="block text-sm font-medium mb-2"><FieldPrompt label="Storage / packing area (sq.ft.)" /></label>
                   <Input type="number" value={stepData.storageAreaSqft || ''} onChange={(e) => handleInputChange('storageAreaSqft', parseFloat(e.target.value) || 0)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">{tf('Office area (sq.ft.)')}</label>
+                  <label className="block text-sm font-medium mb-2"><FieldPrompt label="Office area (sq.ft.)" /></label>
                   <Input type="number" value={stepData.officeAreaSqft || ''} onChange={(e) => handleInputChange('officeAreaSqft', parseFloat(e.target.value) || 0)} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">{tf('Lease period (years)')}</label>
+                  <label className="block text-sm font-medium mb-2"><FieldPrompt label="Lease period (years)" /></label>
                   <Input type="number" value={stepData.leaseYears || ''} onChange={(e) => handleInputChange('leaseYears', parseFloat(e.target.value) || 0)} />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-2">{tf('Water use and dye wastewater')}</label>
+                  <label className="block text-sm font-medium mb-2"><FieldPrompt label="Water use and dye wastewater" /></label>
                   <ExpandableTextarea
                     allowImprove={false}
                     className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -3649,7 +3645,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
           />
         </div>
         <div>
-          {renderLabel('manufacturingProcess', 'Manufacturing Process')}
+          {renderLabel('manufacturingProcess', kindLabel('Manufacturing Process', kind))}
           <ExpandableTextarea
             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={stepData.manufacturingProcess || ''}
@@ -3731,6 +3727,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               onChange={(e) => handleInputChange('spvName', e.target.value)}
               placeholder={tf('Enter applicant or firm name')}
             />
+            <ReusedNote data={data} path="step11.spvName" text="Filled in from your unit details. Change it if the applicant is different." />
           </div>
           <div>
             {renderLabel(
@@ -3748,6 +3745,49 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             />
           </div>
         </div>
+        <div className="form-field-grid">
+          <div>
+            {renderLabel('gstin', 'GSTIN (optional)')}
+            <Input
+              format="gstin"
+              data-format-field="gstin"
+              value={stepData.gstin || ''}
+              onChange={(e) => handleInputChange('gstin', e.target.value)}
+              hint={tf('15 characters. Leave blank if the firm has no GST registration.')}
+            />
+          </div>
+          <div>
+            {renderLabel('firmPan', 'Firm PAN (optional)')}
+            <Input
+              format="pan"
+              firmPanOnly
+              data-format-field="firmPan"
+              value={stepData.firmPan || ''}
+              onChange={(e) => handleInputChange('firmPan', e.target.value)}
+              hint={tf('The firm’s or company’s PAN. Do not enter a personal PAN.')}
+            />
+          </div>
+          <div>
+            {renderLabel('udyamNumber', 'Udyam registration number (optional)')}
+            <Input
+              format="udyam"
+              data-format-field="udyamNumber"
+              value={stepData.udyamNumber || ''}
+              onChange={(e) => handleInputChange('udyamNumber', e.target.value)}
+              hint={tf('Type the letters and digits; the hyphens are added for you.')}
+            />
+          </div>
+          <div>
+            {renderLabel('applicantMobile', 'Contact mobile number (optional)')}
+            <Input
+              format="mobile"
+              data-format-field="applicantMobile"
+              value={stepData.applicantMobile || ''}
+              onChange={(e) => handleInputChange('applicantMobile', e.target.value)}
+              hint={tf('10 digits, starting with 6, 7, 8 or 9.')}
+            />
+          </div>
+        </div>
         {isLeanUnit ? (
           <>
           <div>
@@ -3760,6 +3800,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               onChange={(e) => handleInputChange('address', e.target.value)}
               placeholder={tf('Full correspondence address for KYC')}
             />
+            <ReusedNote data={data} path="step11.address" text="Started from your town and district. Add the full street address." />
           </div>
           {isApCmep && (
             <CmepPromotersEditor
@@ -3774,7 +3815,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
           <div>
             {renderLabel('yearOfIncorporation', 'Year of establishment')}
             <Input
-              type="number"
+              type="number" min={1900} max={new Date().getFullYear()}
               value={stepData.yearOfIncorporation || ''}
               onChange={(e) => handleInputChange('yearOfIncorporation', parseInt(e.target.value) || 0)}
               placeholder={tf("YYYY")}
@@ -3866,6 +3907,8 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
 
     return (
       <div className="space-y-6">
+        <ScheduleParties data={data} />
+        <FinanceCalcStrip contentStep={12} data={data} onApply={applyCalc} />
         <AISuggestions
           {...aiStore}
           excludeFields={aiExclude}
@@ -3908,13 +3951,26 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             />
           </>
         )}
-        {isLeanUnit && !isApCmep && (
+        {!isApCmep && <BusinessKindPicker data={data} onChange={setKind} />}
+        {!isApCmep && kind === 'manufacturing' && (isLeanUnit || scale !== 'tiny') && (
           <CmepMachineryEditor
             value={stepData.machineryItems}
             onChange={(next) => {
               const latest = getStepData(contentStep) || {};
               const patch: Record<string, unknown> = { machineryItems: next };
               if (next.some((row) => row.description || row.unitCost)) patch.machinery = machineryTotalLakhs(next, false);
+              setStepData(contentStep, { ...latest, ...patch });
+            }}
+          />
+        )}
+        {!isApCmep && kind !== 'manufacturing' && (
+          <AssetListEditor
+            value={stepData.assetItems}
+            collapsedWhenEmpty={scale === 'tiny'}
+            onChange={(items, total) => {
+              const latest = getStepData(contentStep) || {};
+              const patch: Record<string, unknown> = { assetItems: items };
+              if (items.some((row) => row.item || row.unitCost)) patch.machinery = total;
               setStepData(contentStep, { ...latest, ...patch });
             }}
           />
@@ -3950,7 +4006,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
           )}
           {!isLeanUnit && (
           <div>
-            {renderLabel('machinery', 'Plant & machinery (₹ Lakhs)')}
+            {renderLabel('machinery', kindLabel('Plant & machinery (₹ Lakhs)', kind))}
             <Input
               type="number"
               value={stepData.machinery === '' || stepData.machinery == null ? '' : toFiniteNumber(stepData.machinery)}
@@ -4063,6 +4119,8 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
 
     return (
       <div className="space-y-6">
+        <ScheduleParties data={data} />
+        <FinanceCalcStrip contentStep={13} data={data} onApply={applyCalc} />
         <AISuggestions
           {...aiStore}
           excludeFields={aiExclude}
@@ -4098,6 +4156,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                     : 'Promoter contribution / equity (₹ Lakhs)'
             )}
             <Input
+              data-required-field="spvContribution"
               type="number"
               value={
                 stepData.spvContribution === '' || stepData.spvContribution == null
@@ -4134,6 +4193,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                                   : 'Government Grant (₹ Lakhs)'
             )}
             <Input
+              data-required-field="governmentGrant"
               type="number"
               value={
                 stepData.governmentGrant === '' || stepData.governmentGrant == null
@@ -4162,6 +4222,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
                           : 'Bank Loan (₹ Lakhs)'
             )}
             <Input
+              data-required-field="bankLoan"
               type="number"
               value={
                 stepData.bankLoan === '' || stepData.bankLoan == null
@@ -4231,7 +4292,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             {PMFME_SUBSIDY_CAP_LAKHS} {tf('L')}. {tf('Min own')} {PMFME_MIN_OWN_PERCENT}%.{' '}
             {tf('Indicative grant for current project cost fields')} ≈ ₹
             {pmfmeIndicativeGrantLakhs(projectCostFromStep12).toLocaleString('en-IN')}{' '}
-            {tf('Lakhs')} · {extras.unitStage || '—'} / ODOP {extras.odopAligned || '—'}.
+            {tf('Lakhs')} · {extras.unitStage || '—'} / {tf('ODOP')} {extras.odopAligned || '—'}.
           </p>
         )}
         {isSclcss && (
@@ -4241,7 +4302,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             )}{' '}
             ≈ ₹
             {sclcssIndicativeGrantLakhs(toFiniteNumber(step12.machinery)).toLocaleString('en-IN')}{' '}
-            {tf('Lakhs')} · {extras.sclcssCategory || '—'} / stake {extras.controllingStakePercent || '—'}%.
+            {tf('Lakhs')} · {extras.sclcssCategory || '—'} / {tf('stake')} {extras.controllingStakePercent || '—'}%.
           </p>
         )}
         {isApTech && (
@@ -4324,7 +4385,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
               'ECLGS is a guaranteed WCTL — governmentGrant usually 0. Bank loan ≈ additional WC sought. Indicative 20% of peak'
             )}{' '}
             ≈ ₹{eclgsIndicativeQuantumLakhs(extras.peakWcOutstanding).toLocaleString('en-IN')}{' '}
-            {tf('L')} · sought {extras.additionalWcSought || '—'} · ROI cap {ECLGS_INTEREST_CAP_PERCENT}%.
+            {tf('L')} · {tf('sought')} {extras.additionalWcSought || '—'} · {tf('ROI cap')} {ECLGS_INTEREST_CAP_PERCENT}%.
           </p>
         )}
         {isCgtmse && (
@@ -4391,7 +4452,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
         )}
         <div className="form-field-grid">
           <div>
-            {renderLabel('rawMaterialCost', 'Raw Material Cost (₹ Lakhs)')}
+            {renderLabel('rawMaterialCost', kindLabel('Raw Material Cost (₹ Lakhs)', kind))}
             <Input
               type="number"
               value={
@@ -4467,7 +4528,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
             />
           </div>
           <div>
-            {renderLabel('annualProductionVolume', 'Annual Production Volume')}
+            {renderLabel('annualProductionVolume', kindLabel('Annual Production Volume', kind))}
             <Input
               type="number"
               value={
@@ -4561,6 +4622,8 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
 
     return (
       <div className="space-y-6">
+        <FinanceCalcStrip contentStep={15} data={data} onApply={applyCalc} />
+        <FinanceModelPanel data={data} onAssumptions={(next) => setSchemeExtras({ ...(data.schemeExtras || {}), financeAssumptions: next })} />
         <AISuggestions
           {...aiStore}
           excludeFields={aiExclude}
@@ -4583,7 +4646,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
         {mudraSimple && (
           <div className="border rounded-lg p-4 space-y-3">
             <h4 className="font-semibold">{tf("Mudra Nayak working capital")}</h4>
-            <label className="block text-sm font-medium">{tf('Projected annual turnover (₹ Lakhs)')}</label>
+            <label className="block text-sm font-medium"><FieldPrompt label="Projected annual turnover (₹ Lakhs)" /></label>
             <Input
               type="number"
               value={turnover || ''}
@@ -4774,7 +4837,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
           <div>
             {isPmegp || isPmegp2nd || isPmfme ? (
               <>
-                <label className="block text-sm font-medium mb-2">{tf('Indirect employment (count)')}</label>
+                <label className="block text-sm font-medium mb-2"><FieldPrompt label="Indirect employment (count)" /></label>
                 <Input
                   type="number"
                   value={extras.indirectEmployment || ''}
@@ -4795,7 +4858,7 @@ export const IndividualDPRForm: React.FC<IndividualDPRFormProps> = ({
         </div>
         {(isPmegp || isPmegp2nd || isPmfme) && (
           <div>
-            <label className="block text-sm font-medium mb-2">{tf('Short impact note (optional)')}</label>
+            <label className="block text-sm font-medium mb-2"><FieldPrompt label="Short impact note (optional)" /></label>
             <ExpandableTextarea
               className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={extras.impactNote || stepData.impactNote || ''}

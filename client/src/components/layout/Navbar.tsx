@@ -1,6 +1,10 @@
 // @ts-nocheck
+import { SessionTimer } from '@/components/session/SessionTimer';
+import { flushPendingDraft } from '@/lib/draftFlush';
+import { useConfirm } from '@/components/ui/ConfirmProvider';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useLinkHandler } from '@/lib/linkUtils';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/authStore';
@@ -10,16 +14,36 @@ import { Button } from '@/components/ui/Button';
 import { Languages, LogOut, User, Menu, X, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { NotificationBell } from '@/components/layout/NotificationBell';
-import { SideMenu } from '@/components/layout/SideMenu';
+import { SideMenu, useAppNavLinks } from '@/components/layout/SideMenu';
+import { DevModeToggle } from '@/components/ui/DevModeToggle';
+import { useDevModeStore } from '@/store/devModeStore';
 
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 export const Navbar: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const tf = useClusterFormText();
   const { user, isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
   const handleLinkClick = useLinkHandler();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const navLinks = useAppNavLinks();
+  const confirmAction = useConfirm();
+  const devMode = useDevModeStore((s) => s.on);
+  const setDevMode = useDevModeStore((s) => s.setOn);
 
   const handleLogout = async () => {
+    // Save an open draft first so signing out never loses typing. If it cannot be saved, ask.
+    const flushed = await flushPendingDraft();
+    if (flushed.dirty && !flushed.ok) {
+      const leave = await confirmAction({
+        title: 'Your latest changes could not be saved',
+        body: 'If you log out now, what you typed since the last save will be lost.',
+        confirmLabel: 'Log out anyway',
+        cancelLabel: 'Stay and retry',
+      });
+      if (!leave) return;
+    }
     await api.logout();
     logout();
     navigate('/login');
@@ -39,29 +63,33 @@ export const Navbar: React.FC = () => {
           <a
             href={isAuthenticated ? '/dashboard' : '/'}
             onClick={(e) => handleLinkClick(e, isAuthenticated ? '/dashboard' : '/')}
-            className="flex items-center space-x-3"
+            className="flex min-w-0 items-center space-x-2 sm:space-x-3"
           >
             <img 
-              src="/apmsme_logo.png" 
-              alt="APMSME Logo" 
-              className="h-12 w-auto object-contain"
+              src="/apmsme_logo_192.png" 
+              alt={tf('APMSME Logo')} 
+              className="h-10 w-auto shrink-0 object-contain sm:h-12"
             />
-            <span className="text-xl font-semibold text-foreground">
+            <span className="hidden truncate text-base font-semibold text-foreground min-[480px]:inline sm:text-xl">
               {t('nav.appName')}
             </span>
           </a>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex shrink-0 items-center space-x-1 sm:space-x-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleLanguage}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 px-2 sm:px-3"
+              aria-label={i18n.language.startsWith('te') ? 'English' : 'తెలుగు'}
             >
               <Languages className="h-4 w-4" />
-              <span className="font-medium">{i18n.language.startsWith('te') ? 'English' : 'తెలుగు'}</span>
+              <span className="hidden font-medium sm:inline">{i18n.language.startsWith('te') ? 'English' : 'తెలుగు'}</span>
             </Button>
 
+            <ThemeToggle />
+
+            {isAuthenticated && <SessionTimer />}
             {isAuthenticated && <NotificationBell />}
 
             {isAuthenticated ? (
@@ -121,6 +149,30 @@ export const Navbar: React.FC = () => {
           <div className="md:hidden py-4 border-t border-border">
             <div className="flex flex-col space-y-2">
               <div className="space-y-2">
+                {navLinks.map((link) => {
+                  const Icon = link.icon;
+                  const active = location.pathname === link.path || location.pathname.startsWith(`${link.path}/`);
+                  return (
+                    <a
+                      key={link.path}
+                      href={link.path}
+                      onClick={(e) => {
+                        handleLinkClick(e, link.path);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`flex items-center gap-2 px-4 py-3 rounded-lg ${
+                        active ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{link.label}</span>
+                    </a>
+                  );
+                })}
+                {['/individual-dpr/create', '/cluster-dpr/create'].includes(location.pathname) && (
+                  <DevModeToggle on={devMode} onChange={setDevMode} expanded />
+                )}
+                <div className="my-1 border-t border-border" />
                 <button
                   type="button"
                   onClick={toggleLanguage}

@@ -75,6 +75,15 @@ const dprVersionSchema = new Schema<IDPRVersion>(
     },
     approvedAt: Date,
     approvedBy: String,
+    // Decision by a District Reviewer (or an admin) on a submitted DPR.
+    review: {
+      decision: { type: String, enum: ['approve', 'reject'] },
+      remarks: String,
+      reviewerId: String,
+      reviewerName: String,
+      district: String,
+      reviewedAt: Date,
+    },
     retentionWarningAt: Date,
   },
   {

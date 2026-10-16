@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { applyContextReuse } from '../lib/individualDpr/contextReuse.ts';
 import { create } from 'zustand';
 
 export interface IndividualDPRData {
@@ -302,11 +303,11 @@ export const useIndividualDPRStore = create<IndividualDPRState>()(
     
     setStepData: (step, stepData) => {
       set((state) => ({
-        data: {
+        data: applyContextReuse({
           ...state.data,
           [`step${step}`]: stepData,
           // lastSaved: new Date(), // Removed auto-save timestamp
-        },
+        }),
       }));
     },
     
@@ -358,7 +359,7 @@ export const useIndividualDPRStore = create<IndividualDPRState>()(
 
     setSchemeExtras: (extras) => {
       set((state) => ({
-        data: { ...state.data, schemeExtras: extras },
+        data: applyContextReuse({ ...state.data, schemeExtras: extras }),
       }));
     },
 
@@ -370,7 +371,7 @@ export const useIndividualDPRStore = create<IndividualDPRState>()(
             next[key] = { ...(next[key] || {}), ...value };
           }
         });
-        return { data: next };
+        return { data: applyContextReuse(next) };
       });
     },
 
@@ -421,14 +422,16 @@ export const useIndividualDPRStore = create<IndividualDPRState>()(
       // Create a new object that properly preserves all nested structures
       // Directly spread clusterDataToLoad to preserve all nested objects (step1, step2, etc.)
       const loadedData: IndividualDPRData = {
-        // Start with current state to preserve any unsaved changes
-        ...currentState.data,
+        // Start clean. Merging into whatever was on screen before would carry another draft's (or another
+        // user's) leftovers into this one, so a restored draft would not match what was saved.
+        ...defaultData,
         // Directly spread clusterDataToLoad - this preserves all nested objects like step1.enterpriseCount
         ...clusterDataToLoad,
         // Override metadata fields to preserve current state or use loaded values
-        currentStep: currentState.data.currentStep || clusterDataToLoad.currentStep || 1,
-        dprId: dprData?._id || dprData?.id || currentState.data.dprId,
-        projectId: projectData._id || projectData.id || currentState.data.projectId,
+        // Come back to the step the person was on when it was saved.
+        currentStep: clusterDataToLoad.currentStep || 1,
+        dprId: dprData?._id || dprData?.id || clusterDataToLoad.dprId || '',
+        projectId: projectData._id || projectData.id || clusterDataToLoad.projectId || '',
         lastSaved: new Date(),
       };
       

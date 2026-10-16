@@ -1,4 +1,5 @@
-import { shiftForPageEdge } from '@/lib/individualDpr/documentStyle';
+import { AI_DISCLAIMER_TEXT, AI_FOOTER_MM } from '@/lib/aiDisclaimer';
+import { formatPageNumber, pageCountForHeight, shiftForPageEdge } from '@/lib/individualDpr/documentStyle';
 
 const BLOCKS = [
   '.dpr-style-header',
@@ -24,7 +25,7 @@ function layoutTop(el: HTMLElement, sheet: HTMLElement, scale: number): number {
   return (el.getBoundingClientRect().top - sheet.getBoundingClientRect().top) / scale;
 }
 
-function layoutHeight(el: HTMLElement, sheet: HTMLElement, scale: number): number {
+function layoutHeight(el: HTMLElement, scale: number): number {
   return el.getBoundingClientRect().height / scale;
 }
 
@@ -51,7 +52,7 @@ export function fitSheetToPages(
     for (let i = 0; i < blocks.length; i += 1) {
       const el = blocks[i];
       const top = layoutTop(el, sheet, scale);
-      const height = layoutHeight(el, sheet, scale);
+      const height = layoutHeight(el, scale);
       let shift = shiftForPageEdge(top, height, pageHeightPx, edgeTopPx, edgeBottomPx);
 
       if (el.classList.contains('individual-sec-title')) {
@@ -99,4 +100,58 @@ export function mmToLayoutPx(sheet: HTMLElement, mm: number): number {
   const px = probe.offsetHeight;
   sheet.removeChild(probe);
   return px;
+}
+
+/** Put 1, 2, 3… at the bottom of each sheet. Replaces the single footer that always said 1. */
+export function stampSheetPageNumbers(sheet: HTMLElement, pageHeightPx: number, edgeBottomPx: number): void {
+  const doc = sheet.querySelector<HTMLElement>('.individual-dpr-document');
+  doc?.querySelectorAll('.dpr-page-number').forEach((node) => node.remove());
+  if (!doc || !(pageHeightPx > 0)) return;
+  const mode = doc.getAttribute('data-page-numbers') || '';
+  if (mode !== 'plain' && mode !== 'of') return;
+
+  const total = pageCountForHeight(sheet.offsetHeight, pageHeightPx);
+  const pattern = doc.getAttribute('data-page-of-label') || 'Page {n} of {total}';
+  const computed = getComputedStyle(doc);
+  const color = computed.getPropertyValue('--dpr-header').trim();
+  const font = computed.getPropertyValue('--dpr-body-font').trim();
+  // Page numbers sit above the disclaimer block at the foot of the page.
+  const band = Math.max(edgeBottomPx - mmToLayoutPx(sheet, AI_FOOTER_MM), 1);
+
+  for (let i = 0; i < total; i += 1) {
+    const el = document.createElement('div');
+    el.className = 'dpr-page-number';
+    el.textContent = formatPageNumber(mode, i + 1, total, pattern);
+    if (i === 0) el.setAttribute('data-style-spot', 'page-number');
+    el.style.top = `${(i + 1) * pageHeightPx - band - mmToLayoutPx(sheet, AI_FOOTER_MM)}px`;
+    el.style.height = `${band}px`;
+    el.style.paddingRight = computed.paddingRight;
+    el.style.paddingLeft = computed.paddingLeft;
+    if (color) el.style.color = color;
+    if (font) el.style.fontFamily = font;
+    doc.appendChild(el);
+  }
+}
+
+/** A thin line and the AI disclaimer at the foot of every page. Not printed: downloads get the same footer from the server. */
+export function stampSheetDisclaimers(sheet: HTMLElement, pageHeightPx: number): void {
+  const doc = sheet.querySelector<HTMLElement>('.individual-dpr-document');
+  doc?.querySelectorAll('.dpr-ai-footer').forEach((node) => node.remove());
+  if (!doc || !(pageHeightPx > 0)) return;
+  const total = pageCountForHeight(sheet.offsetHeight, pageHeightPx);
+  const height = mmToLayoutPx(sheet, AI_FOOTER_MM);
+  const computed = getComputedStyle(doc);
+  for (let i = 0; i < total; i += 1) {
+    const el = document.createElement('div');
+    el.className = 'dpr-ai-footer';
+    el.setAttribute('data-ai-footer', '1');
+    el.style.top = `${(i + 1) * pageHeightPx - height}px`;
+    el.style.height = `${height}px`;
+    el.style.paddingLeft = computed.paddingLeft;
+    el.style.paddingRight = computed.paddingRight;
+    const body = document.createElement('span');
+    body.textContent = AI_DISCLAIMER_TEXT;
+    el.append(body);
+    doc.appendChild(el);
+  }
 }

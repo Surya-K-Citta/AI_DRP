@@ -3,6 +3,7 @@ import {
   BadgePercent,
   Banknote,
   Building2,
+  Check,
   ChevronDown,
   ChevronRight,
   Landmark,
@@ -23,6 +24,7 @@ import {
 import { useClusterFormText } from '@/lib/clusterDprFormText';
 import { cardMatchesFilters, schemeKind, schemeLevel, type SchemeKind, type SchemeLevel } from '@/lib/schemePickerFilters';
 import { Input } from '@/components/ui/Input';
+import { useFinderSuggestion } from '@/lib/ventureMatch/savedSuggestion';
 import { Button } from '@/components/ui/Button';
 
 interface SchemePickerGridProps {
@@ -140,6 +142,8 @@ export const SchemePickerGrid: React.FC<SchemePickerGridProps> = ({ onSelect }) 
   const tf = useClusterFormText();
   const lang = briefLangFromI18n(i18n.language);
   const [query, setQuery] = useState('');
+  // Only people who finished Scheme Finder get suggestions; everyone else sees plain cards.
+  const finder = useFinderSuggestion();
   const [levels, setLevels] = useState<SchemeLevel[]>([]);
   const [kinds, setKinds] = useState<SchemeKind[]>([]);
 
@@ -199,34 +203,33 @@ export const SchemePickerGrid: React.FC<SchemePickerGridProps> = ({ onSelect }) 
         </p>
       </div>
 
-      <div className="mb-5 space-y-4">
-        <div className="relative w-full max-w-xl">
-          <Search className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={tf('Search by name, ministry, or support')}
-            aria-label={tf('Search schemes')}
-            className="h-12 pl-10"
-          />
-        </div>
-        <div className="rounded-2xl border border-border bg-card p-3 sm:p-4 space-y-3">
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <MultiFilter
-              emptyLabel={tf('All levels')}
-              options={LEVELS}
-              selected={levels}
-              onToggle={(id) => setLevels((current) => toggleValue(current, id))}
-              labelOf={tf}
-            />
-            <MultiFilter
-              emptyLabel={tf('All kinds')}
-              options={KINDS}
-              selected={kinds}
-              onToggle={(id) => setKinds((current) => toggleValue(current, id))}
-              labelOf={tf}
+      <div className="mb-5 space-y-3">
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="relative min-w-0 sm:col-span-2 md:col-span-1">
+            <Search className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={tf('Search by name, ministry, or support')}
+              aria-label={tf('Search schemes')}
+              className="h-12 pl-10"
             />
           </div>
+          <MultiFilter
+            emptyLabel={tf('All levels')}
+            options={LEVELS}
+            selected={levels}
+            onToggle={(id) => setLevels((current) => toggleValue(current, id))}
+            labelOf={tf}
+          />
+          <MultiFilter
+            emptyLabel={tf('All kinds')}
+            options={KINDS}
+            selected={kinds}
+            onToggle={(id) => setKinds((current) => toggleValue(current, id))}
+            labelOf={tf}
+          />
+        </div>
           {filtersActive && (
             <div className="flex justify-end">
               <Button
@@ -244,12 +247,21 @@ export const SchemePickerGrid: React.FC<SchemePickerGridProps> = ({ onSelect }) 
               </Button>
             </div>
           )}
-        </div>
       </div>
 
       <p className="mb-4 text-sm text-muted-foreground">
         {filtered.length} {tf('schemes')}
       </p>
+
+      {finder && (
+        <p className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-primary/25 bg-primary/5 px-4 py-2.5 text-sm text-foreground">
+          <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+          <span>{tf('Tags come from your Scheme Finder answers. They are suggestions, not a promise.')}</span>
+          <a href="/venture-match" className="font-medium text-primary underline-offset-2 hover:underline">
+            {tf('Change my answers')}
+          </a>
+        </p>
+      )}
 
       {filtered.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">
@@ -272,7 +284,19 @@ export const SchemePickerGrid: React.FC<SchemePickerGridProps> = ({ onSelect }) 
                 >
                   {card.isVanilla ? <Landmark className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 mt-1" />
+                {card.code && finder?.suggested.has(card.code) ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
+                    <Sparkles className="h-3 w-3" aria-hidden="true" />
+                    {tf('Suggested for you')}
+                  </span>
+                ) : card.code && finder?.alsoMatches.has(card.code) ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+                    <Check className="h-3 w-3" aria-hidden="true" />
+                    {tf('May also suit you')}
+                  </span>
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 mt-1" />
+                )}
               </div>
 
               <h3 className="mt-4 text-base font-semibold text-foreground leading-snug line-clamp-2">

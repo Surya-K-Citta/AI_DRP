@@ -1,10 +1,33 @@
 // @ts-nocheck
-import React from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  CHECKS,
+  FORMAT_EXAMPLE,
+  FORMAT_LENGTH,
+  MASKS,
+  checkRange,
+  isIndividualPan,
+  type FormatKind,
+  type Msg,
+} from '@/lib/validation/formats';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  /**
+   * Shape and check what is typed as an identifier: PAN, GSTIN, Udyam, mobile, IFSC, PIN code or e-mail.
+   * The text is masked as it is typed (upper-case, only the characters allowed at each position), and a red
+   * message appears as soon as the value cannot be right (or, while it is merely unfinished, when you leave
+   * the box).
+   */
+  format?: FormatKind;
+  /** With `format="pan"`: also flag an individual's PAN (4th letter P), which is personal data we do not store. */
+  firmPanOnly?: boolean;
+  /** A short line under the box saying what to enter. Shown until there is an error. */
+  hint?: string;
 }
 
 const NAV_KEYS = new Set([
@@ -62,11 +85,52 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       onKeyDown,
       onPaste,
       onBeforeInput,
+      onBlur,
+      format,
+      firmPanOnly,
+      hint,
       ...props
     },
     ref
   ) => {
     const numeric = type === 'number';
+    const { i18n } = useTranslation();
+    const lang: 'en' | 'te' = i18n.language?.startsWith('te') ? 'te' : 'en';
+    const uid = useId();
+    const [touched, setTouched] = useState(false);
+    const [blocked, setBlocked] = useState(false);
+    const blockedTimer = useRef<number | undefined>(undefined);
+    useEffect(() => () => window.clearTimeout(blockedTimer.current), []);
+
+    // What is wrong with the value right now, if anything.
+    const current = String(props.value ?? '');
+    let problem: Msg | null = null;
+    if (format) {
+      const masked = MASKS[format](current);
+      const result = CHECKS[format](masked);
+      if (!result.ok && (touched || !result.incomplete)) problem = result.message;
+      if (!problem && format === 'pan' && firmPanOnly && isIndividualPan(masked)) {
+        problem = {
+          en: 'This looks like an individual’s PAN (4th letter P). We do not store personal PAN numbers. Enter the firm’s PAN or leave this blank.',
+          te: 'ఇది వ్యక్తిగత PAN లా ఉంది (4వ అక్షరం P). వ్యక్తిగత PAN నంబర్లను మేము నిల్వ చేయం. సంస్థ PAN ఇవ్వండి లేదా ఖాళీగా వదలండి.',
+        };
+      }
+    } else if (numeric && (props.min != null || props.max != null)) {
+      const result = checkRange(current, {
+        min: props.min != null ? Number(props.min) : undefined,
+        max: props.max != null ? Number(props.max) : undefined,
+      });
+      if (!result.ok) problem = result.message;
+    }
+    const message =
+      error ||
+      (problem ? problem[lang] : '') ||
+      (blocked
+        ? lang === 'te'
+          ? 'ఈ స్థానంలో ఆ అక్షరం అనుమతించబడదు.'
+          : 'That character is not allowed in this position.'
+        : '');
+    const describedBy = message ? `${uid}-err` : hint ? `${uid}-hint` : undefined;
 
     return (
       <div className="w-full">
@@ -77,11 +141,17 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         )}
         <input
           type={type}
-          inputMode={numeric ? inputMode || 'decimal' : inputMode}
+          inputMode={numeric ? inputMode || 'decimal' : format === 'mobile' || format === 'pincode' ? 'numeric' : inputMode}
+          maxLength={format ? FORMAT_LENGTH[format] : props.maxLength}
+          placeholder={props.placeholder ?? (format ? FORMAT_EXAMPLE[format] : undefined)}
+          aria-invalid={message ? true : undefined}
+          aria-describedby={describedBy}
+          autoCapitalize={format === 'email' ? 'none' : format ? 'characters' : undefined}
+          spellCheck={format ? false : undefined}
           step={numeric ? step ?? 'any' : step}
           className={cn(
             'flex h-10 w-full rounded-[10px] border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-            error && 'border-red-600 focus-visible:ring-red-600',
+            message && 'border-red-600 bg-red-50/40 focus-visible:ring-red-600',
             className
           )}
           ref={ref}
@@ -120,13 +190,42 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               const cleaned = sanitizeNumericString(event.target.value);
               if (cleaned !== event.target.value) event.target.value = cleaned;
             }
+            if (format) {
+              const typed = event.target.value;
+              const masked = MASKS[format](typed);
+              if (masked !== typed) {
+                // A typed character that does not fit is dropped; say why for a moment.
+                const strip = (text: string) => text.replace(/[\s-]/g, '').toUpperCase();
+                if (format !== 'email' && strip(masked).length < Math.min(strip(typed).length, FORMAT_LENGTH[format] ?? 99)) {
+                  setBlocked(true);
+                  window.clearTimeout(blockedTimer.current);
+                  blockedTimer.current = window.setTimeout(() => setBlocked(false), 2500);
+                }
+                event.target.value = masked;
+              }
+            }
             onChange?.(event);
+          }}
+          onBlur={(event) => {
+            setTouched(true);
+            onBlur?.(event);
           }}
           {...props}
         />
-        {error && (
-          <p className="mt-1 text-sm font-medium text-red-600">{error}</p>
-        )}
+        {message ? (
+          <p
+            id={`${uid}-err`}
+            role="alert"
+            className="mt-1 flex items-start gap-1.5 text-sm font-medium text-red-600"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>{message}</span>
+          </p>
+        ) : hint ? (
+          <p id={`${uid}-hint`} className="mt-1 text-xs text-muted-foreground">
+            {hint}
+          </p>
+        ) : null}
       </div>
     );
   }

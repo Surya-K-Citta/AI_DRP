@@ -55,7 +55,7 @@ Order is fixed in `client/src/lib/ventureMatch/questions.ts`:
 | 2 | `stage` | no | `greenfield`, `brownfield`, `idea`, `restart`, `notSure` |
 | 3 | `budget` | no | bands `under2L` … `above10Cr`, plus `none`, `notSure` |
 | 4 | `legal` | no | `sole`, `partnership`, `company`, `unregistered`, `otherEntity`, `notSure` |
-| 5 | `owner` | **yes** | Combinable: `female`, `sc`, `st`, `bc`, `pwd`, `transgender`, `exServiceman`. Exclusive (alone): `generalMale`, `notDecided`, `noMajority`, `notSure` |
+| 5 | `owner` | **yes** | Free combos: `female`, `pwd`, `transgender`, `exServiceman`. Pick-one group: `sc`, `st`, `bc`, `generalMale`. Exclusive (alone): `notDecided`, `noMajority`, `notSure` |
 | 6 | `domicile` | no | `ap`, `other`, `planningAp`, `notSure` |
 | 7 | `location` | no | `urban`, `rural`, `apiic`, `home`, `outsideAp`, `notDecided` |
 | 8 | `riceCard` | no | `yes`, `no`, `otherCard`, `notSure` |
@@ -66,11 +66,19 @@ Order is fixed in `client/src/lib/ventureMatch/questions.ts`:
 | 13 | `govtFamily` | no | `yes`, `no`, `notSure` |
 | 14 | `market` | no | `offline`, `ecommerce`, `export`, `both`, `notSellingYet`, `notSure` |
 
+### Header and navigation
+
+The page header is sticky (stays on screen while scrolling, like Create New Latest DPR). The back button (with the page title) is named after the screen the person came from (**Back to Dashboard**, **Back to Projects**, …; `useBackTarget`) and returns there, defaulting to `/dashboard` when the page is opened directly. The question progress bar (“Question x of N”, remaining count, bar) is part of that sticky header. **Previous** and **Next** are round floating buttons. On wide screens (lg and up) they sit at the vertical middle of the screen, an equal distance outside the left and right edges of the question block, and stay put while scrolling; on smaller screens they sit in the bottom-left and bottom-right corners. The “Need help choosing?” pill is also floating and fixed: bottom-right on wide screens, bottom-centre on small screens (hidden while the help chat is open); the question card holds only the question and options. **Previous** steps back one question (or from the results back to the last question) and is disabled on the first question. **Next** moves forward only once the current question is answered (for the owner question, at least one tag); after the last question it opens the results, and it is disabled on the results screen. There is no language toggle on this page.
+
 ### Owner tag rules
 
-- Combinable tags can be multi-selected.
-- Exclusive tags (`OWNER_EXCLUSIVE_TAGS`) clear other tags and cannot mix with them.
-- Selecting an exclusive tag while another exclusive is selected replaces it.
+Rules live in `lib/ventureMatch/ownerSelection.ts` (`toggleOwner`, `sanitizeOwnerTags`) with the lists in `types.ts`.
+
+- **Pick-one group** (`OWNER_PICK_ONE_GROUPS`): SC, ST, BC and General category man. Choosing one replaces any other from this group; tapping the chosen one again clears it.
+- **Free tags** — Woman, Person with disability, Transgender, Ex-serviceman — each toggle on their own and combine with anything except an exclusive tag (so, for example, SC + Woman + PwD, or General category man + Ex-serviceman, are valid).
+- **Exclusive tags** (`OWNER_EXCLUSIVE_TAGS`: not decided, no 51%, not sure) clear every other tag and cannot mix with them. Selecting one while another exclusive is selected replaces it.
+- Help-chat suggestions are cleaned with the same rules before they are applied (client `sanitizeOwnerTags`, and the server help service trims the model’s answer the same way).
+- Scheme matching is unchanged: it asks whether any chosen tag qualifies (for example SC *or* ST for SCLCSS; Woman, Transgender, Ex-serviceman or PwD for the CMEP booster). The ownership hint shows when General category man is chosen without Woman.
 
 ### Global block
 
@@ -170,9 +178,41 @@ If owner includes `generalMale` and not `female`, results show a hint about putt
 
 Per matched scheme:
 
-- Show name + benefit i18n string.
+- Card shows the name, then 2–3 bullet **key facts** and the benefit i18n string (the line that depends on the person’s answers, for example the PMEGP rate for their area). The bullets come from `client/src/lib/ventureMatch/schemeKeyFacts.ts`, one list per scheme code, each bullet tagged **Support** (amount / percentage / what is given), **Who** (who can apply) or **Note** (limits, what it cannot be combined with, whether it is a service with no DPR). Figures come from the scheme briefs and `docs/schemes`, are written as “up to” / “about”, and the results notice says they are indicative. EN and TE are written together; a scheme with no entry falls back to the first lines of its brief intro. When a scheme’s rules change, update `schemeKeyFacts.ts` together with its brief and scheme doc.
 - CMEP booster banner if `boosted`.
-- Button → `onCreateDprForScheme(code)`.
+- One button at the bottom right of the card, under the bullet facts (so the text uses the full card width): **Know more & create** → `onCreateDprForScheme(code)`, which opens Create New Latest DPR on that scheme’s brief (the “know more” page) before the form. Not shown for under-18 applicants or for service / helpdesk programmes (`dprRoute` `cta` / `none`), which show the “not a bank DPR” hint instead.
+
+### Motion
+
+Scheme Finder uses short, eased animations (CSS in `client/src/index.css`, classes `vm-*`): the question card slides in from the right when moving forward and from the left when going back; options rise in one after another, lift on hover, press down on click and show a pop-in check when chosen; the progress bar fills smoothly; the sticky header gains a shadow once the page scrolls; the results page, scheme cards and plan items fade up in sequence; the floating buttons grow on hover and shrink on press. All of it is switched off when the person's system asks for reduced motion (`prefers-reduced-motion`).
+
+### No guarantee or assurance in the copy
+
+Scheme Finder gives guidance only. No text on this page (cards, plan, hints, help chat, results) may promise or assure eligibility, approval, subsidy amount or timelines: no “you qualify”, “you will get”, “guaranteed”, “assured” or equivalents, and no “best” / “strongest” claims. Use “may”, “could”, “usually”, “suggested”. Scheme names that contain “guarantee” (CGTMSE, ECLGS) and descriptions of what a scheme itself offers are fine, because they describe the scheme, not this tool. The results page shows a short notice (`ventureMatch.noGuarantee`) under the match count, and the plan panel repeats it. The help-chat system prompt forbids promising anything. Keep this rule when adding scheme copy.
+
+### Combination guidance (best plan)
+
+On wide screens (lg and up) the results page is two columns: the matched scheme cards (and the “schemes that do not match” list) on the left, and `VentureMatchCombos` on the right, which stays in view and scrolls on its own while you read the cards. On smaller screens it is one column with the cards first and the panel below. On the results screen only the back arrow (**Previous**) is shown, floating at the left edge at the vertical middle of the screen (bottom-left on small screens); it returns to the last question so answers can be changed. `VentureMatchCombos` shows how the matched schemes fit together. The rules and the plan builder live in `client/src/lib/ventureMatch/combos.ts` (`relationBetween`, `analyzeCombinations`), so they can be tested and reviewed without the UI.
+
+Every scheme has a **role**: margin money / back-ended subsidy (PMEGP, PMEGP 2nd loan, AP CMEP), capital subsidy (PMFME, SCLCSS, AP EDP, AP FPP, AP Tech Upgrade, MSE-GIFT, OBMMS, CVY, NHDP, PTUAS, MSE-SPICE), loan (MUDRA, SVANidhi, Vishwakarma), guarantee (CGTMSE, ECLGS), land rebate (AP Parks), cluster (MSE-CDP, SFURTI, APCDP, APICF), everything else = support (training, certification, marketing, innovation).
+
+Relation between two matched schemes:
+
+| Relation | Meaning | Examples |
+|----------|---------|----------|
+| Cannot (`exclusive`) | Same cost subsidised twice, or an eligibility bar | AP EDP × AP Tech Upgrade × AP FPP (**in our scheme docs**: G.O.Ms.No.69, total incentives ≤ 75% of fixed capital investment); PMEGP × any other subsidy; PMEGP × MUDRA (same loan); Vishwakarma × PMEGP / MUDRA / SVANidhi (5-year bar); AP CMEP × PMEGP and AP state subsidies; two cluster schemes for one common facility |
+| Overlap (`overlap`) | Redundant: one is enough | CGTMSE on a MUDRA / SVANidhi / Vishwakarma loan (already guaranteed); MSME Champions with ZED / LEAN / Innovative (it is their single window) |
+| Order (`sequence`) | One must come first | PMEGP → 2nd loan; MUDRA → 2nd loan; SVANidhi → MUDRA; ESDP training → PMEGP / AP CMEP |
+| Check (`conditional`) | Allowed only with conditions | Capital subsidy × capital subsidy or margin money (convergence clause, never the same machinery cost); MUDRA label with a subsidy; AP Parks with a non-AP subsidy; ECLGS beside another loan (different facility) |
+| Together (`stack`) | Works side by side | Guarantee on a subsidised bank loan; AP Parks land rebate with AP EDP / FPP / Tech Upgrade (still ≤ 75% FCI); SCLCSS with National SC/ST Hub; cluster membership with an individual scheme; any support scheme with anything |
+
+**Two tabs in the plan block.** The block has **Suggested** (the plan described here, unchanged) and **Compare**. In Compare the person first picks *their* scheme from the matched schemes, then ticks up to three others to set beside it; a comparison table appears (`VentureMatchCompare.tsx`). Columns are the chosen schemes (theirs first, marked “Your scheme”); rows are: what kind of help, run by (central / state), what you may get, the line for *their* answers, who can apply, needs a bank loan?, limits to know, fit with their answers (checks passed of total, and how many are still open), how it combines with their scheme (together / possible with checks / cannot / overlaps / one after the other, with the reason), how to apply, documents to keep ready, and a **Know more & create** button per scheme (hidden for under-18 applicants; “No DPR to prepare” for service-only schemes). The table never ranks schemes; the person decides. Facts come from `schemeKeyFacts.ts` and the scheme briefs; the “together” row comes from `relationBetween` in `combos.ts`; “fit” comes from `SchemeMatch.fit`, filled in by `evaluate`. The block keeps its place (right column beside the cards on wide screens, below the cards on small ones) whichever tab is open; the table scrolls sideways inside the block with the row labels pinned, and a hint says so.
+
+**Expanded view.** An **Expand** button beside the tabs enlarges the plan block into a large window over the page (Close, Esc, or a click outside shrinks it again), for both tabs. Suggested lays its sections out in two columns; Compare uses wider columns so four schemes fit without sideways scrolling on a desktop. It is the same block, only enlarged, so a comparison in progress is kept when you expand or shrink it. While it is open the page stops scrolling behind it, and the results page drops its sticky positioning for the block (a sticky parent would trap the window beneath the page header).
+
+Each rule is tagged `guideline` (written in `docs/schemes`) or `practice` (standard Indian MSME practice, not in our scheme documents). `practice` rules show a “Confirm with DIC / bank” tag on screen. **Ask the scheme owners to review the `practice` rules** before treating them as final; subsidy windows and convergence clauses change.
+
+Best plan: schemes are ranked by typical benefit (`WEIGHT`, +5 for the AP CMEP booster; food units rank AP FPP above AP EDP). Going down the list, a scheme joins the plan unless it is `exclusive` or `overlap` with one already chosen; it is then listed under “Matched, but not in the plan” with the scheme it loses to and why. `conditional` pairs stay in the plan with a “Check before applying” note. The plan is shown as: lead schemes (margin / capital / loan), add-ons (guarantee, land rebate, support), cluster route, order of steps, then all can / cannot pairs. Cards of lead schemes get an “In your best plan” badge. The ranking is by typical value, not a computed subsidy amount, so it is guidance, not a guarantee.
 
 Footer:
 
@@ -186,6 +226,7 @@ Footer:
 | File | Role |
 |------|------|
 | `client/src/pages/VentureMatch.tsx` | Wizard, storage, navigation to DPR |
+| `client/src/lib/ventureMatch/combos.ts` | Scheme combination rules + best-plan builder |
 | `client/src/lib/ventureMatch/questions.ts` | Question order + storage keys |
 | `client/src/lib/ventureMatch/schemes.ts` | 16 scheme rules + CMEP booster |
 | `client/src/lib/ventureMatch/evaluate.ts` | Match / exclude / remaining |

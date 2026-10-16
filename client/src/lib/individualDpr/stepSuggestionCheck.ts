@@ -167,7 +167,7 @@ export function acceptByKind(kind: SuggestionKind, raw: string, facts: FactsCard
 function sumNumbers(value: unknown): number {
   if (typeof value === 'number') return Number.isFinite(value) ? Math.abs(value) : 0;
   if (!value || typeof value !== 'object') return 0;
-  return Object.values(value as Record<string, unknown>).reduce((sum, item) => sum + sumNumbers(item), 0);
+  return Object.values(value as Record<string, unknown>).reduce<number>((sum, item) => sum + sumNumbers(item), 0);
 }
 
 /** Line-item machinery costs follow the same ceiling as the other rupee fields. */

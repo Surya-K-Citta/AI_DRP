@@ -14,6 +14,19 @@ export default defineConfig(({ mode }) => ({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // React and i18n stay cached between releases; chart and PDF libraries travel with the lazy pages that use them.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (/i18next/.test(id)) return 'i18n';
+          if (/react-dom|react-router|\/react\/|scheduler/.test(id)) return 'react';
+          return undefined;
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {

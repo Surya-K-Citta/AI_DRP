@@ -8,7 +8,7 @@ The downloaded PDF has to be the document on screen. A style that lives only in 
 
 ## What you get
 
-From a DPR, choose **Style this report**. The live document stays in the middle.
+From a DPR, choose **Edit this DPR**; the style controls are in the Style tab of the editing page. The live document stays in the middle.
 
 The report opens in the scheme’s look. PMEGP and AP CMEP start from their presets. Every other scheme starts from the Government preset. If a super admin has saved a scheme default, the next DPR for that scheme starts from that look instead.
 
@@ -20,7 +20,9 @@ The form you fill stays in the scheme’s step order. Only the report and the PD
 
 ## The page
 
-On a wide screen there are three columns: sections, the live DPR, and the style controls. On a narrow screen, Sections and Style are buttons. They open over the document and close when you tap the page.
+On a wide screen the live DPR sits on the left. The right pane has three tabs along its top, **Form**, **Sections**, and **Style**, and shows the fill form, the section list, or the style controls. Undo and redo are arrow icons at the top. On a narrow screen, Sections and Style are buttons. They open over the document and close when you tap the page.
+
+The **Preview** button opens the final document full screen and read-only, with only the answered content and the chosen style, the way it will print. Close it to go back to editing.
 
 Zoom changes the document only. The page edge is the sheet. A line marks each page break.
 

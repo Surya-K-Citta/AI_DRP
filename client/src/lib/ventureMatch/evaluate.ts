@@ -84,6 +84,11 @@ export function evaluate(answers: VentureMatchAnswers): EvaluateResult {
         kind: scheme.kind,
         benefit: scheme.benefit(answers),
         dprRoute: scheme.dprRoute || 'full',
+        fit: {
+          passed: criteria.filter((c) => c.status === 'pass').length,
+          open: criteria.filter((c) => c.status === 'unknown').length,
+          total: criteria.length,
+        },
         ...(scheme.code === 'AP_CMEP' ? { boosted: cmepBoosted(answers) } : {}),
       });
     }

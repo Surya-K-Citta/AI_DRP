@@ -25,10 +25,10 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const baseStyles =
-  'inline-flex items-center justify-center rounded-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
+  'inline-flex items-center justify-center rounded-[10px] font-medium transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-200 ease-out active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
 
 const portalBase =
-  'inline-flex items-center justify-center gap-2 rounded-lg font-semibold text-center transition-colors duration-150 disabled:pointer-events-none disabled:opacity-60 select-none';
+  'inline-flex items-center justify-center gap-2 rounded-lg font-semibold text-center transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-200 ease-out active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60 select-none';
 
 const variants: Record<ButtonVariant, string> = {
   primary: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm',

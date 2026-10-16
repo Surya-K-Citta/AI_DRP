@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>MSME AI DPR — Project Handover Documentation</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html { font-size: 10.5pt; }
+  body {
+    margin: 0;
+    color: #1a2332;
+    font-family: "Calibri", "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.45;
+  }
+  h1, h2, h3, h4 { font-family: "Calibri", "Segoe UI", Helvetica, Arial, sans-serif; color: #0f2744; page-break-after: avoid; }
+  h1 { font-size: 18pt; margin: 0 0 6px; letter-spacing: -0.2px; }
+  h2 { font-size: 14pt; margin: 22px 0 8px; border-bottom: 2px solid #1e4d8c; padding-bottom: 3px; }
+  h3 { font-size: 12pt; margin: 16px 0 6px; color: #1e4d8c; }
+  h4 { font-size: 11pt; margin: 12px 0 4px; }
+  p { margin: 0 0 8px; }
+  ul, ol { margin: 0 0 8px; padding-left: 18px; }
+  li { margin: 0 0 3px; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; page-break-inside: avoid; font-size: 9.5pt; }
+  th, td { border: 1px solid #c5d0de; padding: 4px 6px; vertical-align: top; text-align: left; }
+  th { background: #e8f0fa; color: #0f2744; font-weight: 700; }
+  code, .mono { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9pt; }
+  .cover { page-break-after: always; min-height: 250mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover-top { border-top: 8px solid #1e4d8c; padding-top: 28px; }
+  .kicker { color: #1e4d8c; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; font-size: 10pt; margin-bottom: 14px; }
+  .subtitle { font-size: 13pt; color: #334155; margin-top: 8px; }
+  .meta { margin-top: 28px; }
+  .meta table { width: 100%; }
+  .note { background: #f4f7fb; border-left: 4px solid #1e4d8c; padding: 8px 10px; margin: 8px 0 12px; }
+  .warn { background: #fff7ed; border-left: 4px solid #c2410c; padding: 8px 10px; margin: 8px 0 12px; }
+  .part { page-break-before: always; }
+  .part:first-of-type { page-break-before: auto; }
+  .toc a { color: inherit; text-decoration: none; }
+  .toc li { margin-bottom: 4px; }
+  .small { font-size: 9pt; color: #475569; }
+  .footer-note { margin-top: 24px; font-size: 9pt; color: #64748b; }
+  h2.part-title { font-size: 16pt; border-bottom: none; background: #0f2744; color: #fff; padding: 8px 10px; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="cover-top">
+    <div class="kicker">Project handover</div>
+    <h1>MSME AI DPR Generation Tool</h1>
+    <p class="subtitle">Project, architecture, roles, deployment, and testing documentation</p>
+    <div class="meta">
+      <table>
+        <tr><th>Product</th><td>AI-enabled Detailed Project Report (DPR) platform for MSME entrepreneurs and consultants, with Andhra Pradesh scheme matching</td></tr>
+        <tr><th>Repository</th><td>AI_DRP</td></tr>
+        <tr><th>Branch</th><td><span class="mono">feature/live_cust</span></td></tr>
+        <tr><th>Commit documented</th><td><span class="mono">b9be78a</span> (8 October 2026). Working tree matched this commit when the document was written.</td></tr>
+        <tr><th>Document date</th><td>8 October 2026</td></tr>
+        <tr><th>Audience</th><td>Incoming engineering, operations, and product owners</td></tr>
+        <tr><th>Source of facts</th><td>Application code, tests, and docs in this repository. Claims that exist only in the root README and are not implemented are called out as such.</td></tr>
+      </table>
+    </div>
+  </div>
+  <p class="footer-note">This document describes what the code does today. It is not a legal opinion, a DPDP compliance certificate, or an infrastructure runbook for a host that has not been chosen yet.</p>
+</section>
+
+<h2>How to read this document</h2>
+<p>Each section follows the handover outline. Where a topic is only partly built, the text says what is in the code and what is still open. Hosting and infrastructure ownership are recorded only where the repository already names a target. A full infrastructure design is deferred until the receiving organisation states its own requirements.</p>
+<div class="note">
+  <strong>Living product docs already in the repo</strong> (keep these updated when behaviour changes): <span class="mono">docs/dpdp.md</span>, <span class="mono">docs/create-new-dpr-business-logic.md</span>, <span class="mono">docs/venture-match-business-logic.md</span>, <span class="mono">docs/schemes/*</span>, <span class="mono">llm.md</span>, <span class="mono">styleeditor.md</span>.
+</div>
+
+<h2>Contents</h2>
+<ol class="toc">
+  <li>Project documentation</li>
+  <li>Architecture documentation</li>
+  <li>User roles and permissions</li>
+  <li>Deployment and handover</li>
+  <li>Testing and QA</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2 class="part-title part">1. Project documentation</h2>
+
+<h3>1.1 Project overview</h3>
+<p>The product is a bilingual (English and Telugu) web application that helps a consultant or entrepreneur produce a bank-ready Detailed Project Report. Users can match government and Andhra Pradesh MSME schemes, fill a scheme-specific form with optional AI assistance, preview a styled document, and download PDF, DOCX, or XLS.</p>
+<p>The workspace is a two-package repository:</p>
+<ul>
+  <li><span class="mono">client/</span> — React 18 + TypeScript single-page app (Vite). Package name <span class="mono">msme-dpr-client</span>, version 1.0.0.</li>
+  <li><span class="mono">server/</span> — Node.js + Express + TypeScript API. Package name <span class="mono">msme-dpr-server</span>, version 1.0.0. MongoDB via Mongoose.</li>
+</ul>
+<p>Primary user journeys on this branch:</p>
+<ul>
+  <li><strong>Scheme Finder</strong> (<span class="mono">/venture-match</span>) ranks schemes with deterministic client-side rules, then hands the chosen scheme into a DPR.</li>
+  <li><strong>Create New Latest DPR</strong> (<span class="mono">/individual-dpr/create</span>) builds a single-unit report. Each scheme has its own step list. A blank scheme is a vanilla bank term-loan pack of 18 steps.</li>
+  <li><strong>Cluster DPR</strong> (<span class="mono">/cluster-dpr/create</span>) builds a multi-unit / SPV cluster report with generated narrative sections.</li>
+  <li><strong>AI Guided Builder</strong> (<span class="mono">/dpr/builder</span>) and <strong>Chat</strong> (<span class="mono">/chat</span>) are separate assisted paths. Scheme Finder can also hand off into the guided builder.</li>
+  <li><strong>Style and preview</strong> edits page size, type, colours, section order, and pictures for one DPR. The downloaded PDF is the document on screen.</li>
+  <li><strong>Privacy account</strong> (<span class="mono">/account/privacy</span>) covers notice consent, AI on/off, data export, nominee, complaint, and account erasure.</li>
+  <li><strong>Admin console</strong> (<span class="mono">/admin</span>, <span class="mono">/admin/documents</span>) covers analytics, users, DPR review, policies, audit, and RAG document upload.</li>
+</ul>
+
+<h3>1.2 Project objectives and scope</h3>
+<p><strong>In scope on this branch</strong></p>
+<ul>
+  <li>Account registration and login for adults (18+), with a privacy notice that must be scrolled and accepted.</li>
+  <li>Scheme eligibility matching for the catalog in <span class="mono">client/src/lib/ventureMatch/schemes.ts</span> (about 38 scheme codes, including PMEGP, MUDRA, CGTMSE, AP CMEP, PMEGP 2nd loan, short packs such as ZED and LEAN, and cluster routes such as MSE-CDP and SFURTI).</li>
+  <li>Draft, generate, preview, style, and download individual and cluster DPRs.</li>
+  <li>Optional AI fill, chat, translation to Telugu, quality scoring, and image generation, all gated by AI consent. Identity numbers are stripped before model calls.</li>
+  <li>English and Telugu interface copy (<span class="mono">client/src/i18n/locales/en.json</span> and <span class="mono">te.json</span>).</li>
+  <li>Admin review of users, DPRs, policies, and an append-only audit log.</li>
+  <li>In-app retention warnings and a purge job for idle DPRs and old audit rows.</li>
+</ul>
+<p><strong>Out of scope or not finished</strong></p>
+<ul>
+  <li>A native mobile app, blockchain verification, and an API marketplace (listed as future ideas in the root README only).</li>
+  <li>Live, contracted integration with the AP MSME ONE portal. The client calls a configurable URL and falls back to mock scheme data when that call fails. Submission throws if the remote call fails.</li>
+  <li>Real email delivery. Outbound mail is a server log line. SMS is real only when Twilio environment variables are set.</li>
+  <li>DPDP Stage 4 (named grievance officer, real inbox, vendor contracts, breach playbook). Stages 1–3 are in code. <span class="mono">docs/dpdp.md</span> states this is not a compliance certificate.</li>
+  <li>Hosting design for the receiving organisation. See Part 4.</li>
+</ul>
+
+<h3>1.3 Features and modules</h3>
+<table>
+  <tr><th>Module</th><th>Where it lives</th><th>What it does</th></tr>
+  <tr><td>Landing, login, register</td><td><span class="mono">pages/Landing.tsx</span>, <span class="mono">Login.tsx</span>, <span class="mono">Register.tsx</span></td><td>Public entry. Register collects name, email, password (min 6), 10-digit phone, date of birth, and privacy consent. Under 18 is refused.</td></tr>
+  <tr><td>Dashboard and project list</td><td><span class="mono">Dashboard.tsx</span>, <span class="mono">Projects.tsx</span>, <span class="mono">AllDPRs.tsx</span></td><td>Own projects and DPRs. Dashboard shows the latest five reports. Govt-official role does not see create actions.</td></tr>
+  <tr><td>Scheme Finder</td><td><span class="mono">pages/VentureMatch.tsx</span>, <span class="mono">lib/ventureMatch/</span></td><td>14 base questions plus conditional ones. Matching is on the client. Optional help chat. Results route to individual DPR, cluster DPR, or a CTA with no DPR.</td></tr>
+  <tr><td>Individual DPR</td><td><span class="mono">IndividualDPRCreation.tsx</span>, <span class="mono">components/individual-dpr/</span>, <span class="mono">lib/individualDpr/</span></td><td>Scheme step catalogs, live document, inline edit, style editor, scheme briefs, uploads. Persists through the cluster draft API with <span class="mono">isIndividualDPR: true</span>.</td></tr>
+  <tr><td>Cluster DPR</td><td><span class="mono">ClusterDPRCreation.tsx</span>, <span class="mono">components/cluster-dpr/</span></td><td>Cluster narrative, financial statements, section regenerate, images, annexures.</td></tr>
+  <tr><td>Guided builder and chat</td><td><span class="mono">AIGuidedDPRBuilder.tsx</span>, <span class="mono">Chat.tsx</span></td><td>Step analysis and chat. RAG can use uploaded admin documents.</td></tr>
+  <tr><td>Preview and export</td><td><span class="mono">DPRPreview.tsx</span>, server PDF/DOCX/XLS services</td><td>HTML capture PDF (Puppeteer) and generated documents. Telugu translation route exists.</td></tr>
+  <tr><td>Admin</td><td><span class="mono">AdminDashboard.tsx</span>, <span class="mono">AdminDocuments.tsx</span></td><td>Analytics, users, access-control preview, DPR approve/reject, policies, audit CSV, retention run, document upload.</td></tr>
+  <tr><td>Privacy</td><td><span class="mono">Privacy.tsx</span>, <span class="mono">AccountPrivacy.tsx</span></td><td>Public notice and signed-in rights: export, consent, nominee, complaint, activity, notifications, delete account.</td></tr>
+  <tr><td>Theme and dev mode</td><td><span class="mono">themeStore</span>, <span class="mono">DevModeToggle</span></td><td>Theme applies globally. Dev mode is super-admin only on create-DPR pages and skips required-field checks. It resets when the page is left.</td></tr>
+</table>
+
+<h3>1.4 Technology stack</h3>
+<table>
+  <tr><th>Layer</th><th>In this repository</th></tr>
+  <tr><td>UI</td><td>React 18, TypeScript 5.3, Vite 5, Tailwind CSS 3, Radix UI (accordion, dialog, dropdown, select, tabs), Zustand, React Router 6, i18next, Recharts, Axios, react-hot-toast, react-markdown, Lucide icons</td></tr>
+  <tr><td>Client document tools</td><td>html2canvas, jsPDF, pdfjs-dist</td></tr>
+  <tr><td>API</td><td>Express 4, Helmet, CORS, compression, express-rate-limit, express-validator, Morgan, Multer, JWT, bcryptjs</td></tr>
+  <tr><td>Data</td><td>MongoDB (Mongoose 8). Connection pool 1–10, 60s connect timeout, 5 retries. No Redis client is installed.</td></tr>
+  <tr><td>AI</td><td>OpenAI SDK 4 (chat, Assistants / vector stores, Whisper, DALL·E 3). Fill-this-step uses <span class="mono">gpt-4o-mini</span> (<span class="mono">llm.md</span>). Telugu speech uses Hugging Face <span class="mono">vasista22/whisper-telugu-base</span> when configured, otherwise Whisper.</td></tr>
+  <tr><td>Documents</td><td>Puppeteer (HTML PDF), pdfkit, pdfmake, pdf-lib fontkit, docx. Local fonts under <span class="mono">server/fonts/</span>.</td></tr>
+  <tr><td>Other services in dependencies</td><td>Cloudinary (non-KYC media). Twilio is called with <span class="mono">fetch</span> when keys exist; the Twilio SDK is not a dependency. <span class="mono">@google/generative-ai</span> and <span class="mono">@xenova/transformers</span> are dependencies; image generation in <span class="mono">GeminiService</span> actually calls OpenAI <span class="mono">dall-e-3</span>.</td></tr>
+  <tr><td>Tests</td><td>Node test runner on client and server. Playwright for one browser flow. No Docker Compose file is in the repo.</td></tr>
+</table>
+<p>The root README also names Redis, a CDN, and Docker Compose. Those are not present in <span class="mono">package.json</span> or the repository layout. Do not plan operations around them until they are added.</p>
+
+<h3>1.5 Frontend and backend overview</h3>
+<p><strong>Frontend.</strong> <span class="mono">client/src/main.tsx</span> mounts <span class="mono">App.tsx</span>. Routes are listed in Part 2. State is Zustand (auth, individual DPR, theme, dev mode) plus <span class="mono">localStorage</span> for the auth persist key, Scheme Finder progress (<span class="mono">venture-match-progress</span>), and Scheme Finder handoff (<span class="mono">venture-match-handoff</span>). API access is <span class="mono">client/src/lib/api.ts</span>. Base URL is <span class="mono">VITE_API_URL</span> or <span class="mono">http://localhost:5000/api</span>. A short-lived in-memory cache (2–10 minutes) covers projects, DPRs, schemes, and profile. <span class="mono">VITE_USE_MOCK_DATA=true</span> switches the client to <span class="mono">MockDataService</span>. The consent gate loads the live profile and does not use that mock path.</p>
+<p><strong>Backend.</strong> <span class="mono">server/src/index.ts</span> is the long-running process used in development and the process that runs the retention timer. It requires <span class="mono">OPENAI_API_KEY</span> at boot. In production it also requires a strong <span class="mono">JWT_SECRET</span> and <span class="mono">KYC_ENCRYPTION_KEY</span>. <span class="mono">server/api/index.ts</span> is a second Express entry (serverless-style). It mounts the same routes but uses a default CORS origin of <span class="mono">*</span>, a 10&nbsp;MB JSON limit instead of 50&nbsp;MB, and it does not run the production secret checks, scheme seed, RBAC seed, assistant pre-warm, or retention interval. Prefer <span class="mono">src/index.ts</span> unless a host is explicitly wired to the serverless file.</p>
+
+<h3>1.6 Business logic and key workflows</h3>
+<h4>Scheme Finder</h4>
+<p>Questions and option ids are fixed in <span class="mono">lib/ventureMatch/questions.ts</span>. <span class="mono">evaluate()</span> returns matches and exclusions. Each match has a <span class="mono">dprRoute</span>: <span class="mono">full</span>, <span class="mono">short</span>, <span class="mono">cluster</span>, <span class="mono">cta</span>, or <span class="mono">none</span>. Full and short routes open <span class="mono">/individual-dpr/create?new=true&amp;scheme=CODE</span>. Cluster opens <span class="mono">/cluster-dpr/create</span>. CTA matches do not create a DPR. The individual form does not copy Scheme Finder answers into fields. It stores them for overlay rules (uploads, MUDRA bands, PMEGP education, and similar). Full rules: <span class="mono">docs/venture-match-business-logic.md</span>.</p>
+<h4>Individual DPR</h4>
+<p>Step counts come from <span class="mono">schemeStepCatalog.ts</span>. Vanilla is 18 steps. PMEGP is 14. MUDRA is 12. Short packs are shorter. Generate is allowed on the last visible step and stores scheme answers. Preview and PDF use one section per catalog step (question and answer), not the cluster chapter set. Quality scoring reads those stored answers. A super admin can save a scheme’s style as the default for the next DPR. Existing DPRs keep their own style. Full rules: <span class="mono">docs/create-new-dpr-business-logic.md</span> and <span class="mono">styleeditor.md</span>.</p>
+<h4>Fill this step (AI)</h4>
+<p>Documented in <span class="mono">llm.md</span>. Empty questions on the current step are batched: one model call for short and structured fields, and a second call only if the step has long write-ups. Earlier steps are reduced to a facts card (unit, district, location, products, rupee amounts in ₹ lakhs). The model must not invent a project cost. Each value is checked in code (numbers, dates 1990–2100, list shape, cost ceiling of five times amounts already on the card, long answers of at least 40 words). One failed field is retried once. Cluster “Generate suggestions” is a separate path: one call for the whole cluster step, with previous cluster steps included. The OpenAI Batch API is not used, because the user is waiting.</p>
+<h4>Privacy and retention</h4>
+<p>Notice version is <span class="mono">2026-09-4</span>. Account consent is required. AI assist and analytics are optional flags. Idle DPRs (draft or submitted) are warned 15 days before delete and removed 12 months after the DPR’s last edit. The user account is not deleted by that job. Audit rows are removed 24 months after they were written. Account erasure is a separate, explicit action and does not wipe audit rows.</p>
+
+<h3>1.7 Third-party integrations</h3>
+<table>
+  <tr><th>Integration</th><th>Status in code</th></tr>
+  <tr><td>OpenAI</td><td>Required. Chat, DPR text, RAG / vector store, Whisper, DALL·E 3 images. All chat completions go through <span class="mono">server/src/lib/openaiClient.ts</span>, which runs <span class="mono">sanitizeForAi</span>.</td></tr>
+  <tr><td>Hugging Face Inference</td><td>Optional Telugu transcription. Needs <span class="mono">HUGGINGFACE_API_TOKEN</span>.</td></tr>
+  <tr><td>Cloudinary</td><td>Optional. Used for some media destroy/upload paths. KYC files and cluster unit photos are not sent to Cloudinary.</td></tr>
+  <tr><td>AP MSME ONE HTTP API</td><td>Optional. <span class="mono">AP_MSME_API_URL</span> (default <span class="mono">https://apmsme.ap.gov.in/api</span>) and <span class="mono">AP_MSME_API_KEY</span>. Scheme list falls back to in-code mock data on error. Submit and status throw on error. Scheme Finder itself does not call this API; it uses the in-repo catalog.</td></tr>
+  <tr><td>Twilio SMS</td><td>Optional. HTTP API, no SDK. Used by the retention warning.</td></tr>
+  <tr><td>MongoDB Atlas or any MongoDB 6+ URI</td><td>Required. <span class="mono">MONGODB_URI</span>.</td></tr>
+</table>
+
+<h3>1.8 Notification integrations</h3>
+<p><span class="mono">NotifyService</span> (<span class="mono">server/src/services/notify.service.ts</span>) supports one kind today: <span class="mono">retention_warning</span>. It always writes an in-app <span class="mono">UserNotification</span>. The bell reads <span class="mono">GET /api/privacy/notifications</span> and mark-read <span class="mono">POST /api/privacy/notifications/:id/read</span> (<span class="mono">id</span> may be <span class="mono">all</span>).</p>
+<ul>
+  <li><strong>SMS:</strong> sent only when <span class="mono">TWILIO_ACCOUNT_SID</span>, <span class="mono">TWILIO_AUTH_TOKEN</span>, and <span class="mono">TWILIO_FROM</span> are all set and the user has a phone. Otherwise the server records a mock send. There is no Twilio SDK.</li>
+  <li><strong>Email:</strong> always mocked. The code comment marks SMTP as Stage 4. Privacy complaints are stored and a server log line is written. They are not emailed. Grievance address in the notice is <span class="mono">privacy.grievance@msmeone.gov.in</span> and is marked mock until Stage 4.</li>
+</ul>
+<p>There is no push-notification provider, no WhatsApp integration, and no user-configurable notification preferences beyond the phone and email already on the account.</p>
+
+<h3>1.9 Analytics and tracking</h3>
+<p>There is no third-party product analytics SDK (no Google Analytics, Mixpanel, or similar) in the client dependencies.</p>
+<p>Product analytics that do exist:</p>
+<ul>
+  <li><strong>DPR quality record</strong> (<span class="mono">DPRAnalytics</span> collection, <span class="mono">ml.service.ts</span>): quality, completeness, bankability, satisfaction, funding outcome, sector benchmark comparison. Admin <span class="mono">GET /api/admin/analytics</span> aggregates these.</li>
+  <li><strong>RAG metrics</strong> (<span class="mono">RAGMetrics</span> model) for document-assisted answers.</li>
+  <li><strong>Audit events</strong> for security-relevant actions (login, consent, DPR create/change/download/delete, KYC, export, admin view). These are an audit trail, not a marketing tracker. Rows do not store Aadhaar or DPR body text.</li>
+  <li><strong>Client navigation memory</strong> (<span class="mono">lib/navHistory</span>) so Back is named after the previous screen. It is local to the browser.</li>
+  <li><strong>Consent flag <span class="mono">privacy.analytics</span></strong> is stored on the user. Unlike AI assist, it is not wired as a hard server gate on the analytics routes. Treat “analytics off” as stored preference until that gate is added.</li>
+</ul>
+<p>AI token use for fill-this-step is written to the server process log as <span class="mono">llm.step</span> (step, short or long, field count, input and output tokens). Those lines are operator logs. They are not shown in the UI.</p>
+
+<h3>1.10 Known issues and limitations</h3>
+<ol>
+  <li><strong>Registration accepts a role from the client.</strong> <span class="mono">POST /api/auth/register</span> stores <span class="mono">role</span> when the body sends one, otherwise <span class="mono">entrepreneur</span>. The User enum allows <span class="mono">admin</span> and <span class="mono">officer</span>. The register screen sends the consultant mapping, but the API does not force that. A direct API call can request a privileged role. This should be fixed before a public production launch.</li>
+  <li><strong>Govt-official create restriction is a UI gate.</strong> <span class="mono">canCreateDpr</span> hides create actions for <span class="mono">officer</span>. Project and DPR routes only require a valid JWT. An officer token can still call create and generate.</li>
+  <li><strong>Copy still says enforcement is UI-only.</strong> English strings under <span class="mono">rbac</span> say “Enforcement is UI-only for now” and “Role updated in the UI”. Admin API routes do enforce the <span class="mono">admin</span> role. The strings overstate how open the API is, and understate the admin checks that already exist.</li>
+  <li><strong>Development accounts are seeded on boot</strong> if missing (see Part 4). They must not remain in a shared or production database.</li>
+  <li><strong>Two server entries behave differently</strong> (<span class="mono">src/index.ts</span> vs <span class="mono">api/index.ts</span>). The serverless entry skips production secret checks and the retention job.</li>
+  <li><strong>Email is not delivered.</strong> Complaints and retention email are log-only.</li>
+  <li><strong>AP MSME portal is not a reliable live integration.</strong> Failures return mock schemes or an error. Scheme rules used by Scheme Finder are the in-repo catalog, which can drift from a future portal API.</li>
+  <li><strong>README drift.</strong> Redis, Docker Compose, CDN, and “GDPR compliance” are not implemented as stated. Privacy work follows the DPDP plan in <span class="mono">docs/dpdp.md</span>, and Stage 4 is still organisational.</li>
+  <li><strong><span class="mono">/uploads</span> is intentionally 404.</strong> Files are served only through authenticated file routes. Anything that still expects a public upload URL will fail.</li>
+  <li><strong>Large request bodies.</strong> JSON limit is 50&nbsp;MB on the main server so HTML+CSS can be posted for PDF capture. That is a denial-of-service consideration if the process is exposed without a gateway limit.</li>
+  <li><strong>Dev mode</strong> skips required fields for super admins. It is off by default and not persisted, but it must stay unavailable to other roles (it already checks <span class="mono">isSuperAdmin</span>).</li>
+</ol>
+
+<h3>1.11 Pending development and future enhancements</h3>
+<ul>
+  <li>Lock registration to <span class="mono">entrepreneur</span> unless an admin assigns another role. Enforce officer read/review rules on the API, not only in the UI.</li>
+  <li>Align role labels: UI uses Super Admin / Consultant / Govt Official; database enum is <span class="mono">admin</span> / <span class="mono">entrepreneur</span> / <span class="mono">officer</span>.</li>
+  <li>Real SMTP, a monitored grievance inbox, and Twilio (or an agreed SMS vendor) with keys outside the repo.</li>
+  <li>DPDP Stage 4: legal name on paper, vendor contracts, breach playbook. Do not claim compliance before that.</li>
+  <li>Decide whether <span class="mono">privacy.analytics</span> must block quality-score writes.</li>
+  <li>Replace or confirm the AP MSME HTTP integration against a real portal contract. Until then, treat mock fallback as development behaviour.</li>
+  <li>Remove boot-time RBAC seed from any shared environment.</li>
+  <li>Choose one server entrypoint and apply the same production guards to it.</li>
+  <li>README items that are not scheduled in code: mobile apps, deeper ML models, blockchain, API marketplace. They are ideas only.</li>
+  <li>Background work beyond the in-process retention timer (a real queue) is not built. Add one only if PDF generation or purge volume requires it.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 class="part-title part">2. Architecture documentation</h2>
+
+<h3>2.1 Overall system architecture</h3>
+<p>Browser SPA → HTTPS JSON API → MongoDB. The API also calls OpenAI, and optionally Hugging Face, Cloudinary, Twilio, and the AP MSME HTTP API. PDF generation runs inside the API process (Puppeteer/Chrome). There is no separate worker service and no message broker.</p>
+<p>Static frontend hosting in this repo is described by <span class="mono">vercel.json</span> (build <span class="mono">client</span>, SPA rewrite to <span class="mono">index.html</span>). The API is a separate Node process. Content-Security-Policy in the API allows framing from localhost and from <span class="mono">https://ai-dpr.up.railway.app</span>, and frame sources include <span class="mono">https://dpr-server.up.railway.app</span>. Those hostnames are the only production URLs named in code. They are not an infrastructure specification.</p>
+
+<h3>2.2 Frontend architecture</h3>
+<ul>
+  <li><strong>Routing:</strong> React Router in <span class="mono">App.tsx</span>. Unknown paths redirect to <span class="mono">/</span>.</li>
+  <li><strong>Auth gate:</strong> <span class="mono">ProtectedRoute</span> checks a token in Zustand or <span class="mono">localStorage</span> (<span class="mono">token</span> and persisted <span class="mono">auth-storage</span>). Missing token goes to <span class="mono">/login</span>. <span class="mono">requiredRole</span> is compared with <span class="mono">toAppRole()</span>. A mismatch goes to <span class="mono">/dashboard</span>. Children sit inside <span class="mono">ConsentGate</span>, which blocks until the current privacy notice is accepted.</li>
+  <li><strong>State:</strong> Zustand stores. Server remains the source of truth for drafts after save.</li>
+  <li><strong>i18n:</strong> English and Telugu. Scheme Finder has no language toggle on its own page; the rest of the app follows the UI language.</li>
+  <li><strong>UI kit:</strong> Tailwind plus a small set of Radix primitives and shared layout (navbar, theme, accessibility bar, notification bell).</li>
+</ul>
+<table>
+  <tr><th>Path</th><th>Access</th></tr>
+  <tr><td><span class="mono">/</span>, <span class="mono">/login</span>, <span class="mono">/register</span>, <span class="mono">/privacy</span></td><td>Public</td></tr>
+  <tr><td><span class="mono">/dashboard</span>, <span class="mono">/projects</span>, <span class="mono">/projects/create</span>, <span class="mono">/projects/:id</span></td><td>Signed in</td></tr>
+  <tr><td><span class="mono">/dpr/:projectId</span>, <span class="mono">/dpr/builder</span>, <span class="mono">/dpr/builder/:projectId</span>, <span class="mono">/dpr/view/:dprId</span>, <span class="mono">/dprs</span></td><td>Signed in</td></tr>
+  <tr><td><span class="mono">/individual-dpr/create</span>, <span class="mono">/cluster-dpr/create</span>, <span class="mono">/venture-match</span>, <span class="mono">/chat</span></td><td>Signed in</td></tr>
+  <tr><td><span class="mono">/profile</span>, <span class="mono">/account/privacy</span></td><td>Signed in</td></tr>
+  <tr><td><span class="mono">/admin</span>, <span class="mono">/admin/documents</span></td><td>UI role Super Admin (backend <span class="mono">admin</span>)</td></tr>
+</table>
+<p><span class="mono">DPRAnalytics.tsx</span> exists under pages but is not registered in <span class="mono">App.tsx</span>. Admin analytics are on the admin dashboard instead.</p>
+
+<h3>2.3 Backend architecture</h3>
+<p>Express application, routes mounted at <span class="mono">/api</span> from <span class="mono">server/src/routes/index.ts</span>. Layers:</p>
+<ul>
+  <li><strong>Routes</strong> — auth, projects, dpr, schemes, feedback, admin, ai, apmsme, documents, privacy, plus <span class="mono">GET /api/health</span>.</li>
+  <li><strong>Middleware</strong> — JWT authenticate, role authorize, AI consent, express-validator, central error handler.</li>
+  <li><strong>Controllers</strong> — HTTP mapping.</li>
+  <li><strong>Services</strong> — DPR generation, cluster DPR, OpenAI, quality/ML, financials, schemes, AP MSME, notifications, audit, retention, account erase, Cloudinary, translation, venture-match help, Whisper.</li>
+  <li><strong>Models</strong> — Mongoose schemas.</li>
+</ul>
+<p>On startup the main process connects to MongoDB, seeds four schemes if the collection is empty (PMEGP, MUDRA, CGTMSE, MSME-CDP), deletes any <span class="mono">STANDUP</span> scheme row, seeds RBAC test users if missing, pre-warms the OpenAI assistant cache, and schedules retention.</p>
+
+<h3>2.4 Database architecture</h3>
+<p>One MongoDB database (name is whatever <span class="mono">MONGODB_URI</span> selects; the README example is <span class="mono">msme-dpr</span>). Collections from models:</p>
+<table>
+  <tr><th>Model</th><th>Role</th></tr>
+  <tr><td>User</td><td>Account, bcrypt password hash, role, phone, DOB, privacy consent, nominee</td></tr>
+  <tr><td>Project</td><td>Project shell linked to the user</td></tr>
+  <tr><td>DPRVersion</td><td>DPR content and versions</td></tr>
+  <tr><td>DPRSession</td><td>Guided-builder session</td></tr>
+  <tr><td>DPRTemplate</td><td>Templates</td></tr>
+  <tr><td>DPRAnalytics</td><td>Quality and funding metrics</td></tr>
+  <tr><td>ClusterSection</td><td>Generated cluster sections</td></tr>
+  <tr><td>Scheme, SchemeMatch</td><td>Seeded scheme rows and per-project matches</td></tr>
+  <tr><td>SchemeDocumentStyle</td><td>Super-admin default look for a scheme code</td></tr>
+  <tr><td>Document, VectorStore, RAGMetrics</td><td>RAG uploads and metrics</td></tr>
+  <tr><td>KycFile</td><td>Encrypted identity and cluster photo metadata. Bytes live under <span class="mono">uploads/kyc</span> and <span class="mono">uploads/cluster</span></td></tr>
+  <tr><td>Feedback</td><td>User feedback on a project</td></tr>
+  <tr><td>Policy</td><td>Admin-managed policy records</td></tr>
+  <tr><td>AuditEvent</td><td>Append-only audit. Application code does not update old rows</td></tr>
+  <tr><td>PrivacyComplaint</td><td>Grievance form submissions</td></tr>
+  <tr><td>UserNotification</td><td>In-app notices</td></tr>
+</table>
+<p>There are no SQL migrations. Schema changes ship with Mongoose model edits. Indexes called out in code include unique email and analytics indexes on <span class="mono">projectId</span> and <span class="mono">dprId</span>.</p>
+
+<h3>2.5 API architecture and documentation</h3>
+<p>JSON over HTTP. Authenticated calls use <span class="mono">Authorization: Bearer &lt;jwt&gt;</span>. Success payloads use <span class="mono">success: true</span>. Errors use <span class="mono">success: false</span> and <span class="mono">message</span>. Rate limit: 100 requests per 15 minutes per IP on <span class="mono">/api</span> (override with <span class="mono">RATE_LIMIT_WINDOW_MS</span> and <span class="mono">RATE_LIMIT_MAX_REQUESTS</span>). Health check is public: <span class="mono">GET /api/health</span>.</p>
+<table>
+  <tr><th>Area</th><th>Methods and paths</th><th>Auth</th></tr>
+  <tr><td>Auth</td><td>POST <span class="mono">/auth/register</span>, <span class="mono">/auth/login</span>; POST <span class="mono">/auth/logout</span>, <span class="mono">/auth/consent</span>; GET/PUT <span class="mono">/auth/profile</span></td><td>Register and login public. Others JWT.</td></tr>
+  <tr><td>Projects</td><td>POST/GET <span class="mono">/projects</span>; GET/PUT/DELETE <span class="mono">/projects/:id</span></td><td>JWT</td></tr>
+  <tr><td>Schemes (DB)</td><td>GET <span class="mono">/schemes</span>, GET <span class="mono">/schemes/:schemeCode</span>, POST recommend and select</td><td>JWT</td></tr>
+  <tr><td>Feedback</td><td>POST <span class="mono">/feedback</span>, GET <span class="mono">/feedback/:projectId</span></td><td>JWT</td></tr>
+  <tr><td>AI</td><td>POST <span class="mono">/ai/chat</span>, <span class="mono">/ai/transcribe</span>, <span class="mono">/ai/tts</span>, <span class="mono">/ai/venture-match/help</span></td><td>JWT + AI consent</td></tr>
+  <tr><td>DPR core</td><td>Sessions, templates, generate, chat-generate, builder analyze/chat, get/update/delete, PDF/DOCX/XLS, quality, submit, Telugu translate</td><td>JWT. AI routes also need AI consent. Downloads do not.</td></tr>
+  <tr><td>Cluster / individual draft</td><td><span class="mono">/dpr/cluster/draft/save</span>, generate, sections, images, financials, suggestions, annexures, <span class="mono">/dpr/cluster/files/:fileId</span></td><td>JWT. Generate and AI suggestion routes need AI consent. File read is owner or admin/officer.</td></tr>
+  <tr><td>Scheme style</td><td>GET/PUT <span class="mono">/dpr/scheme-style/:schemeCode</span></td><td>JWT. Saving a scheme default is limited to admin / super admin in <span class="mono">schemeStyleRules</span>.</td></tr>
+  <tr><td>AP MSME</td><td>GET schemes, guidelines, financial institutions; POST submit; GET status and entrepreneur</td><td>JWT</td></tr>
+  <tr><td>Documents / RAG</td><td>List vector stores, search, RAG query, file serve for any signed-in user. Upload, list, delete, create/delete vector stores</td><td>JWT. Mutations after <span class="mono">authorize('admin')</span>.</td></tr>
+  <tr><td>Privacy</td><td>GET export, activity, notifications; PATCH consent; PUT nominee; DELETE account; POST complaint; POST notification read</td><td>JWT, own data</td></tr>
+  <tr><td>Admin</td><td>GET analytics, users, projects, feedback, dprs, policies, audit, audit CSV; PUT/DELETE users; approve/reject DPR; policy CRUD and approve; POST retention run</td><td>JWT + role <span class="mono">admin</span></td></tr>
+</table>
+<p>There is no published OpenAPI file. The table above is the route surface in <span class="mono">server/src/routes</span>.</p>
+
+<h3>2.6 Codebase and repository structure</h3>
+<pre class="mono" style="white-space:pre-wrap;background:#f4f7fb;padding:8px;border:1px solid #c5d0de;">AI_DRP/
+  client/                 React app (src/pages, components, lib, store, i18n, e2e)
+  server/                 Express API (src/routes, controllers, services, models, middleware, lib)
+  server/fonts/           PDF fonts
+  server/scripts/         Sample DPR generators (PMEGP steel furniture, CMEP cases)
+  docs/                   DPDP, scheme notes, business-logic markdown, this handover
+  vercel.json             Frontend static hosting only
+  README.md               Older overview; verify against code before relying on it
+  llm.md                  Fill-this-step model behaviour
+  styleeditor.md          Report style behaviour
+  OFFLINE_DPR_GENERATION.md
+</pre>
+<p>Client feature code is grouped by DPR type (<span class="mono">individual-dpr</span>, <span class="mono">cluster-dpr</span>, <span class="mono">venture-match</span>, <span class="mono">dpr-builder</span>) rather than by a single design-system package.</p>
+
+<h3>2.7 Data flow and application flow</h3>
+<ol>
+  <li>User registers or logs in. Server returns a JWT carrying <span class="mono">userId</span>, <span class="mono">email</span>, and <span class="mono">role</span>. Client stores it.</li>
+  <li>If the notice version is not <span class="mono">2026-09-4</span>, <span class="mono">ConsentGate</span> blocks the app until <span class="mono">POST /api/auth/consent</span>.</li>
+  <li>Scheme Finder writes progress locally, evaluates in the browser, then saves a handoff object and navigates.</li>
+  <li>Individual DPR loads the handoff for overlay rules only, then saves drafts with <span class="mono">POST /api/dpr/cluster/draft/save</span>. The URL gains <span class="mono">projectId</span>, <span class="mono">dprId</span>, and <span class="mono">scheme</span>.</li>
+  <li>Optional AI calls send a reduced facts card. The server strips identity fields, calls OpenAI, validates the JSON, and returns suggestions. Failed checks stay blank for the user to type.</li>
+  <li>Generate stores the report. Preview renders <span class="mono">IndividualDPRDocumentView</span>. PDF either posts captured HTML to the server or builds the Q&amp;A document in <span class="mono">individualDprDocument.ts</span>.</li>
+  <li>Downloads and staff views of another user’s DPR write audit rows.</li>
+  <li>Every six hours the API process warns or deletes idle DPRs and old audit rows, and writes in-app notifications.</li>
+</ol>
+
+<h3>2.8 Authentication architecture</h3>
+<ul>
+  <li>Passwords are hashed with bcrypt (cost 10) in a pre-save hook. The field is <span class="mono">passwordHash</span>. Minimum length 6.</li>
+  <li>JWT is verified in <span class="mono">authenticate</span>. Secret comes from <span class="mono">getJwtSecret()</span>. Production refuses a missing secret and refuses known dummy values (<span class="mono">secret</span>, <span class="mono">your-secret-key</span>, <span class="mono">jwt-secret</span>, and the dev fallback). Development may warn and use a local dummy secret.</li>
+  <li>Logout is an audit event. Tokens are not stored server-side, so logout does not revoke a token before it expires. Expiry is whatever <span class="mono">signToken</span> sets in the auth controller.</li>
+  <li>AI routes use <span class="mono">requireAiConsent</span>. A false <span class="mono">aiAssist</span> flag returns 403 with code <span class="mono">AI_CONSENT_REQUIRED</span>. Draft save and downloads stay available.</li>
+</ul>
+
+<h3>2.9 Integration architecture</h3>
+<p>Outbound calls are synchronous HTTP from the request that needs them (OpenAI, AP MSME, Twilio, Cloudinary, Hugging Face). RAG upload attaches files to the OpenAI vector store id in <span class="mono">MAIN_VECTOR_STORE_ID</span>. If that variable is empty, some code paths fall through to a placeholder. Set a real store id before relying on RAG.</p>
+<p>KYC and cluster photos stay on the API disk (optionally AES-256-GCM with <span class="mono">KYC_ENCRYPTION_KEY</span>). They are read back only through <span class="mono">GET /api/dpr/cluster/files/:fileId</span>.</p>
+
+<h3>2.10 Background jobs</h3>
+<p>One in-process job exists. <span class="mono">runRetentionJob()</span> starts about 20 seconds after listen, then every 6 hours, via <span class="mono">setInterval</span> in <span class="mono">server/src/index.ts</span>. An admin can also run it with <span class="mono">POST /api/admin/retention/run</span>.</p>
+<p>There is no queue (no Bull, SQS, or cron daemon in the repo). The serverless entry does not start this timer. If more than one API instance runs <span class="mono">src/index.ts</span>, each instance will run the job. The job is written to be safe to repeat, but overlapping instances should still be treated as an operations choice, not as a designed worker fleet.</p>
+<p>Assistant cache pre-warm at boot is a one-shot OpenAI call, not a scheduled job.</p>
+
+<h3>2.11 Error handling and logging architecture</h3>
+<p>Users see a short JSON message, not a log and not a stack trace, except when <span class="mono">NODE_ENV</span> is exactly <span class="mono">development</span>. In that mode the error handler also adds <span class="mono">stack</span> to the JSON. Production responses stay <span class="mono">{ success: false, message }</span>.</p>
+<p>Operator logs stay on the server process:</p>
+<ul>
+  <li>Morgan writes HTTP access lines to stdout (<span class="mono">dev</span> format).</li>
+  <li>The error handler writes the error to stderr.</li>
+  <li>Retention, SMS, and email helpers write their own stdout lines for operators.</li>
+  <li>The UI uses toast text for success and failure. It does not render server logs.</li>
+</ul>
+<p>Validation errors from express-validator return 400 with field messages. Unknown routes return 404 <span class="mono">Route … not found</span>. Rate limiting returns a plain “too many requests” message. AI consent and under-18 refusals use stable <span class="mono">code</span> values (<span class="mono">AI_CONSENT_REQUIRED</span>, <span class="mono">UNDER_18</span>) so the client can show the right sentence.</p>
+
+<h3>2.12 Security architecture</h3>
+<ul>
+  <li><strong>Transport and headers:</strong> Helmet, including a CSP that allows the app to frame its own PDF preview. CORS origin is <span class="mono">CORS_ORIGIN</span> or <span class="mono">http://localhost:5173</span> on the main server. Credentials are allowed. The serverless entry defaults CORS to <span class="mono">*</span>, which should not be used for a credentialed production API.</li>
+  <li><strong>AuthZ:</strong> <span class="mono">authorize(...roles)</span> plus <span class="mono">roleAllowed</span>. Admin routes and document mutations require <span class="mono">admin</span>. Scheme-style save requires admin. File reads allow the owner or <span class="mono">admin</span>/<span class="mono">officer</span>. Staff opening another user’s DPR writes <span class="mono">admin_view</span>.</li>
+  <li><strong>Privacy of model calls:</strong> <span class="mono">sanitizeForAi</span> drops Aadhaar, PAN, passbook, UPI, and file-URL keys and redacts those patterns inside strings, including Cloudinary and <span class="mono">/uploads</span> URLs.</li>
+  <li><strong>Files at rest:</strong> production refuses to boot without <span class="mono">KYC_ENCRYPTION_KEY</span>. The key is a server secret hashed into AES-256-GCM. It is not per user. Dev may omit it; files are then private by route but plaintext on disk.</li>
+  <li><strong>Public uploads:</strong> <span class="mono">/uploads</span> always 404.</li>
+  <li><strong>Audit:</strong> append-only events with time, user id, role, action, optional target, and IP. Users can read their own activity. Admins can filter and export CSV.</li>
+  <li><strong>Age:</strong> registration and DPR save/generate refuse an applicant under 18.</li>
+  <li><strong>Gaps already listed in 1.10:</strong> self-selected role on register, officer write access via API, non-revocable JWT, 50&nbsp;MB body limit, seeded test users.</li>
+</ul>
+
+<h3>2.13 Performance and scalability architecture</h3>
+<ul>
+  <li>Response compression is on.</li>
+  <li>MongoDB pool is capped at 10 sockets. Timeouts are raised for cross-region hosts (comments mention Railway and Atlas).</li>
+  <li>The client caches a few GET responses in memory for a few minutes.</li>
+  <li>Fill-this-step was changed from one model call per question to at most two calls per step, specifically to cut wait time and token repeat. See <span class="mono">llm.md</span>.</li>
+  <li>PDF capture and Puppeteer run on the API machine. That is the scaling limit for concurrent downloads. There is no horizontal worker split.</li>
+  <li>Rate limit is in-memory (express-rate-limit default). It does not coordinate across multiple instances.</li>
+  <li>No CDN, Redis, or read-replica configuration is in the repo. The README lines that mention them are not implemented.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 class="part-title part">3. User roles and permissions</h2>
+
+<h3>3.1 User types and roles</h3>
+<p>The database enum is the authority for what can be stored. The UI shows different names. <span class="mono">client/src/lib/rbac.ts</span> maps them.</p>
+<table>
+  <tr><th>UI name</th><th>Stored role</th><th>Intended person</th></tr>
+  <tr><td>Super Admin</td><td><span class="mono">admin</span></td><td>Platform operator</td></tr>
+  <tr><td>Consultant</td><td><span class="mono">entrepreneur</span></td><td>Person who creates DPRs for MSME clients. This is also the default registration role.</td></tr>
+  <tr><td>Govt Official</td><td><span class="mono">officer</span></td><td>Reviewer of submitted DPRs and scheme alignment</td></tr>
+</table>
+<p>Unknown or empty roles are treated as Consultant in the UI (<span class="mono">toAppRole</span>). The backend does not have a <span class="mono">super_admin</span> enum value. Tests accept both the UI name and the stored name where <span class="mono">roleAllowed</span> is given both.</p>
+
+<h3>3.2 Role-based access control</h3>
+<p>Two layers exist, and they are not the same.</p>
+<ul>
+  <li><strong>API.</strong> Most business routes require any valid JWT. Admin console and document-admin routes require stored role <span class="mono">admin</span>. Scheme default style save requires admin. Cluster file read and “view someone else’s DPR” treat <span class="mono">admin</span> and <span class="mono">officer</span> as staff.</li>
+  <li><strong>UI.</strong> <span class="mono">/admin</span> and <span class="mono">/admin/documents</span> require Super Admin. <span class="mono">canCreateDpr</span> is true for Consultant and Super Admin only, so Govt Official does not see create actions. Dev mode is Super Admin only. An Access Control tab on the admin dashboard previews the three roles. Its own hint text says enforcement is still UI-oriented.</li>
+</ul>
+
+<h3>3.3 User permissions</h3>
+<p>Consultant (stored <span class="mono">entrepreneur</span>), as implemented for a normal signed-in user:</p>
+<ul>
+  <li>Create and edit own projects and DPRs, save drafts, generate, download PDF / DOCX / XLS.</li>
+  <li>Use Scheme Finder, guided builder, and chat.</li>
+  <li>Use AI features only after opting in. Typing, saving, and download still work with AI off.</li>
+  <li>Style the current DPR. Cannot save a scheme-wide default style.</li>
+  <li>View own quality information, profile, privacy export, activity, and notifications.</li>
+  <li>Cannot open the admin console or upload the RAG knowledge base.</li>
+</ul>
+
+<h3>3.4 Admin permissions</h3>
+<p>Stored role <span class="mono">admin</span> (UI Super Admin), via <span class="mono">/api/admin</span> and the admin pages:</p>
+<ul>
+  <li>Platform analytics.</li>
+  <li>List users and update them, including role. An admin cannot change their own role.</li>
+  <li>Delete a user. Deletion uses the same <span class="mono">eraseAccount()</span> path as self-service erasure.</li>
+  <li>List projects, feedback, and DPRs. Approve or reject a DPR.</li>
+  <li>Create, edit, delete, and approve policy records.</li>
+  <li>Read and CSV-export the audit log. Run retention immediately.</li>
+  <li>Upload, list, and delete RAG documents and manage vector stores.</li>
+  <li>Save a scheme document style as the default for future DPRs.</li>
+  <li>Open another user’s DPR (audited as <span class="mono">admin_view</span>) and read KYC/cluster files.</li>
+  <li>Use dev mode on create-DPR screens.</li>
+</ul>
+
+<h3>3.5 Module-level access</h3>
+<table>
+  <tr><th>Module</th><th>Consultant</th><th>Govt Official</th><th>Super Admin</th></tr>
+  <tr><td>Scheme Finder</td><td>Yes</td><td>UI does not special-case it; API allows any JWT</td><td>Yes</td></tr>
+  <tr><td>Create individual or cluster DPR</td><td>Yes</td><td>Hidden in UI. API still allows a valid token</td><td>Yes</td></tr>
+  <tr><td>Own drafts, preview, download</td><td>Yes</td><td>API allows. UI create path is hidden</td><td>Yes</td></tr>
+  <tr><td>Chat, guided builder, AI fill</td><td>Yes, if AI consent</td><td>Same API rule</td><td>Yes, if AI consent</td></tr>
+  <tr><td>Admin console</td><td>No</td><td>No</td><td>Yes</td></tr>
+  <tr><td>RAG document admin</td><td>No (search is allowed when signed in)</td><td>No</td><td>Yes</td></tr>
+  <tr><td>Scheme style default</td><td>No</td><td>No</td><td>Yes</td></tr>
+  <tr><td>Privacy self-service</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+</table>
+
+<h3>3.6 Feature-level access</h3>
+<table>
+  <tr><th>Feature</th><th>Rule</th></tr>
+  <tr><td>AI fill, chat, RAG query, translate, quality score, image generation, cluster narrative</td><td>AI consent required. UI disables the buttons when consent is off.</td></tr>
+  <tr><td>Draft save, manual typing, PDF/DOCX/XLS download</td><td>Allowed without AI consent.</td></tr>
+  <tr><td>Under 18 applicant</td><td>No account, no save, no generate. Scheme Finder hides create buttons when age is under 18.</td></tr>
+  <tr><td>Style on this DPR</td><td>Whoever can edit that DPR.</td></tr>
+  <tr><td>Save as scheme default</td><td>Super Admin only.</td></tr>
+  <tr><td>Dev mode (skip required fields)</td><td>Super Admin, create-DPR pages only, off when the page closes.</td></tr>
+  <tr><td>Approve / reject DPR, policies, user role change</td><td>Admin API.</td></tr>
+  <tr><td>Audit CSV and retention run</td><td>Admin API.</td></tr>
+  <tr><td>Own data export and account delete</td><td>The signed-in user. Delete requires body <span class="mono">{ confirm: "DELETE" }</span>.</td></tr>
+</table>
+
+<h3>3.7 Authentication and authorization</h3>
+<p>Authentication is email + password, then JWT. Authorization is the role checks in section 3.2 plus ownership checks in DPR and file controllers (staff bypass for admin and officer). There is no per-permission table, no OAuth, no SSO, and no multi-factor authentication.</p>
+
+<h3>3.8 User management</h3>
+<ul>
+  <li>Self-service: register, login, edit profile, privacy settings, delete own account.</li>
+  <li>Admin: user list (paged, filterable by role), edit name, email, role, location, phone, Udyam number, and delete.</li>
+  <li>Role changes persist through <span class="mono">PUT /api/admin/users/:id</span>. The success toast text still says “Role updated in the UI”, which is misleading. The admin call is a real write.</li>
+  <li>There is no invite email and no password-reset endpoint in the auth routes.</li>
+</ul>
+
+<h3>3.9 Access restrictions</h3>
+<ul>
+  <li>Under 18 cannot register or be the named applicant on a DPR.</li>
+  <li>Account consent and the current notice version are required to pass the app gate.</li>
+  <li>AI features refuse when <span class="mono">aiAssist</span> is false.</li>
+  <li>Non-admins receive 403 on <span class="mono">/api/admin</span> and on document admin routes.</li>
+  <li>KYC bytes are not on a public URL and are not sent to the model.</li>
+  <li>Users see only their own privacy activity and notifications.</li>
+</ul>
+
+<h3>3.10 Permission workflows</h3>
+<ol>
+  <li><strong>New consultant.</strong> Register as Consultant. Scroll and accept the notice. Optionally enable AI. Land on the dashboard.</li>
+  <li><strong>Promote to admin or officer.</strong> An existing admin edits the user on the User Management tab. The stored value must be <span class="mono">admin</span>, <span class="mono">officer</span>, or <span class="mono">entrepreneur</span>. The UI maps the three labels before sending.</li>
+  <li><strong>Review.</strong> Admin opens DPR Management and approves or rejects. Officer is described as a reviewer in the UI copy. The approve/reject routes themselves are under the admin router, so they require stored role <span class="mono">admin</span>, not <span class="mono">officer</span>.</li>
+  <li><strong>Withdraw AI.</strong> User turns AI off under privacy settings. Later AI calls return 403 until they opt in again.</li>
+  <li><strong>Erase.</strong> User confirms DELETE, or an admin deletes the user. Mongo rows for that user’s projects, DPRs, files, and related records are removed. Audit rows stay until the 24-month clock.</li>
+</ol>
+
+<h3>3.11 Admin and user responsibilities</h3>
+<table>
+  <tr><th>Who</th><th>Responsibility</th></tr>
+  <tr><td>Consultant</td><td>Accurate project facts. Do not rely on AI for rupee amounts the form does not already support. Keep identity documents with the applicant for the bank or DIC. The PDF shows Uploaded or Pending for identity, not the ID number.</td></tr>
+  <tr><td>Govt official</td><td>Review submitted work and scheme alignment. Do not assume the UI hide is a complete write-block until the API is tightened.</td></tr>
+  <tr><td>Super admin</td><td>Assign roles, approve or reject DPRs, maintain policy rows and the RAG corpus, export audit when asked, run retention if a purge cannot wait for the 6-hour timer, and keep scheme default styles coherent.</td></tr>
+  <tr><td>Operations</td><td>Hold JWT, KYC, OpenAI, and database secrets. Rotate the seeded test accounts out of every shared database. Answer privacy complaints. Stage 4 of DPDP is still a human process: the form only stores the complaint.</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 class="part-title part">4. Deployment and handover documentation</h2>
+<div class="note">Hosting and infrastructure ownership are <strong>not specified</strong> for the receiving organisation. The notes below are only what this repository already contains. Fit them to the host after that choice is made.</div>
+
+<h3>4.1 Deployment process (as known)</h3>
+<p><strong>Frontend.</strong> <span class="mono">vercel.json</span> installs and builds <span class="mono">client</span> and publishes <span class="mono">client/dist</span> as a single-page app. Any path is rewritten to <span class="mono">index.html</span>. Set <span class="mono">VITE_API_URL</span> at build time to the API origin.</p>
+<p><strong>API (manual, from the README and package scripts).</strong></p>
+<ol>
+  <li>Node.js 18+ and a MongoDB URI.</li>
+  <li><span class="mono">cd server &amp;&amp; npm install</span></li>
+  <li>Provide environment variables (section 4.2). <span class="mono">OPENAI_API_KEY</span> is required or the process exits.</li>
+  <li><span class="mono">npm run build</span> (<span class="mono">tsc</span>) then <span class="mono">npm start</span> (<span class="mono">node dist/index.js</span>). Development uses <span class="mono">npm run dev</span> (ts-node-dev).</li>
+  <li>Puppeteer needs a Chrome binary. <span class="mono">PUPPETEER_EXECUTABLE_PATH</span> or <span class="mono">CHROME_PATH</span> can point at it. PDF smoke tests and HTML-capture downloads fail without it.</li>
+</ol>
+<p>No Dockerfile, no docker-compose, and no CI workflow were found in the repository during this handover pass. The README’s <span class="mono">docker-compose up</span> command has nothing to run.</p>
+
+<h3>4.2 Environment and configuration</h3>
+<table>
+  <tr><th>Variable</th><th>Where</th><th>Required</th><th>Meaning</th></tr>
+  <tr><td><span class="mono">PORT</span></td><td>API</td><td>No (5000)</td><td>Listen port</td></tr>
+  <tr><td><span class="mono">NODE_ENV</span></td><td>API</td><td>Yes in production</td><td><span class="mono">production</span> turns on JWT and KYC key checks and hides stacks</td></tr>
+  <tr><td><span class="mono">MONGODB_URI</span></td><td>API</td><td>Yes</td><td>Mongo connection string. Process exits if missing</td></tr>
+  <tr><td><span class="mono">JWT_SECRET</span></td><td>API</td><td>Yes in production</td><td>Strong unique value. Dummy values abort production boot</td></tr>
+  <tr><td><span class="mono">KYC_ENCRYPTION_KEY</span></td><td>API</td><td>Yes in production</td><td>Secret for AES-256-GCM on KYC and cluster photos</td></tr>
+  <tr><td><span class="mono">OPENAI_API_KEY</span></td><td>API</td><td>Yes</td><td>All AI features</td></tr>
+  <tr><td><span class="mono">MAIN_VECTOR_STORE_ID</span></td><td>API</td><td>For RAG</td><td>OpenAI vector store used for uploaded documents</td></tr>
+  <tr><td><span class="mono">CORS_ORIGIN</span></td><td>API</td><td>Yes in production</td><td>Frontend origin. Main server defaults to localhost:5173</td></tr>
+  <tr><td><span class="mono">RATE_LIMIT_WINDOW_MS</span></td><td>API</td><td>No</td><td>Default 900000</td></tr>
+  <tr><td><span class="mono">RATE_LIMIT_MAX_REQUESTS</span></td><td>API</td><td>No</td><td>Default 100</td></tr>
+  <tr><td><span class="mono">AP_MSME_API_URL</span></td><td>API</td><td>No</td><td>Portal base URL</td></tr>
+  <tr><td><span class="mono">AP_MSME_API_KEY</span></td><td>API</td><td>No</td><td>Portal bearer token</td></tr>
+  <tr><td><span class="mono">CLOUDINARY_CLOUD_NAME</span>, <span class="mono">API_KEY</span>, <span class="mono">API_SECRET</span></td><td>API</td><td>No</td><td>Cloudinary. All three must be set together</td></tr>
+  <tr><td><span class="mono">HUGGINGFACE_API_TOKEN</span></td><td>API</td><td>No</td><td>Telugu Whisper path</td></tr>
+  <tr><td><span class="mono">TWILIO_ACCOUNT_SID</span>, <span class="mono">TWILIO_AUTH_TOKEN</span>, <span class="mono">TWILIO_FROM</span></td><td>API</td><td>No</td><td>Real SMS. If any is missing, SMS is mocked</td></tr>
+  <tr><td><span class="mono">RETENTION_IDLE_DAYS</span></td><td>API</td><td>No (365)</td><td>Delete DPR this many days after its last edit. A blank value uses the default. Explicit 0 means immediately</td></tr>
+  <tr><td><span class="mono">RETENTION_WARNING_DAYS</span></td><td>API</td><td>No (15)</td><td>Warn this many days before that delete</td></tr>
+  <tr><td><span class="mono">AUDIT_RETENTION_DAYS</span></td><td>API</td><td>No (730)</td><td>Delete audit rows this old</td></tr>
+  <tr><td><span class="mono">PUPPETEER_EXECUTABLE_PATH</span> or <span class="mono">CHROME_PATH</span></td><td>API</td><td>On hosts without bundled Chrome</td><td>Browser for PDF</td></tr>
+  <tr><td><span class="mono">VITE_API_URL</span></td><td>Client build</td><td>Yes outside local dev</td><td>API base, including <span class="mono">/api</span></td></tr>
+  <tr><td><span class="mono">VITE_USE_MOCK_DATA</span></td><td>Client</td><td>No</td><td><span class="mono">true</span> uses in-browser mock data</td></tr>
+</table>
+<p>No <span class="mono">.env.example</span> file is in the repository even though startup text refers to one. Do not commit real <span class="mono">.env</span> files.</p>
+
+<h3>4.3 Hosting and infrastructure</h3>
+<p>Deferred. The receiving team will map this application onto their own infrastructure. The only hostnames present in code are Railway URLs in the API content-security policy (<span class="mono">ai-dpr.up.railway.app</span>, <span class="mono">dpr-server.up.railway.app</span>) and a Vercel config for the static client. Confirm with the current operators whether those hosts are still live before treating them as the system of record. Disk for <span class="mono">uploads/kyc</span> and <span class="mono">uploads/cluster</span> must be persistent and backed up. An ephemeral serverless disk will lose identity files.</p>
+
+<h3>4.4 Production setup</h3>
+<ul>
+  <li><span class="mono">NODE_ENV=production</span></li>
+  <li>Unique <span class="mono">JWT_SECRET</span> and <span class="mono">KYC_ENCRYPTION_KEY</span></li>
+  <li><span class="mono">CORS_ORIGIN</span> set to the real frontend origin, not <span class="mono">*</span></li>
+  <li>Run <span class="mono">server/src/index.ts</span> (the built <span class="mono">dist/index.js</span>) so retention and secret checks actually run</li>
+  <li>Persistent disk for uploads, Chrome available to Puppeteer, MongoDB reachable within the 60-second connect window</li>
+  <li>Remove seeded <span class="mono">@msme.test</span> users</li>
+  <li>Do not enable <span class="mono">VITE_USE_MOCK_DATA</span></li>
+</ul>
+
+<h3>4.5 Staging and development setup</h3>
+<ol>
+  <li>Install dependencies in <span class="mono">server/</span> and <span class="mono">client/</span>.</li>
+  <li>Start MongoDB and set <span class="mono">MONGODB_URI</span>.</li>
+  <li>Set <span class="mono">OPENAI_API_KEY</span>. Other vendor keys can stay empty. SMS and email stay mocked. AP MSME scheme list falls back to mock data.</li>
+  <li>API: <span class="mono">cd server &amp;&amp; npm run dev</span> → <span class="mono">http://localhost:5000/api</span>.</li>
+  <li>Client: <span class="mono">cd client &amp;&amp; npm run dev</span> (Vite default port 5173).</li>
+  <li>Optional: <span class="mono">VITE_USE_MOCK_DATA=true</span> for UI work without the API. Do not use it to test consent or auth.</li>
+</ol>
+<p>First boot creates scheme rows if the collection is empty and creates three test users if those emails are absent.</p>
+
+<h3>4.6 Database and production configuration</h3>
+<ul>
+  <li>Use a dedicated database per environment. The app does not prefix collection names.</li>
+  <li>Take a backup before the first boot against a database you care about. Boot deletes every <span class="mono">Scheme</span> document with code <span class="mono">STANDUP</span> and inserts the four seed schemes when the collection is empty.</li>
+  <li>Retention defaults: DPR idle 365 days, warning 15 days before, audit 730 days. Override only with explicit integers.</li>
+  <li>Losing <span class="mono">KYC_ENCRYPTION_KEY</span> makes existing encrypted files unreadable. Store it with the same care as the database.</li>
+</ul>
+
+<h3>4.7 Third-party account configuration</h3>
+<p>Accounts that the code can use, if the current operators already have them. None of the secrets are stored in git.</p>
+<ul>
+  <li><strong>OpenAI</strong> — required. Assistants, file search, and image generation are used. Fill-this-step uses <span class="mono">gpt-4o-mini</span>. Images use <span class="mono">dall-e-3</span>.</li>
+  <li><strong>MongoDB</strong> — required.</li>
+  <li><strong>OpenAI vector store</strong> — required only for RAG. Set <span class="mono">MAIN_VECTOR_STORE_ID</span>.</li>
+  <li><strong>Hugging Face</strong> — optional Telugu speech.</li>
+  <li><strong>Cloudinary</strong> — optional media.</li>
+  <li><strong>Twilio</strong> — optional SMS.</li>
+  <li><strong>AP MSME ONE API key</strong> — optional and not verified as a live contract in this repo.</li>
+  <li><strong>Email provider</strong> — not configured. No SMTP variables exist.</li>
+</ul>
+
+<h3>4.8 Backup and recovery (suggested intervals)</h3>
+<p>These intervals are a recommendation for handover. They are not implemented as jobs in the repo.</p>
+<table>
+  <tr><th>Asset</th><th>Suggested interval</th><th>Notes</th></tr>
+  <tr><td>MongoDB</td><td>Daily snapshot, plus point-in-time if the host supports it. Weekly copy to a second location.</td><td>Includes users, DPRs, audit, complaints</td></tr>
+  <tr><td><span class="mono">uploads/kyc</span> and <span class="mono">uploads/cluster</span></td><td>Daily, same day as the database</td><td>Useless without the encryption key from that era</td></tr>
+  <tr><td><span class="mono">KYC_ENCRYPTION_KEY</span>, <span class="mono">JWT_SECRET</span>, vendor keys</td><td>On every rotation, in a password manager. Not in git.</td><td>Keep the previous KYC key until old files are re-encrypted</td></tr>
+  <tr><td>Source</td><td>The git remote is the copy</td><td>Confirm the remote is the one operations will keep</td></tr>
+  <tr><td>Restore drill</td><td>Quarterly</td><td>Restore DB + uploads + key into a scratch environment and open one DPR file</td></tr>
+</table>
+<p>Account erasure and the 12-month DPR purge are intentional deletes. Backups are the only way to undo them, and only if policy allows restoration of personal data.</p>
+
+<h3>4.9 Error logs and troubleshooting</h3>
+<p>End users do not receive log files or stack traces. Support should look at the API host’s stdout/stderr and at the admin audit screen.</p>
+<table>
+  <tr><th>Symptom</th><th>What to check</th></tr>
+  <tr><td>API will not start</td><td>Missing <span class="mono">OPENAI_API_KEY</span> or <span class="mono">MONGODB_URI</span>. In production, also <span class="mono">JWT_SECRET</span> and <span class="mono">KYC_ENCRYPTION_KEY</span>.</td></tr>
+  <tr><td>MongoDB errors on boot</td><td>Five retries, three seconds apart, then exit. Timeouts are 60 seconds. Confirm URI, IP allow-list, and TLS.</td></tr>
+  <tr><td>401 on every call</td><td>Missing bearer token, or secret mismatch after a JWT rotation (old tokens die).</td></tr>
+  <tr><td>403 Insufficient permissions</td><td>Route needs <span class="mono">admin</span>. UI Super Admin is that role.</td></tr>
+  <tr><td>403 with <span class="mono">AI_CONSENT_REQUIRED</span></td><td>User has AI turned off. Expected.</td></tr>
+  <tr><td>403 with <span class="mono">UNDER_18</span></td><td>Applicant age. Expected.</td></tr>
+  <tr><td>PDF download fails</td><td>Chrome path and Puppeteer. HTML capture also needs the 50&nbsp;MB JSON limit and enough memory.</td></tr>
+  <tr><td>RAG answers ignore uploads</td><td><span class="mono">MAIN_VECTOR_STORE_ID</span> and admin upload status.</td></tr>
+  <tr><td>SMS never arrives</td><td>Twilio trio unset means mock only. Check the user phone is 10 digits.</td></tr>
+  <tr><td>Email never arrives</td><td>Expected. Mail is not implemented.</td></tr>
+  <tr><td>Retention seems idle</td><td>Only the main server entry runs it. Blank env values use defaults, they do not mean zero.</td></tr>
+</table>
+
+<h3>4.10 Security and production access</h3>
+<ul>
+  <li>Production access should be limited to named operators. The app has no separate break-glass account.</li>
+  <li>Admin is a row in <span class="mono">users</span> with <span class="mono">role: admin</span>. Create the first admin with a direct database insert or a one-off script. Do not leave self-service registration able to request <span class="mono">admin</span> (see section 1.10).</li>
+  <li>Rotate <span class="mono">JWT_SECRET</span> only with a planned logout of all users.</li>
+  <li>Restrict MongoDB and the upload disk to the API host.</li>
+  <li>CSP frame exceptions for the Railway hostnames should be replaced with the real origins when hosting is chosen.</li>
+</ul>
+
+<h3>4.11 Account and credential handover</h3>
+<p>Secrets are not in git. Whoever holds the current OpenAI, MongoDB, Cloudinary, Hugging Face, Twilio, and AP MSME keys must transfer them in a password manager. This document does not contain those values.</p>
+<div class="warn">
+  <strong>Development users created automatically.</strong> If these emails are missing, <span class="mono">seedRbacUsers()</span> in <span class="mono">server/src/index.ts</span> inserts them on boot with a shared password that is hardcoded in that function: <span class="mono">rbac.admin@msme.test</span> (admin), <span class="mono">rbac.consultant@msme.test</span> (entrepreneur), <span class="mono">rbac.officer@msme.test</span> (officer). They exist so automated tests can log in. Before any shared or production database is used: delete the three users or replace the password, and stop calling the seed. The password string itself is in source control and should be treated as public.
+</div>
+<p>There is no application-level handover of a root mailbox. The grievance address in the privacy notice is a placeholder until Stage 4.</p>
+
+<h3>4.12 Source code handover</h3>
+<ul>
+  <li>Git repository <span class="mono">AI_DRP</span>, branch <span class="mono">feature/live_cust</span>, commit <span class="mono">b9be78a</span> at the time of this document.</li>
+  <li>Remote tracking was <span class="mono">origin/feature/live_cust</span>. Confirm with the current owners which remote (GitHub or otherwise) is canonical. This handover does not push or change remotes.</li>
+  <li>License line in both packages and the README is MIT. Confirm a LICENSE file is the one the organisation intends to ship. A licence grant should be explicit in the contract, not only in a README line.</li>
+  <li>Scheme narrative sources live under <span class="mono">docs/schemes/</span> and in the client catalogs. They are product content, not a substitute for the official scheme notification.</li>
+</ul>
+
+<h3>4.13 Infrastructure ownership handover</h3>
+<p>Not ready. No infrastructure-as-code, cloud account ids, or billing owners are in the repository. When the receiving team picks a host, hand over: DNS, TLS certificates, frontend host, API host, MongoDB project, upload volume, secret store, and log retention. Until then, ownership stays with whoever currently operates the Railway and Vercel targets, if those are still in use.</p>
+
+<h3>4.14 Admin and operations guide</h3>
+<ol>
+  <li>Sign in as an <span class="mono">admin</span> user. Open <span class="mono">/admin</span>.</li>
+  <li><strong>Analytics</strong> — quality and usage aggregates from <span class="mono">DPRAnalytics</span>.</li>
+  <li><strong>User Management</strong> — search, change role, delete. Deleting a user erases their projects and files and writes an audit row.</li>
+  <li><strong>Access Control</strong> — explanation of the three roles. It does not replace the API checks.</li>
+  <li><strong>DPR Management</strong> — approve or reject.</li>
+  <li><strong>Policies</strong> — draft and approve policy records stored in MongoDB.</li>
+  <li><strong>Audit log</strong> — filter by user, action, and dates. Download CSV. Run retention.</li>
+  <li><strong>Documents</strong> (<span class="mono">/admin/documents</span>) — upload PDF, DOC, DOCX, TXT, MD, or RTF for RAG. The README cites a 50&nbsp;MB ceiling.</li>
+  <li>Privacy complaints are in MongoDB (<span class="mono">PrivacyComplaint</span>). Nothing emails the operator. Query that collection or add a mailbox process.</li>
+</ol>
+
+<h3>4.15 Maintenance and support guidelines</h3>
+<ul>
+  <li>When DPDP behaviour changes, update <span class="mono">docs/dpdp.md</span> in the same change. Notice text changes must bump <span class="mono">PRIVACY_NOTICE_VERSION</span> on server and client together (current <span class="mono">2026-09-4</span>).</li>
+  <li>Scheme Finder rule changes belong in <span class="mono">docs/venture-match-business-logic.md</span>. Individual DPR behaviour changes belong in <span class="mono">docs/create-new-dpr-business-logic.md</span>.</li>
+  <li>Dependencies: review OpenAI model names when the account’s model access changes. <span class="mono">gpt-4o-mini</span> and <span class="mono">dall-e-3</span> are hardcoded in the paths described above.</li>
+  <li>Support replies for privacy rights are a human queue. The product copies a grievance email and stores the form. It does not send the reply.</li>
+  <li>Suggested support severity: API down or data loss (immediate), login or PDF failure (same day), AI quality complaint (normal), copy or translation tweak (planned).</li>
+</ul>
+
+<h3>4.16 Final project handover</h3>
+<p>What transfers with the repository today:</p>
+<ul>
+  <li>Source at <span class="mono">feature/live_cust</span> / <span class="mono">b9be78a</span>.</li>
+  <li>This document, plus the living docs named in the introduction.</li>
+  <li>Automated tests listed in Part 5.</li>
+  <li>Scheme reference notes and sample PDFs under <span class="mono">docs/schemes/</span>.</li>
+</ul>
+<p>What does not transfer inside the repo and must be collected from the current operators: production URLs that are actually live, MongoDB credentials, OpenAI and other vendor accounts, the KYC encryption key, DNS, and any data-processing agreements.</p>
+
+<h3>4.17 Pending items at handover</h3>
+<ol>
+  <li>Fix registration so a caller cannot choose <span class="mono">admin</span> or <span class="mono">officer</span>.</li>
+  <li>Enforce Govt Official limits on the API.</li>
+  <li>Remove or disable <span class="mono">seedRbacUsers</span> outside local development.</li>
+  <li>Pick the API entrypoint and apply production guards to it.</li>
+  <li>Choose hosting, persistent disk, and backups. Replace Railway CSP origins if that host is retired.</li>
+  <li>SMTP and a real grievance inbox (DPDP Stage 4).</li>
+  <li>Confirm or remove the AP MSME HTTP integration.</li>
+  <li>Add a password-reset flow if consultants will self-serve.</li>
+  <li>Publish an environment template (<span class="mono">.env.example</span>) without secrets.</li>
+  <li>Correct README claims (Redis, Docker, GDPR) so the next reader is not misled.</li>
+</ol>
+
+<h3>4.18 Post-development recommendations</h3>
+<ul>
+  <li>Treat Scheme Finder rules and scheme step catalogs as product content with a named owner. Official scheme text changes more often than the UI frame.</li>
+  <li>Add a password reset and stop seeding known passwords.</li>
+  <li>Put Puppeteer on a worker if download volume grows. Keep the API request path short.</li>
+  <li>Gate analytics writes on <span class="mono">privacy.analytics</span> if that flag is shown to users as a real choice.</li>
+  <li>Store test-cycle results outside chat logs (see Part 5). Git does not remember whether a suite was run.</li>
+  <li>Run a restore drill before the first production data load.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 class="part-title part">5. Testing and QA documentation</h2>
+
+<h3>5.1 Testing strategy</h3>
+<p>The repository uses fast, in-process tests for business rules and a few live checks that need a running API or Chrome. There is no separate QA management tool, no recorded test plan version, and no CI configuration in the repo. Strategy as it exists:</p>
+<ul>
+  <li><strong>Unit / rule tests</strong> for roles, scheme step catalogs, style editor behaviour, suggestion batching, cost guards, dates, under-18, AI sanitising, JWT production guard, and privacy notice version.</li>
+  <li><strong>Live API tests</strong> against a local server and the seeded consultant and admin users.</li>
+  <li><strong>PDF smoke</strong> that writes a real styled PDF when Chrome is available.</li>
+  <li><strong>One Playwright flow</strong> that logs in as the consultant, starts a bank term-loan DPR, advances a step, and names, resizes, hides, and deletes a picture.</li>
+  <li><strong>Responsive audit script</strong> (<span class="mono">client</span> <span class="mono">npm run audit:responsive</span>) captures screenshots. It is a tool, not an asserted test suite.</li>
+  <li><strong>Sample generators</strong> under <span class="mono">server/scripts/</span> (PMEGP steel furniture, CMEP areca and garments) produce example PDFs. They are fixtures, not a regression suite.</li>
+</ul>
+
+<h3>5.2 Test cases</h3>
+<p>Automated cases, grouped by file. Counts are the <span class="mono">it(</span> blocks in the tree at commit <span class="mono">b9be78a</span>.</p>
+<table>
+  <tr><th>File</th><th>Cases</th><th>What they lock</th></tr>
+  <tr><td><span class="mono">client/src/lib/production.ui.test.ts</span></td><td>11</td><td>Role mapping and gates. Scheme step numbering. Style presets, pictures, resize, page sizes. AP districts, technology-upgrade cap, CMEP year columns, file-id vs URL, under-18 on the form.</td></tr>
+  <tr><td><span class="mono">client/src/lib/dprFixes.test.ts</span></td><td>24</td><td>Blank answers, download filenames, scheme filters, ISO dates, cost suggestions, step batching and facts card, custom sections, live typing, style order and contrast, owner-tag rules, scheme combination exclusions.</td></tr>
+  <tr><td><span class="mono">server/src/production.backend.test.ts</span></td><td>9</td><td>Role allow/deny, scheme-style payload and route order, PDF page size and margins, under-18, AI sanitiser, JWT secret refusal, privacy notice version.</td></tr>
+  <tr><td><span class="mono">server/src/api.live.test.ts</span></td><td>3</td><td>Consultant login and bad password. Individual draft save. Admin can save a scheme default and consultant cannot.</td></tr>
+  <tr><td><span class="mono">server/src/pdf.smoke.test.ts</span></td><td>1</td><td>Styled report writes a real A3 PDF (120s timeout).</td></tr>
+  <tr><td><span class="mono">client/e2e/consultant-dpr-screens.spec.ts</span></td><td>1</td><td>Consultant login, notice re-consent if shown, create flow, picture name / resize / hide / delete.</td></tr>
+</table>
+<p><strong>Total automated cases in repo: 49</strong> (48 Node tests + 1 Playwright test).</p>
+<p>Commands:</p>
+<ul>
+  <li>Client: <span class="mono">cd client &amp;&amp; npm test</span></li>
+  <li>Client browser: <span class="mono">cd client &amp;&amp; npm run test:screens</span> (needs the app and the seeded consultant)</li>
+  <li>Server: <span class="mono">cd server &amp;&amp; npm test</span></li>
+  <li>Server live API: <span class="mono">npm run test:api</span> (needs Mongo and a running API; default <span class="mono">http://localhost:5000/api</span>)</li>
+  <li>Server PDF: <span class="mono">npm run test:pdf</span></li>
+</ul>
+<p>The root README also says <span class="mono">npm run test:e2e</span>. That script is not defined on the client or server package. The Playwright script is <span class="mono">test:screens</span>.</p>
+
+<h3>5.3 Functional testing</h3>
+<p>Covered automatically for: role gates, scheme step catalogs, suggestion batching, cost and date validation, owner-tag combinations, scheme mutual exclusions, draft save through the live API, and scheme-style authorisation.</p>
+<p>Not covered by an automated case (manual when releasing): full generate for every scheme code, cluster financial statements, approve/reject, policy CRUD, account erasure, retention warning and purge, Telugu translation quality, and RAG answers after an upload.</p>
+
+<h3>5.4 UI and UX testing</h3>
+<p>Playwright covers one consultant path through the style editor and picture controls. Client unit tests cover style rules (presets, order, contrast, picture width) without a browser. A responsive audit script can capture viewports. It does not fail the build. There is no visual-regression baseline in git.</p>
+<p>Manual UI checks that matter on this branch: English/Telugu toggle, consent scroll-to-enable, Govt Official dashboard without create buttons, admin tabs, back-button labels, and mobile Scheme Finder floating controls.</p>
+
+<h3>5.5 API testing</h3>
+<p><span class="mono">api.live.test.ts</span> is the only HTTP suite. It needs the seeded users and <span class="mono">MONGODB_URI</span>. It checks login, one individual draft, and scheme-style authorisation. It does not walk admin analytics, privacy export, file upload, or AI routes (those would spend model tokens and need consent flags).</p>
+
+<h3>5.6 Backend testing</h3>
+<p><span class="mono">production.backend.test.ts</span> imports libraries directly (roles, scheme style, PDF page options, under-18, sanitiser, JWT secret, notice version). It does not boot Express. Controller branches (approve DPR, erase account, AP MSME fallback) are untested by this file.</p>
+
+<h3>5.7 Database testing</h3>
+<p>There is no dedicated database test suite, no migration test, and no fixture loader beyond the boot seeds and the live API test’s draft write. Mongoose models are exercised only when <span class="mono">test:api</span> or a manual session hits a real database. Recommend a scratch database for that command so it does not write into production.</p>
+
+<h3>5.8 Integration testing</h3>
+<p>Integration that exists:</p>
+<ul>
+  <li>Live API test: client-equivalent HTTP → API → MongoDB for login and draft save.</li>
+  <li>PDF smoke: document service → Chrome → PDF bytes.</li>
+  <li>Playwright: browser → UI → API, for the one consultant flow.</li>
+</ul>
+<p>Not integration-tested in repo: OpenAI, Twilio, Cloudinary, Hugging Face, and AP MSME. Those paths fail or mock when keys are absent. Do not treat a green <span class="mono">npm test</span> as proof that vendor calls work.</p>
+
+<h3>5.9 Authentication and authorization testing</h3>
+<p>Automated:</p>
+<ul>
+  <li>UI maps <span class="mono">admin</span> → super admin, <span class="mono">entrepreneur</span> → consultant, <span class="mono">officer</span> → govt official.</li>
+  <li><span class="mono">canCreateDpr</span> is false for govt official and true for consultant and super admin.</li>
+  <li><span class="mono">canAccessAdmin</span> is false for govt official.</li>
+  <li>Server <span class="mono">roleAllowed</span> denies a consultant on an admin allow-list and allows super admin when that string is in the list.</li>
+  <li>Scheme default save is allowed for super admin and legacy admin, denied for officer.</li>
+  <li>Live test: bad password rejected. Consultant cannot save a scheme default. Admin can.</li>
+  <li>Production JWT helper throws on a weak secret when <span class="mono">NODE_ENV</span> is production.</li>
+</ul>
+<p>Not automated: registration with a forged <span class="mono">role: admin</span>, officer calling draft save, token expiry, and consent-gate UI for a stale notice version (Playwright only accepts the notice if it appears).</p>
+
+<h3>5.10 Notification, email, and SMS testing</h3>
+<p>No automated test calls <span class="mono">NotifyService</span>. Expected manual result with vendor keys unset: an in-app notification row, a mock SMS line on the server, and a mock email line. With Twilio keys set, SMS can be sent for a retention warning only. Email cannot be integration-tested because no mailer is implemented. Do not file an email bug for “message not received” until SMTP exists.</p>
+
+<h3>5.11 Cross-browser testing</h3>
+<p>Playwright is configured (<span class="mono">client/playwright.config.ts</span>, base URL <span class="mono">http://localhost:5173</span> or <span class="mono">E2E_BASE_URL</span>). The committed spec does not declare a browser matrix. No Safari, Firefox, or mobile-device results are stored in the repo. The responsive script can drive Chrome. Treat cross-browser sign-off as not yet recorded.</p>
+
+<h3>5.12 Security testing</h3>
+<p>Automated security-related checks are the JWT production guard, the AI field sanitiser (Aadhaar, PAN, file URLs), the under-18 refusal, and the scheme-style role check. There is no dependency-audit script in package.json, no ZAP/Burp baseline, and no test that registration rejects <span class="mono">role: admin</span>. That last case should be added when the registration bug is fixed. A full penetration test is not in this repository.</p>
+
+<h3>5.13 User acceptance testing (UAT)</h3>
+<p>No UAT script, sign-off sheet, or acceptor name is stored in git. Suggested UAT scenarios for the receiving team, derived from the product, not from a completed cycle:</p>
+<ol>
+  <li>Register a consultant, accept the notice, leave AI off, and confirm fill-with-AI is blocked while typing and download still work.</li>
+  <li>Complete Scheme Finder for a PMEGP-like profile and open the matching individual DPR. Confirm the form is not prefilled from the questionnaire.</li>
+  <li>Save a draft, leave, and resume from the dashboard.</li>
+  <li>Style a report (page size, section hide, picture) and confirm the PDF matches the preview.</li>
+  <li>Switch the preview to Telugu on one scheme that has Telugu strings.</li>
+  <li>Sign in as govt official and confirm create actions are absent in the UI.</li>
+  <li>Sign in as admin, change a role, export the audit CSV, and open document upload.</li>
+  <li>Export personal data and submit a privacy complaint. Confirm the complaint is stored even though no email arrives.</li>
+</ol>
+
+<h3>5.14 Regression testing</h3>
+<p>The practical regression set is:</p>
+<ol>
+  <li><span class="mono">cd client &amp;&amp; npm test</span></li>
+  <li><span class="mono">cd server &amp;&amp; npm test</span></li>
+  <li>When the API and database are up: <span class="mono">npm run test:api</span> and <span class="mono">npm run test:pdf</span></li>
+  <li>When the UI is up: <span class="mono">npm run test:screens</span></li>
+</ol>
+<p>Run this set after changes to roles, scheme catalogs, the style editor, suggestion batching, PDF capture, or auth. Scheme content edits should also be checked against the matching file in <span class="mono">docs/schemes/</span>.</p>
+
+<h3>5.15 Bug and issue tracking</h3>
+<p>No issue tracker (Jira, GitHub Issues export, or similar) is vendored in the repository. Known issues for the next owner are the list in section 1.10 and the pending list in section 4.17. Fixing them should start a tracker the receiving team already uses. Do not treat this PDF as a live bug board.</p>
+
+<h3>5.16 Test execution history</h3>
+<p>The repository does not store test run logs, CI artifacts, dates, or pass/fail history. Git history shows feature work on individual DPR styling, suggestions, and responsive layout. It does not record that a suite was executed on a given day. Any earlier manual cycles lived outside this repo and are not recoverable from it.</p>
+
+<h3>5.17 Number of test cycles conducted or executed</h3>
+<p><strong>Recorded executed cycles: none in the repository.</strong> A cycle count cannot be stated honestly from git. What can be stated is the size of the suite that exists to be executed: <strong>49 automated cases</strong> across 6 files, plus manual UAT that has no sign-off record here.</p>
+<p>Recommendation: from the next release, keep a short log (date, commit, command, pass or fail, who ran it) in the team tracker. Re-run at least the client and server <span class="mono">npm test</span> commands on <span class="mono">b9be78a</span> as cycle 1 of the handover baseline, and attach the output there rather than pasting logs into user-facing screens.</p>
+
+<h2>Document control</h2>
+<table>
+  <tr><th>Item</th><th>Value</th></tr>
+  <tr><td>Title</td><td>MSME AI DPR — Project Handover Documentation</td></tr>
+  <tr><td>Date</td><td>8 October 2026</td></tr>
+  <tr><td>Branch / commit</td><td><span class="mono">feature/live_cust</span> / <span class="mono">b9be78a</span></td></tr>
+  <tr><td>Method</td><td>Written from the source tree. Behaviour that is only described in README and not present in code is marked as not implemented.</td></tr>
+  <tr><td>Next update</td><td>When hosting is chosen, when registration role-locking lands, or when DPDP Stage 4 contacts replace the mock grievance address.</td></tr>
+</table>
+
+</body>
+</html>

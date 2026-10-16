@@ -1,8 +1,11 @@
 // @ts-nocheck
+import { checkUploadFile } from '@/lib/security/fileGuard';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, Eye, EyeOff, GripVertical, ImagePlus, List, Maximize2, Palette, Plus, Type, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { ChevronDown, Eye, EyeOff, GripVertical, ImagePlus, Maximize2, Plus, Redo2, Type, Undo2, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { PageSheet } from '@/components/individual-dpr/PageSheet';
+import { IndividualDPRDocumentView } from '@/components/individual-dpr/IndividualDPRDocumentView';
+import { templateSpecimenDpr, templateSpecimenStyle } from '@/lib/individualDpr/templateSpecimen';
 import { useClusterFormText } from '@/lib/clusterDprFormText';
 import {
   FONT_CHOICES,
@@ -35,21 +38,6 @@ import {
 const PAGE_SIZES: PageSize[] = ['A4', 'A3', 'Letter', 'Legal'];
 const ROLE_KEYS = ['cover', 'sectionTitle', 'body', 'table', 'caption'] as const;
 
-function useFineHover() {
-  const [fine, setFine] = useState(() =>
-    typeof window !== 'undefined' &&
-    window.matchMedia('(hover: hover) and (pointer: fine)').matches
-  );
-  useEffect(() => {
-    const mq = window.matchMedia('(hover: hover) and (pointer: fine)');
-    const apply = () => setFine(mq.matches);
-    apply();
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
-  }, []);
-  return fine;
-}
-
 const ROLE_LABELS: Record<(typeof ROLE_KEYS)[number], string> = {
   cover: 'Cover',
   sectionTitle: 'Section title',
@@ -58,12 +46,11 @@ const ROLE_LABELS: Record<(typeof ROLE_KEYS)[number], string> = {
   caption: 'Caption',
 };
 
-function readImageFile(file: File): Promise<string> {
+async function readImageFile(file: File): Promise<string> {
+  // Only real PNG, JPEG or WebP pictures: the file's bytes are checked, not its name or declared type.
+  const verdict = await checkUploadFile(file, ['image']);
+  if (!verdict.ok) throw new Error('Choose a JPG, PNG or WebP picture.');
   return new Promise((resolve, reject) => {
-    if (!file.type.startsWith('image/')) {
-      reject(new Error('Choose an image file.'));
-      return;
-    }
     if (file.size > 350_000) {
       reject(new Error('Use an image under 350 KB.'));
       return;
@@ -111,6 +98,10 @@ export function StyleEditor({
   editNonce,
   editStepN,
   onEditSection,
+  tab = 'form',
+  onTab,
+  finalPreview,
+  stepsBar,
   children,
 }) {
   const tf = useClusterFormText();
@@ -120,23 +111,10 @@ export function StyleEditor({
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropHint, setDropHint] = useState(null);
   const [panel, setPanel] = useState(null);
-  const [sideTab, setSideTab] = useState('sections');
-  const [sideHover, setSideHover] = useState(false);
-  const [sidePinned, setSidePinned] = useState(false);
-  const fineHover = useFineHover();
-  const sideOpen = sideHover || sidePinned;
-
-  useEffect(() => {
-    if (!sideOpen) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setSidePinned(false);
-        setSideHover(false);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [sideOpen]);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewZoom, setPreviewZoom] = useState(0.8);
+  const [templatePreview, setTemplatePreview] = useState(null);
+  const previewBoxRef = useRef<HTMLDivElement>(null);
   const [openGroups, setOpenGroups] = useState({});
   const toggleGroup = (id) => setOpenGroups((current) => ({ ...current, [id]: !current[id] }));
   const [editStep, setEditStep] = useState(null);
@@ -167,7 +145,7 @@ export function StyleEditor({
     const startEdit = Math.max(paneWidths.edit, editFloor.current);
     const move = (moveEvent) => {
       const dx = moveEvent.clientX - startX;
-      if (key === 'edit') setPaneWidths({ edit: clampPane(startEdit - dx, editFloor.current, 720) });
+      if (key === 'edit') setPaneWidths({ edit: clampPane(startEdit + dx, editFloor.current, 720) });
     };
     const stop = () => {
       window.removeEventListener('pointermove', move);
@@ -214,7 +192,33 @@ export function StyleEditor({
     const observer = new ResizeObserver(() => applyFit());
     observer.observe(box);
     return () => observer.disconnect();
-  }, [style.pageSize, fitWidth, panel, sideOpen]);
+  }, [style.pageSize, fitWidth, panel, tab]);
+
+  const fitPreview = () => {
+    const box = previewBoxRef.current;
+    if (!box) return;
+    const probe = document.createElement('div');
+    probe.style.cssText = `width:${pageWidthMm(style.pageSize)}mm;height:0;position:absolute;visibility:hidden;pointer-events:none`;
+    box.appendChild(probe);
+    const pagePx = probe.offsetWidth;
+    box.removeChild(probe);
+    if (!pagePx) return;
+    const next = Math.min(1.35, Math.max(0.3, (box.clientWidth - 48) / pagePx));
+    setPreviewZoom(Math.round(next * 100) / 100);
+  };
+
+  useLayoutEffect(() => {
+    if (previewOpen) fitPreview();
+  }, [previewOpen, style.pageSize]);
+
+  useEffect(() => {
+    if (!previewOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPreviewOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [previewOpen]);
 
   const scrollLiveToSection = (step) => {
     const id = step?.id;
@@ -245,7 +249,10 @@ export function StyleEditor({
   useEffect(() => {
     if (!editNonce || editStepN == null) return;
     const step = steps.find((item) => item.n === editStepN);
-    if (step) openEdit(step);
+    if (step) {
+      openEdit(step);
+      onTab?.('form');
+    }
   }, [editNonce]);
 
   const commit = (next: DocumentStyle) => {
@@ -415,6 +422,9 @@ export function StyleEditor({
               type="button"
               className="text-red-700"
               title={tf('Delete')}
+              data-confirm-delete
+              data-confirm-title={tf('Delete this item?')}
+              data-confirm-body={tf('It will be removed from this section.')}
               onMouseDown={(event) => event.stopPropagation()}
               onClick={() => commit(removeSectionBlock(style, sectionId, block.id))}
             >
@@ -617,6 +627,9 @@ export function StyleEditor({
                   type="button"
                   className="rounded p-1 text-red-700 hover:bg-white"
                   title={tf('Delete section')}
+                  data-confirm-delete
+                  data-confirm-title={tf('Delete this section?')}
+                  data-confirm-body={tf('The section and everything you added to it will be removed.')}
                   onMouseDown={(event) => event.stopPropagation()}
                   onClick={() => commit(removeCustomSection(style, section.id))}
                 >
@@ -682,7 +695,7 @@ export function StyleEditor({
               <button
                 key={id}
                 type="button"
-                onClick={() => commit(applyPreset(style, id as DocPresetId))}
+                onClick={() => setTemplatePreview(id)}
                 className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
                   style.preset === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white'
                 }`}
@@ -983,31 +996,18 @@ export function StyleEditor({
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-100">
       <div className="flex flex-wrap items-center gap-2 border-b bg-white px-3 py-2">
-        <Button type="button" variant="ghost" size="sm" onClick={undo} disabled={historyTick < 0 || !past.current.length}>{tf('Undo')}</Button>
-        <Button type="button" variant="ghost" size="sm" onClick={redo} disabled={historyTick < 0 || !future.current.length}>{tf('Redo')}</Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            past.current = [];
-            future.current = [];
-            setHistoryTick((n) => n + 1);
-            onChange(defaultStyleForScheme(schemeCode));
-          }}
-        >
-          {tf('Reset')}
-        </Button>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>{tf('Close')}</Button>
+        <div className="order-2 w-full min-w-0 sm:order-1 sm:w-auto sm:flex-1">{stepsBar}</div>
+        <div className="order-1 ml-auto flex max-w-full flex-wrap items-center justify-end gap-1 sm:order-2 sm:shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:ml-1">
           {canSaveSchemeDefault ? (
-            <Button type="button" variant="outline" size="sm" onClick={onSaveSchemeDefault} disabled={saving || blocking}>
+            <Button type="button" variant="outline" size="sm" title={tf('Admin: makes this look the starting style for new DPRs of this scheme.')} onClick={onSaveSchemeDefault} disabled={saving || blocking}>
               {tf('Save as the scheme default')}
             </Button>
           ) : null}
-          <Button type="button" size="sm" onClick={onSave} disabled={saving || blocking}>
+          <Button type="button" size="sm" title={tf('Keeps this look (fonts, layout, sections) on this DPR only.')} onClick={onSave} disabled={saving || blocking}>
             {saving ? tf('Saving') : tf('Save on this DPR')}
           </Button>
+        </div>
         </div>
       </div>
       <div className="flex items-center gap-2 border-b bg-white px-3 py-2 lg:hidden">
@@ -1022,21 +1022,46 @@ export function StyleEditor({
             {tf('Fill & edit')}
           </Button>
         ) : null}
+        <Button type="button" variant="outline" size="sm" className="shrink-0 whitespace-nowrap" onClick={() => setPanel('sections')}>
+          {tf('Sections')}
+        </Button>
+        <Button type="button" variant="outline" size="sm" className="shrink-0 whitespace-nowrap" onClick={() => setPanel('style')}>
+          {tf('Style')}
+        </Button>
       </div>
       <div className="relative min-h-0 flex-1">
         <div className="flex h-full min-h-0">
-          <div className="relative flex h-full min-h-0 min-w-0 flex-1">
+          <div className="relative flex h-full min-h-0 min-w-0 flex-1 lg:flex-row-reverse">
             <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-            <div className="flex items-center justify-between gap-2 border-b bg-white/80 px-3 py-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-white/80 px-3 py-1.5">
               <div className="flex items-center gap-1">
-                <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { fitWidthRef.current = false; setFitWidth(false); setZoom((z) => Math.max(0.22, Math.round((z - 0.05) * 100) / 100)); }}>
+                <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" title={tf('Undo')} aria-label={tf('Undo')} onClick={undo} disabled={historyTick < 0 || !past.current.length}><Undo2 className="h-4 w-4" /></Button>
+                <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" title={tf('Redo')} aria-label={tf('Redo')} onClick={redo} disabled={historyTick < 0 || !future.current.length}><Redo2 className="h-4 w-4" /></Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  title={tf("Restore the scheme's original look.")}
+                  onClick={() => {
+                    past.current = [];
+                    future.current = [];
+                    setHistoryTick((n) => n + 1);
+                    onChange(defaultStyleForScheme(schemeCode));
+                  }}
+                >
+                  {tf('Reset')}
+                </Button>
+              </div>
+              <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+              <div className="flex items-center gap-1">
+                <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title={tf('Zoom out')} aria-label={tf('Zoom out')} onClick={() => { fitWidthRef.current = false; setFitWidth(false); setZoom((z) => Math.max(0.22, Math.round((z - 0.05) * 100) / 100)); }}>
                   <ZoomOut className="h-4 w-4" />
                 </Button>
                 <span className="w-10 text-center text-xs">{Math.round(zoom * 100)}%</span>
-                <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { fitWidthRef.current = false; setFitWidth(false); setZoom((z) => Math.min(1.35, Math.round((z + 0.05) * 100) / 100)); }}>
+                <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" title={tf('Zoom in')} aria-label={tf('Zoom in')} onClick={() => { fitWidthRef.current = false; setFitWidth(false); setZoom((z) => Math.min(1.35, Math.round((z + 0.05) * 100) / 100)); }}>
                   <ZoomIn className="h-4 w-4" />
                 </Button>
-                <Button type="button" variant="ghost" size="sm" className="h-7 whitespace-nowrap px-2 text-xs" onClick={() => { fitWidthRef.current = true; setFitWidth(true); }}>
+                <Button type="button" variant="ghost" size="sm" className="h-7 whitespace-nowrap px-2 text-xs" title={tf('Fit the page to the available width.')} onClick={() => { fitWidthRef.current = true; setFitWidth(true); }}>
                   {tf('Fit page')}
                 </Button>
                 <Button
@@ -1044,7 +1069,8 @@ export function StyleEditor({
                   variant="ghost"
                   size="sm"
                   className="h-7 shrink-0 gap-1 whitespace-nowrap px-2 text-xs"
-                  onClick={() => centerRef.current?.requestFullscreen?.()}
+                  title={tf('See the final document, read-only.')}
+                  onClick={() => setPreviewOpen(true)}
                 >
                   <Maximize2 className="h-4 w-4" />
                   {tf('Preview')}
@@ -1058,139 +1084,69 @@ export function StyleEditor({
                 <option value="english">{tf('English')}</option>
                 <option value="telugu" disabled={hasTelugu === false}>{tf('Telugu')}</option>
               </select>
+              </div>
             </div>
-            <div ref={centerRef} className="min-h-0 flex-1 overflow-auto bg-slate-100 p-3">
+            <div ref={centerRef} data-dpr-scroll className="min-h-0 flex-1 overflow-auto bg-slate-100 p-3">
               <div style={{ zoom }}>{sheet}</div>
             </div>
             </div>
-          {renderEditor ? paneHandle('edit') : null}
-          {renderEditor ? (
-            <div
-              ref={editPaneRef}
-              style={{
-                width: Math.max(paneWidths.edit, editFloor.current),
-                minWidth: editFloor.current,
-                maxWidth: 720,
-                flex: `0 0 ${Math.max(paneWidths.edit, editFloor.current)}px`,
-              }}
-              className="hidden h-full min-h-0 flex-col overflow-hidden border-l bg-white pt-3 lg:flex"
-            >
-              <div className="border-b px-3 py-2">
-                <p className="text-sm font-semibold">{tf('Fill & edit')}</p>
-                <p className="truncate text-xs text-slate-500">{tf((editStep || steps[0])?.title || '')}</p>
-              </div>
-              <div className="fill-edit-scroll min-h-0 flex-1 overflow-y-auto p-3">
-                {(editStep || steps[0]) ? renderEditor(editStep || steps[0]) : null}
-              </div>
+          {paneHandle('edit')}
+          <div
+            ref={editPaneRef}
+            style={{
+              width: Math.max(paneWidths.edit, editFloor.current),
+              minWidth: editFloor.current,
+              maxWidth: 720,
+              flex: `0 0 ${Math.max(paneWidths.edit, editFloor.current)}px`,
+            }}
+            className="hidden h-full min-h-0 flex-col overflow-hidden border-r bg-white lg:flex"
+          >
+            <div className="flex shrink-0 border-b" role="tablist">
+              {[
+                ['form', 'Form'],
+                ['sections', 'Sections'],
+                ['style', 'Style'],
+              ].map(([id, label]) => {
+                const selected = tab === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => onTab?.(id)}
+                    className={`flex-1 px-2 py-2.5 text-sm font-semibold ${
+                      selected ? 'border-b-2 border-teal-800 text-teal-900' : 'text-slate-500 hover:bg-slate-50'
+                    }`}
+                  >
+                    {tf(label)}
+                  </button>
+                );
+              })}
             </div>
-          ) : null}
+            <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
+            {tab === 'sections' || (tab === 'form' && !renderEditor) ? sectionsPanel : tab === 'style' ? stylePanel : (
+              <>
+                <div className="fill-edit-scroll min-h-0 flex-1 overflow-y-auto p-3">
+                  {(editStep || steps[0]) ? renderEditor(editStep || steps[0]) : null}
+                </div>
+              </>
+            )}
+            </div>
           </div>
-          {sidePinned ? (
-            <button
-              type="button"
-              aria-label={tf('Close')}
-              className="absolute inset-0 z-30 bg-black/20"
-              onClick={() => setSidePinned(false)}
-            />
-          ) : null}
-          <div className="relative z-40 h-full w-16 shrink-0">
-            <div
-              className="absolute inset-y-0 right-0 flex justify-end overflow-hidden border-l bg-white shadow-lg transition-[width] duration-200 ease-out"
-              style={{
-                width: sideOpen ? `calc(4rem + ${Math.max(paneWidths.edit, editFloor.current)}px)` : '4rem',
-                minWidth: sideOpen ? `calc(4rem + ${Math.max(paneWidths.edit, editFloor.current)}px)` : '4rem',
-                maxWidth: sideOpen ? `calc(4rem + ${Math.max(paneWidths.edit, editFloor.current)}px)` : '4rem',
-              }}
-              onMouseEnter={() => {
-                if (fineHover) setSideHover(true);
-              }}
-              onMouseLeave={() => {
-                if (fineHover) {
-                  setSideHover(false);
-                  setSidePinned(false);
-                }
-              }}
-              onFocus={() => setSideHover(true)}
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) setSideHover(false);
-              }}
-            >
-              <div
-                className="flex h-full min-h-0 shrink-0"
-                style={{ width: `calc(4rem + ${Math.max(paneWidths.edit, editFloor.current)}px)` }}
-              >
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <div className="flex shrink-0 border-b" role="tablist">
-                    {[
-                      ['sections', 'Sections'],
-                      ['style', 'Style'],
-                    ].map(([id, label]) => {
-                      const selected = sideTab === id;
-                      return (
-                        <button
-                          key={id}
-                          type="button"
-                          role="tab"
-                          aria-selected={selected}
-                          onClick={() => setSideTab(id)}
-                          className={`flex-1 px-2 py-2.5 text-sm font-semibold ${
-                            selected ? 'border-b-2 border-teal-800 text-teal-900' : 'text-slate-500 hover:bg-slate-50'
-                          }`}
-                        >
-                          {tf(label)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="min-h-0 flex-1 overflow-hidden">
-                    {sideTab === 'sections' ? sectionsPanel : stylePanel}
-                  </div>
-                </div>
-                <div className="flex h-full w-16 shrink-0 flex-col border-l bg-white">
-                  <button
-                    type="button"
-                    title={tf('Sections')}
-                    aria-label={tf('Sections')}
-                    aria-pressed={sideTab === 'sections'}
-                    onClick={() => {
-                      setSideTab('sections');
-                      if (!fineHover) setSidePinned(true);
-                    }}
-                    className={`flex h-11 w-16 items-center justify-center ${
-                      sideTab === 'sections' ? 'text-teal-900' : 'text-slate-500 hover:bg-slate-50'
-                    }`}
-                  >
-                    <List className="h-5 w-5" />
-                  </button>
-                  <button
-                    type="button"
-                    title={tf('Style')}
-                    aria-label={tf('Style')}
-                    aria-pressed={sideTab === 'style'}
-                    onClick={() => {
-                      setSideTab('style');
-                      if (!fineHover) setSidePinned(true);
-                    }}
-                    className={`flex h-11 w-16 items-center justify-center ${
-                      sideTab === 'style' ? 'text-teal-900' : 'text-slate-500 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Palette className="h-5 w-5" />
-                  </button>
-                  <button
-                    type="button"
-                    className="mb-2 mt-auto flex h-11 w-16 items-center justify-center text-slate-600 hover:bg-slate-50"
-                    aria-expanded={sideOpen}
-                    aria-label={sideOpen ? tf('Collapse') : tf('Expand')}
-                    onClick={() => setSidePinned((pinned) => !pinned)}
-                  >
-                    <ChevronRight className={`h-5 w-5 transition-transform ${sideOpen ? '' : 'rotate-180'}`} />
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
+        {(panel === 'sections' || panel === 'style') ? (
+          <div className="absolute inset-y-0 left-0 z-30 flex w-[min(40rem,92%)] max-w-full flex-col border-r bg-white shadow-xl lg:hidden">
+            <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
+              <p className="min-w-0 truncate text-sm font-semibold">{tf(panel === 'sections' ? 'Sections' : 'Style')}</p>
+              <button type="button" className="shrink-0 text-xs font-medium text-slate-600" onClick={() => setPanel(null)}>
+                {tf('Close')}
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">{panel === 'sections' ? sectionsPanel : stylePanel}</div>
+          </div>
+        ) : null}
         {panel === 'edit' && editStep && renderEditor ? (
           <div className="absolute inset-y-0 left-0 z-30 flex w-[min(40rem,92%)] max-w-full flex-col border-r bg-white shadow-xl lg:hidden">
             <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
@@ -1205,8 +1161,46 @@ export function StyleEditor({
           </div>
         ) : null}
       </div>
+      {previewOpen && (
+        <div className="motion-overlay fixed inset-0 z-[70] bg-slate-900/50">
+          <div className="flex h-full min-h-0 flex-col bg-slate-100">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-white px-4 py-2">
+              <div>
+                <p className="text-sm font-semibold">{tf('Final preview')}</p>
+                <p className="text-xs text-slate-500">{tf('Read only. This is how the DPR will print: only the answers you filled in.')}</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={tf('Zoom out')} onClick={() => setPreviewZoom((z) => Math.max(0.3, Math.round((z - 0.05) * 100) / 100))}>
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <span className="w-10 text-center text-xs">{Math.round(previewZoom * 100)}%</span>
+                <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={tf('Zoom in')} onClick={() => setPreviewZoom((z) => Math.min(1.35, Math.round((z + 0.05) * 100) / 100))}>
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+                <Button type="button" variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={fitPreview}>{tf('Fit page')}</Button>
+                <Button type="button" size="sm" className="ml-2" onClick={() => setPreviewOpen(false)}>
+                  <X className="mr-1 h-4 w-4" />
+                  {tf('Close preview')}
+                </Button>
+              </div>
+            </div>
+            <div ref={previewBoxRef} className="min-h-0 flex-1 overflow-auto p-6">
+              <div style={{ zoom: previewZoom }}>
+                <PageSheet
+                  pageSize={style.pageSize}
+                  edgeTopMm={pageEdgeMm(style.marginMm.top)}
+                  edgeBottomMm={pageEdgeMm(style.marginMm.bottom)}
+                  className="mx-auto shadow-lg"
+                >
+                  {finalPreview}
+                </PageSheet>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {pendingPictures[0] ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+        <div className="motion-overlay fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
           <form
             className="w-full max-w-sm rounded-lg bg-white p-4 shadow-xl"
             onSubmit={(event) => {
@@ -1255,7 +1249,7 @@ export function StyleEditor({
         </div>
       ) : null}
       {deletePictureId ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+        <div className="motion-overlay fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
           <div className="w-full max-w-sm rounded-lg bg-white p-4 shadow-xl">
             <p className="text-sm font-semibold">{tf('Delete this image?')}</p>
             <p className="mt-1 text-xs text-slate-500">
@@ -1277,6 +1271,42 @@ export function StyleEditor({
                 {tf('Delete')}
               </Button>
             </div>
+          </div>
+        </div>
+      ) : null}
+      {templatePreview ? (
+        <div className="fixed inset-0 z-[80] flex flex-col bg-slate-900/50" role="dialog" aria-modal="true" aria-label={tf(PRESET_LABELS[templatePreview])}>
+          <div className="flex shrink-0 items-center justify-between gap-3 bg-white px-4 py-3 shadow">
+            <p className="min-w-0 truncate text-sm font-semibold">{tf(PRESET_LABELS[templatePreview])}</p>
+            <div className="flex shrink-0 gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setTemplatePreview(null)}>
+                {tf('Cancel')}
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  commit(applyPreset(style, templatePreview));
+                  setTemplatePreview(null);
+                }}
+              >
+                {tf('Use this theme')}
+              </Button>
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-auto p-6">
+            <PageSheet
+              pageSize="A4"
+              edgeTopMm={pageEdgeMm(16)}
+              edgeBottomMm={pageEdgeMm(16)}
+              className="mx-auto shadow-lg"
+            >
+              <IndividualDPRDocumentView
+                dpr={templateSpecimenDpr(schemeCode)}
+                documentStyle={templateSpecimenStyle(style, templatePreview, schemeCode)}
+              />
+            </PageSheet>
           </div>
         </div>
       ) : null}

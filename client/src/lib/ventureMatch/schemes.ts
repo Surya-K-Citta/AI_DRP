@@ -870,8 +870,8 @@ export const SCHEMES: SchemeRule[] = [
         test: (a) => {
           if (!a.supportType && !a.qualityGoal) return 'unknown';
           if (a.supportType === 'certification' || a.qualityGoal === 'zed') return 'pass';
-          if (a.qualityGoal && a.qualityGoal !== 'zed') return 'fail';
-          if (a.supportType && a.supportType !== 'certification') return 'fail';
+          if (a.qualityGoal) return 'fail';
+          if (a.supportType) return 'fail';
           return 'unknown';
         },
       },

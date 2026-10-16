@@ -37,6 +37,12 @@ export function canAccessAdmin(role?: string | null): boolean {
   return isSuperAdmin(role);
 }
 
+/** District Reviewers and APMSMEDC Admins can open the review queue. The server enforces this too (403). */
+export function canReview(role?: string | null): boolean {
+  const appRole = toAppRole(role);
+  return appRole === 'govt_official' || appRole === 'super_admin';
+}
+
 export const ROLE_META: Record<
   AppRole,
   {

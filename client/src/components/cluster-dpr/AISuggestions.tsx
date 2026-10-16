@@ -643,7 +643,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
 
   const handleApplySuggestion = async (suggestion: AISuggestion) => {
     if (!suggestion.field) {
-      toast.error('Field name is missing');
+      toast.error(tf('Field name is missing'));
       return;
     }
 
@@ -673,7 +673,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
       }
 
       if (parsedContent === null) {
-        toast.error(`Could not extract value for ${suggestion.field}. Please try again.`);
+        toast.error(tf('Could not extract value for {n1}. Please try again.').replace('{n1}', tf(fieldLabel(suggestion.field))));
         return;
       }
 
@@ -686,7 +686,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
             port: parsedContent.port || '',
           };
         } else {
-          toast.error('Connectivity data format is invalid. Please try again.');
+          toast.error(tf('Connectivity data format is invalid. Please try again.'));
           return;
         }
       }
@@ -694,7 +694,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
       if (schemeExtraFields.includes(suggestion.field)) {
         if (onApplySuggestion) onApplySuggestion(suggestion.field, finalContent);
         markAiStep();
-        toast.success(`Applied AI suggestion to ${suggestion.field}`);
+        toast.success(tf('Applied AI suggestion to {n1}').replace('{n1}', tf(fieldLabel(suggestion.field))));
         return;
       }
 
@@ -711,10 +711,10 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
       }
 
       markAiStep();
-      toast.success(`Applied AI suggestion to ${suggestion.field}`);
+      toast.success(tf('Applied AI suggestion to {n1}').replace('{n1}', tf(fieldLabel(suggestion.field))));
     } catch (error) {
       console.error('Error applying suggestion:', error);
-      toast.error('Failed to apply suggestion');
+      toast.error(tf('Failed to apply suggestion'));
     } finally {
       setApplyingFields(prev => {
         const newSet = new Set(prev);
@@ -730,7 +730,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
 
     const validSuggestions = suggestions.filter((s) => !!s.field);
     if (validSuggestions.length === 0) {
-      toast.error('No applicable suggestions found.');
+      toast.error(tf('No applicable suggestions found.'));
       return;
     }
 
@@ -825,13 +825,13 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
       }
 
       if (appliedCount === 0) {
-        toast.error('Could not apply any suggestions. Try again.');
+        toast.error(tf('Could not apply any suggestions. Try again.'));
         return;
       }
 
       setStepData(currentStep, updatedStepData);
       markAiStep();
-      toast.success(`Applied ${appliedCount} suggestion${appliedCount !== 1 ? 's' : ''}`);
+      toast.success(tf(appliedCount !== 1 ? 'Applied {n} suggestions' : 'Applied {n} suggestion').replace('{n}', String(appliedCount)));
     } finally {
       setApplyingAll(false);
       setApplyingFields(new Set());
@@ -872,7 +872,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
       regenTarget &&
       createPortal(
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6"
+          className="motion-overlay fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6"
           role="dialog"
           aria-modal="true"
           aria-labelledby="regen-suggestion-title"
@@ -977,7 +977,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
                 <li key={f.name}>{f.label}</li>
               ))}
               {stepCatalogFields.length > 12 && (
-                <li>+{stepCatalogFields.length - 12} more</li>
+                <li>{tf('+{n} more').replace('{n}', String(stepCatalogFields.length - 12))}</li>
               )}
             </ul>
           </div>
@@ -1166,9 +1166,9 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
 
     return (
       <div className="mb-4 p-4 bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <Sparkles className="h-5 w-5 shrink-0 text-primary" />
             <div>
               <p className="text-sm font-semibold text-gray-900">{tf('Get AI Suggestions')}</p>
               <p className="text-xs text-muted-foreground">
@@ -1232,7 +1232,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
               <Sparkles className="h-5 w-5 text-primary" />
               <span className="font-semibold text-sm">{tf('AI Suggestions')}</span>
               <span className="text-xs text-muted-foreground">
-                ({suggestions.length} suggestion{suggestions.length !== 1 ? 's' : ''})
+                ({suggestions.length} {tf(suggestions.length !== 1 ? 'suggestions' : 'suggestion')})
               </span>
             </div>
             {expanded ? (
@@ -1245,7 +1245,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
             onClick={handleGenerateSuggestions}
             disabled={loading}
             className="ml-2 px-3 py-1.5 text-xs bg-primary/10 text-primary rounded-lg hover:bg-primary/20 disabled:opacity-50 transition-colors flex items-center gap-1"
-            title="Regenerate suggestions"
+            title={tf('Regenerate suggestions')}
           >
             <Sparkles className="h-3 w-3" />
             {tf('Regenerate')}
@@ -1254,7 +1254,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
             onClick={handleApplyAllSuggestions}
             disabled={loading || applyingAll}
             className="ml-2 px-3 py-1.5 text-xs bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-            title="Apply all suggestions"
+            title={tf('Apply all suggestions')}
           >
             {applyingAll ? (
               <>
@@ -1284,7 +1284,7 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({
                     <div className="flex-1">
                       {suggestion.field && (
                         <p className="text-xs font-semibold text-primary mb-1">
-                          {fieldLabel(suggestion.field)}:
+                          {tf(fieldLabel(suggestion.field))}:
                         </p>
                       )}
                       <SuggestionValue

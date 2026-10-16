@@ -1,4 +1,5 @@
-import { OWNER_EXCLUSIVE_TAGS, QuestionId } from './types';
+import { QuestionId } from './types';
+import { sanitizeOwnerTags } from './ownerSelection';
 
 export type HelpLang = 'en' | 'te';
 
@@ -388,6 +389,7 @@ const ownerGuide: QuestionHelpGuide = {
     if (cat !== 'general') tags.push(cat);
     if (has(replyIds, 'transgender') || has(replyIds, 'bothBoost')) tags.push('transgender');
     if (has(replyIds, 'exServiceman') || has(replyIds, 'bothBoost')) tags.push('exServiceman');
+    if (has(replyIds, 'notWoman') && cat === 'general') tags.push('generalMale');
     if (!tags.length) return ['generalMale'];
     return tags;
   },
@@ -764,7 +766,7 @@ const marketGuide: QuestionHelpGuide = {
   },
 };
 
-export const HELP_GUIDES: Record<QuestionId, QuestionHelpGuide> = {
+export const HELP_GUIDES: Partial<Record<QuestionId, QuestionHelpGuide>> = {
   activity: activityGuide,
   stage: stageGuide,
   budget: budgetGuide,
@@ -787,6 +789,8 @@ export function getHelpGuide(questionId: QuestionId): QuestionHelpGuide {
       questionId,
       apRuleNotes: 'Answer based on what you need from government support.',
       clarifyingQuestions: [],
+      mapToOption: () => null,
+      nextQuestionIndex: () => null,
     }
   );
 }
@@ -812,11 +816,7 @@ export function filterBudgetNarrowReplies(
 }
 
 export function sanitizeOwnerOptionIds(optionIds: string[]): string[] {
-  const exclusive = optionIds.find((id) =>
-    (OWNER_EXCLUSIVE_TAGS as string[]).includes(id)
-  );
-  if (exclusive) return [exclusive];
-  return optionIds.filter((id) => !(OWNER_EXCLUSIVE_TAGS as string[]).includes(id));
+  return sanitizeOwnerTags(optionIds);
 }
 
 export function guideScriptForPrompt(questionId: QuestionId): string {

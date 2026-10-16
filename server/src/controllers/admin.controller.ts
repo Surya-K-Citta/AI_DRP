@@ -10,7 +10,9 @@ import { Policy } from '../models/Policy.model';
 import { MLService } from '../services/ml.service';
 import { AuditEvent } from '../models/AuditEvent.model';
 import { AuditService } from '../services/audit.service';
+import { verifyAuditChain } from '../lib/auditChain';
 import { eraseAccount } from '../services/accountErase.service';
+import { isRole, ROLES } from '../lib/rbac';
 
 export class AdminController {
   /**
@@ -326,7 +328,7 @@ export class AdminController {
       }
 
       const users = await User.find(filter)
-        .select('-passwordHash')
+        .select('-passwordHash -invite.tokenHash')
         .sort({ createdAt: -1 })
         .limit(Number(limit))
         .skip((Number(page) - 1) * Number(limit));
@@ -449,7 +451,7 @@ export class AdminController {
   static async updateUser(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { name, email, role, location, phoneNumber, udyamNumber } = req.body;
+      const { name, email, role, location, phoneNumber, udyamNumber, reviewDistrict } = req.body;
 
       // Prevent admin from changing their own role
       if (id === req.user?.userId && role && role !== req.user?.role) {
@@ -460,15 +462,53 @@ export class AdminController {
         return;
       }
 
+      if (role !== undefined && !isRole(role)) {
+        res.status(400).json({
+          success: false,
+          message: `Role must be one of: ${ROLES.join(', ')}`,
+        });
+        return;
+      }
+
+      const existing: any = await User.findById(id).select('role reviewDistrict');
+      if (!existing) {
+        res.status(404).json({ success: false, message: 'User not found' });
+        return;
+      }
+      const nextRole = role ?? existing.role;
+      const nextDistrict =
+        reviewDistrict !== undefined ? String(reviewDistrict || '').trim() : existing.reviewDistrict || '';
+      if (nextRole === 'officer' && !nextDistrict) {
+        res.status(400).json({
+          success: false,
+          message: 'A District Reviewer must be assigned a district',
+        });
+        return;
+      }
+
       const updateData: any = {};
       if (name) updateData.name = name;
       if (email) updateData.email = email;
       if (role) updateData.role = role;
+      // Only reviewers carry a district; clear it for every other role.
+      if (nextRole === 'officer') updateData.reviewDistrict = nextDistrict;
+      else if (existing.reviewDistrict) updateData.reviewDistrict = null;
       if (location !== undefined) updateData.location = location;
       if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
       if (udyamNumber !== undefined) updateData.udyamNumber = udyamNumber;
 
-      const user = await User.findByIdAndUpdate(id, updateData, { new: true }).select('-passwordHash');
+      if (role && role !== existing.role) {
+        await AuditService.log({
+          action: 'role_change',
+          userId: req.user?.userId,
+          role: req.user?.role,
+          targetType: 'user',
+          targetId: `${id}:${existing.role}->${role}`,
+          req,
+        });
+      }
+
+      const user = await User.findByIdAndUpdate(id, updateData, { new: true }).select('-passwordHash -invite.tokenHash');
 
       if (!user) {
         res.status(404).json({
@@ -477,6 +517,20 @@ export class AdminController {
         });
         return;
       }
+
+      await AuditService.log({
+        action: 'user_update',
+        userId: req.user?.userId,
+        role: req.user?.role,
+        targetType: 'user',
+        targetId: id,
+        payload: {
+          changed: Object.keys(updateData),
+          role: updateData.role ? { from: existing.role, to: updateData.role } : undefined,
+          reviewDistrict: 'reviewDistrict' in updateData ? { from: existing.reviewDistrict || null, to: updateData.reviewDistrict || null } : undefined,
+        },
+        req,
+      });
 
       res.status(200).json({
         success: true,
@@ -984,6 +1038,18 @@ export class AdminController {
     }
   }
 
+  /** Re-computes the hash chain and says whether any audit event was changed, removed or inserted. */
+  static async verifyAudit(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const verdict = await verifyAuditChain();
+      await AuditService.log({ action: 'audit_verify', userId: req.user?.userId, role: req.user?.role, payload: { ok: verdict.ok, checked: verdict.checked, problem: verdict.problem }, req });
+      res.status(200).json({ success: true, data: verdict });
+    } catch (error: any) {
+      console.error('Verify audit error:', error);
+      res.status(500).json({ success: false, message: 'Could not verify the audit log' });
+    }
+  }
+
   static async exportAuditCsv(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { userId, action, from, to } = req.query;
@@ -1000,14 +1066,17 @@ export class AdminController {
       const events = await AuditEvent.find(filter).sort({ at: -1 }).limit(5000).lean();
 
       const escape = (value: unknown) => {
-        const text = value == null ? '' : String(value);
+        let text = value == null ? '' : String(value);
+        // A cell that starts with = + - @ would run as a formula when opened in a spreadsheet.
+        if (/^[=+\-@\t\r]/.test(text) && !/^-?\d+(\.\d+)?$/.test(text)) text = `'${text}`;
         if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
         return text;
       };
 
-      const header = ['at', 'userId', 'role', 'action', 'targetType', 'targetId', 'ip'];
-      const rows = events.map((event) =>
+      const header = ['seq', 'at', 'userId', 'role', 'action', 'targetType', 'targetId', 'ip', 'payload', 'hash'];
+      const rows = events.map((event: any) =>
         [
+          event.seq,
           event.at ? new Date(event.at).toISOString() : '',
           event.userId,
           event.role,
@@ -1015,12 +1084,15 @@ export class AdminController {
           event.targetType,
           event.targetId,
           event.ip,
+          event.payload ? JSON.stringify(event.payload) : '',
+          event.hash,
         ]
           .map(escape)
           .join(',')
       );
       const csv = [header.join(','), ...rows].join('\n');
 
+      await AuditService.log({ action: 'audit_export', userId: req.user?.userId, role: req.user?.role, payload: { rows: events.length, action, from, to }, req });
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename="audit-log.csv"');
       res.status(200).send(csv);

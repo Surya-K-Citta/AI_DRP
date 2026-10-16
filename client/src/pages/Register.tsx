@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLinkHandler } from '@/lib/linkUtils';
@@ -10,15 +11,15 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Sparkles, ArrowRight, CheckCircle, Building2 } from 'lucide-react';
-import { RolePicker } from '@/components/auth/RolePicker';
 import { ConsentFields, ConsentValues } from '@/components/privacy/ConsentFields';
 import { GuardianNotice } from '@/components/privacy/GuardianNotice';
 import { ageFromDob } from '@/lib/privacy/under18';
 import { PRIVACY_NOTICE_VERSION, UNDER_18_CODE } from '@/lib/privacy/constants';
-import { toBackendRole, type AppRole } from '@/lib/rbac';
 
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 export const Register: React.FC = () => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const navigate = useNavigate();
   const handleLinkClick = useLinkHandler();
   const { login } = useAuthStore();
@@ -33,7 +34,6 @@ export const Register: React.FC = () => {
     location: '',
     udyamNumber: '',
     dateOfBirth: '',
-    role: 'consultant' as AppRole,
   });
   const [consent, setConsent] = useState<ConsentValues>({
     accountConsent: false,
@@ -100,7 +100,6 @@ export const Register: React.FC = () => {
     try {
       const response = await api.register({
         ...formData,
-        role: toBackendRole(formData.role),
         accountConsent: consent.accountConsent,
         aiAssist: consent.aiAssist,
         analytics: consent.analytics,
@@ -121,13 +120,16 @@ export const Register: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 py-12">
+      <div className="fixed right-4 top-4 z-50">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-lg">
         {/* Logo and Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-4">
             <img 
-              src="/apmsme_logo.png" 
-              alt="APMSME Logo" 
+              src="/apmsme_logo_192.png" 
+              alt={tf('APMSME Logo')} 
               className="h-20 w-auto object-contain"
             />
           </div>
@@ -145,21 +147,14 @@ export const Register: React.FC = () => {
             <CardDescription className="text-center">
               {t('auth.fillDetails')}
             </CardDescription>
-            <p className="text-center text-xs text-muted-foreground mt-2">
-              {t('auth.chooseRole')}
-            </p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <RolePicker
-                value={formData.role}
-                onChange={(role) => setFormData({ ...formData, role })}
-              />
               <div className="grid md:grid-cols-2 gap-4">
                 <Input
                   label={t('auth.name')}
                   type="text"
-                  placeholder="John Doe"
+                  placeholder={tf('John Doe')}
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
@@ -216,7 +211,7 @@ export const Register: React.FC = () => {
                 <Input
                   label={t('auth.location')}
                   type="text"
-                  placeholder="Hyderabad, Telangana"
+                  placeholder={tf('Hyderabad, Telangana')}
                   value={formData.location}
                   onChange={(e) =>
                     setFormData({ ...formData, location: e.target.value })

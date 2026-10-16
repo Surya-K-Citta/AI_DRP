@@ -12,6 +12,7 @@ import {
 } from '@/lib/individualDpr/schemeFormConfig';
 import { getSchemeSteps, type SchemeStepDef } from '@/lib/individualDpr/schemeStepCatalog';
 import { getUnitName } from '@/lib/individualDpr/toIndividualPayload';
+import { kindLabel, type BusinessKind } from '@/lib/individualDpr/businessKind';
 import { SVANIDHI_PROOF_OPTIONS, SVANIDHI_TRANCHE_OPTIONS, SVANIDHI_VENDING_OPTIONS } from '@/lib/individualDpr/svanidhiQuestions';
 import { VISHWAKARMA_TRAINING_OPTIONS, VISHWAKARMA_TRANCHE_OPTIONS, VISHWAKARMA_WORKPLACE_OPTIONS, VISHWAKARMA_YES_NO_OPTIONS } from '@/lib/individualDpr/vishwakarmaQuestions';
 import { PMEGP_AGENCY_OPTIONS, PMEGP_AREA_OPTIONS, PMEGP_CATEGORY_OPTIONS, PMEGP_EDUCATION_OPTIONS } from '@/lib/individualDpr/pmegpQuestions';
@@ -84,6 +85,17 @@ export const LEAN_UNIT_CODES = new Set([
 ]);
 
 export const EXTRA_FIELD_LABELS: Record<string, string> = {
+  yearsInOperation: 'Years in operation',
+  existingTurnover: 'Existing annual turnover',
+  existingLimit: 'Existing credit limit',
+  experienceYears: 'Experience (years)',
+  priorSanctionAmount: 'Prior sanction amount',
+  marginMoneyAdjusted: 'Margin money already adjusted',
+  yearsProfitable: 'Years of profit',
+  sectorBand: 'Sector band',
+  rawMaterialSources: 'Raw material sources',
+  udyamStatus: 'Udyam status',
+  loanAmountSought: 'Loan amount sought',
   directEmployment: 'Direct employment (count)',
   indirectEmployment: 'Indirect employment (count)',
   impactNote: 'Short impact note',
@@ -299,7 +311,29 @@ export function isLeanUnitScheme(code?: string | null): boolean {
 }
 
 /** Fields asked on a content-step bucket for this scheme. */
+/** Fields for a section, adjusted for the kind of business: machinery tables for manufacturing, an asset list otherwise. */
 export function getIndividualDocFields(
+  contentStep: number,
+  schemeCode?: string | null,
+  budget?: Budget,
+  kind: BusinessKind = 'manufacturing'
+): IndividualDocField[] {
+  const base = getIndividualDocFieldsBase(contentStep, schemeCode, budget);
+  if (contentStep !== 12 && kind === 'manufacturing') return base;
+  const cmep = schemeCode === 'AP_CMEP';
+  const out: IndividualDocField[] = [];
+  for (const field of base) {
+    if (kind !== 'manufacturing' && field.name === 'machineryItems' && !cmep) continue;
+    out.push(kind === 'manufacturing' ? field : { ...field, label: kindLabel(field.label, kind) });
+    if (contentStep === 12 && field.name === 'machinery' && !cmep) {
+      if (kind === 'manufacturing' && !base.some((f) => f.name === 'machineryItems')) out.push(stepField('machineryItems', 'Machinery list', 12));
+      if (kind !== 'manufacturing') out.push(stepField('assetItems', 'Assets list', 12));
+    }
+  }
+  return out;
+}
+
+function getIndividualDocFieldsBase(
   contentStep: number,
   schemeCode?: string | null,
   budget?: Budget
@@ -523,6 +557,10 @@ export function getIndividualDocFields(
         stepField('spvName', 'Firm / proprietor name', 11),
         stepField('legalStatus', 'Legal status', 11),
         stepField('address', 'Correspondence address', 11),
+        stepField('gstin', 'GSTIN', 11),
+        stepField('firmPan', 'Firm PAN', 11),
+        stepField('udyamNumber', 'Udyam registration number', 11),
+        stepField('applicantMobile', 'Contact mobile number', 11),
       ];
       if (schemeCode === 'AP_CMEP') fields.push(stepField('promoters', 'Promoters', 11));
       return fields;
@@ -534,6 +572,10 @@ export function getIndividualDocFields(
       stepField('submittedTo', 'Submitted To', 11),
       stepField('objectives', 'Objectives', 11),
       stepField('boardOfDirectors', 'Owner(s)', 11),
+      stepField('gstin', 'GSTIN', 11),
+      stepField('firmPan', 'Firm PAN', 11),
+      stepField('udyamNumber', 'Udyam registration number', 11),
+      stepField('applicantMobile', 'Contact mobile number', 11),
     ];
   }
 

@@ -172,6 +172,8 @@ Rows still store time, userId, role, action, optional targetType/targetId, IP. *
 
 | Env | Default | Meaning |
 |-----|---------|---------|
+> A blank value (for example `RETENTION_IDLE_DAYS=` in `.env`) counts as not set and uses the default. Only an explicit `0` means “right now”; never leave these keys blank-but-present expecting a default on older builds, where a blank read as 0.
+
 | `RETENTION_IDLE_DAYS` | 365 (12 months) | Delete after last **edit** of that DPR (`updatedAt`). Draft **and** submitted. |
 | `RETENTION_WARNING_DAYS` | **15** | Warn this many days **before** that delete |
 | `AUDIT_RETENTION_DAYS` | **730** (24 months) | Delete **that** audit row 24 months after it was written |
@@ -185,6 +187,10 @@ Rows still store time, userId, role, action, optional targetType/targetId, IP. *
 `NotifyService` is the Twilio plug. Do not add the Twilio SDK until those keys exist.
 
 ---
+
+### Sign-out clears the session
+
+`logout` in `authStore` calls `clearUserSession()` (`client/src/lib/sessionReset.ts`): the draft on screen, cached DPR / project lists, the chat and cached API answers are dropped, so nothing from one person’s session shows for the next on the same browser. Automatic draft saves count as edits for the 12-month retention clock (a save updates the DPR’s last-edit time).
 
 ## 5. Key files
 
@@ -364,3 +370,7 @@ We may say: we do not keep identity scans or cluster photos as public links; unu
 
 We must **not** say: legal compliance is complete. We must **not** say we comply with DPDP.
 
+
+## Firm PAN field
+
+The optional `firmPan` accepts company/firm PANs only. Individual PANs (4th letter P) are rejected client-side and stripped server-side in `sanitizeStoredPayload`.

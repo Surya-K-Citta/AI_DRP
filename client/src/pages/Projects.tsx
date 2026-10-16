@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useProjectStore } from '@/store/projectStore';
@@ -11,11 +12,12 @@ import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Plus, Search, Trash2, Edit, FileText, Building2, Sparkles, ArrowRight, Users } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, FileText, Building2, Sparkles, ArrowRight, Users, Wand2 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export const Projects: React.FC = () => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const isAdmin = isSuperAdmin(user?.role);
@@ -51,8 +53,6 @@ export const Projects: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('projects.areYouSureDelete'))) return;
-
     try {
       await api.deleteProject(id);
       deleteProject(id);
@@ -71,9 +71,9 @@ export const Projects: React.FC = () => {
     <Layout>
       <div className="space-y-8 pb-8">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
               {isAdmin ? t('projects.allProjects') : t('projects.title')}
             </h1>
             <p className="text-muted-foreground text-lg">
@@ -83,7 +83,7 @@ export const Projects: React.FC = () => {
               }
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <Button 
               variant="outline" 
               onClick={() => navigate('/venture-match')}
@@ -98,7 +98,15 @@ export const Projects: React.FC = () => {
               className="border-2"
             >
               <FileText className="h-4 w-4 mr-2" />
-              Create DPR
+              {tf('Create DPR')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/individual-dpr/guide')}
+              className="border-2"
+            >
+              <Wand2 className="h-4 w-4 mr-2" />
+              {t('reportGuide.open')}
             </Button>
             <Button 
               onClick={() => navigate('/projects/create')}
@@ -161,7 +169,7 @@ export const Projects: React.FC = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="motion-stagger grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProjects.map((project) => (
               <Card 
                 key={project._id} 
@@ -186,7 +194,7 @@ export const Projects: React.FC = () => {
                   </div>
                   <CardTitle className="text-xl mb-1">{project.projectName}</CardTitle>
                   <CardDescription className="text-base">
-                    {project.industrySector}
+                    {tf(String(project.industrySector ?? ''))}
                   </CardDescription>
                   {isAdmin && project.userId && (
                     <div className="flex items-center gap-2 mt-2">
@@ -214,7 +222,7 @@ export const Projects: React.FC = () => {
                   <p className="text-xs text-muted-foreground">
                     {t('projects.created')} {formatDate(project.createdAt)}
                   </p>
-                  <div className="flex gap-2 pt-2 border-t">
+                  <div className="flex flex-wrap gap-2 pt-2 border-t">
                     <Button
                       variant="outline"
                       size="sm"
@@ -229,15 +237,27 @@ export const Projects: React.FC = () => {
                       size="sm"
                       className="flex-1 border-2 hover:bg-secondary/5 hover:border-secondary"
                       onClick={() => navigate('/individual-dpr/create?new=true')}
-                      title="Create DPR"
+                      title={tf('Create DPR')}
                     >
                       <FileText className="h-4 w-4 mr-1" />
                       DPR
                     </Button>
                     <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 border-2"
+                      onClick={() => navigate('/individual-dpr/guide')}
+                      title={t('reportGuide.open')}
+                    >
+                      <Wand2 className="h-4 w-4 mr-1" />
+                      {t('reportGuide.open')}
+                    </Button>
+                    <Button
                       variant="destructive"
                       size="sm"
                       onClick={() => handleDelete(project._id)}
+                      data-confirm-title={t('confirmDelete.projectTitle', { defaultValue: 'Delete this project?' })}
+                      data-confirm-body={t('confirmDelete.projectBody', { name: project.projectName, defaultValue: '“{{name}}” and its reports will be removed. This cannot be undone.' })}
                       className="border-2"
                     >
                       <Trash2 className="h-4 w-4" />

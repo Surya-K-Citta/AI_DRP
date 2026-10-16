@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 import { api } from '@/lib/api';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -36,6 +37,7 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export const DPRAnalytics: React.FC = () => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const { projectId } = useParams();
   const [analytics, setAnalytics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -86,7 +88,7 @@ export const DPRAnalytics: React.FC = () => {
       <Layout>
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground mt-2">Loading DPR Analytics...</p>
+          <p className="text-muted-foreground mt-2">{tf('Loading DPR Analytics...')}</p>
         </div>
       </Layout>
     );
@@ -97,9 +99,9 @@ export const DPRAnalytics: React.FC = () => {
       <Layout>
         <div className="text-center py-12">
           <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Analytics Available</h3>
+          <h3 className="text-lg font-semibold mb-2">{tf('No Analytics Available')}</h3>
           <p className="text-muted-foreground">
-            DPR analytics will be available after the DPR is generated and analyzed.
+            {tf('DPR analytics will be available after the DPR is generated and analyzed.')}
           </p>
         </div>
       </Layout>
@@ -117,9 +119,9 @@ export const DPRAnalytics: React.FC = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">DPR Analytics & Insights</h1>
+            <h1 className="text-3xl font-bold">{tf('DPR Analytics & Insights')}</h1>
             <p className="text-muted-foreground mt-2">
-              Comprehensive analysis of your DPR quality and performance
+              {tf('Comprehensive analysis of your DPR quality and performance')}
             </p>
           </div>
           <div className="flex gap-2">
@@ -129,22 +131,22 @@ export const DPRAnalytics: React.FC = () => {
               variant="outline"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              {tf('Refresh')}
             </Button>
             <Button onClick={handleDownloadReport}>
               <Download className="h-4 w-4 mr-2" />
-              Download Report
+              {tf('Download Report')}
             </Button>
           </div>
         </div>
 
         {/* Quality Scores */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="motion-stagger grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Overall Quality</p>
+                  <p className="text-sm font-medium text-muted-foreground">{tf('Overall Quality')}</p>
                   <h3 className="text-3xl font-bold mt-2">{qualityScore}%</h3>
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                     <div 
@@ -162,7 +164,7 @@ export const DPRAnalytics: React.FC = () => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Bankability</p>
+                  <p className="text-sm font-medium text-muted-foreground">{tf('Bankability')}</p>
                   <h3 className="text-3xl font-bold mt-2">{bankabilityScore}%</h3>
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                     <div 
@@ -180,7 +182,7 @@ export const DPRAnalytics: React.FC = () => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Completeness</p>
+                  <p className="text-sm font-medium text-muted-foreground">{tf('Completeness')}</p>
                   <h3 className="text-3xl font-bold mt-2">{completenessScore}%</h3>
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                     <div 
@@ -198,7 +200,7 @@ export const DPRAnalytics: React.FC = () => {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">User Satisfaction</p>
+                  <p className="text-sm font-medium text-muted-foreground">{tf('User Satisfaction')}</p>
                   <h3 className="text-3xl font-bold mt-2">{userSatisfactionScore}%</h3>
                   <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
                     <div 
@@ -217,7 +219,7 @@ export const DPRAnalytics: React.FC = () => {
         {analytics.fundingOutcome && (
           <Card>
             <CardHeader>
-              <CardTitle>Funding Status</CardTitle>
+              <CardTitle>{tf('Funding Status')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4">
@@ -237,21 +239,21 @@ export const DPRAnalytics: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold capitalize">
-                    {analytics.fundingOutcome.replace('_', ' ')}
+                    {tf(String(analytics.fundingOutcome).replace('_', ' '))}
                   </h3>
                   {analytics.loanAmountApproved && (
                     <p className="text-muted-foreground">
-                      Approved Amount: ₹{analytics.loanAmountApproved.toLocaleString()}
+                      {tf('Approved Amount:')} ₹{analytics.loanAmountApproved.toLocaleString()}
                     </p>
                   )}
                   {analytics.approvalDate && (
                     <p className="text-muted-foreground">
-                      Approved on: {new Date(analytics.approvalDate).toLocaleDateString()}
+                      {tf('Approved on:')} {new Date(analytics.approvalDate).toLocaleDateString()}
                     </p>
                   )}
                   {analytics.rejectionReason && (
                     <p className="text-muted-foreground">
-                      Reason: {analytics.rejectionReason}
+                      {tf('Reason:')} {analytics.rejectionReason}
                     </p>
                   )}
                 </div>
@@ -264,12 +266,12 @@ export const DPRAnalytics: React.FC = () => {
         {analytics.sectorBenchmarkComparison && (
           <Card>
             <CardHeader>
-              <CardTitle>Sector Benchmark Comparison</CardTitle>
+              <CardTitle>{tf('Sector Benchmark Comparison')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="motion-stagger grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Project Cost vs Benchmark</p>
+                  <p className="text-sm text-muted-foreground">{tf('Project Cost vs Benchmark')}</p>
                   <p className={`text-2xl font-bold ${
                     analytics.sectorBenchmarkComparison.projectCostVsBenchmark > 100 
                       ? 'text-red-600' : 'text-green-600'
@@ -278,7 +280,7 @@ export const DPRAnalytics: React.FC = () => {
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Own Contribution vs Benchmark</p>
+                  <p className="text-sm text-muted-foreground">{tf('Own Contribution vs Benchmark')}</p>
                   <p className={`text-2xl font-bold ${
                     analytics.sectorBenchmarkComparison.ownContributionVsBenchmark > 100 
                       ? 'text-green-600' : 'text-red-600'
@@ -287,7 +289,7 @@ export const DPRAnalytics: React.FC = () => {
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Payback Period vs Benchmark</p>
+                  <p className="text-sm text-muted-foreground">{tf('Payback Period vs Benchmark')}</p>
                   <p className={`text-2xl font-bold ${
                     analytics.sectorBenchmarkComparison.paybackPeriodVsBenchmark < 100 
                       ? 'text-green-600' : 'text-red-600'
@@ -296,7 +298,7 @@ export const DPRAnalytics: React.FC = () => {
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">ROI vs Benchmark</p>
+                  <p className="text-sm text-muted-foreground">{tf('ROI vs Benchmark')}</p>
                   <p className={`text-2xl font-bold ${
                     analytics.sectorBenchmarkComparison.roiVsBenchmark > 100 
                       ? 'text-green-600' : 'text-red-600'
@@ -313,7 +315,7 @@ export const DPRAnalytics: React.FC = () => {
         {analytics.improvementSuggestions && analytics.improvementSuggestions.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>AI-Powered Improvement Suggestions</CardTitle>
+              <CardTitle>{tf('AI-Powered Improvement Suggestions')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -331,7 +333,7 @@ export const DPRAnalytics: React.FC = () => {
         {/* Quality Trends Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Quality Score Trends</CardTitle>
+            <CardTitle>{tf('Quality Score Trends')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -341,9 +343,9 @@ export const DPRAnalytics: React.FC = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="qualityScore" stroke="#3b82f6" name="Quality Score" />
-                <Line type="monotone" dataKey="bankabilityScore" stroke="#10b981" name="Bankability Score" />
-                <Line type="monotone" dataKey="completenessScore" stroke="#8b5cf6" name="Completeness Score" />
+                <Line type="monotone" dataKey="qualityScore" stroke="#3b82f6" name={tf('Quality Score')} />
+                <Line type="monotone" dataKey="bankabilityScore" stroke="#10b981" name={tf('Bankability Score')} />
+                <Line type="monotone" dataKey="completenessScore" stroke="#8b5cf6" name={tf('Completeness Score')} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>

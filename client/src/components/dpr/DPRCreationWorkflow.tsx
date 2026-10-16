@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { useClusterFormText } from '../../lib/clusterDprFormText';
 import { api } from '../../lib/api';
 import { CheckCircle, ArrowRight, Download, FileText, Clock, Users } from 'lucide-react';
 
@@ -46,6 +47,7 @@ interface DPRSession {
 }
 
 const DPRCreationWorkflow: React.FC = () => {
+  const tf = useClusterFormText();
   const [templates, setTemplates] = useState<DPRTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<DPRTemplate | null>(null);
   const [session, setSession] = useState<DPRSession | null>(null);
@@ -68,7 +70,7 @@ const DPRCreationWorkflow: React.FC = () => {
         setTemplates(response.data.data);
       }
     } catch (err: any) {
-      setError('Failed to load templates');
+      setError(tf('Failed to load templates'));
     } finally {
       setLoading(false);
     }
@@ -88,7 +90,7 @@ const DPRCreationWorkflow: React.FC = () => {
         loadCurrentStep(response.data.data.sessionId);
       }
     } catch (err: any) {
-      setError('Failed to start DPR session');
+      setError(tf('Failed to start DPR session'));
     } finally {
       setLoading(false);
     }
@@ -102,7 +104,7 @@ const DPRCreationWorkflow: React.FC = () => {
         setSession(response.data.data.session);
       }
     } catch (err: any) {
-      setError('Failed to load current step');
+      setError(tf('Failed to load current step'));
     }
   };
 
@@ -127,7 +129,7 @@ const DPRCreationWorkflow: React.FC = () => {
         }
       }
     } catch (err: any) {
-      setError('Failed to submit responses');
+      setError(tf('Failed to submit responses'));
     } finally {
       setLoading(false);
     }
@@ -163,7 +165,7 @@ const DPRCreationWorkflow: React.FC = () => {
             {...commonProps}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="">Select an option</option>
+            <option value="">{tf('Select an option')}</option>
             {question.options?.map((option) => (
               <option key={option} value={option}>
                 {option}
@@ -200,8 +202,8 @@ const DPRCreationWorkflow: React.FC = () => {
   const renderTemplates = () => (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Choose a DPR Template</h2>
-        <p className="text-gray-600">Select a template to start creating your Detailed Project Report</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{tf('Choose a DPR Template')}</h2>
+        <p className="text-gray-600">{tf('Select a template to start creating your Detailed Project Report')}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -222,12 +224,12 @@ const DPRCreationWorkflow: React.FC = () => {
               </div>
               <div className="flex items-center">
                 <Users className="h-4 w-4 mr-1" />
-                {template.usageCount} uses
+                {template.usageCount} {tf('uses')}
               </div>
             </div>
             
             <div className="text-sm text-gray-500 mb-4">
-              {template.structure.totalSections} sections
+              {template.structure.totalSections} {tf('sections')}
             </div>
             
             <Button
@@ -238,7 +240,7 @@ const DPRCreationWorkflow: React.FC = () => {
               className="w-full"
               disabled={loading}
             >
-              {loading ? 'Starting...' : 'Start DPR Creation'}
+              {loading ? tf('Starting...') : tf('Start DPR Creation')}
             </Button>
           </Card>
         ))}
@@ -257,7 +259,7 @@ const DPRCreationWorkflow: React.FC = () => {
                 {questionnaire.currentSection}
               </h2>
               <span className="text-sm text-gray-500">
-                Step {questionnaire.currentStep} of {questionnaire.totalSteps}
+                {tf('Step {a} of {b}').replace('{a}', String(questionnaire.currentStep)).replace('{b}', String(questionnaire.totalSteps))}
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
@@ -291,7 +293,7 @@ const DPRCreationWorkflow: React.FC = () => {
                 disabled={loading}
                 className="flex items-center"
               >
-                {loading ? 'Saving...' : questionnaire.nextAction}
+                {loading ? tf('Saving...') : questionnaire.nextAction}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -305,17 +307,17 @@ const DPRCreationWorkflow: React.FC = () => {
     <div className="space-y-6">
       <div className="text-center">
         <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">DPR Generated Successfully!</h2>
-        <p className="text-gray-600">Your Detailed Project Report is ready for download</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{tf('DPR Generated Successfully!')}</h2>
+        <p className="text-gray-600">{tf('Your Detailed Project Report is ready for download')}</p>
       </div>
 
       {generatedDPR && (
         <Card className="p-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Generated DPR</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{tf('Generated DPR')}</h3>
               <div className="text-sm text-gray-500">
-                {generatedDPR.metadata.wordCount} words • {generatedDPR.sections.length} sections
+                {generatedDPR.metadata.wordCount} {tf('words')} • {generatedDPR.sections.length} {tf('sections')}
               </div>
             </div>
             
@@ -328,11 +330,11 @@ const DPRCreationWorkflow: React.FC = () => {
             <div className="flex space-x-4">
               <Button className="flex items-center">
                 <Download className="mr-2 h-4 w-4" />
-                Download PDF
+                {tf('Download PDF')}
               </Button>
               <Button variant="outline" className="flex items-center">
                 <FileText className="mr-2 h-4 w-4" />
-                Download DOCX
+                {tf('Download DOCX')}
               </Button>
             </div>
           </div>
@@ -345,7 +347,7 @@ const DPRCreationWorkflow: React.FC = () => {
     return (
       <div className="text-center py-8">
         <p className="text-red-600 mb-4">{error}</p>
-        <Button onClick={() => setError(null)}>Try Again</Button>
+        <Button onClick={() => setError(null)}>{tf('Try Again')}</Button>
       </div>
     );
   }

@@ -31,3 +31,4 @@ package-lock.json
 /test-results/
 /playwright-report/
 /blob-report/
+audit-shots/

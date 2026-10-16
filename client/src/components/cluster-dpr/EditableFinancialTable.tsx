@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useState, useEffect, useMemo } from 'react';
 import { Input } from '@/components/ui/Input';
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 
 interface EditableFinancialTableProps {
   headers: string[];
@@ -23,6 +24,7 @@ export const EditableFinancialTable: React.FC<EditableFinancialTableProps> = ({
   calculatedCells = [],
   data,
 }) => {
+  const tf = useClusterFormText();
   const [rows, setRows] = useState<any[][]>(initialRows || []);
   const [isEditing, setIsEditing] = useState<Record<string, boolean>>({});
 
@@ -92,7 +94,7 @@ export const EditableFinancialTable: React.FC<EditableFinancialTableProps> = ({
       {title && (
         <div className="mb-3">
           {statementNumber && (
-            <p className="text-xs text-gray-600 mb-1 font-semibold">Statement {statementNumber}</p>
+            <p className="text-xs text-gray-600 mb-1 font-semibold">{tf('Statement {n}').replace('{n}', String(statementNumber))}</p>
           )}
           <h4 className="text-lg font-bold text-gray-900">{title}</h4>
         </div>

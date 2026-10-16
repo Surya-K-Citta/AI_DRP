@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Download, FileCheck, FileText, Mic, Sparkles } from 'lucide-react';
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 import { A, T, Typed, Window, Toast, Tick, SampleTag, FitBox } from './mockui';
 
 /*
@@ -35,14 +36,16 @@ const Bar: React.FC<{ w: string; c?: string; d?: number; cls?: string }> = ({ w,
 
 /* ================= 1 · AI-Powered DPR Creation =================
    Guided question → answer typed → "Suggest with AI" → section drafts itself */
-export const SceneAIDpr = () => (
+export const SceneAIDpr = () => {
+  const tf = useClusterFormText();
+  return (
   <FitBox w={480} h={300} pad={24} max={1.15}>
     <div className="relative h-full w-full">
       <Window
-        title="Guided DPR · Section 2 of 12"
+        title={tf('Guided DPR · Section 2 of 12')}
         right={
           <span className="rounded-full px-2 py-0.5 text-[9.5px] font-semibold" style={{ background: T.tint, color: T.brandStrong }}>
-            Auto-saved
+            {tf('Auto-saved')}
           </span>
         }
       >
@@ -53,28 +56,28 @@ export const SceneAIDpr = () => (
               <span key={i} className="h-1 flex-1 rounded-full" style={{ background: i < 1 ? T.brand : i === 1 ? T.cta : T.line }} />
             ))}
           </div>
-          <div className="text-[10.5px] font-medium" style={{ color: T.muted }}>What will your unit produce?</div>
+          <div className="text-[10.5px] font-medium" style={{ color: T.muted }}>{tf('What will your unit produce?')}</div>
           <div className="hiw-field mt-1 flex h-8 items-center rounded-lg border px-2.5 text-[12.5px] font-medium" style={{ borderColor: T.line, color: T.ink, animationDelay: '150ms' }}>
-            <Typed text="Cold-pressed groundnut oil" delay={300} dur={1100} />
+            <Typed text={tf('Cold-pressed groundnut oil')} delay={300} dur={1100} />
           </div>
           <div className="mt-3 flex items-center justify-between">
-            <span className="text-[12px] font-semibold" style={{ color: T.ink }}>Executive summary</span>
+            <span className="text-[12px] font-semibold" style={{ color: T.ink }}>{tf('Executive summary')}</span>
             <span className="hiw-press flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold" style={{ background: T.ctaTint, color: T.ctaText, animationDelay: '1700ms' }}>
-              <Sparkles className="h-3 w-3" /> Suggest with AI
+              <Sparkles className="h-3 w-3" /> {tf('Suggest with AI')}
             </span>
           </div>
           <div className="relative mt-2 rounded-lg border p-2.5 text-[11px] leading-[1.55]" style={{ borderColor: T.line, color: T.ink, background: '#fbfcfc' }}>
             <A anim="fade" delay={2000} className="absolute right-2 top-2 flex items-center gap-1 text-[9px] font-semibold" style={{ color: T.ctaText }}>
-              <Sparkles className="h-2.5 w-2.5" /> AI draft
+              <Sparkles className="h-2.5 w-2.5" /> {tf('AI draft')}
             </A>
-            <div><Typed text="The proposed unit will produce cold-pressed" delay={2200} dur={900} /></div>
-            <div><Typed text="groundnut oil for local retail and bulk buyers," delay={3100} dur={900} /></div>
-            <div><Typed text="with an installed capacity of 300 litres a day." delay={4000} dur={900} /></div>
+            <div><Typed text={tf('The proposed unit will produce cold-pressed')} delay={2200} dur={900} /></div>
+            <div><Typed text={tf('groundnut oil for local retail and bulk buyers,')} delay={3100} dur={900} /></div>
+            <div><Typed text={tf('with an installed capacity of 300 litres a day.')} delay={4000} dur={900} /></div>
           </div>
           <div className="mt-3 flex items-center justify-end gap-2">
-            <span className="flex h-7 items-center rounded-lg border px-3 text-[10.5px] font-semibold" style={{ borderColor: T.line, color: T.muted }}>Edit</span>
+            <span className="flex h-7 items-center rounded-lg border px-3 text-[10.5px] font-semibold" style={{ borderColor: T.line, color: T.muted }}>{tf('Edit')}</span>
             <A anim="fade" delay={4900} className="hiw-press flex h-7 items-center gap-1 rounded-lg px-3 text-[10.5px] font-semibold text-white" style={{ background: T.brand, animationDelay: '4900ms' }}>
-              Accept &amp; continue
+              {tf('Accept & continue')}
             </A>
           </div>
         </div>
@@ -82,23 +85,26 @@ export const SceneAIDpr = () => (
       <SampleTag dark className="-bottom-1 left-1" />
     </div>
   </FitBox>
-);
+  );
+};
 
 /* ================= 3 · Bank-Ready Quality =================
    Readiness checks tick one by one, then the report is stamped bank-ready */
 const BANK_CHECKS = ['Bank-standard format', 'Cost & means of finance', 'Projections & ratios', 'Compliance details'];
-export const SceneBankReady = () => (
+export const SceneBankReady = () => {
+  const tf = useClusterFormText();
+  return (
   <FitBox w={280} h={150}>
     <div className="relative h-full w-full rounded-xl border bg-white p-3 shadow-[0_14px_30px_-20px_rgba(16,52,50,0.5)]" style={{ borderColor: T.line }}>
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-[11px] font-semibold" style={{ color: T.ink }}>Bank readiness check</span>
+        <span className="text-[11px] font-semibold" style={{ color: T.ink }}>{tf('Bank readiness check')}</span>
         <span className="text-[9.5px] font-semibold tabular-nums" style={{ color: T.muted }}>4 / 4</span>
       </div>
       <div className="space-y-1.5">
         {BANK_CHECKS.map((c, i) => (
           <div key={c} className="flex items-center gap-2 text-[10.5px]" style={{ color: T.ink }}>
             <Tick delay={300 + i * 450} size={14} />
-            {c}
+            {tf(c)}
           </div>
         ))}
       </div>
@@ -108,21 +114,24 @@ export const SceneBankReady = () => (
         className="absolute bottom-2.5 right-2.5 flex -rotate-6 items-center gap-1 rounded-lg border-2 px-2 py-1 text-[10px] font-bold uppercase tracking-wide"
         style={{ borderColor: T.ok, color: T.ok, background: T.okTint }}
       >
-        <FileCheck className="h-3.5 w-3.5" /> Bank-ready
+        <FileCheck className="h-3.5 w-3.5" /> {tf('Bank-ready')}
       </A>
     </div>
   </FitBox>
-);
+  );
+};
 
 /* ================= 4 · AI Chat Assistant =================
    Voice question → transcribed → assistant types → answers */
-export const SceneChat = () => (
+export const SceneChat = () => {
+  const tf = useClusterFormText();
+  return (
   <FitBox w={380} h={150}>
     <div className="relative flex h-full w-full flex-col gap-2 rounded-xl border bg-white p-3 shadow-[0_14px_30px_-20px_rgba(16,52,50,0.5)]" style={{ borderColor: T.line }}>
       {/* user message (voice) */}
       <div className="flex items-center justify-end gap-2">
         <A anim="rise" delay={1300} className="max-w-[78%] rounded-2xl rounded-br-md px-3 py-1.5 text-[11px] text-white" style={{ background: T.brand }}>
-          <Typed text="How much own contribution do I need?" delay={1400} dur={900} />
+          <Typed text={tf('How much own contribution do I need?')} delay={1400} dur={900} />
         </A>
         <span className="relative flex h-7 w-7 flex-none items-center justify-center rounded-full text-white" style={{ background: T.cta }}>
           <Mic className="h-3.5 w-3.5" />
@@ -141,7 +150,7 @@ export const SceneChat = () => (
             ))}
           </A>
           <A anim="rise" delay={3300} className="rounded-2xl rounded-bl-md px-3 py-1.5 text-[11px] leading-snug" style={{ background: T.tint, color: T.ink }}>
-            It depends on your category and scheme. I&apos;ve added it to your <b>Means of finance</b> step.
+            {tf("It depends on your category and scheme. I've added it to your Means of finance step.")}
           </A>
         </div>
       </div>
@@ -152,11 +161,12 @@ export const SceneChat = () => (
             <span key={i} className="hiw-wave w-[2px] rounded-full" style={{ background: T.cta, animationDelay: `${i * 110}ms` }} />
           ))}
         </span>
-        Listening…
+        {tf('Listening…')}
       </div>
     </div>
   </FitBox>
-);
+  );
+};
 
 /* ================= 5 · Financial Suggestions =================
    Costs entered → AI suggests value within sector benchmark band */
@@ -165,15 +175,17 @@ const FIN_ROWS = [
   ['Power & fuel', '₹ 3,60,000', 800],
   ['Wages & salaries', '₹ 6,00,000', 1300],
 ];
-export const SceneFinancial = () => (
+export const SceneFinancial = () => {
+  const tf = useClusterFormText();
+  return (
   <FitBox w={380} h={150}>
     <div className="relative grid h-full w-full grid-cols-[1.25fr_1fr] gap-2.5 rounded-xl border bg-white p-3 shadow-[0_14px_30px_-20px_rgba(16,52,50,0.5)]" style={{ borderColor: T.line }}>
       <div>
-        <div className="mb-1.5 text-[11px] font-semibold" style={{ color: T.ink }}>Annual operating cost</div>
+        <div className="mb-1.5 text-[11px] font-semibold" style={{ color: T.ink }}>{tf('Annual operating cost')}</div>
         <div className="space-y-1">
           {FIN_ROWS.map(([l, v, d], i) => (
             <div key={l} className={`flex h-[26px] items-center justify-between rounded-md border px-2 text-[10px] ${i === 0 ? 'hiw-ai-fill' : ''}`} style={{ borderColor: T.line, animationDelay: i === 0 ? '2000ms' : undefined }}>
-              <span style={{ color: T.muted }}>{l}</span>
+              <span style={{ color: T.muted }}>{tf(l)}</span>
               <Typed text={v} delay={d} className="font-semibold tabular-nums" style={{ color: T.ink }} />
             </div>
           ))}
@@ -182,24 +194,25 @@ export const SceneFinancial = () => (
       {/* benchmark panel */}
       <A anim="rise" delay={1800} className="flex flex-col rounded-lg p-2.5" style={{ background: T.ctaTint }}>
         <div className="flex items-center gap-1 text-[9.5px] font-semibold" style={{ color: T.ctaText }}>
-          <Sparkles className="h-3 w-3" /> Sector benchmark
+          <Sparkles className="h-3 w-3" /> {tf('Sector benchmark')}
         </div>
-        <div className="mt-1 text-[9.5px] leading-snug" style={{ color: T.ink }}>Raw materials, edible oil units</div>
+        <div className="mt-1 text-[9.5px] leading-snug" style={{ color: T.ink }}>{tf('Raw materials, edible oil units')}</div>
         {/* band + marker */}
         <div className="relative mt-auto h-2 rounded-full bg-white">
           <span className="absolute inset-y-0 left-[45%] right-[25%] rounded-full" style={{ background: '#f5c9ab' }} />
           <span className="hiw-marker absolute -top-1 h-4 w-1 rounded-full" style={{ background: T.brand, animationDelay: '2300ms' }} />
         </div>
         <div className="mt-1 flex justify-between text-[8.5px] tabular-nums" style={{ color: T.muted }}>
-          <span>Low</span>
-          <A anim="fade" delay={2900} as="span" className="font-semibold" style={{ color: T.ok }}>Within range</A>
-          <span>High</span>
+          <span>{tf('Low')}</span>
+          <A anim="fade" delay={2900} as="span" className="font-semibold" style={{ color: T.ok }}>{tf('Within range')}</A>
+          <span>{tf('High')}</span>
         </div>
       </A>
       <SampleTag className="-bottom-4 left-0.5" />
     </div>
   </FitBox>
-);
+  );
+};
 
 /* ================= 6 · Scheme Recommendations =================
    Profile scanned → schemes matched with eligibility */
@@ -208,12 +221,14 @@ const SCHEMES = [
   ['CGTMSE', 'Eligible', 1000],
   ['AP CMEP', 'Check criteria', 1500],
 ];
-export const SceneSchemes = () => (
+export const SceneSchemes = () => {
+  const tf = useClusterFormText();
+  return (
   <FitBox w={280} h={150}>
     <div className="relative h-full w-full rounded-xl border bg-white p-3 shadow-[0_14px_30px_-20px_rgba(16,52,50,0.5)]" style={{ borderColor: T.line }}>
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-[11px] font-semibold" style={{ color: T.ink }}>Matched schemes</span>
-        <span className="text-[9px] font-semibold" style={{ color: T.muted }}>AP MSME ONE</span>
+        <span className="text-[11px] font-semibold" style={{ color: T.ink }}>{tf('Matched schemes')}</span>
+        <span className="text-[9px] font-semibold" style={{ color: T.muted }}>{tf('AP MSME ONE')}</span>
       </div>
       {/* scanning bar */}
       <div className="mb-2 h-1 overflow-hidden rounded-full" style={{ background: T.tint }}>
@@ -236,14 +251,15 @@ export const SceneSchemes = () => (
               className="rounded px-1.5 py-0.5 text-[8.5px]"
               style={i < 2 ? { background: T.okTint, color: T.ok } : { background: T.ctaTint, color: T.ctaText }}
             >
-              {status}
+              {tf(status)}
             </span>
           </A>
         ))}
       </div>
     </div>
   </FitBox>
-);
+  );
+};
 
 /* ================= 7 · Quality Analytics =================
    Score ring fills while the three quality measures grow */
@@ -252,7 +268,9 @@ const QUALITY = [
   ['Bankability', 84],
   ['Consistency', 78],
 ];
-export const SceneQuality = () => (
+export const SceneQuality = () => {
+  const tf = useClusterFormText();
+  return (
   <FitBox w={280} h={150}>
     <div className="relative flex h-full w-full items-center gap-3 rounded-xl border bg-white p-3 shadow-[0_14px_30px_-20px_rgba(16,52,50,0.5)]" style={{ borderColor: T.line }}>
       <div className="relative flex-none">
@@ -262,15 +280,15 @@ export const SceneQuality = () => (
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <A anim="pop" delay={1300} as="span" className="text-[20px] font-bold leading-none tabular-nums" style={{ color: T.ink }}>86</A>
-          <span className="mt-0.5 text-[8.5px] font-semibold uppercase tracking-wide" style={{ color: T.muted }}>Score</span>
+          <span className="mt-0.5 text-[8.5px] font-semibold uppercase tracking-wide" style={{ color: T.muted }}>{tf('Score')}</span>
         </div>
       </div>
       <div className="flex-1 space-y-2">
-        <div className="text-[11px] font-semibold" style={{ color: T.ink }}>DPR quality</div>
+        <div className="text-[11px] font-semibold" style={{ color: T.ink }}>{tf('DPR quality')}</div>
         {QUALITY.map(([l, v], i) => (
           <div key={l}>
             <div className="mb-0.5 flex justify-between text-[9.5px]" style={{ color: T.muted }}>
-              <span>{l}</span>
+              <span>{tf(l)}</span>
               <A anim="fade" delay={900 + i * 250} as="span" className="font-semibold tabular-nums" style={{ color: T.ink }}>{v}</A>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full" style={{ background: T.tint }}>
@@ -282,14 +300,17 @@ export const SceneQuality = () => (
       <SampleTag className="-bottom-4 left-0.5" />
     </div>
   </FitBox>
-);
+  );
+};
 
 /* ================= 8 · Fast Track Export =================
    Choose format + language → export → file ready */
-export const SceneExport = () => (
+export const SceneExport = () => {
+  const tf = useClusterFormText();
+  return (
   <FitBox w={380} h={150}>
     <div className="relative h-full w-full rounded-xl border bg-white p-3 shadow-[0_14px_30px_-20px_rgba(16,52,50,0.5)]" style={{ borderColor: T.line }}>
-      <div className="mb-2 text-[11px] font-semibold" style={{ color: T.ink }}>Export DPR</div>
+      <div className="mb-2 text-[11px] font-semibold" style={{ color: T.ink }}>{tf('Export DPR')}</div>
       <div className="grid grid-cols-2 gap-2">
         {[
           ['PDF', T.cta, true],
@@ -308,7 +329,7 @@ export const SceneExport = () => (
         ))}
       </div>
       <div className="mt-2 flex items-center gap-1.5 text-[10px]" style={{ color: T.muted }}>
-        Language
+        {tf('Language')}
         <span className="rounded px-1.5 py-0.5 font-semibold" style={{ background: T.tint, color: T.brandStrong }}>English</span>
         <A anim="pop" delay={900} as="span" className="rounded px-1.5 py-0.5 font-semibold" style={{ background: T.ctaTint, color: T.ctaText }} lang="te">
           + తెలుగు
@@ -317,13 +338,14 @@ export const SceneExport = () => (
       <div className="relative mt-2.5 h-8 overflow-hidden rounded-lg text-[11px] font-semibold text-white" style={{ background: T.brand }}>
         <A anim="grow-x" delay={1500} className="absolute inset-0" style={{ background: T.brandStrong, animationDuration: '1400ms', animationTimingFunction: 'linear' }} />
         <span className="hiw-press relative flex h-full items-center justify-center gap-1.5" style={{ animationDelay: '1300ms' }}>
-          <Download className="h-3.5 w-3.5" /> Export
+          <Download className="h-3.5 w-3.5" /> {tf('Export')}
         </span>
       </div>
-      <Toast text="DPR ready · PDF, 24 pages" delay={3000} className="right-2 top-2" />
+      <Toast text={tf('DPR ready · PDF, 24 pages')} delay={3000} className="right-2 top-2" />
     </div>
   </FitBox>
-);
+  );
+};
 
 /* 2 · Bilingual Support — two rows of language tablets drifting in opposite
    directions; the ends are blurred and faded so the rows feel endless */
