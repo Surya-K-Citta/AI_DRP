@@ -4,7 +4,7 @@ import React from 'react';
 /**
  * Process markdown bold markers (**text**) and convert to React elements
  */
-export function processMarkdownBold(text: string): React.ReactNode[] {
+function processMarkdownBold(text: string): React.ReactNode[] {
   if (!text) return [];
 
   const segments: React.ReactNode[] = [];
@@ -48,7 +48,7 @@ export function processMarkdownBold(text: string): React.ReactNode[] {
  * Process text with markdown formatting (bold, headings, and tables)
  * Returns array of React elements with proper formatting
  */
-export function processMarkdownText(text: string): React.ReactNode[] {
+function processMarkdownText(text: string): React.ReactNode[] {
   if (!text) return [];
 
   const elements: React.ReactNode[] = [];

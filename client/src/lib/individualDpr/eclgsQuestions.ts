@@ -4,7 +4,7 @@
  * Step list: ECLGS_STEPS in schemeStepCatalog.ts (7 consecutive steps).
  */
 
-export type EclgsAccountStatus = 'standard' | 'sma1' | 'other';
+type EclgsAccountStatus = 'standard' | 'sma1' | 'other';
 
 export const ECLGS_EXTRA_FIELDS = [
   'existingLimit',
@@ -15,7 +15,6 @@ export const ECLGS_EXTRA_FIELDS = [
   'liquidityReason',
 ] as const;
 
-export type EclgsExtraField = (typeof ECLGS_EXTRA_FIELDS)[number];
 
 export const ECLGS_ACCOUNT_STATUS_OPTIONS: {
   value: EclgsAccountStatus;
@@ -28,7 +27,7 @@ export const ECLGS_ACCOUNT_STATUS_OPTIONS: {
 
 /** Illustrative quantum: 20% of peak WC outstanding (₹ lakhs), capped at ₹100 Cr. */
 export const ECLGS_QUANTUM_PERCENT = 20;
-export const ECLGS_MAX_LAKHS = 10000; // ₹100 crore
+const ECLGS_MAX_LAKHS = 10000; // ₹100 crore
 
 export function eclgsIndicativeQuantumLakhs(peakWcOutstandingLakhs?: number | string): number {
   const peak = Number(peakWcOutstandingLakhs) || 0;
@@ -38,7 +37,6 @@ export function eclgsIndicativeQuantumLakhs(peakWcOutstandingLakhs?: number | st
 
 export const ECLGS_INTEREST_CAP_PERCENT = 9;
 export const ECLGS_TENOR_YEARS = 5;
-export const ECLGS_MORATORIUM_YEARS = 1;
 
 export const ECLGS_IMPACT_BULLETS = [
   'Own 7-step WC pack for ECLGS 5.0 (additional liquidity — not a greenfield plant DPR). Steps numbered 1–7.',

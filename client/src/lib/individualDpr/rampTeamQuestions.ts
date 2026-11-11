@@ -11,7 +11,6 @@ export const RAMP_TEAM_EXTRA_FIELDS = [
   'productListNote',
 ] as const;
 
-export type RampTeamExtraField = (typeof RAMP_TEAM_EXTRA_FIELDS)[number];
 
 export const RAMP_TEAM_ONDC_OPTIONS = [
   { value: 'ready', label: 'Ready to onboard / already on ONDC' },

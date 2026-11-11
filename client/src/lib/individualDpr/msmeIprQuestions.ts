@@ -4,8 +4,8 @@
  * Step list: MSME_IPR_STEPS (5 consecutive steps).
  */
 
-export type IprType = 'patent' | 'design' | 'trademark' | 'gi' | 'other';
-export type IprFilingStage = 'idea' | 'draft' | 'filed' | 'granted';
+type IprType = 'patent' | 'design' | 'trademark' | 'gi' | 'other';
+type IprFilingStage = 'idea' | 'draft' | 'filed' | 'granted';
 
 export const MSME_IPR_EXTRA_FIELDS = [
   'ipType',
@@ -14,7 +14,6 @@ export const MSME_IPR_EXTRA_FIELDS = [
   'inventionTitle',
 ] as const;
 
-export type MsmeIprExtraField = (typeof MSME_IPR_EXTRA_FIELDS)[number];
 
 export const MSME_IPR_TYPE_OPTIONS: { value: IprType; label: string }[] = [
   { value: 'patent', label: 'Patent' },

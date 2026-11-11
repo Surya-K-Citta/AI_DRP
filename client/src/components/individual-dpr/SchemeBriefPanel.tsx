@@ -1,3 +1,4 @@
+import { safeUrl } from '@/lib/security/sanitizeText';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check, ExternalLink, FileText, HelpCircle, ListChecks, MapPinned, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -67,7 +68,7 @@ export const SchemeBriefPanel: React.FC<SchemeBriefPanelProps> = ({ schemeCode, 
           </h2>
           <p className="mt-3 text-sm sm:text-base leading-6 text-muted-foreground">{loc(brief.intro, lang)}</p>
 
-          <div className="mt-6 flex gap-1 overflow-x-auto border-b border-border">
+          <div className="mt-6 flex gap-1 overflow-x-auto overflow-y-hidden border-b border-border">
             {TABS.map((item) => {
               const active = tab === item.id;
               return (
@@ -88,7 +89,7 @@ export const SchemeBriefPanel: React.FC<SchemeBriefPanelProps> = ({ schemeCode, 
             })}
           </div>
 
-          <div className="mt-5 min-h-[160px]">
+          <div key={tab} className="motion-tab mt-5 min-h-[160px]">
             {tab === 'faqs' ? (
               <dl className="space-y-4">
                 {brief.faqs.map((faq, i) => (
@@ -120,7 +121,7 @@ export const SchemeBriefPanel: React.FC<SchemeBriefPanelProps> = ({ schemeCode, 
 
           {brief.sourceUrl ? (
             <a
-              href={brief.sourceUrl}
+              href={safeUrl(brief.sourceUrl)}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-6 inline-flex items-center gap-1.5 text-xs text-primary hover:underline"

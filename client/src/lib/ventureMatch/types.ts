@@ -86,7 +86,18 @@ export type SectorFlag = 'none' | 'pharma' | 'coir' | 'handloom' | 'notSure';
 
 export type ProcurementInterest = 'yes' | 'no' | 'notSure';
 
-export const OWNER_EXCLUSIVE_TAGS: OwnerTag[] = ['generalMale', 'notDecided', 'noMajority', 'notSure'];
+/** Tags that stand alone: choosing one clears every other owner tag. */
+export const OWNER_EXCLUSIVE_TAGS: OwnerTag[] = ['notDecided', 'noMajority', 'notSure'];
+
+/**
+ * Groups where only one tag can be chosen (picking another in the group replaces it).
+ * A tag can sit in two groups (general male is in both), so choosing it replaces a pick from either one.
+ * Persons with disability is in no group and combines freely with anything else.
+ */
+export const OWNER_PICK_ONE_GROUPS: OwnerTag[][] = [
+  ['female', 'transgender', 'generalMale', 'exServiceman'],
+  ['sc', 'st', 'bc', 'generalMale'],
+];
 
 export interface VentureMatchAnswers {
   activity?: Activity;
@@ -127,7 +138,7 @@ export type SchemeDprRoute = 'full' | 'short' | 'cluster' | 'cta' | 'none';
 
 export type CriterionStatus = 'pass' | 'fail' | 'unknown';
 
-export interface SchemeDef {
+interface SchemeDef {
   code: string;
   name: string;
   kind: SchemeKind;
@@ -162,6 +173,8 @@ export interface SchemeMatch {
   /** True only for AP_CMEP when domicile is AP and a booster promoter tag is present. */
   boosted?: boolean;
   dprRoute?: SchemeDprRoute;
+  /** How many of this scheme's checks the person's answers pass, are still open (unanswered), and the total. */
+  fit?: { passed: number; open: number; total: number };
 }
 
 export interface SchemeExclusion {

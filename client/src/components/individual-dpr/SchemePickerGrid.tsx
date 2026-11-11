@@ -3,6 +3,7 @@ import {
   BadgePercent,
   Banknote,
   Building2,
+  Check,
   ChevronDown,
   ChevronRight,
   Landmark,
@@ -14,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { SCHEME_OPTIONS } from '@/lib/individualDpr/schemeFormConfig';
 import {
   briefLangFromI18n,
@@ -23,6 +25,7 @@ import {
 import { useClusterFormText } from '@/lib/clusterDprFormText';
 import { cardMatchesFilters, schemeKind, schemeLevel, type SchemeKind, type SchemeLevel } from '@/lib/schemePickerFilters';
 import { Input } from '@/components/ui/Input';
+import { useFinderSuggestion } from '@/lib/ventureMatch/savedSuggestion';
 import { Button } from '@/components/ui/Button';
 
 interface SchemePickerGridProps {
@@ -139,7 +142,11 @@ export const SchemePickerGrid: React.FC<SchemePickerGridProps> = ({ onSelect }) 
   const { t, i18n } = useTranslation();
   const tf = useClusterFormText();
   const lang = briefLangFromI18n(i18n.language);
-  const [query, setQuery] = useState('');
+  // The dashboard's Scheme Finder card opens this list with ?q=<words> already typed into the search box.
+  const [urlParams] = useSearchParams();
+  const [query, setQuery] = useState(() => (urlParams.get('q') || '').slice(0, 80));
+  // Only people who finished Scheme Finder get suggestions; everyone else sees plain cards.
+  const finder = useFinderSuggestion();
   const [levels, setLevels] = useState<SchemeLevel[]>([]);
   const [kinds, setKinds] = useState<SchemeKind[]>([]);
 
@@ -199,51 +206,49 @@ export const SchemePickerGrid: React.FC<SchemePickerGridProps> = ({ onSelect }) 
         </p>
       </div>
 
-      <div className="mb-5 space-y-4">
-        <div className="relative w-full max-w-xl">
-          <Search className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={tf('Search by name, ministry, or support')}
-            aria-label={tf('Search schemes')}
-            className="h-12 pl-10"
-          />
-        </div>
-        <div className="rounded-2xl border border-border bg-card p-3 sm:p-4 space-y-3">
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <MultiFilter
-              emptyLabel={tf('All levels')}
-              options={LEVELS}
-              selected={levels}
-              onToggle={(id) => setLevels((current) => toggleValue(current, id))}
-              labelOf={tf}
-            />
-            <MultiFilter
-              emptyLabel={tf('All kinds')}
-              options={KINDS}
-              selected={kinds}
-              onToggle={(id) => setKinds((current) => toggleValue(current, id))}
-              labelOf={tf}
+      <div className="mb-5 space-y-3">
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+          <div className="relative min-w-0 sm:col-span-2 md:col-span-1">
+            <Search className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={tf('Search by name, ministry, or support')}
+              aria-label={tf('Search schemes')}
+              className="h-12 pl-10"
             />
           </div>
-          {filtersActive && (
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-10"
-                onClick={() => {
-                  setQuery('');
-                  setLevels([]);
-                  setKinds([]);
-                }}
-              >
-                <X className="h-4 w-4 mr-1" />
-                {tf('Clear')}
-              </Button>
-            </div>
-          )}
+          <MultiFilter
+            emptyLabel={tf('All levels')}
+            options={LEVELS}
+            selected={levels}
+            onToggle={(id) => setLevels((current) => toggleValue(current, id))}
+            labelOf={tf}
+          />
+          <MultiFilter
+            emptyLabel={tf('All kinds')}
+            options={KINDS}
+            selected={kinds}
+            onToggle={(id) => setKinds((current) => toggleValue(current, id))}
+            labelOf={tf}
+          />
+          {/* Same row as the filters. Its space is kept (just hidden) while no filter is set, so nothing shifts when it appears. */}
+          <div className={filtersActive ? 'sm:col-span-2 md:col-span-1' : 'hidden md:invisible md:block'}>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 w-full gap-1 px-4"
+              tabIndex={filtersActive ? 0 : -1}
+              onClick={() => {
+                setQuery('');
+                setLevels([]);
+                setKinds([]);
+              }}
+            >
+              <X className="h-4 w-4" />
+              {tf('Clear')}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -251,28 +256,52 @@ export const SchemePickerGrid: React.FC<SchemePickerGridProps> = ({ onSelect }) 
         {filtered.length} {tf('schemes')}
       </p>
 
+      {finder && (
+        <p className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-primary/25 bg-primary/5 px-4 py-2.5 text-sm text-foreground">
+          <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+          <span>{tf('Tags come from your Scheme Finder answers. They are suggestions, not a promise.')}</span>
+          <a href="/venture-match" className="font-medium text-primary underline-offset-2 hover:underline">
+            {tf('Change my answers')}
+          </a>
+        </p>
+      )}
+
       {filtered.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">
           {tf('No schemes match this search.')}
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div data-tour="scheme-grid" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((card) => (
             <button
               key={card.code || 'vanilla'}
               type="button"
+              data-tour={card.isVanilla ? 'scheme-card' : undefined}
               onClick={() => onSelect(card.code)}
               className="group text-left rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <div className="flex items-start justify-between gap-3">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                    card.isVanilla ? 'bg-secondary/15 text-secondary' : 'bg-primary/10 text-primary'
+                    card.isVanilla ? 'bg-secondary/15 text-secondary-text' : 'bg-primary/10 text-primary'
                   }`}
                 >
-                  {card.isVanilla ? <Landmark className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}
+                  {/* The same icon the level filter uses for this level. */}
+                  {React.createElement(LEVELS.find((item) => item.id === card.level)?.icon || Building2, { className: 'h-5 w-5' })}
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 mt-1" />
+                {card.code && finder?.suggested.has(card.code) ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
+                    <Sparkles className="h-3 w-3" aria-hidden="true" />
+                    {tf('Suggested for you')}
+                  </span>
+                ) : card.code && finder?.alsoMatches.has(card.code) ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+                    <Check className="h-3 w-3" aria-hidden="true" />
+                    {tf('May also suit you')}
+                  </span>
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 mt-1" />
+                )}
               </div>
 
               <h3 className="mt-4 text-base font-semibold text-foreground leading-snug line-clamp-2">

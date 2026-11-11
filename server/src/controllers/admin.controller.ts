@@ -10,7 +10,9 @@ import { Policy } from '../models/Policy.model';
 import { MLService } from '../services/ml.service';
 import { AuditEvent } from '../models/AuditEvent.model';
 import { AuditService } from '../services/audit.service';
+import { verifyAuditChain } from '../lib/auditChain';
 import { eraseAccount } from '../services/accountErase.service';
+import { isRole, ROLES } from '../lib/rbac';
 
 export class AdminController {
   /**
@@ -314,19 +316,167 @@ export class AdminController {
   }
 
   /**
+   * The Analytics tab: every number, chart and the recent-activity list from ONE set of filters (dates, district, sector),
+   * so the cards, charts and table can never disagree. Read-only. Dates apply to when a record was created; users have no
+   * district or sector, so those two filters leave the user counts alone.
+   */
+  static async getOverview(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const text = (value: unknown) => (typeof value === 'string' ? value.trim().slice(0, 120) : '');
+      const day = (value: unknown, end = false) => {
+        const raw = text(value);
+        if (!/^\d{4}-\d{2}-\d{2}/.test(raw)) return null;
+        const d = new Date(raw.length === 10 ? `${raw}${end ? 'T23:59:59.999Z' : 'T00:00:00.000Z'}` : raw);
+        return Number.isNaN(d.getTime()) ? null : d;
+      };
+      const from = day(req.query.from);
+      const to = day(req.query.to, true);
+      const district = text(req.query.district);
+      const sector = text(req.query.sector);
+      const NONE = 'Not specified';
+
+      const range = (field: string) => (from || to ? { [field]: { ...(from ? { $gte: from } : {}), ...(to ? { $lte: to } : {}) } } : {});
+      const districtExpr = { $cond: [{ $gt: [{ $strLenCP: { $trim: { input: { $ifNull: ['$district', ''] } } } }, 0] }, { $trim: { input: '$district' } }, NONE] };
+      const projectMatch: any = { ...range('createdAt') };
+      if (sector) projectMatch.industrySector = sector;
+
+      const projectRows = await Project.aggregate([
+        { $addFields: { _district: districtExpr } },
+        { $match: { ...projectMatch, ...(district ? { _district: district } : {}) } },
+        {
+          $facet: {
+            total: [{ $count: 'n' }],
+            completed: [{ $match: { status: 'completed' } }, { $count: 'n' }],
+            sectors: [{ $group: { _id: '$industrySector', count: { $sum: 1 } } }, { $sort: { count: -1, _id: 1 } }],
+            districts: [{ $group: { _id: '$_district', count: { $sum: 1 } } }, { $sort: { count: -1, _id: 1 } }],
+            ids: [{ $project: { _id: 1 } }],
+          },
+        },
+      ]);
+      const facet = projectRows[0] || {};
+
+      // DPRs follow the same district / sector choice through their project.
+      const dprMatch: any = { ...range('createdAt') };
+      if (district || sector) {
+        const ids = await Project.aggregate([
+          { $addFields: { _district: districtExpr } },
+          { $match: { ...(sector ? { industrySector: sector } : {}), ...(district ? { _district: district } : {}) } },
+          { $project: { _id: 1 } },
+        ]);
+        dprMatch.projectId = { $in: ids.map((row: any) => String(row._id)) };
+      }
+      const dprRows = await DPRVersion.aggregate([
+        { $match: dprMatch },
+        {
+          $addFields: {
+            _status: {
+              $switch: {
+                branches: [
+                  { case: { $eq: ['$status', 'approved'] }, then: 'completed' },
+                  { case: { $eq: ['$status', 'submitted'] }, then: 'submitted' },
+                  { case: { $eq: ['$status', 'rejected'] }, then: 'rejected' },
+                ],
+                default: { $cond: [{ $isNumber: '$qualityScore' }, 'analyzed', 'draft'] },
+              },
+            },
+          },
+        },
+        {
+          $facet: {
+            byStatus: [{ $group: { _id: '$_status', count: { $sum: 1 } } }],
+            quality: [{ $match: { qualityScore: { $type: 'number' } } }, { $group: { _id: null, avg: { $avg: '$qualityScore' }, n: { $sum: 1 } } }],
+          },
+        },
+      ]);
+      const dprFacet = dprRows[0] || { byStatus: [], quality: [] };
+      const statusCount = (key: string) => dprFacet.byStatus.find((row: any) => row._id === key)?.count || 0;
+      const dprStatus = ['draft', 'submitted', 'analyzed', 'completed', 'rejected'].map((key) => ({ status: key, count: statusCount(key) }));
+      const dprTotal = dprStatus.reduce((sum, row) => sum + row.count, 0);
+
+      const userMatch = range('createdAt');
+      const [totalUsers, entrepreneurs] = await Promise.all([
+        User.countDocuments(userMatch),
+        User.countDocuments({ ...userMatch, role: 'entrepreneur' }),
+      ]);
+
+      // Choices for the filter lists: everything that exists, not only what the current filters leave.
+      const [districtOptions, sectorOptions] = await Promise.all([
+        Project.aggregate([{ $addFields: { _district: districtExpr } }, { $group: { _id: '$_district' } }, { $sort: { _id: 1 } }]),
+        Project.aggregate([{ $group: { _id: '$industrySector' } }, { $sort: { _id: 1 } }]),
+      ]);
+
+      // Recent activity: real audit events only, newest first. The tamper-evident log itself is not touched.
+      const SHOWN = ['dpr_change', 'dpr_review', 'dpr_download', 'dpr_delete', 'register', 'user_invite', 'invite_accepted', 'user_update', 'role_change', 'user_deactivate', 'user_reactivate', 'account_delete', 'complaint_submitted', 'support_ticket', 'data_export'];
+      const events = await AuditEvent.find({ action: { $in: SHOWN }, ...range('at') })
+        .sort({ at: -1 })
+        .limit(Math.min(Number(req.query.activityLimit) || 10, 50))
+        .lean();
+      const userIds = [...new Set(events.map((e: any) => e.userId && String(e.userId)).filter(Boolean))];
+      const users = userIds.length ? await User.find({ _id: { $in: userIds } }).select('name email').lean() : [];
+      const userName = new Map(users.map((u: any) => [String(u._id), u.name || u.email]));
+      const dprIds = events.filter((e: any) => e.targetType === 'dpr' && /^[a-f0-9]{24}/.test(e.targetId || '')).map((e: any) => String(e.targetId).slice(0, 24));
+      const dprDocs = dprIds.length ? await DPRVersion.find({ _id: { $in: dprIds } }).select('status qualityScore').lean() : [];
+      const dprState = new Map(dprDocs.map((d: any) => [String(d._id), d.status === 'approved' ? 'completed' : d.status === 'draft' && typeof d.qualityScore === 'number' ? 'analyzed' : d.status]));
+
+      res.status(200).json({
+        success: true,
+        data: {
+          filters: { from, to, district, sector },
+          options: {
+            districts: districtOptions.map((row: any) => row._id),
+            sectors: sectorOptions.map((row: any) => row._id).filter(Boolean),
+          },
+          kpis: {
+            users: { total: totalUsers, entrepreneurs },
+            projects: { total: facet.total?.[0]?.n || 0, completed: facet.completed?.[0]?.n || 0 },
+            dprs: {
+              total: dprTotal,
+              completed: statusCount('completed'),
+              avgQuality: dprFacet.quality[0] ? Math.round(dprFacet.quality[0].avg) : null,
+              scored: dprFacet.quality[0]?.n || 0,
+            },
+          },
+          dprStatus,
+          sectors: (facet.sectors || []).map((row: any) => ({ name: row._id || NONE, count: row.count })),
+          districts: (facet.districts || []).map((row: any) => ({ name: row._id, count: row.count })),
+          activity: events.map((e: any) => ({
+            id: String(e._id),
+            at: e.at,
+            action: e.action,
+            user: e.userId ? userName.get(String(e.userId)) || null : null,
+            role: e.role || null,
+            targetType: e.targetType || null,
+            targetId: e.targetId ? String(e.targetId).split(':')[0] : null,
+            status: e.targetType === 'dpr' ? dprState.get(String(e.targetId).slice(0, 24)) || null : null,
+          })),
+        },
+      });
+    } catch (error: any) {
+      console.error('Analytics overview error:', error);
+      res.status(500).json({ success: false, message: 'Failed to load the analytics overview' });
+    }
+  }
+
+  /**
    * Get all users (admin only)
    */
   static async getAllUsers(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { page = 1, limit = 20, role } = req.query;
+      const { page = 1, limit = 20, role, q } = req.query;
 
       const filter: any = {};
       if (role) {
         filter.role = role;
       }
+      // Search by name or email (typed text is matched literally, never as a pattern).
+      const text = typeof q === 'string' ? q.trim().slice(0, 100) : '';
+      if (text) {
+        const literal = new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        filter.$or = [{ name: literal }, { email: literal }];
+      }
 
       const users = await User.find(filter)
-        .select('-passwordHash')
+        .select('-passwordHash -invite.tokenHash')
         .sort({ createdAt: -1 })
         .limit(Number(limit))
         .skip((Number(page) - 1) * Number(limit));
@@ -449,7 +599,7 @@ export class AdminController {
   static async updateUser(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { name, email, role, location, phoneNumber, udyamNumber } = req.body;
+      const { name, email, role, location, phoneNumber, udyamNumber, reviewDistrict } = req.body;
 
       // Prevent admin from changing their own role
       if (id === req.user?.userId && role && role !== req.user?.role) {
@@ -460,15 +610,53 @@ export class AdminController {
         return;
       }
 
+      if (role !== undefined && !isRole(role)) {
+        res.status(400).json({
+          success: false,
+          message: `Role must be one of: ${ROLES.join(', ')}`,
+        });
+        return;
+      }
+
+      const existing: any = await User.findById(id).select('role reviewDistrict');
+      if (!existing) {
+        res.status(404).json({ success: false, message: 'User not found' });
+        return;
+      }
+      const nextRole = role ?? existing.role;
+      const nextDistrict =
+        reviewDistrict !== undefined ? String(reviewDistrict || '').trim() : existing.reviewDistrict || '';
+      if (nextRole === 'officer' && !nextDistrict) {
+        res.status(400).json({
+          success: false,
+          message: 'A District Reviewer must be assigned a district',
+        });
+        return;
+      }
+
       const updateData: any = {};
       if (name) updateData.name = name;
       if (email) updateData.email = email;
       if (role) updateData.role = role;
+      // Only reviewers carry a district; clear it for every other role.
+      if (nextRole === 'officer') updateData.reviewDistrict = nextDistrict;
+      else if (existing.reviewDistrict) updateData.reviewDistrict = null;
       if (location !== undefined) updateData.location = location;
       if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
       if (udyamNumber !== undefined) updateData.udyamNumber = udyamNumber;
 
-      const user = await User.findByIdAndUpdate(id, updateData, { new: true }).select('-passwordHash');
+      if (role && role !== existing.role) {
+        await AuditService.log({
+          action: 'role_change',
+          userId: req.user?.userId,
+          role: req.user?.role,
+          targetType: 'user',
+          targetId: `${id}:${existing.role}->${role}`,
+          req,
+        });
+      }
+
+      const user = await User.findByIdAndUpdate(id, updateData, { new: true }).select('-passwordHash -invite.tokenHash');
 
       if (!user) {
         res.status(404).json({
@@ -477,6 +665,20 @@ export class AdminController {
         });
         return;
       }
+
+      await AuditService.log({
+        action: 'user_update',
+        userId: req.user?.userId,
+        role: req.user?.role,
+        targetType: 'user',
+        targetId: id,
+        payload: {
+          changed: Object.keys(updateData),
+          role: updateData.role ? { from: existing.role, to: updateData.role } : undefined,
+          reviewDistrict: 'reviewDistrict' in updateData ? { from: existing.reviewDistrict || null, to: updateData.reviewDistrict || null } : undefined,
+        },
+        req,
+      });
 
       res.status(200).json({
         success: true,
@@ -984,6 +1186,18 @@ export class AdminController {
     }
   }
 
+  /** Re-computes the hash chain and says whether any audit event was changed, removed or inserted. */
+  static async verifyAudit(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const verdict = await verifyAuditChain();
+      await AuditService.log({ action: 'audit_verify', userId: req.user?.userId, role: req.user?.role, payload: { ok: verdict.ok, checked: verdict.checked, problem: verdict.problem }, req });
+      res.status(200).json({ success: true, data: verdict });
+    } catch (error: any) {
+      console.error('Verify audit error:', error);
+      res.status(500).json({ success: false, message: 'Could not verify the audit log' });
+    }
+  }
+
   static async exportAuditCsv(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { userId, action, from, to } = req.query;
@@ -1000,14 +1214,17 @@ export class AdminController {
       const events = await AuditEvent.find(filter).sort({ at: -1 }).limit(5000).lean();
 
       const escape = (value: unknown) => {
-        const text = value == null ? '' : String(value);
+        let text = value == null ? '' : String(value);
+        // A cell that starts with = + - @ would run as a formula when opened in a spreadsheet.
+        if (/^[=+\-@\t\r]/.test(text) && !/^-?\d+(\.\d+)?$/.test(text)) text = `'${text}`;
         if (/[",\n]/.test(text)) return `"${text.replace(/"/g, '""')}"`;
         return text;
       };
 
-      const header = ['at', 'userId', 'role', 'action', 'targetType', 'targetId', 'ip'];
-      const rows = events.map((event) =>
+      const header = ['seq', 'at', 'userId', 'role', 'action', 'targetType', 'targetId', 'ip', 'payload', 'hash'];
+      const rows = events.map((event: any) =>
         [
+          event.seq,
           event.at ? new Date(event.at).toISOString() : '',
           event.userId,
           event.role,
@@ -1015,12 +1232,15 @@ export class AdminController {
           event.targetType,
           event.targetId,
           event.ip,
+          event.payload ? JSON.stringify(event.payload) : '',
+          event.hash,
         ]
           .map(escape)
           .join(',')
       );
       const csv = [header.join(','), ...rows].join('\n');
 
+      await AuditService.log({ action: 'audit_export', userId: req.user?.userId, role: req.user?.role, payload: { rows: events.length, action, from, to }, req });
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename="audit-log.csv"');
       res.status(200).send(csv);

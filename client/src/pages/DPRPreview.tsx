@@ -1,4 +1,6 @@
 // @ts-nocheck
+import { useBackTarget } from '@/lib/navHistory';
+import { BackButton } from '@/components/ui/BackButton';
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -7,8 +9,8 @@ import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { api } from '@/lib/api';
+import { dprEditPath } from '@/lib/dprActions';
 import {
-  ArrowLeft,
   Download,
   Edit2,
   Save,
@@ -40,10 +42,13 @@ import { useAuthStore } from '@/store/authStore';
 import { isSuperAdmin } from '@/lib/rbac';
 import { captureElementAsStandaloneHTML } from '@/lib/htmlCapture';
 
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 export const DPRPreview: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const tf = useClusterFormText();
   const { dprId } = useParams();
   const navigate = useNavigate();
+  const back = useBackTarget({ path: '/dashboard' });
   const location = useLocation();
   const [dpr, setDpr] = useState<any>(null);
   const [project, setProject] = useState<any>(null);
@@ -57,7 +62,7 @@ export const DPRPreview: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [hasTelugu, setHasTelugu] = useState(false);
-  const [previewZoom, setPreviewZoom] = useState(0.6); // Default zoom set to 60%
+  const [previewZoom, setPreviewZoom] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 640 ? 0.4 : 0.6)); // 60%, or 40% on a phone so the page width fits
   const [styling, setStyling] = useState(false);
   const [draftStyle, setDraftStyle] = useState<any>(null);
   const draftStyleRef = useRef<any>(null);
@@ -225,10 +230,27 @@ export const DPRPreview: React.FC = () => {
         }
       }
       
-      toast.error('Failed to load DPR');
+      toast.error(tf('Failed to load DPR'));
     } finally {
       setLoading(false);
     }
+  };
+
+  /** Edit this DPR: back into the Create DPR page that built it (styling lives there under Customise). */
+  const openEditView = () => {
+    const record = extractIndividualDocData(dpr, project);
+    const scheme = extractSchemeCode(dpr, project, record);
+    const owner = (project && project._id ? project : dpr?.projectId) || {};
+    navigate(
+      dprEditPath({
+        _id: dprId || dpr?._id,
+        schemeCode: scheme,
+        projectId: {
+          _id: owner._id || (typeof dpr?.projectId === 'string' ? dpr.projectId : undefined),
+          projectType: owner.projectType || (isClusterDPR ? 'cluster' : isIndividualDPR ? 'individual' : undefined),
+        },
+      }),
+    );
   };
 
   const openStyleEditor = async () => {
@@ -291,10 +313,10 @@ export const DPRPreview: React.FC = () => {
             : {}),
         },
       });
-      toast.success('Style saved on this DPR');
+      toast.success(tf('Style saved on this DPR'));
       setStyling(false);
     } catch {
-      toast.error('Could not save the style');
+      toast.error(tf('Could not save the style'));
     } finally {
       setStyleSaving(false);
     }
@@ -307,9 +329,9 @@ export const DPRPreview: React.FC = () => {
     try {
       setStyleSaving(true);
       await api.saveSchemeDocumentStyle(scheme, draftStyle);
-      toast.success('The next DPR for this scheme starts from this look');
+      toast.success(tf('The next DPR for this scheme starts from this look'));
     } catch {
-      toast.error('Could not save the scheme default');
+      toast.error(tf('Could not save the scheme default'));
     } finally {
       setStyleSaving(false);
     }
@@ -346,7 +368,7 @@ export const DPRPreview: React.FC = () => {
 
       setEditingSection(null);
       setEditedContent('');
-      toast.success('Content updated successfully');
+      toast.success(tf('Content updated successfully'));
       
       // Reload quality score
       const qualityResponse = await api.analyzeDPRQuality(dprId!);
@@ -355,7 +377,7 @@ export const DPRPreview: React.FC = () => {
         setQualityFeedback(qualityResponse.data);
       }
     } catch (error) {
-      toast.error('Failed to update content');
+      toast.error(tf('Failed to update content'));
     } finally {
       setSaving(false);
     }
@@ -366,13 +388,20 @@ export const DPRPreview: React.FC = () => {
     setEditedContent('');
   };
 
-  const handleDownload = async (format: 'pdf' | 'docx' | 'xls') => {
+  const handleDownload = async (format: 'pdf' | 'docx') => {
     try {
+      // Exports are English only. The on-screen document is what gets printed, so show it in English first.
+      const exportLanguage = 'english' as const;
+      if (viewLanguage !== exportLanguage && !(isIndividualDPR && dprId)) {
+        toast(tf('Exports are English only. Switching the document to English.'));
+        setViewLanguage(exportLanguage);
+        await new Promise((resolve) => window.setTimeout(resolve, 900));
+      }
       // Get enhanced paragraphs from database (DPR content) for cluster DPRs
       let enhancedParagraphs: Record<string, string> | undefined;
       if (isClusterDPR && dpr) {
         // Get enhanced content from DPR content (from database)
-        const dprContent = dpr.content?.[viewLanguage] || dpr.content?.english || dpr.content?.telugu || {};
+        const dprContent = dpr.content?.[exportLanguage] || dpr.content?.english || dpr.content?.telugu || {};
         enhancedParagraphs = dprContent.enhancedContent || {};
         if (Object.keys(enhancedParagraphs).length > 0) {
           console.log('📥 Loaded enhanced paragraphs from database for download:', Object.keys(enhancedParagraphs).length, 'sections');
@@ -383,9 +412,38 @@ export const DPRPreview: React.FC = () => {
         dprDownloadName({
           schemeCode: dpr ? dprSchemeCode(dpr) : '',
           projectName: project?.projectName,
-          language: viewLanguage,
+          language: exportLanguage,
           ext,
         });
+
+      // Hands the file to the browser, and puts a plain download link in the notice. The page cannot see whether the
+      // browser accepted an automatic download (it may have downloads blocked for this site), but a click on a real
+      // link is always a download the person started.
+      const deliver = (file: Blob, name: string) => {
+        downloadBlob(file, name);
+        const linkUrl = window.URL.createObjectURL(file);
+        window.setTimeout(() => window.URL.revokeObjectURL(linkUrl), 5 * 60 * 1000);
+        toast.success(
+          (item) => (
+            <span data-testid="download-ready">
+              {tf('Your {f} is ready.').replace('{f}', format.toUpperCase())}{' '}
+              <a href={linkUrl} download={name} onClick={() => toast.dismiss(item.id)} className="font-semibold underline">
+                {tf('If it was not saved, click here.')}
+              </a>
+            </span>
+          ),
+          { duration: 15000 }
+        );
+      };
+
+      // A Latest (individual) report seen in another language is drawn off screen in English for the file, so the language the
+      // person chose stays as it is (nothing is switched, nothing waits for the page to redraw).
+      if (viewLanguage !== exportLanguage && isIndividualDPR && dprId) {
+        const { exportGeneratedDpr } = await import('@/lib/exportGeneratedDpr');
+        const file = await exportGeneratedDpr(dprId, format);
+        deliver(file.blob, file.filename);
+        return;
+      }
 
       let blob;
       if (format === 'pdf') {
@@ -395,30 +453,40 @@ export const DPRPreview: React.FC = () => {
           if (root) {
             try {
               const html = captureElementAsStandaloneHTML(root);
-              blob = await api.downloadPDFExactFromHTML(dprId!, html, viewLanguage);
+              blob = await api.downloadPDFExactFromHTML(dprId!, html, exportLanguage);
             } catch (htmlErr) {
               console.warn('HTML PDF failed, using server PDF', htmlErr);
-              blob = await api.downloadPDF(dprId!, viewLanguage, enhancedParagraphs);
+              blob = await api.downloadPDF(dprId!, exportLanguage, enhancedParagraphs);
             }
-            downloadBlob(blob, fileName('pdf'));
+            deliver(blob, fileName('pdf'));
           } else {
-            blob = await api.downloadPDF(dprId!, viewLanguage, enhancedParagraphs);
-            downloadBlob(blob, fileName('pdf'));
+            blob = await api.downloadPDF(dprId!, exportLanguage, enhancedParagraphs);
+            deliver(blob, fileName('pdf'));
           }
         } else {
-          blob = await api.downloadPDF(dprId!, viewLanguage, enhancedParagraphs);
-          downloadBlob(blob, fileName('pdf'));
+          blob = await api.downloadPDF(dprId!, exportLanguage, enhancedParagraphs);
+          deliver(blob, fileName('pdf'));
         }
       } else if (format === 'docx') {
-        blob = await api.downloadDOCX(dprId!, viewLanguage);
-        downloadBlob(blob, fileName('docx'));
-      } else if (format === 'xls') {
-        blob = await api.downloadXLS(dprId!, viewLanguage);
-        downloadBlob(blob, fileName('xlsx'));
+        // Latest individual: the Word file is built in the browser from the on-screen document (the same report the PDF
+        // is printed from), so it has the PDF's content and layout whichever server version is running. If that fails, the
+        // server builds it from the same page HTML. The older server-built layout is deliberately not used: it differs.
+        const root = isIndividualDPR ? document.querySelector('.dpr-document') : null;
+        if (root) {
+          try {
+            const { domToDocxBlob } = await import('@/lib/domToDocx');
+            blob = await domToDocxBlob(root);
+          } catch (localErr) {
+            console.warn('Word file from the page failed in the browser, trying the server', localErr);
+            blob = await api.downloadDOCXExactFromHTML(dprId!, captureElementAsStandaloneHTML(root), exportLanguage);
+          }
+        } else {
+          blob = await api.downloadDOCX(dprId!, exportLanguage);
+        }
+        deliver(blob, fileName('docx'));
       }
-      toast.success(`${format.toUpperCase()} downloaded successfully!`);
     } catch (error) {
-      toast.error(`Failed to download ${format.toUpperCase()}`);
+      toast.error(tf('Failed to download {f}').replace('{f}', format.toUpperCase()));
     }
   };
 
@@ -426,10 +494,10 @@ export const DPRPreview: React.FC = () => {
     try {
       setSubmitting(true);
       await api.submitDPR(dprId!, submittedTo);
-      toast.success('DPR submitted successfully!');
+      toast.success(tf('DPR submitted successfully!'));
       await loadDPR(); // Reload to get updated status
     } catch (error) {
-      toast.error('Failed to submit DPR');
+      toast.error(tf('Failed to submit DPR'));
     } finally {
       setSubmitting(false);
     }
@@ -440,13 +508,13 @@ export const DPRPreview: React.FC = () => {
       setTranslating(true);
       const response = await api.translateToTelugu(dprId!);
       if (response.success) {
-        toast.success('DPR translated to Telugu successfully!');
+        toast.success(tf('DPR translated to Telugu successfully!'));
         setHasTelugu(true);
         await loadDPR(); // Reload to get Telugu content
         setViewLanguage('telugu'); // Switch to Telugu view
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to translate DPR to Telugu');
+      toast.error(error.response?.data?.message || tf('Failed to translate DPR to Telugu'));
     } finally {
       setTranslating(false);
     }
@@ -455,13 +523,13 @@ export const DPRPreview: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved':
-        return 'bg-success/10 text-success border border-success/20';
+        return 'bg-success/10 text-success-text border border-success/20';
       case 'submitted':
-        return 'bg-secondary/10 text-secondary border border-secondary/20';
+        return 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20';
       case 'draft':
-        return 'bg-warning/10 text-warning border border-warning/20';
+        return 'bg-warning/10 text-warning-text border border-warning/20';
       case 'rejected':
-        return 'bg-destructive/10 text-destructive border border-destructive/20';
+        return 'bg-destructive/10 text-destructive-text border border-destructive/20';
       default:
         return 'bg-muted/50 text-muted-foreground border border-border';
     }
@@ -472,7 +540,7 @@ export const DPRPreview: React.FC = () => {
       case 'approved':
         return <CheckCircle className="h-4 w-4" />;
       case 'submitted':
-        return <AlertCircle className="h-4 w-4" />;
+        return <Send className="h-4 w-4" />;
       case 'draft':
         return <FileText className="h-4 w-4" />;
       default:
@@ -544,10 +612,7 @@ export const DPRPreview: React.FC = () => {
   return (
     <Layout>
       <div className={`${isClusterDPR ? 'w-full max-w-none' : 'max-w-6xl mx-auto'} space-y-6 pb-8`}>
-        <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          {t('dpr.preview.backToDashboard')}
-        </Button>
+        <BackButton label={back.label} onClick={back.go} />
 
         {/* Header Section - Only show for non-cluster DPRs */}
         {!isClusterDPR && (
@@ -643,14 +708,6 @@ export const DPRPreview: React.FC = () => {
                 >
                   <Download className="h-4 w-4 mr-2" />
                   DOCX
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleDownload('xls')}
-                  className="border-2 hover:bg-success/5 hover:border-success"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  XLS
                 </Button>
                 {dpr.status === 'draft' && (
                   <Button
@@ -900,7 +957,7 @@ export const DPRPreview: React.FC = () => {
                     <p className="text-sm font-semibold mb-3 text-muted-foreground">{t('dpr.preview.sectionsNeedingImprovement')}:</p>
                     <div className="flex flex-wrap gap-2">
                       {qualityFeedback.weakSections.map((section: string, idx: number) => (
-                        <span key={idx} className="px-3 py-1.5 bg-warning/10 text-warning border border-warning/20 rounded-lg text-sm font-medium">
+                        <span key={idx} className="px-3 py-1.5 bg-warning/10 text-warning-text border border-warning/20 rounded-lg text-sm font-medium">
                           {section}
                         </span>
                       ))}
@@ -916,12 +973,13 @@ export const DPRPreview: React.FC = () => {
         {isIndividualDPR || isClusterDPR ? (
           <Card className="border-2 shadow-lg">
             <CardHeader className="flex-shrink-0 border-b border-border">
-              <div className="flex items-center justify-between">
-                <CardTitle>DPR Preview</CardTitle>
-                <div className="flex items-center gap-2">
-                  {isIndividualDPR && !styling ? (
-                    <Button variant="outline" size="sm" onClick={openStyleEditor}>
-                      Style this report
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                <CardTitle>{tf('DPR Preview')}</CardTitle>
+                <div className="flex flex-wrap items-center gap-2">
+                  {!styling ? (
+                    <Button variant="outline" size="sm" onClick={openEditView} className="whitespace-nowrap">
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      {tf('Edit this DPR')}
                     </Button>
                   ) : null}
                   {!styling ? (
@@ -931,7 +989,7 @@ export const DPRPreview: React.FC = () => {
                       size="sm"
                       onClick={() => setPreviewZoom(Math.max(0.3, previewZoom - 0.1))}
                       className="h-7 w-7 p-0"
-                      title="Zoom Out"
+                      title={tf('Zoom Out')}
                     >
                       <ZoomOut className="h-4 w-4" />
                     </Button>
@@ -943,7 +1001,7 @@ export const DPRPreview: React.FC = () => {
                       size="sm"
                       onClick={() => setPreviewZoom(Math.min(2, previewZoom + 0.1))}
                       className="h-7 w-7 p-0"
-                      title="Zoom In"
+                      title={tf('Zoom In')}
                     >
                       <ZoomIn className="h-4 w-4" />
                     </Button>
@@ -952,7 +1010,7 @@ export const DPRPreview: React.FC = () => {
                       size="sm"
                       onClick={() => setPreviewZoom(0.6)}
                       className="h-7 w-7 p-0"
-                      title="Reset Zoom to 60%"
+                      title={tf('Reset Zoom to 60%')}
                     >
                       <RotateCcw className="h-4 w-4" />
                     </Button>
@@ -997,14 +1055,10 @@ export const DPRPreview: React.FC = () => {
                   />
                 </StyleEditor>
               ) : (
-              <div 
+              <div
                 className="w-full overflow-auto"
-                style={{ 
-                  transform: `scale(${previewZoom})`,
-                  transformOrigin: 'top left',
-                  width: `${100 / previewZoom}%`,
-                  height: `${100 / previewZoom}%`,
-                }}
+                // CSS zoom, not a transform: the page then takes only the room it shows, so no empty space is left under it.
+                style={{ zoom: previewZoom } as React.CSSProperties}
               >
                 {(() => {
                   const record = isIndividualDPR ? extractIndividualDocData(dpr, project) : null;

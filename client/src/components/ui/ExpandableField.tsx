@@ -7,12 +7,17 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useClusterFormText } from '@/lib/clusterDprFormText';
+import { findNearbyFieldTitle } from '@/lib/fieldTitle';
+import { MicButton } from '@/components/ui/MicButton';
+import { useVoiceEnabled } from '@/components/ui/VoiceContext';
+import { appendSpoken } from '@/lib/voice/spokenValue';
 import { useAuthStore } from '@/store/authStore';
 import { useIndividualDPRStore } from '@/store/individualDPRStore';
 import { AISuggestionsService } from '@/services/aiSuggestions.service';
 import { getUnitName } from '@/lib/individualDpr/toIndividualPayload';
 import { BUSINESS_SKILLS, matchBusinessSkillLocal } from '@/lib/individualDpr/businessSkills';
 import { useTranslation } from 'react-i18next';
+import { useDialogFocus } from '@/lib/useDialog';
 
 type EditorKind = 'input' | 'textarea' | 'select';
 
@@ -77,7 +82,10 @@ function FieldExpandModal({
 }) {
   const tf = useClusterFormText();
   const { t } = useTranslation();
+  const voiceOn = useVoiceEnabled();
   const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogFocus(open, panelRef);
   const editorRef = useRef<HTMLTextAreaElement | HTMLInputElement | HTMLSelectElement | null>(null);
   const [improving, setImproving] = useState(false);
   const [matching, setMatching] = useState(false);
@@ -203,7 +211,7 @@ function FieldExpandModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6"
+      className="motion-overlay fixed inset-0 z-[80] flex items-center justify-center p-4 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -214,12 +222,19 @@ function FieldExpandModal({
         aria-label={tf('Cancel')}
         onClick={onCancel}
       />
-      <div className="relative z-10 flex w-full max-w-3xl max-h-[90vh] flex-col rounded-xl border border-border bg-background shadow-2xl">
+      <div ref={panelRef} className="relative z-10 flex w-full max-w-3xl max-h-[90vh] flex-col rounded-xl border border-border bg-background shadow-2xl">
         <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
           <p id={titleId} className="min-w-0 flex-1 text-base font-semibold text-foreground truncate">
             {title || tf('Edit field')}
           </p>
           <div className="flex items-center gap-2 flex-shrink-0">
+            {voiceOn && (kind === 'textarea' || (kind === 'input' && (!inputType || inputType === 'text'))) ? (
+              <MicButton
+                kind="text"
+                label={title}
+                onText={(spoken) => setDraft(kind === 'textarea' ? appendSpoken(draft, spoken) : spoken)}
+              />
+            ) : null}
             {showMatchSkill && (
               <Button
                 type="button"
@@ -314,42 +329,6 @@ function FieldExpandModal({
   );
 }
 
-function cleanLabelText(raw: string): string {
-  return raw
-    .replace(/\s*\*\s*$/, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-/** Pick the visible field title near a control (sibling / parent label). */
-function findNearbyFieldTitle(el: HTMLElement | null): string {
-  if (!el) return '';
-  const aria = el.getAttribute('aria-label');
-  if (aria?.trim()) return cleanLabelText(aria);
-
-  const labelledBy = el.getAttribute('aria-labelledby');
-  if (labelledBy) {
-    const node = document.getElementById(labelledBy);
-    if (node?.textContent) return cleanLabelText(node.textContent);
-  }
-
-  const wrap = el.closest('div');
-  const container = wrap?.parentElement || wrap;
-  const labelInContainer = container?.querySelector('label');
-  if (labelInContainer?.textContent) return cleanLabelText(labelInContainer.textContent);
-
-  let sibling = wrap?.previousElementSibling as HTMLElement | null;
-  while (sibling) {
-    if (sibling.tagName === 'LABEL' || sibling.classList.contains('font-medium') || sibling.classList.contains('font-semibold')) {
-      if (sibling.textContent) return cleanLabelText(sibling.textContent);
-    }
-    const nested = sibling.querySelector?.('label');
-    if (nested?.textContent) return cleanLabelText(nested.textContent);
-    sibling = sibling.previousElementSibling as HTMLElement | null;
-  }
-  return '';
-}
-
 function useExpandEditor(
   value: unknown,
   onChange?: (e: any) => void
@@ -428,8 +407,8 @@ export const ExpandableTextarea = React.forwardRef<HTMLTextAreaElement, Textarea
       allowImprove = true,
       disabled,
       readOnly,
-      onFocus,
       onClick,
+      onKeyDown,
       ...props
     },
     ref
@@ -441,26 +420,34 @@ export const ExpandableTextarea = React.forwardRef<HTMLTextAreaElement, Textarea
       onChange
     );
     const modalTitle = (expandTitle || label || resolvedTitle || '').trim() || tf('Edit field');
+    const voiceOn = useVoiceEnabled();
+    const voiceShown = voiceOn && !disabled && !readOnly;
+    const speak = (spoken: string) => {
+      const next = appendSpoken(String(resolvedValue ?? ''), spoken);
+      onChange?.({ target: { value: next }, currentTarget: { value: next } } as any);
+    };
 
     return (
       <>
         <div className="relative w-full">
           <textarea
             ref={ref}
-            className={cn('pr-8 cursor-pointer', className)}
+            className={cn(voiceShown ? 'pr-16 cursor-pointer' : 'pr-8 cursor-pointer', className)}
             onChange={onChange}
             value={value}
             defaultValue={defaultValue}
             placeholder={placeholder}
             disabled={disabled}
             readOnly
-            onFocus={(e) => {
-              if (!disabled) openEditor(e, expandTitle || label);
-              onFocus?.(e);
-            }}
+            // Open on click or Enter/Space only. Opening on focus made the editor reopen the moment it closed,
+            // because closing returns focus to this textarea.
             onClick={(e) => {
-              if (!disabled) openEditor(e, expandTitle || label);
+              if (!disabled && !open) openEditor(e, expandTitle || label);
               onClick?.(e);
+            }}
+            onKeyDown={(e) => {
+              if (!disabled && !open && (e.key === 'Enter' || e.key === ' ')) openEditor(e, expandTitle || label);
+              onKeyDown?.(e);
             }}
             {...props}
             aria-label={expandTitle || label || props['aria-label']}
@@ -468,6 +455,11 @@ export const ExpandableTextarea = React.forwardRef<HTMLTextAreaElement, Textarea
           {!disabled && (
             <span className="pointer-events-none absolute right-2 top-2 text-muted-foreground/70" aria-hidden>
               <Maximize2 className="h-3.5 w-3.5" />
+            </span>
+          )}
+          {voiceShown && (
+            <span className="absolute right-8 top-1">
+              <MicButton kind="text" label={expandTitle || label || props['aria-label']} onText={speak} />
             </span>
           )}
         </div>

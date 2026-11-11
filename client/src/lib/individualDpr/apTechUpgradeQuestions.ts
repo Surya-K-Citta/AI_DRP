@@ -4,9 +4,9 @@
  * Step list: AP_TECH_UPGRADE_STEPS in schemeStepCatalog.ts (13 consecutive steps).
  */
 
-export type ApTechEnterpriseSize = 'micro' | 'small' | 'medium';
-export type ApTechPremises = 'owned' | 'leased' | 'rented';
-export type ApTechYesNo = 'yes' | 'no';
+type ApTechEnterpriseSize = 'micro' | 'small' | 'medium';
+type ApTechPremises = 'owned' | 'leased' | 'rented';
+type ApTechYesNo = 'yes' | 'no';
 
 export const AP_TECH_EXTRA_FIELDS = [
   'enterpriseSize',
@@ -27,7 +27,6 @@ export const AP_TECH_EXTRA_FIELDS = [
   'powerRequirement',
 ] as const;
 
-export type ApTechExtraField = (typeof AP_TECH_EXTRA_FIELDS)[number];
 
 export const AP_TECH_SIZE_OPTIONS: { value: ApTechEnterpriseSize; label: string }[] = [
   { value: 'micro', label: 'Micro' },

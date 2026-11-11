@@ -18,7 +18,6 @@ export const AP_CMEP_EXTRA_FIELDS = [
   'familyExclusive',
 ] as const;
 
-export type ApCmepExtraField = (typeof AP_CMEP_EXTRA_FIELDS)[number];
 
 export const AP_CMEP_ACTIVITY_OPTIONS = [
   { value: 'manufacturing', label: 'Manufacturing' },

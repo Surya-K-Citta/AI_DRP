@@ -1,7 +1,10 @@
 // @ts-nocheck
+import { useBackTarget } from '@/lib/navHistory';
+import { BackButton } from '@/components/ui/BackButton';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 import { toast } from 'react-hot-toast';
 import { api } from '@/lib/api';
 import { useProjectStore } from '@/store/projectStore';
@@ -9,11 +12,12 @@ import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { ArrowLeft } from 'lucide-react';
 
 export const ProjectForm: React.FC = () => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const navigate = useNavigate();
+  const back = useBackTarget({ path: '/projects' });
   const { id } = useParams();
   const { addProject, updateProject } = useProjectStore();
   const [isLoading, setIsLoading] = useState(false);
@@ -91,10 +95,7 @@ export const ProjectForm: React.FC = () => {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto space-y-6 pb-8">
-        <Button variant="ghost" onClick={() => navigate('/projects')} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          {t('common.back')}
-        </Button>
+        <BackButton label={back.label} onClick={back.go} />
 
         {/* Header */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 p-8 text-white mb-6">
@@ -127,10 +128,11 @@ export const ProjectForm: React.FC = () => {
               />
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label htmlFor="project-type" className="block text-sm font-medium mb-2">
                   {t('projects.projectType')}
                 </label>
                 <select
+                  id="project-type"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={formData.projectType}
                   onChange={(e) =>
@@ -147,10 +149,11 @@ export const ProjectForm: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label htmlFor="project-sector" className="block text-sm font-medium mb-2">
                   {t('projects.industrySector')} *
                 </label>
                 <select
+                  id="project-sector"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={formData.industrySector}
                   onChange={(e) =>
@@ -159,32 +162,32 @@ export const ProjectForm: React.FC = () => {
                   required
                 >
                   <option value="">{t('projects.selectIndustrySector')}</option>
-                  <option value="Manufacturing">Manufacturing</option>
-                  <option value="Services">Services</option>
-                  <option value="Trading">Trading</option>
-                  <option value="Food Processing">Food Processing</option>
-                  <option value="Textiles & Garments">Textiles & Garments</option>
-                  <option value="Handicrafts">Handicrafts</option>
-                  <option value="IT & ITES">IT & ITES</option>
-                  <option value="Healthcare">Healthcare</option>
-                  <option value="Education">Education</option>
-                  <option value="Agriculture & Allied">Agriculture & Allied</option>
-                  <option value="Construction">Construction</option>
-                  <option value="Retail">Retail</option>
-                  <option value="Hospitality & Tourism">Hospitality & Tourism</option>
-                  <option value="Transport & Logistics">Transport & Logistics</option>
-                  <option value="Real Estate">Real Estate</option>
-                  <option value="Energy & Power">Energy & Power</option>
-                  <option value="Chemicals & Pharmaceuticals">Chemicals & Pharmaceuticals</option>
-                  <option value="Metal & Engineering">Metal & Engineering</option>
-                  <option value="Leather & Leather Products">Leather & Leather Products</option>
-                  <option value="Paper & Paper Products">Paper & Paper Products</option>
-                  <option value="Rubber & Plastic Products">Rubber & Plastic Products</option>
-                  <option value="Wood & Wood Products">Wood & Wood Products</option>
-                  <option value="Printing & Publishing">Printing & Publishing</option>
-                  <option value="Electronics & Electrical">Electronics & Electrical</option>
-                  <option value="Gems & Jewellery">Gems & Jewellery</option>
-                  <option value="Other">Other</option>
+                  <option value="Manufacturing">{tf('Manufacturing')}</option>
+                  <option value="Services">{tf('Services')}</option>
+                  <option value="Trading">{tf('Trading')}</option>
+                  <option value="Food Processing">{tf('Food Processing')}</option>
+                  <option value="Textiles & Garments">{tf('Textiles & Garments')}</option>
+                  <option value="Handicrafts">{tf('Handicrafts')}</option>
+                  <option value="IT & ITES">{tf('IT & ITES')}</option>
+                  <option value="Healthcare">{tf('Healthcare')}</option>
+                  <option value="Education">{tf('Education')}</option>
+                  <option value="Agriculture & Allied">{tf('Agriculture & Allied')}</option>
+                  <option value="Construction">{tf('Construction')}</option>
+                  <option value="Retail">{tf('Retail')}</option>
+                  <option value="Hospitality & Tourism">{tf('Hospitality & Tourism')}</option>
+                  <option value="Transport & Logistics">{tf('Transport & Logistics')}</option>
+                  <option value="Real Estate">{tf('Real Estate')}</option>
+                  <option value="Energy & Power">{tf('Energy & Power')}</option>
+                  <option value="Chemicals & Pharmaceuticals">{tf('Chemicals & Pharmaceuticals')}</option>
+                  <option value="Metal & Engineering">{tf('Metal & Engineering')}</option>
+                  <option value="Leather & Leather Products">{tf('Leather & Leather Products')}</option>
+                  <option value="Paper & Paper Products">{tf('Paper & Paper Products')}</option>
+                  <option value="Rubber & Plastic Products">{tf('Rubber & Plastic Products')}</option>
+                  <option value="Wood & Wood Products">{tf('Wood & Wood Products')}</option>
+                  <option value="Printing & Publishing">{tf('Printing & Publishing')}</option>
+                  <option value="Electronics & Electrical">{tf('Electronics & Electrical')}</option>
+                  <option value="Gems & Jewellery">{tf('Gems & Jewellery')}</option>
+                  <option value="Other">{tf('Other')}</option>
                 </select>
               </div>
 
@@ -194,7 +197,7 @@ export const ProjectForm: React.FC = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, subSector: e.target.value })
                 }
-                placeholder="e.g., Textile, Food Processing"
+                placeholder={tf('e.g., Textile, Food Processing')}
               />
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -236,7 +239,7 @@ export const ProjectForm: React.FC = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, location: e.target.value })
                 }
-                placeholder="City, State"
+                placeholder={tf('City, State')}
                 required
               />
 

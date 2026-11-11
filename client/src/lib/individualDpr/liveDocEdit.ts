@@ -1,4 +1,5 @@
 import { getUnitName, withSyncedUnitName } from './toIndividualPayload.ts';
+import { isTownInDistrict } from './apDistricts.ts';
 
 const TABLE_NUMBERS = new Set([
   'sharePercent',
@@ -21,13 +22,15 @@ const TABLE_NUMBERS = new Set([
   'year',
   'age',
   'experienceYears',
+  'yearOfEstablishment',
+  'yearOfIncorporation',
 ]);
 
 function numericName(name: string): boolean {
   return TABLE_NUMBERS.has(name) || /(cost|lakhs|percent|amount|qty|quantity|count|rate|emi|sales|profit|wage|price|margin)$/i.test(name);
 }
 
-export function storedValueFromDocText(name: string, text: string, previous: unknown): unknown {
+function storedValueFromDocText(name: string, text: string, previous: unknown): unknown {
   const trimmed = text.replace(/\u00a0/g, ' ').trim();
   if (!trimmed || trimmed === '—' || trimmed === 'UNIT NAME') return '';
   if (/^yes$/i.test(trimmed)) return 'yes';
@@ -92,5 +95,8 @@ export function patchFromDocEdit(
     return { step, stepData: withSyncedUnitName(current, String(next ?? '')) };
   }
   current[name] = next;
+  if (step === 1 && name === 'district' && !isTownInDistrict(String(next ?? ''), current.location)) {
+    current.location = '';
+  }
   return { step, stepData: current };
 }

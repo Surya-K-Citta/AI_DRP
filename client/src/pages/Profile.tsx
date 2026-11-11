@@ -13,8 +13,10 @@ import { RoleBadge } from '@/components/auth/RolePicker';
 import { ROLE_META, toAppRole } from '@/lib/rbac';
 import { useNavigate } from 'react-router-dom';
 
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 export const Profile: React.FC = () => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const navigate = useNavigate();
   const { user: authUser, updateUser } = useAuthStore();
   const [loading, setLoading] = useState(true);
@@ -56,7 +58,7 @@ export const Profile: React.FC = () => {
             phoneNumber: authUser.phoneNumber || '',
           });
         } else {
-          toast.error('Failed to load profile');
+          toast.error(tf('Failed to load profile'));
         }
       } finally {
         setLoading(false);
@@ -88,10 +90,10 @@ export const Profile: React.FC = () => {
 
       const updatedUser = response.data || response;
       updateUser(updatedUser);
-      toast.success('Profile updated successfully');
+      toast.success(tf('Profile updated successfully'));
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast.error(error.response?.data?.message || 'Failed to update profile');
+      toast.error(error.response?.data?.message || tf('Failed to update profile'));
     } finally {
       setSaving(false);
     }
@@ -113,27 +115,29 @@ export const Profile: React.FC = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Profile</h1>
-          <p className="text-muted-foreground">Manage your account information</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">{tf('Profile')}</h1>
+          <p className="text-muted-foreground">{tf('Manage your account information')}</p>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Personal Information
+              {tf('Personal Information')}
             </CardTitle>
             <CardDescription>
-              Update your profile details below
+              {tf('Update your profile details below')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* items-start: each field keeps its own height. Stretched cells (the Role card is tall) would let the global
+                  side-by-side rule push the input to the bottom, leaving a large gap under its label. */}
+              <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-6">
                 <div className="space-y-2">
                   <label htmlFor="name" className="text-sm font-medium text-foreground flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    Full Name
+                    {tf('Full Name')}
                   </label>
                   <Input
                     id="name"
@@ -142,14 +146,14 @@ export const Profile: React.FC = () => {
                     value={formData.name}
                     onChange={handleChange}
                     required
-                    placeholder="Enter your full name"
+                    placeholder={tf('Enter your full name')}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium text-foreground flex items-center gap-2">
                     <Mail className="h-4 w-4" />
-                    Email Address
+                    {tf('Email Address')}
                   </label>
                   <Input
                     id="email"
@@ -159,15 +163,15 @@ export const Profile: React.FC = () => {
                     onChange={handleChange}
                     disabled
                     className="bg-muted cursor-not-allowed"
-                    placeholder="Email address"
+                    placeholder={tf('Email address')}
                   />
-                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                  <p className="text-xs text-muted-foreground">{tf('Email cannot be changed')}</p>
                 </div>
 
                 <div className="space-y-2">
                   <label htmlFor="role" className="text-sm font-medium text-foreground flex items-center gap-2">
                     <Shield className="h-4 w-4" />
-                    Role
+                    {tf('Role')}
                   </label>
                   <div className="flex flex-col gap-2 rounded-md border bg-muted/40 px-3 py-3">
                     <RoleBadge role={formData.role} />
@@ -183,15 +187,16 @@ export const Profile: React.FC = () => {
                 <div className="space-y-2">
                   <label htmlFor="udyamNumber" className="text-sm font-medium text-foreground flex items-center gap-2">
                     <Building2 className="h-4 w-4" />
-                    Udyam Number
+                    {tf('Udyam Number')}
                   </label>
                   <Input
                     id="udyamNumber"
                     name="udyamNumber"
                     type="text"
+                    format="udyam"
                     value={formData.udyamNumber}
                     onChange={handleChange}
-                    placeholder="Enter your Udyam registration number"
+                    placeholder={tf('Enter your Udyam registration number')}
                   />
                 </div>
 
@@ -214,7 +219,7 @@ export const Profile: React.FC = () => {
                 <div className="space-y-2 md:col-span-2">
                   <label htmlFor="location" className="text-sm font-medium text-foreground flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
-                    Location
+                    {tf('Location')}
                   </label>
                   <Input
                     id="location"
@@ -222,7 +227,7 @@ export const Profile: React.FC = () => {
                     type="text"
                     value={formData.location}
                     onChange={handleChange}
-                    placeholder="Enter your location"
+                    placeholder={tf('Enter your location')}
                   />
                 </div>
               </div>
@@ -236,12 +241,12 @@ export const Profile: React.FC = () => {
                   {saving ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving...
+                      {tf('Saving...')}
                     </>
                   ) : (
                     <>
                       <Save className="h-4 w-4" />
-                      Save Changes
+                      {tf('Save Changes')}
                     </>
                   )}
                 </Button>

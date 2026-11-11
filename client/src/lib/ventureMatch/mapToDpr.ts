@@ -55,7 +55,7 @@ const BUDGET_MID: Record<string, number> = {
   above10Cr: 150_000_000,
 };
 
-export interface VentureMatchHandoff {
+interface VentureMatchHandoff {
   answers: VentureMatchAnswers;
   matches: SchemeMatch[];
 }

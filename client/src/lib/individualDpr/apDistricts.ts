@@ -33,10 +33,10 @@ export const AP_DISTRICTS: readonly string[] = [
   'YSR Kadapa',
 ] as const;
 
-export type ApDistrict = (typeof AP_DISTRICTS)[number];
+type ApDistrict = (typeof AP_DISTRICTS)[number];
 
 /** Major towns by AP district (ULBs + district headquarters). */
-export const AP_TOWNS_BY_DISTRICT: Record<ApDistrict, readonly string[]> = {
+const AP_TOWNS_BY_DISTRICT: Record<ApDistrict, readonly string[]> = {
   'Alluri Sitharama Raju': [
     'Paderu',
     'Araku Valley',

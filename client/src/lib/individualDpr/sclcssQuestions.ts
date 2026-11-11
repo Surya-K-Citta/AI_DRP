@@ -4,9 +4,9 @@
  * Step list: SCLCSS_STEPS in schemeStepCatalog.ts (13 consecutive steps).
  */
 
-export type SclcssCategory = 'sc' | 'st';
-export type SclcssUnitStage = 'new' | 'existing';
-export type SclcssPremises = 'owned' | 'leased' | 'rented';
+type SclcssCategory = 'sc' | 'st';
+type SclcssUnitStage = 'new' | 'existing';
+type SclcssPremises = 'owned' | 'leased' | 'rented';
 
 export const SCLCSS_EXTRA_FIELDS = [
   'sclcssCategory',
@@ -24,7 +24,6 @@ export const SCLCSS_EXTRA_FIELDS = [
   'powerRequirement',
 ] as const;
 
-export type SclcssExtraField = (typeof SCLCSS_EXTRA_FIELDS)[number];
 
 export const SCLCSS_CATEGORY_OPTIONS: { value: SclcssCategory; label: string }[] = [
   { value: 'sc', label: 'Scheduled Caste (SC)' },

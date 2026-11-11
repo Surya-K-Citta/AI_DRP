@@ -1,8 +1,11 @@
 // @ts-nocheck
+import { useBackTarget } from '@/lib/navHistory';
+import { BackButton } from '@/components/ui/BackButton';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -80,7 +83,9 @@ interface StepData {
 
 export const AIGuidedDPRBuilder: React.FC = () => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const navigate = useNavigate();
+  const back = useBackTarget({ path: '/dashboard' });
   const { projectId } = useParams();
   
   const STEPS = [
@@ -823,8 +828,8 @@ Return ready-to-use content that can be directly filled into form fields. The us
       } catch (error: any) {
         if (error.message?.includes('timeout')) {
           const timeoutMsg = stepId === 'eligible-schemes' 
-            ? 'AI scheme generation is taking longer than expected. Please wait or try again - schemes are being generated.'
-            : 'AI suggestions request timed out. Please try again.';
+            ? tf('AI scheme generation is taking longer than expected. Please wait or try again - schemes are being generated.')
+            : tf('AI suggestions request timed out. Please try again.');
           toast.error(timeoutMsg, { duration: 5000 });
           throw error;
         }
@@ -1098,10 +1103,10 @@ Return ready-to-use content that can be directly filled into form fields. The us
       // Also save to backend if project exists
       await saveProgressToBackend();
       
-      toast.success('Progress saved successfully');
+      toast.success(tf('Progress saved successfully'));
     } catch (error) {
       console.error('Error saving progress:', error);
-      toast.error('Failed to save progress');
+      toast.error(tf('Failed to save progress'));
     } finally {
       setSaving(false);
     }
@@ -1162,7 +1167,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             throw new Error('Failed to create project');
           }
           
-          toast.success('Project created successfully!');
+          toast.success(tf('Project created successfully!'));
         } catch (error: any) {
           console.error('Error creating project:', error);
           toast.error(error.response?.data?.message || t('dprBuilder.errors.failedToCreateProject'));
@@ -1221,12 +1226,12 @@ Return ready-to-use content that can be directly filled into form fields. The us
       } catch (error: any) {
         console.error('Error saving stepData to project:', error);
         // Don't block DPR generation if save fails, but log the error
-        toast.error('Warning: Some data may not have been saved. DPR generation will continue.');
+        toast.error(tf('Warning: Some data may not have been saved. DPR generation will continue.'));
       }
 
       // Generate DPR
       const response = await api.generateDPR(finalProjectId, 'bilingual');
-      toast.success('DPR generated successfully!');
+      toast.success(tf('DPR generated successfully!'));
       
       // Clear saved progress after successful generation
       localStorage.removeItem('dpr-builder-progress');
@@ -1481,10 +1486,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
   return (
     <Layout>
       <div className="max-w-6xl mx-auto space-y-6 pb-8">
-        <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          {t('dprBuilder.backToDashboard')}
-        </Button>
+        <BackButton label={back.label} onClick={back.go} />
 
         {/* Header Section */}
         <div className="relative overflow-hidden rounded-2xl bg-primary p-8 mb-6 shadow-2xl border-2 border-primary/20">
@@ -1532,7 +1534,7 @@ Return ready-to-use content that can be directly filled into form fields. The us
             </div>
 
             {/* Step Indicators */}
-            <div className="flex items-center justify-between mb-8 overflow-x-auto pb-4 scrollbar-hide">
+            <div role="region" aria-label={t('dprBuilder.title')} tabIndex={0} className="flex items-center justify-between mb-8 overflow-x-auto overflow-y-hidden pb-4 scrollbar-hide focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
               {STEPS.map((step, index) => {
                 const StepIcon = step.icon;
                 const isActive = index === currentStep;
@@ -1658,13 +1660,14 @@ Return ready-to-use content that can be directly filled into form fields. The us
 // Applicant Info Step
 const ApplicantInfoStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
       // Clear suggestions after applying
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions');
+      toast.success(tf('Applied AI suggestions'));
     }
   };
   
@@ -1673,7 +1676,7 @@ const ApplicantInfoStep: React.FC<{ data: any; onChange: (data: any) => void; su
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.applicantInfo.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.applicantInfo.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.applicantInfo.description')}</p>
           </div>
           {!suggestions && (
@@ -1745,49 +1748,49 @@ const ApplicantInfoStep: React.FC<{ data: any; onChange: (data: any) => void; su
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   {suggestions.sponsoringAgency && (
                     <div>
-                      <span className="font-semibold text-foreground">Sponsoring Agency: </span>
+                      <span className="font-semibold text-foreground">{tf('Sponsoring Agency:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.sponsoringAgency}</span>
                     </div>
                   )}
                   {suggestions.gender && (
                     <div>
-                      <span className="font-semibold text-foreground">Gender: </span>
+                      <span className="font-semibold text-foreground">{tf('Gender:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.gender}</span>
                     </div>
                   )}
                   {suggestions.locationType && (
                     <div>
-                      <span className="font-semibold text-foreground">Location Type: </span>
+                      <span className="font-semibold text-foreground">{tf('Location Type:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.locationType}</span>
                     </div>
                   )}
                   {suggestions.categories && Array.isArray(suggestions.categories) && suggestions.categories.length > 0 && (
                     <div>
-                      <span className="font-semibold text-foreground">Categories: </span>
+                      <span className="font-semibold text-foreground">{tf('Categories:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.categories.join(', ')}</span>
                     </div>
                   )}
                   {suggestions.projectType && (
                     <div>
-                      <span className="font-semibold text-foreground">Project Type: </span>
+                      <span className="font-semibold text-foreground">{tf('Project Type:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.projectType}</span>
                     </div>
                   )}
                   {suggestions.legalStatus && (
                     <div>
-                      <span className="font-semibold text-foreground">Legal Status: </span>
+                      <span className="font-semibold text-foreground">{tf('Legal Status:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.legalStatus}</span>
                     </div>
                   )}
                   {Object.keys(suggestions).length === 0 && (
                     <div className="col-span-2 text-sm text-muted-foreground">
-                      No suggestions available. Please try refreshing.
+                      {tf('No suggestions available. Please try refreshing.')}
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="text-sm">
-                  <p className="text-muted-foreground mb-2">Preview:</p>
+                  <p className="text-muted-foreground mb-2">{tf('Preview:')}</p>
                   <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">
                     {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
                   </pre>
@@ -1806,11 +1809,11 @@ const ApplicantInfoStep: React.FC<{ data: any; onChange: (data: any) => void; su
             onChange={(e) => onChange({...data, sponsoringAgency: e.target.value})}
             className="w-full h-12 px-4 border-2 rounded-lg focus:border-primary focus:outline-none bg-background text-foreground"
           >
-            <option value="">Select Agency</option>
+            <option value="">{tf('Select Agency')}</option>
             <option value="KVIC">KVIC</option>
             <option value="KVIB">KVIB</option>
             <option value="DIC">DIC</option>
-            <option value="COIR Board">COIR Board</option>
+            <option value="COIR Board">{tf('COIR Board')}</option>
           </select>
         </div>
         
@@ -1827,7 +1830,7 @@ const ApplicantInfoStep: React.FC<{ data: any; onChange: (data: any) => void; su
                   onChange={(e) => onChange({...data, gender: e.target.value})}
                   className="w-4 h-4"
                 />
-                <span className="text-sm">{gender}</span>
+                <span className="text-sm">{tf(gender)}</span>
               </label>
             ))}
           </div>
@@ -1846,7 +1849,7 @@ const ApplicantInfoStep: React.FC<{ data: any; onChange: (data: any) => void; su
                   onChange={(e) => onChange({...data, locationType: e.target.value})}
                   className="w-4 h-4"
                 />
-                <span className="text-sm">{type}</span>
+                <span className="text-sm">{tf(type)}</span>
               </label>
             ))}
           </div>
@@ -1870,7 +1873,7 @@ const ApplicantInfoStep: React.FC<{ data: any; onChange: (data: any) => void; su
                   }}
                   className="w-4 h-4"
                 />
-                <span className="text-sm">{cat}</span>
+                <span className="text-sm">{tf(cat)}</span>
               </label>
             ))}
           </div>
@@ -1889,7 +1892,7 @@ const ApplicantInfoStep: React.FC<{ data: any; onChange: (data: any) => void; su
                   onChange={(e) => onChange({...data, projectType: e.target.value})}
                   className="w-4 h-4"
                 />
-                <span className="text-sm">{type}</span>
+                <span className="text-sm">{tf(type)}</span>
               </label>
             ))}
           </div>
@@ -1900,7 +1903,7 @@ const ApplicantInfoStep: React.FC<{ data: any; onChange: (data: any) => void; su
           <Input
             value={data?.legalStatus || ''}
             onChange={(e) => onChange({...data, legalStatus: e.target.value})}
-            placeholder="e.g., Owned, Leased, Rented"
+            placeholder={tf('e.g., Owned, Leased, Rented')}
             className="h-12 border-2 focus:border-primary"
           />
         </div>
@@ -1912,6 +1915,7 @@ const ApplicantInfoStep: React.FC<{ data: any; onChange: (data: any) => void; su
 // Building Details Step
 const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const buildings = data?.buildings || [{ particulars: '', area: '', rate: '', amount: '' }];
   
   const addBuilding = () => {
@@ -1938,7 +1942,7 @@ const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; 
       onChange({...data, buildings: suggestions});
       // Clear suggestions after applying
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions to building details');
+      toast.success(tf('Applied AI suggestions to building details'));
     }
   };
   
@@ -1949,7 +1953,7 @@ const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; 
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.buildingDetails.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.buildingDetails.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.buildingDetails.description')}</p>
           </div>
           {!suggestions && (
@@ -2020,10 +2024,10 @@ const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; 
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-primary/10">
-                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">Particulars</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Area (Sq.ft)</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Rate/Sq.ft (₹)</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Amount (₹)</th>
+                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">{tf('Particulars')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Area (Sq.ft)')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Rate/Sq.ft (₹)')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Amount (₹)')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2038,7 +2042,7 @@ const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; 
                 </tbody>
                 <tfoot>
                   <tr className="bg-primary/5">
-                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Total</td>
+                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Total')}</td>
                     <td className="border-2 border-primary/20 p-3 text-right font-bold text-sm">
                       ₹{suggestions.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0).toLocaleString('en-IN')}
                     </td>
@@ -2054,11 +2058,11 @@ const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; 
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-primary/10">
-              <th className="border-2 border-primary/20 p-3 text-left font-bold">Particulars</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Area (Sq.ft)</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Rate/Sq.ft (₹)</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Amount (₹)</th>
-              <th className="border-2 border-primary/20 p-3 text-center font-bold">Action</th>
+              <th className="border-2 border-primary/20 p-3 text-left font-bold">{tf('Particulars')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Area (Sq.ft)')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Rate/Sq.ft (₹)')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Amount (₹)')}</th>
+              <th className="border-2 border-primary/20 p-3 text-center font-bold">{tf('Action')}</th>
             </tr>
           </thead>
           <tbody>
@@ -2068,7 +2072,7 @@ const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; 
                   <Input
                     value={building.particulars}
                     onChange={(e) => updateBuilding(index, 'particulars', e.target.value)}
-                    placeholder="e.g., 2 Floor Building"
+                    placeholder={tf('e.g., 2 Floor Building')}
                     className="border-2"
                   />
                 </td>
@@ -2103,7 +2107,7 @@ const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; 
           </tbody>
           <tfoot>
             <tr className="bg-primary/5">
-              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">Total</td>
+              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Total')}</td>
               <td className="border-2 border-primary/20 p-3 text-right font-bold">₹{total.toLocaleString('en-IN')}</td>
               <td className="border-2 border-primary/20 p-3"></td>
             </tr>
@@ -2113,7 +2117,7 @@ const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; 
       
       <Button onClick={addBuilding} variant="outline" className="border-2 border-primary">
         <Plus className="h-4 w-4 mr-2" />
-        Add Building Entry
+        {tf('Add Building Entry')}
       </Button>
     </div>
   );
@@ -2122,6 +2126,7 @@ const BuildingDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; 
 // Machinery Details Step
 const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const machinery = data?.machinery || [{ particulars: '', qty: '', rate: '', amount: '' }];
   
   const addMachinery = () => {
@@ -2147,7 +2152,7 @@ const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void;
     if (Array.isArray(suggestions) && suggestions.length > 0) {
       onChange({...data, machinery: suggestions});
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions to machinery details');
+      toast.success(tf('Applied AI suggestions to machinery details'));
     }
   };
   
@@ -2158,7 +2163,7 @@ const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void;
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.machineryDetails.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.machineryDetails.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.machineryDetails.description')}</p>
           </div>
           {!suggestions && (
@@ -2229,10 +2234,10 @@ const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void;
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-primary/10">
-                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">Particulars</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Qty</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Rate (₹)</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Amount (₹)</th>
+                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">{tf('Particulars')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Qty')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Rate (₹)')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Amount (₹)')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2247,7 +2252,7 @@ const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void;
                 </tbody>
                 <tfoot>
                   <tr className="bg-primary/5">
-                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Total</td>
+                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Total')}</td>
                     <td className="border-2 border-primary/20 p-3 text-right font-bold text-sm">
                       ₹{suggestions.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0).toLocaleString('en-IN')}
                     </td>
@@ -2263,11 +2268,11 @@ const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void;
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-primary/10">
-              <th className="border-2 border-primary/20 p-3 text-left font-bold">Particulars</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Qty</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Rate (₹)</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Amount (₹)</th>
-              <th className="border-2 border-primary/20 p-3 text-center font-bold">Action</th>
+              <th className="border-2 border-primary/20 p-3 text-left font-bold">{tf('Particulars')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Qty')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Rate (₹)')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Amount (₹)')}</th>
+              <th className="border-2 border-primary/20 p-3 text-center font-bold">{tf('Action')}</th>
             </tr>
           </thead>
           <tbody>
@@ -2277,7 +2282,7 @@ const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void;
                   <Input
                     value={item.particulars}
                     onChange={(e) => updateMachinery(index, 'particulars', e.target.value)}
-                    placeholder="e.g., CNC Machine"
+                    placeholder={tf('e.g., CNC Machine')}
                     className="border-2"
                   />
                 </td>
@@ -2312,7 +2317,7 @@ const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void;
           </tbody>
           <tfoot>
             <tr className="bg-primary/5">
-              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">Total</td>
+              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Total')}</td>
               <td className="border-2 border-primary/20 p-3 text-right font-bold">₹{total.toLocaleString('en-IN')}</td>
               <td className="border-2 border-primary/20 p-3"></td>
             </tr>
@@ -2322,7 +2327,7 @@ const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void;
       
       <Button onClick={addMachinery} variant="outline" className="border-2 border-primary">
         <Plus className="h-4 w-4 mr-2" />
-        Add Machinery Entry
+        {tf('Add Machinery Entry')}
       </Button>
     </div>
   );
@@ -2331,13 +2336,14 @@ const MachineryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void;
 // Other Capital Costs Step
 const OtherCapitalCostsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
       // Clear suggestions after applying
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions');
+      toast.success(tf('Applied AI suggestions'));
     }
   };
   
@@ -2346,7 +2352,7 @@ const OtherCapitalCostsStep: React.FC<{ data: any; onChange: (data: any) => void
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.otherCapitalCosts.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.otherCapitalCosts.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.otherCapitalCosts.description')}</p>
           </div>
           {!suggestions && (
@@ -2418,37 +2424,37 @@ const OtherCapitalCostsStep: React.FC<{ data: any; onChange: (data: any) => void
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   {suggestions.preliminaryCost && (
                     <div>
-                      <span className="font-semibold text-foreground">Preliminary & Pre-operative Cost: </span>
+                      <span className="font-semibold text-foreground">{tf('Preliminary & Pre-operative Cost:')}{' '}</span>
                       <span className="text-muted-foreground">₹{parseFloat(String(suggestions.preliminaryCost || '0')).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {suggestions.furnitureFixtures && (
                     <div>
-                      <span className="font-semibold text-foreground">Furniture & Fixtures: </span>
+                      <span className="font-semibold text-foreground">{tf('Furniture & Fixtures:')}{' '}</span>
                       <span className="text-muted-foreground">₹{parseFloat(String(suggestions.furnitureFixtures || '0')).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {suggestions.contingency && (
                     <div>
-                      <span className="font-semibold text-foreground">Contingency: </span>
+                      <span className="font-semibold text-foreground">{tf('Contingency:')}{' '}</span>
                       <span className="text-muted-foreground">₹{parseFloat(String(suggestions.contingency || '0')).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {suggestions.workingCapital && (
                     <div>
-                      <span className="font-semibold text-foreground">Working Capital: </span>
+                      <span className="font-semibold text-foreground">{tf('Working Capital:')}{' '}</span>
                       <span className="text-muted-foreground">₹{parseFloat(String(suggestions.workingCapital || '0')).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {Object.keys(suggestions).length === 0 && (
                     <div className="col-span-2 text-sm text-muted-foreground">
-                      No suggestions available. Please try refreshing.
+                      {tf('No suggestions available. Please try refreshing.')}
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">
-                  <p className="mb-2">Received suggestions in unexpected format. Raw response:</p>
+                  <p className="mb-2">{tf('Received suggestions in unexpected format. Raw response:')}</p>
                   <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40">
                     {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
                   </pre>
@@ -2511,6 +2517,7 @@ const OtherCapitalCostsStep: React.FC<{ data: any; onChange: (data: any) => void
 // Financing Step
 const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; project?: any; stepData: any; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, stepData, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   
   // Calculate total project cost from previous steps
   const buildingTotal = (stepData.buildingDetails?.buildings || []).reduce((sum: number, b: any) => sum + parseFloat(b.amount || '0'), 0);
@@ -2537,7 +2544,7 @@ const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; projec
       onChange({...data, ...suggestions});
       // Clear suggestions after applying
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions');
+      toast.success(tf('Applied AI suggestions'));
     }
   };
   
@@ -2546,7 +2553,7 @@ const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; projec
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.financing.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.financing.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.financing.description')}</p>
           </div>
           {!suggestions && (
@@ -2617,25 +2624,25 @@ const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; projec
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 {suggestions.ownContributionPercent && (
                   <div>
-                    <span className="font-semibold text-foreground">Own Contribution: </span>
+                    <span className="font-semibold text-foreground">{tf('Own Contribution:')}{' '}</span>
                     <span className="text-muted-foreground">{suggestions.ownContributionPercent}% (₹{parseFloat(suggestions.ownContribution || '0').toLocaleString('en-IN')})</span>
                   </div>
                 )}
                 {suggestions.bankFinancePercent && (
                   <div>
-                    <span className="font-semibold text-foreground">Bank Finance: </span>
+                    <span className="font-semibold text-foreground">{tf('Bank Finance:')}{' '}</span>
                     <span className="text-muted-foreground">{suggestions.bankFinancePercent}% (₹{parseFloat(suggestions.bankFinance || '0').toLocaleString('en-IN')})</span>
                   </div>
                 )}
                 {suggestions.marginMoneyPercent && (
                   <div>
-                    <span className="font-semibold text-foreground">Margin Money: </span>
+                    <span className="font-semibold text-foreground">{tf('Margin Money:')}{' '}</span>
                     <span className="text-muted-foreground">{suggestions.marginMoneyPercent}% (₹{parseFloat(suggestions.marginMoney || '0').toLocaleString('en-IN')})</span>
                   </div>
                 )}
                 {suggestions.schemeName && (
                   <div>
-                    <span className="font-semibold text-foreground">Scheme Name: </span>
+                    <span className="font-semibold text-foreground">{tf('Scheme Name:')}{' '}</span>
                     <span className="text-muted-foreground">{suggestions.schemeName}</span>
                   </div>
                 )}
@@ -2648,7 +2655,7 @@ const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; projec
       <Card className="border-2 border-primary/20">
         <CardContent className="pt-6">
           <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm font-semibold text-foreground">Total Project Cost: ₹{totalProjectCost.toLocaleString('en-IN')}</p>
+            <p className="text-sm font-semibold text-foreground">{tf('Total Project Cost:')} ₹{totalProjectCost.toLocaleString('en-IN')}</p>
           </div>
           
           <div className="space-y-4">
@@ -2662,7 +2669,7 @@ const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; projec
                   placeholder="5"
                   className="h-12 border-2 focus:border-primary"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Amount: ₹{parseFloat(data?.ownContribution || '0').toLocaleString('en-IN')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{tf('Amount:')} ₹{parseFloat(data?.ownContribution || '0').toLocaleString('en-IN')}</p>
               </div>
               
               <div>
@@ -2674,7 +2681,7 @@ const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; projec
                   placeholder="95"
                   className="h-12 border-2 focus:border-primary"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Amount: ₹{parseFloat(data?.bankFinance || '0').toLocaleString('en-IN')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{tf('Amount:')} ₹{parseFloat(data?.bankFinance || '0').toLocaleString('en-IN')}</p>
               </div>
               
               <div>
@@ -2689,7 +2696,7 @@ const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; projec
                   placeholder="35"
                   className="h-12 border-2 focus:border-primary"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Amount: ₹{parseFloat(data?.marginMoney || '0').toLocaleString('en-IN')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{tf('Amount:')} ₹{parseFloat(data?.marginMoney || '0').toLocaleString('en-IN')}</p>
               </div>
             </div>
             
@@ -2698,7 +2705,7 @@ const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; projec
               <Input
                 value={data?.schemeName || ''}
                 onChange={(e) => onChange({...data, schemeName: e.target.value})}
-                placeholder="e.g., PMEGP, MUDRA"
+                placeholder={tf('e.g., PMEGP, MUDRA')}
                 className="h-12 border-2 focus:border-primary"
               />
             </div>
@@ -2712,6 +2719,7 @@ const FinancingStep: React.FC<{ data: any; onChange: (data: any) => void; projec
 // Sales Details Step
 const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const sales = data?.sales || [{ particulars: '', rate: '', quantity: '', amount: '' }];
   
   const addSale = () => {
@@ -2737,7 +2745,7 @@ const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
     if (Array.isArray(suggestions) && suggestions.length > 0) {
       onChange({...data, sales: suggestions});
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions to sales details');
+      toast.success(tf('Applied AI suggestions to sales details'));
     }
   };
   
@@ -2748,7 +2756,7 @@ const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.salesDetails.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.salesDetails.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.salesDetails.description')}</p>
           </div>
           {!suggestions && (
@@ -2819,10 +2827,10 @@ const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-primary/10">
-                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">Particulars</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Rate/Unit (₹)</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Quantity</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Amount (₹)</th>
+                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">{tf('Particulars')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Rate/Unit (₹)')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Quantity')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Amount (₹)')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2837,7 +2845,7 @@ const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
                 </tbody>
                 <tfoot>
                   <tr className="bg-primary/5">
-                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Total</td>
+                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Total')}</td>
                     <td className="border-2 border-primary/20 p-3 text-right font-bold text-sm">
                       ₹{suggestions.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0).toLocaleString('en-IN')}
                     </td>
@@ -2853,11 +2861,11 @@ const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-primary/10">
-              <th className="border-2 border-primary/20 p-3 text-left font-bold">Particulars</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Rate/Unit (₹)</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Quantity</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Amount (₹)</th>
-              <th className="border-2 border-primary/20 p-3 text-center font-bold">Action</th>
+              <th className="border-2 border-primary/20 p-3 text-left font-bold">{tf('Particulars')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Rate/Unit (₹)')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Quantity')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Amount (₹)')}</th>
+              <th className="border-2 border-primary/20 p-3 text-center font-bold">{tf('Action')}</th>
             </tr>
           </thead>
           <tbody>
@@ -2867,7 +2875,7 @@ const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
                   <Input
                     value={sale.particulars}
                     onChange={(e) => updateSale(index, 'particulars', e.target.value)}
-                    placeholder="Product name"
+                    placeholder={tf('Product name')}
                     className="border-2"
                   />
                 </td>
@@ -2902,7 +2910,7 @@ const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
           </tbody>
           <tfoot>
             <tr className="bg-primary/5">
-              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">Total</td>
+              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Total')}</td>
               <td className="border-2 border-primary/20 p-3 text-right font-bold">₹{total.toLocaleString('en-IN')}</td>
               <td className="border-2 border-primary/20 p-3"></td>
             </tr>
@@ -2912,7 +2920,7 @@ const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
       
       <Button onClick={addSale} variant="outline" className="border-2 border-primary">
         <Plus className="h-4 w-4 mr-2" />
-        Add Product
+        {tf('Add Product')}
       </Button>
     </div>
   );
@@ -2921,6 +2929,7 @@ const SalesDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
 // Raw Materials Step
 const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const materials = data?.materials || [{ particulars: '', unit: '', rate: '', requiredUnit: '', amount: '' }];
   
   const addMaterial = () => {
@@ -2946,7 +2955,7 @@ const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
     if (Array.isArray(suggestions) && suggestions.length > 0) {
       onChange({...data, materials: suggestions});
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions to raw materials');
+      toast.success(tf('Applied AI suggestions to raw materials'));
     }
   };
   
@@ -2957,7 +2966,7 @@ const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.rawMaterials.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.rawMaterials.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.rawMaterials.description')}</p>
           </div>
           {!suggestions && (
@@ -3028,11 +3037,11 @@ const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-primary/10">
-                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">Particulars</th>
-                    <th className="border-2 border-primary/20 p-3 text-center font-bold text-sm">Unit</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Rate/Unit (₹)</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Required Unit</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Amount (₹)</th>
+                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">{tf('Particulars')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-center font-bold text-sm">{tf('Unit')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Rate/Unit (₹)')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Required Unit')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Amount (₹)')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3048,7 +3057,7 @@ const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
                 </tbody>
                 <tfoot>
                   <tr className="bg-primary/5">
-                    <td colSpan={4} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Total</td>
+                    <td colSpan={4} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Total')}</td>
                     <td className="border-2 border-primary/20 p-3 text-right font-bold text-sm">
                       ₹{suggestions.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0).toLocaleString('en-IN')}
                     </td>
@@ -3064,12 +3073,12 @@ const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-primary/10">
-              <th className="border-2 border-primary/20 p-3 text-left font-bold">Particulars</th>
-              <th className="border-2 border-primary/20 p-3 text-center font-bold">Unit</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Rate/Unit (₹)</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Required Unit</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Amount (₹)</th>
-              <th className="border-2 border-primary/20 p-3 text-center font-bold">Action</th>
+              <th className="border-2 border-primary/20 p-3 text-left font-bold">{tf('Particulars')}</th>
+              <th className="border-2 border-primary/20 p-3 text-center font-bold">{tf('Unit')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Rate/Unit (₹)')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Required Unit')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Amount (₹)')}</th>
+              <th className="border-2 border-primary/20 p-3 text-center font-bold">{tf('Action')}</th>
             </tr>
           </thead>
           <tbody>
@@ -3079,7 +3088,7 @@ const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
                   <Input
                     value={material.particulars}
                     onChange={(e) => updateMaterial(index, 'particulars', e.target.value)}
-                    placeholder="Material name"
+                    placeholder={tf('Material name')}
                     className="border-2"
                   />
                 </td>
@@ -3087,7 +3096,7 @@ const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
                   <Input
                     value={material.unit}
                     onChange={(e) => updateMaterial(index, 'unit', e.target.value)}
-                    placeholder="kg, liters, etc."
+                    placeholder={tf('kg, liters, etc.')}
                     className="border-2 text-center"
                   />
                 </td>
@@ -3122,7 +3131,7 @@ const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
           </tbody>
           <tfoot>
             <tr className="bg-primary/5">
-              <td colSpan={4} className="border-2 border-primary/20 p-3 text-right font-bold">Total</td>
+              <td colSpan={4} className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Total')}</td>
               <td className="border-2 border-primary/20 p-3 text-right font-bold">₹{total.toLocaleString('en-IN')}</td>
               <td className="border-2 border-primary/20 p-3"></td>
             </tr>
@@ -3132,7 +3141,7 @@ const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
       
       <Button onClick={addMaterial} variant="outline" className="border-2 border-primary">
         <Plus className="h-4 w-4 mr-2" />
-        Add Raw Material
+        {tf('Add Raw Material')}
       </Button>
     </div>
   );
@@ -3141,6 +3150,7 @@ const RawMaterialsStep: React.FC<{ data: any; onChange: (data: any) => void; sug
 // Wages Step
 const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const wages = data?.wages || [{ particulars: '', noOfWorkers: '', wagesPerMonth: '', amount: '' }];
   const totalMonths = 12;
   
@@ -3167,7 +3177,7 @@ const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestion
     if (Array.isArray(suggestions) && suggestions.length > 0) {
       onChange({...data, wages: suggestions});
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions to wages');
+      toast.success(tf('Applied AI suggestions to wages'));
     }
   };
   
@@ -3178,7 +3188,7 @@ const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestion
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.wages.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.wages.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.wages.description')}</p>
           </div>
           {!suggestions && (
@@ -3249,10 +3259,10 @@ const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestion
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-primary/10">
-                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">Particulars</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">No. of Workers</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Wages Per Month (₹)</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Amount (₹)</th>
+                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">{tf('Particulars')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('No. of Workers')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Wages Per Month (₹)')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Amount (₹)')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3267,7 +3277,7 @@ const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestion
                 </tbody>
                 <tfoot>
                   <tr className="bg-primary/5">
-                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Total</td>
+                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Total')}</td>
                     <td className="border-2 border-primary/20 p-3 text-right font-bold text-sm">
                       ₹{suggestions.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0).toLocaleString('en-IN')}
                     </td>
@@ -3280,18 +3290,18 @@ const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestion
       )}
       
       <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-        <p className="text-sm font-semibold text-foreground">Total Months: {totalMonths}</p>
+        <p className="text-sm font-semibold text-foreground">{tf('Total Months:')} {totalMonths}</p>
       </div>
       
       <div className="overflow-x-auto border-2 border-primary/20 rounded-lg">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-primary/10">
-              <th className="border-2 border-primary/20 p-3 text-left font-bold">Particulars</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">No. of Workers</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Wages Per Month (₹)</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Amount (₹)</th>
-              <th className="border-2 border-primary/20 p-3 text-center font-bold">Action</th>
+              <th className="border-2 border-primary/20 p-3 text-left font-bold">{tf('Particulars')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('No. of Workers')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Wages Per Month (₹)')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Amount (₹)')}</th>
+              <th className="border-2 border-primary/20 p-3 text-center font-bold">{tf('Action')}</th>
             </tr>
           </thead>
           <tbody>
@@ -3301,7 +3311,7 @@ const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestion
                   <Input
                     value={wage.particulars}
                     onChange={(e) => updateWage(index, 'particulars', e.target.value)}
-                    placeholder="e.g., Labor, Skilled Worker"
+                    placeholder={tf('e.g., Labor, Skilled Worker')}
                     className="border-2"
                   />
                 </td>
@@ -3336,7 +3346,7 @@ const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestion
           </tbody>
           <tfoot>
             <tr className="bg-primary/5">
-              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">Total</td>
+              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Total')}</td>
               <td className="border-2 border-primary/20 p-3 text-right font-bold">₹{total.toLocaleString('en-IN')}</td>
               <td className="border-2 border-primary/20 p-3"></td>
             </tr>
@@ -3346,7 +3356,7 @@ const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestion
       
       <Button onClick={addWage} variant="outline" className="border-2 border-primary">
         <Plus className="h-4 w-4 mr-2" />
-        Add Worker Category
+        {tf('Add Worker Category')}
       </Button>
     </div>
   );
@@ -3355,6 +3365,7 @@ const WagesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestion
 // Salary Details Step
 const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const salaries = data?.salaries || [{ particulars: '', noOfStaff: '', wagesPerMonth: '', amount: '' }];
   const totalMonths = 12;
   
@@ -3382,7 +3393,7 @@ const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; su
       onChange({...data, salaries: suggestions});
       // Clear suggestions after applying
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions to salary details');
+      toast.success(tf('Applied AI suggestions to salary details'));
     }
   };
   
@@ -3393,7 +3404,7 @@ const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; su
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.salaryDetails.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.salaryDetails.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.salaryDetails.description')}</p>
           </div>
           {!suggestions && (
@@ -3464,10 +3475,10 @@ const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; su
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-primary/10">
-                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">Particulars</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">No. of Staff</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Wages Per Month (₹)</th>
-                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Amount (₹)</th>
+                    <th className="border-2 border-primary/20 p-3 text-left font-bold text-sm">{tf('Particulars')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('No. of Staff')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Wages Per Month (₹)')}</th>
+                    <th className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Amount (₹)')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3482,7 +3493,7 @@ const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; su
                 </tbody>
                 <tfoot>
                   <tr className="bg-primary/5">
-                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">Total</td>
+                    <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold text-sm">{tf('Total')}</td>
                     <td className="border-2 border-primary/20 p-3 text-right font-bold text-sm">
                       ₹{suggestions.reduce((sum: number, m: any) => sum + parseFloat(m.amount || '0'), 0).toLocaleString('en-IN')}
                     </td>
@@ -3495,18 +3506,18 @@ const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; su
       )}
       
       <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-        <p className="text-sm font-semibold text-foreground">Total Months: {totalMonths}</p>
+        <p className="text-sm font-semibold text-foreground">{tf('Total Months:')} {totalMonths}</p>
       </div>
       
       <div className="overflow-x-auto border-2 border-primary/20 rounded-lg">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-primary/10">
-              <th className="border-2 border-primary/20 p-3 text-left font-bold">Particulars</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">No. of Staff</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Wages Per Month (₹)</th>
-              <th className="border-2 border-primary/20 p-3 text-right font-bold">Amount (₹)</th>
-              <th className="border-2 border-primary/20 p-3 text-center font-bold">Action</th>
+              <th className="border-2 border-primary/20 p-3 text-left font-bold">{tf('Particulars')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('No. of Staff')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Wages Per Month (₹)')}</th>
+              <th className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Amount (₹)')}</th>
+              <th className="border-2 border-primary/20 p-3 text-center font-bold">{tf('Action')}</th>
             </tr>
           </thead>
           <tbody>
@@ -3516,7 +3527,7 @@ const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; su
                   <Input
                     value={salary.particulars}
                     onChange={(e) => updateSalary(index, 'particulars', e.target.value)}
-                    placeholder="e.g., Manager, Supervisor"
+                    placeholder={tf('e.g., Manager, Supervisor')}
                     className="border-2"
                   />
                 </td>
@@ -3551,7 +3562,7 @@ const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; su
           </tbody>
           <tfoot>
             <tr className="bg-primary/5">
-              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">Total</td>
+              <td colSpan={3} className="border-2 border-primary/20 p-3 text-right font-bold">{tf('Total')}</td>
               <td className="border-2 border-primary/20 p-3 text-right font-bold">₹{total.toLocaleString('en-IN')}</td>
               <td className="border-2 border-primary/20 p-3"></td>
             </tr>
@@ -3561,7 +3572,7 @@ const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; su
       
       <Button onClick={addSalary} variant="outline" className="border-2 border-primary">
         <Plus className="h-4 w-4 mr-2" />
-        Add Staff Category
+        {tf('Add Staff Category')}
       </Button>
     </div>
   );
@@ -3570,13 +3581,14 @@ const SalaryDetailsStep: React.FC<{ data: any; onChange: (data: any) => void; su
 // Working Capital Estimate Step
 const WorkingCapitalEstimateStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
       // Clear suggestions after applying
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions');
+      toast.success(tf('Applied AI suggestions'));
     }
   };
   
@@ -3585,7 +3597,7 @@ const WorkingCapitalEstimateStep: React.FC<{ data: any; onChange: (data: any) =>
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.workingCapitalEstimate.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.workingCapitalEstimate.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.workingCapitalEstimate.description')}</p>
           </div>
           {!suggestions && (
@@ -3657,31 +3669,31 @@ const WorkingCapitalEstimateStep: React.FC<{ data: any; onChange: (data: any) =>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   {suggestions.stockInProcess && (
                     <div>
-                      <span className="font-semibold text-foreground">Stock in Process: </span>
+                      <span className="font-semibold text-foreground">{tf('Stock in Process:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.stockInProcess} days</span>
                     </div>
                   )}
                   {suggestions.finishedGoods && (
                     <div>
-                      <span className="font-semibold text-foreground">Finished Goods: </span>
+                      <span className="font-semibold text-foreground">{tf('Finished Goods:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.finishedGoods} days</span>
                     </div>
                   )}
                   {suggestions.receivables && (
                     <div>
-                      <span className="font-semibold text-foreground">Receivables: </span>
+                      <span className="font-semibold text-foreground">{tf('Receivables:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.receivables} days</span>
                     </div>
                   )}
                   {Object.keys(suggestions).length === 0 && (
                     <div className="col-span-2 text-sm text-muted-foreground">
-                      No suggestions available. Please try refreshing.
+                      {tf('No suggestions available. Please try refreshing.')}
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="text-sm">
-                  <p className="text-muted-foreground mb-2">Preview:</p>
+                  <p className="text-muted-foreground mb-2">{tf('Preview:')}</p>
                   <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">
                     {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
                   </pre>
@@ -3694,7 +3706,7 @@ const WorkingCapitalEstimateStep: React.FC<{ data: any; onChange: (data: any) =>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.workingCapitalEstimate.stockInProcess')} (Days)</label>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.workingCapitalEstimate.stockInProcess')} ({tf('Days')})</label>
           <Input
             type="number"
             value={data?.stockInProcess || ''}
@@ -3705,7 +3717,7 @@ const WorkingCapitalEstimateStep: React.FC<{ data: any; onChange: (data: any) =>
         </div>
         
         <div>
-          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.workingCapitalEstimate.finishedGoods')} (Days)</label>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.workingCapitalEstimate.finishedGoods')} ({tf('Days')})</label>
           <Input
             type="number"
             value={data?.finishedGoods || ''}
@@ -3716,7 +3728,7 @@ const WorkingCapitalEstimateStep: React.FC<{ data: any; onChange: (data: any) =>
         </div>
         
         <div>
-          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.workingCapitalEstimate.receivables')} (Days)</label>
+          <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.workingCapitalEstimate.receivables')} ({tf('Days')})</label>
           <Input
             type="number"
             value={data?.receivables || ''}
@@ -3733,13 +3745,14 @@ const WorkingCapitalEstimateStep: React.FC<{ data: any; onChange: (data: any) =>
 // Power Estimate Step
 const PowerEstimateStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
       // Clear suggestions after applying
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions');
+      toast.success(tf('Applied AI suggestions'));
     }
   };
   
@@ -3748,7 +3761,7 @@ const PowerEstimateStep: React.FC<{ data: any; onChange: (data: any) => void; su
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.powerEstimate.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.powerEstimate.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.powerEstimate.description')}</p>
           </div>
           {!suggestions && (
@@ -3820,25 +3833,25 @@ const PowerEstimateStep: React.FC<{ data: any; onChange: (data: any) => void; su
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   {suggestions.powerRequirement && (
                     <div>
-                      <span className="font-semibold text-foreground">Power Requirement: </span>
+                      <span className="font-semibold text-foreground">{tf('Power Requirement:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.powerRequirement} KW</span>
                     </div>
                   )}
                   {suggestions.monthlyCost && (
                     <div>
-                      <span className="font-semibold text-foreground">Monthly Cost: </span>
+                      <span className="font-semibold text-foreground">{tf('Monthly Cost:')}{' '}</span>
                       <span className="text-muted-foreground">₹{parseFloat(String(suggestions.monthlyCost || '0')).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {Object.keys(suggestions).length === 0 && (
                     <div className="col-span-2 text-sm text-muted-foreground">
-                      No suggestions available. Please try refreshing.
+                      {tf('No suggestions available. Please try refreshing.')}
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="text-sm">
-                  <p className="text-muted-foreground mb-2">Preview:</p>
+                  <p className="text-muted-foreground mb-2">{tf('Preview:')}</p>
                   <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">
                     {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
                   </pre>
@@ -3879,12 +3892,13 @@ const PowerEstimateStep: React.FC<{ data: any; onChange: (data: any) => void; su
 // Energy Efficiency Step
 const EnergyEfficiencyStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
 
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions');
+      toast.success(tf('Applied AI suggestions'));
     }
   };
 
@@ -3893,7 +3907,7 @@ const EnergyEfficiencyStep: React.FC<{ data: any; onChange: (data: any) => void;
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.energyEfficiency.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.energyEfficiency.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.energyEfficiency.description')}</p>
           </div>
           {!suggestions && (
@@ -3939,9 +3953,9 @@ const EnergyEfficiencyStep: React.FC<{ data: any; onChange: (data: any) => void;
             <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
               {suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions) ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  {suggestions.monthlyConsumption && <div><span className="font-semibold">Monthly Consumption: </span><span className="text-muted-foreground">{suggestions.monthlyConsumption} kWh</span></div>}
-                  {suggestions.energySource && <div><span className="font-semibold">Energy Source: </span><span className="text-muted-foreground">{suggestions.energySource}</span></div>}
-                  {suggestions.renewablePercent && <div><span className="font-semibold">Renewable Energy: </span><span className="text-muted-foreground">{suggestions.renewablePercent}%</span></div>}
+                  {suggestions.monthlyConsumption && <div><span className="font-semibold">{tf('Monthly Consumption:')}{' '}</span><span className="text-muted-foreground">{suggestions.monthlyConsumption} kWh</span></div>}
+                  {suggestions.energySource && <div><span className="font-semibold">{tf('Energy Source:')}{' '}</span><span className="text-muted-foreground">{suggestions.energySource}</span></div>}
+                  {suggestions.renewablePercent && <div><span className="font-semibold">{tf('Renewable Energy:')}{' '}</span><span className="text-muted-foreground">{suggestions.renewablePercent}%</span></div>}
                 </div>
               ) : (
                 <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">{typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}</pre>
@@ -3962,7 +3976,7 @@ const EnergyEfficiencyStep: React.FC<{ data: any; onChange: (data: any) => void;
         </div>
         <div>
           <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.energyEfficiency.energySource')}</label>
-          <Input type="text" value={data?.energySource || ''} onChange={(e) => onChange({...data, energySource: e.target.value})} placeholder="e.g. Grid electricity, Solar" className="h-12 border-2 focus:border-primary" />
+          <Input type="text" value={data?.energySource || ''} onChange={(e) => onChange({...data, energySource: e.target.value})} placeholder={tf('e.g. Grid electricity, Solar')} className="h-12 border-2 focus:border-primary" />
         </div>
         <div>
           <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.energyEfficiency.renewablePercent')}</label>
@@ -3970,7 +3984,7 @@ const EnergyEfficiencyStep: React.FC<{ data: any; onChange: (data: any) => void;
         </div>
         <div className="md:col-span-2">
           <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.energyEfficiency.savingMeasures')}</label>
-          <textarea value={data?.savingMeasures || ''} onChange={(e) => onChange({...data, savingMeasures: e.target.value})} placeholder="Describe energy-saving measures adopted..." className="w-full h-24 p-3 border-2 rounded-md focus:border-primary focus:outline-none text-sm resize-none" />
+          <textarea value={data?.savingMeasures || ''} onChange={(e) => onChange({...data, savingMeasures: e.target.value})} placeholder={tf('Describe energy-saving measures adopted...')} className="w-full h-24 p-3 border-2 rounded-md focus:border-primary focus:outline-none text-sm resize-none" />
         </div>
       </div>
     </div>
@@ -3980,12 +3994,13 @@ const EnergyEfficiencyStep: React.FC<{ data: any; onChange: (data: any) => void;
 // Water Efficiency Step
 const WaterEfficiencyStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
 
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions');
+      toast.success(tf('Applied AI suggestions'));
     }
   };
 
@@ -3994,7 +4009,7 @@ const WaterEfficiencyStep: React.FC<{ data: any; onChange: (data: any) => void; 
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.waterEfficiency.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.waterEfficiency.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.waterEfficiency.description')}</p>
           </div>
           {!suggestions && (
@@ -4040,9 +4055,9 @@ const WaterEfficiencyStep: React.FC<{ data: any; onChange: (data: any) => void; 
             <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
               {suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions) ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  {suggestions.dailyConsumption && <div><span className="font-semibold">Daily Consumption: </span><span className="text-muted-foreground">{suggestions.dailyConsumption} L/day</span></div>}
-                  {suggestions.waterSource && <div><span className="font-semibold">Water Source: </span><span className="text-muted-foreground">{suggestions.waterSource}</span></div>}
-                  {suggestions.recyclingPercent && <div><span className="font-semibold">Recycling: </span><span className="text-muted-foreground">{suggestions.recyclingPercent}%</span></div>}
+                  {suggestions.dailyConsumption && <div><span className="font-semibold">{tf('Daily Consumption:')}{' '}</span><span className="text-muted-foreground">{suggestions.dailyConsumption} L/day</span></div>}
+                  {suggestions.waterSource && <div><span className="font-semibold">{tf('Water Source:')}{' '}</span><span className="text-muted-foreground">{suggestions.waterSource}</span></div>}
+                  {suggestions.recyclingPercent && <div><span className="font-semibold">{tf('Recycling:')}{' '}</span><span className="text-muted-foreground">{suggestions.recyclingPercent}%</span></div>}
                 </div>
               ) : (
                 <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">{typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}</pre>
@@ -4063,7 +4078,7 @@ const WaterEfficiencyStep: React.FC<{ data: any; onChange: (data: any) => void; 
         </div>
         <div>
           <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.waterEfficiency.waterSource')}</label>
-          <Input type="text" value={data?.waterSource || ''} onChange={(e) => onChange({...data, waterSource: e.target.value})} placeholder="e.g. Municipal supply, Borewell" className="h-12 border-2 focus:border-primary" />
+          <Input type="text" value={data?.waterSource || ''} onChange={(e) => onChange({...data, waterSource: e.target.value})} placeholder={tf('e.g. Municipal supply, Borewell')} className="h-12 border-2 focus:border-primary" />
         </div>
         <div>
           <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.waterEfficiency.recyclingPercent')}</label>
@@ -4071,7 +4086,7 @@ const WaterEfficiencyStep: React.FC<{ data: any; onChange: (data: any) => void; 
         </div>
         <div className="md:col-span-2">
           <label className="block text-sm font-semibold mb-2 text-foreground">{t('dprBuilder.waterEfficiency.treatmentMethod')}</label>
-          <textarea value={data?.treatmentMethod || ''} onChange={(e) => onChange({...data, treatmentMethod: e.target.value})} placeholder="Describe wastewater treatment and disposal method..." className="w-full h-24 p-3 border-2 rounded-md focus:border-primary focus:outline-none text-sm resize-none" />
+          <textarea value={data?.treatmentMethod || ''} onChange={(e) => onChange({...data, treatmentMethod: e.target.value})} placeholder={tf('Describe wastewater treatment and disposal method...')} className="w-full h-24 p-3 border-2 rounded-md focus:border-primary focus:outline-none text-sm resize-none" />
         </div>
       </div>
     </div>
@@ -4081,13 +4096,14 @@ const WaterEfficiencyStep: React.FC<{ data: any; onChange: (data: any) => void; 
 // Overhead Expenses Step
 const OverheadExpensesStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
       // Clear suggestions after applying
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions');
+      toast.success(tf('Applied AI suggestions'));
     }
   };
   
@@ -4096,7 +4112,7 @@ const OverheadExpensesStep: React.FC<{ data: any; onChange: (data: any) => void;
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.overheadExpenses.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.overheadExpenses.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.overheadExpenses.description')}</p>
           </div>
           {!suggestions && (
@@ -4168,61 +4184,61 @@ const OverheadExpensesStep: React.FC<{ data: any; onChange: (data: any) => void;
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   {suggestions.repairMaintenance && (
                     <div>
-                      <span className="font-semibold text-foreground">Repair & Maintenance: </span>
+                      <span className="font-semibold text-foreground">{tf('Repair & Maintenance:')}{' '}</span>
                       <span className="text-muted-foreground">₹{parseFloat(String(suggestions.repairMaintenance || '0')).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {suggestions.powerFuel && (
                     <div>
-                      <span className="font-semibold text-foreground">Power & Fuel: </span>
+                      <span className="font-semibold text-foreground">{tf('Power & Fuel:')}{' '}</span>
                       <span className="text-muted-foreground">₹{parseFloat(String(suggestions.powerFuel || '0')).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {suggestions.otherOverhead && (
                     <div>
-                      <span className="font-semibold text-foreground">Other Overhead: </span>
+                      <span className="font-semibold text-foreground">{tf('Other Overhead:')}{' '}</span>
                       <span className="text-muted-foreground">₹{parseFloat(String(suggestions.otherOverhead || '0')).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {suggestions.telephone && (
                     <div>
-                      <span className="font-semibold text-foreground">Telephone: </span>
+                      <span className="font-semibold text-foreground">{tf('Telephone:')}{' '}</span>
                       <span className="text-muted-foreground">₹{parseFloat(String(suggestions.telephone || '0')).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {suggestions.stationeryPostage && (
                     <div>
-                      <span className="font-semibold text-foreground">Stationery & Postage: </span>
+                      <span className="font-semibold text-foreground">{tf('Stationery & Postage:')}{' '}</span>
                       <span className="text-muted-foreground">₹{parseFloat(String(suggestions.stationeryPostage || '0')).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {suggestions.advertisement && (
                     <div>
-                      <span className="font-semibold text-foreground">Advertisement: </span>
+                      <span className="font-semibold text-foreground">{tf('Advertisement:')}{' '}</span>
                       <span className="text-muted-foreground">₹{parseFloat(String(suggestions.advertisement || '0')).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {suggestions.buildingRent && (
                     <div>
-                      <span className="font-semibold text-foreground">Building Rent: </span>
+                      <span className="font-semibold text-foreground">{tf('Building Rent:')}{' '}</span>
                       <span className="text-muted-foreground">₹{parseFloat(String(suggestions.buildingRent || '0')).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {suggestions.otherMiscellaneous && (
                     <div>
-                      <span className="font-semibold text-foreground">Other Miscellaneous: </span>
+                      <span className="font-semibold text-foreground">{tf('Other Miscellaneous:')}{' '}</span>
                       <span className="text-muted-foreground">₹{parseFloat(String(suggestions.otherMiscellaneous || '0')).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   {Object.keys(suggestions).length === 0 && (
                     <div className="col-span-2 text-sm text-muted-foreground">
-                      No suggestions available. Please try refreshing.
+                      {tf('No suggestions available. Please try refreshing.')}
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="text-sm">
-                  <p className="text-muted-foreground mb-2">Preview:</p>
+                  <p className="text-muted-foreground mb-2">{tf('Preview:')}</p>
                   <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">
                     {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
                   </pre>
@@ -4329,13 +4345,14 @@ const OverheadExpensesStep: React.FC<{ data: any; onChange: (data: any) => void;
 // Financial Parameters Step
 const FinancialParametersStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
       // Clear suggestions after applying
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions');
+      toast.success(tf('Applied AI suggestions'));
     }
   };
   
@@ -4344,7 +4361,7 @@ const FinancialParametersStep: React.FC<{ data: any; onChange: (data: any) => vo
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.financialParameters.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.financialParameters.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.financialParameters.description')}</p>
           </div>
           {!suggestions && (
@@ -4416,31 +4433,31 @@ const FinancialParametersStep: React.FC<{ data: any; onChange: (data: any) => vo
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   {suggestions.rateOfInterest && (
                     <div>
-                      <span className="font-semibold text-foreground">Rate of Interest: </span>
+                      <span className="font-semibold text-foreground">{tf('Rate of Interest:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.rateOfInterest}%</span>
                     </div>
                   )}
                   {suggestions.depreciationBuilding && (
                     <div>
-                      <span className="font-semibold text-foreground">Depreciation on Building: </span>
+                      <span className="font-semibold text-foreground">{tf('Depreciation on Building:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.depreciationBuilding}%</span>
                     </div>
                   )}
                   {suggestions.depreciationMachinery && (
                     <div>
-                      <span className="font-semibold text-foreground">Depreciation on Machinery: </span>
+                      <span className="font-semibold text-foreground">{tf('Depreciation on Machinery:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.depreciationMachinery}%</span>
                     </div>
                   )}
                   {Object.keys(suggestions).length === 0 && (
                     <div className="col-span-2 text-sm text-muted-foreground">
-                      No suggestions available. Please try refreshing.
+                      {tf('No suggestions available. Please try refreshing.')}
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="text-sm">
-                  <p className="text-muted-foreground mb-2">Preview:</p>
+                  <p className="text-muted-foreground mb-2">{tf('Preview:')}</p>
                   <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">
                     {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
                   </pre>
@@ -4492,13 +4509,14 @@ const FinancialParametersStep: React.FC<{ data: any; onChange: (data: any) => vo
 // Beneficiary Info Step
 const BeneficiaryInfoStep: React.FC<{ data: any; onChange: (data: any) => void; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   
   const handleApplySuggestions = () => {
     if (suggestions && typeof suggestions === 'object') {
       onChange({...data, ...suggestions});
       // Clear suggestions after applying
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions');
+      toast.success(tf('Applied AI suggestions'));
     }
   };
   
@@ -4507,7 +4525,7 @@ const BeneficiaryInfoStep: React.FC<{ data: any; onChange: (data: any) => void; 
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.beneficiaryInfo.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.beneficiaryInfo.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.beneficiaryInfo.description')}</p>
           </div>
           {!suggestions && (
@@ -4579,55 +4597,55 @@ const BeneficiaryInfoStep: React.FC<{ data: any; onChange: (data: any) => void; 
                 <div className="space-y-3 text-sm">
                   {suggestions.fullName && (
                     <div>
-                      <span className="font-semibold text-foreground">Full Name: </span>
+                      <span className="font-semibold text-foreground">{tf('Full Name:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.fullName}</span>
                     </div>
                   )}
                   {suggestions.fatherSpouseName && (
                     <div>
-                      <span className="font-semibold text-foreground">Father's/Spouse's Name: </span>
+                      <span className="font-semibold text-foreground">{tf('Father\'s/Spouse\'s Name:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.fatherSpouseName}</span>
                     </div>
                   )}
                   {suggestions.address && (
                     <div>
-                      <span className="font-semibold text-foreground">Address: </span>
+                      <span className="font-semibold text-foreground">{tf('Address:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.address}</span>
                     </div>
                   )}
                   {suggestions.email && (
                     <div>
-                      <span className="font-semibold text-foreground">Email: </span>
+                      <span className="font-semibold text-foreground">{tf('Email:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.email}</span>
                     </div>
                   )}
                   {suggestions.mobile && (
                     <div>
-                      <span className="font-semibold text-foreground">Mobile: </span>
+                      <span className="font-semibold text-foreground">{tf('Mobile:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.mobile}</span>
                     </div>
                   )}
                   {suggestions.educationalQualifications && (
                     <div>
-                      <span className="font-semibold text-foreground">Educational Qualifications: </span>
+                      <span className="font-semibold text-foreground">{tf('Educational Qualifications:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.educationalQualifications}</span>
                     </div>
                   )}
                   {suggestions.experience && (
                     <div>
-                      <span className="font-semibold text-foreground">Experience: </span>
+                      <span className="font-semibold text-foreground">{tf('Experience:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.experience}</span>
                     </div>
                   )}
                   {Object.keys(suggestions).length === 0 && (
                     <div className="text-sm text-muted-foreground">
-                      No suggestions available. Please try refreshing.
+                      {tf('No suggestions available. Please try refreshing.')}
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="text-sm">
-                  <p className="text-muted-foreground mb-2">Preview:</p>
+                  <p className="text-muted-foreground mb-2">{tf('Preview:')}</p>
                   <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">
                     {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
                   </pre>
@@ -4644,7 +4662,7 @@ const BeneficiaryInfoStep: React.FC<{ data: any; onChange: (data: any) => void; 
           <Input
             value={data?.fullName || ''}
             onChange={(e) => onChange({...data, fullName: e.target.value})}
-            placeholder="Full Name"
+            placeholder={tf('Full Name')}
             className="h-12 border-2 focus:border-primary"
           />
         </div>
@@ -4654,7 +4672,7 @@ const BeneficiaryInfoStep: React.FC<{ data: any; onChange: (data: any) => void; 
           <Input
             value={data?.fatherSpouseName || ''}
             onChange={(e) => onChange({...data, fatherSpouseName: e.target.value})}
-            placeholder="Father's/Spouse's Name"
+            placeholder={tf('Father\'s/Spouse\'s Name')}
             className="h-12 border-2 focus:border-primary"
           />
         </div>
@@ -4666,7 +4684,7 @@ const BeneficiaryInfoStep: React.FC<{ data: any; onChange: (data: any) => void; 
             rows={3}
             value={data?.address || ''}
             onChange={(e) => onChange({...data, address: e.target.value})}
-            placeholder="Complete Address"
+            placeholder={tf('Complete Address')}
           />
         </div>
         
@@ -4697,7 +4715,7 @@ const BeneficiaryInfoStep: React.FC<{ data: any; onChange: (data: any) => void; 
           <Input
             value={data?.educationalQualifications || ''}
             onChange={(e) => onChange({...data, educationalQualifications: e.target.value})}
-            placeholder="Educational Qualifications"
+            placeholder={tf('Educational Qualifications')}
             className="h-12 border-2 focus:border-primary"
           />
         </div>
@@ -4709,7 +4727,7 @@ const BeneficiaryInfoStep: React.FC<{ data: any; onChange: (data: any) => void; 
             rows={3}
             value={data?.experience || ''}
             onChange={(e) => onChange({...data, experience: e.target.value})}
-            placeholder="Work Experience and Background"
+            placeholder={tf('Work Experience and Background')}
           />
         </div>
       </div>
@@ -4720,6 +4738,7 @@ const BeneficiaryInfoStep: React.FC<{ data: any; onChange: (data: any) => void; 
 // Project at a Glance Step
 const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; stepData: any; suggestions?: any; loading?: boolean; onGetSuggestions: () => void; onClearSuggestions?: () => void }> = ({ data, onChange, stepData, suggestions, loading, onGetSuggestions, onClearSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   
   // Auto-populate from other steps
   useEffect(() => {
@@ -4739,7 +4758,7 @@ const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; 
       onChange({...data, ...suggestions});
       // Clear suggestions after applying
       onClearSuggestions?.();
-      toast.success('Applied AI suggestions');
+      toast.success(tf('Applied AI suggestions'));
     }
   };
   
@@ -4748,7 +4767,7 @@ const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; 
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.projectAtGlance.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.projectAtGlance.title')}</h2>
             <p className="text-sm text-muted-foreground">{t('dprBuilder.projectAtGlance.description')}</p>
           </div>
           {!suggestions && (
@@ -4820,67 +4839,67 @@ const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; 
                 <div className="space-y-3 text-sm">
                   {suggestions.beneficiaryName && (
                     <div>
-                      <span className="font-semibold text-foreground">Beneficiary Name: </span>
+                      <span className="font-semibold text-foreground">{tf('Beneficiary Name:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.beneficiaryName}</span>
                     </div>
                   )}
                   {suggestions.constitution && (
                     <div>
-                      <span className="font-semibold text-foreground">Constitution: </span>
+                      <span className="font-semibold text-foreground">{tf('Constitution:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.constitution}</span>
                     </div>
                   )}
                   {suggestions.unitAddress && (
                     <div>
-                      <span className="font-semibold text-foreground">Unit Address: </span>
+                      <span className="font-semibold text-foreground">{tf('Unit Address:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.unitAddress}</span>
                     </div>
                   )}
                   {suggestions.talukBlock && (
                     <div>
-                      <span className="font-semibold text-foreground">Taluk/Block: </span>
+                      <span className="font-semibold text-foreground">{tf('Taluk/Block:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.talukBlock}</span>
                     </div>
                   )}
                   {suggestions.district && (
                     <div>
-                      <span className="font-semibold text-foreground">District: </span>
+                      <span className="font-semibold text-foreground">{tf('District:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.district}</span>
                     </div>
                   )}
                   {suggestions.pinCode && (
                     <div>
-                      <span className="font-semibold text-foreground">PIN Code: </span>
+                      <span className="font-semibold text-foreground">{tf('PIN Code:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.pinCode}</span>
                     </div>
                   )}
                   {suggestions.email && (
                     <div>
-                      <span className="font-semibold text-foreground">Email: </span>
+                      <span className="font-semibold text-foreground">{tf('Email:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.email}</span>
                     </div>
                   )}
                   {suggestions.mobile && (
                     <div>
-                      <span className="font-semibold text-foreground">Mobile: </span>
+                      <span className="font-semibold text-foreground">{tf('Mobile:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.mobile}</span>
                     </div>
                   )}
                   {suggestions.products && (
                     <div>
-                      <span className="font-semibold text-foreground">Products: </span>
+                      <span className="font-semibold text-foreground">{tf('Products:')}{' '}</span>
                       <span className="text-muted-foreground">{suggestions.products}</span>
                     </div>
                   )}
                   {Object.keys(suggestions).length === 0 && (
                     <div className="text-sm text-muted-foreground">
-                      No suggestions available. Please try refreshing.
+                      {tf('No suggestions available. Please try refreshing.')}
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="text-sm">
-                  <p className="text-muted-foreground mb-2">Preview:</p>
+                  <p className="text-muted-foreground mb-2">{tf('Preview:')}</p>
                   <pre className="bg-white p-3 rounded border text-xs overflow-auto max-h-40 whitespace-pre-wrap">
                     {typeof suggestions === 'string' ? suggestions : JSON.stringify(suggestions, null, 2)}
                   </pre>
@@ -4897,7 +4916,7 @@ const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; 
           <Input
             value={data?.beneficiaryName || ''}
             onChange={(e) => onChange({...data, beneficiaryName: e.target.value})}
-            placeholder="Name of the Beneficiary"
+            placeholder={tf('Name of the Beneficiary')}
             className="h-12 border-2 focus:border-primary"
           />
         </div>
@@ -4907,7 +4926,7 @@ const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; 
           <Input
             value={data?.constitution || ''}
             onChange={(e) => onChange({...data, constitution: e.target.value})}
-            placeholder="e.g., Individual"
+            placeholder={tf('e.g., Individual')}
             className="h-12 border-2 focus:border-primary"
           />
         </div>
@@ -4919,7 +4938,7 @@ const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; 
             rows={3}
             value={data?.unitAddress || ''}
             onChange={(e) => onChange({...data, unitAddress: e.target.value})}
-            placeholder="Complete Unit Address"
+            placeholder={tf('Complete Unit Address')}
           />
         </div>
         
@@ -4928,7 +4947,7 @@ const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; 
           <Input
             value={data?.talukBlock || ''}
             onChange={(e) => onChange({...data, talukBlock: e.target.value})}
-            placeholder="Taluk/Block"
+            placeholder={tf('Taluk/Block')}
             className="h-12 border-2 focus:border-primary"
           />
         </div>
@@ -4938,7 +4957,7 @@ const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; 
           <Input
             value={data?.district || ''}
             onChange={(e) => onChange({...data, district: e.target.value})}
-            placeholder="District"
+            placeholder={tf('District')}
             className="h-12 border-2 focus:border-primary"
           />
         </div>
@@ -4948,7 +4967,7 @@ const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; 
           <Input
             value={data?.pinCode || ''}
             onChange={(e) => onChange({...data, pinCode: e.target.value})}
-            placeholder="PIN Code"
+            placeholder={tf('PIN Code')}
             className="h-12 border-2 focus:border-primary"
           />
         </div>
@@ -4982,7 +5001,7 @@ const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; 
             rows={3}
             value={data?.products || ''}
             onChange={(e) => onChange({...data, products: e.target.value})}
-            placeholder="List of Products and By-Products"
+            placeholder={tf('List of Products and By-Products')}
           />
         </div>
       </div>
@@ -4992,10 +5011,11 @@ const ProjectAtGlanceStep: React.FC<{ data: any; onChange: (data: any) => void; 
 
 const BusinessOverviewStep: React.FC<{ data: any; onChange: (data: any) => void; project?: any }> = ({ data, onChange }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   return (
     <div className="space-y-6">
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
-        <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.businessOverview.title')}</h3>
+        <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.businessOverview.title')}</h2>
         <p className="text-sm text-muted-foreground">
           {t('dprBuilder.businessOverview.description')}
         </p>
@@ -5021,32 +5041,32 @@ const BusinessOverviewStep: React.FC<{ data: any; onChange: (data: any) => void;
             required
           >
             <option value="">{t('projects.selectIndustrySector')}</option>
-            <option value="Manufacturing">Manufacturing</option>
-            <option value="Services">Services</option>
-            <option value="Trading">Trading</option>
-            <option value="Food Processing">Food Processing</option>
-            <option value="Textiles & Garments">Textiles & Garments</option>
-            <option value="Handicrafts">Handicrafts</option>
-            <option value="IT & ITES">IT & ITES</option>
-            <option value="Healthcare">Healthcare</option>
-            <option value="Education">Education</option>
-            <option value="Agriculture & Allied">Agriculture & Allied</option>
-            <option value="Construction">Construction</option>
-            <option value="Retail">Retail</option>
-            <option value="Hospitality & Tourism">Hospitality & Tourism</option>
-            <option value="Transport & Logistics">Transport & Logistics</option>
-            <option value="Real Estate">Real Estate</option>
-            <option value="Energy & Power">Energy & Power</option>
-            <option value="Chemicals & Pharmaceuticals">Chemicals & Pharmaceuticals</option>
-            <option value="Metal & Engineering">Metal & Engineering</option>
-            <option value="Leather & Leather Products">Leather & Leather Products</option>
-            <option value="Paper & Paper Products">Paper & Paper Products</option>
-            <option value="Rubber & Plastic Products">Rubber & Plastic Products</option>
-            <option value="Wood & Wood Products">Wood & Wood Products</option>
-            <option value="Printing & Publishing">Printing & Publishing</option>
-            <option value="Electronics & Electrical">Electronics & Electrical</option>
-            <option value="Gems & Jewellery">Gems & Jewellery</option>
-            <option value="Other">Other</option>
+            <option value="Manufacturing">{tf('Manufacturing')}</option>
+            <option value="Services">{tf('Services')}</option>
+            <option value="Trading">{tf('Trading')}</option>
+            <option value="Food Processing">{tf('Food Processing')}</option>
+            <option value="Textiles & Garments">{tf('Textiles & Garments')}</option>
+            <option value="Handicrafts">{tf('Handicrafts')}</option>
+            <option value="IT & ITES">{tf('IT & ITES')}</option>
+            <option value="Healthcare">{tf('Healthcare')}</option>
+            <option value="Education">{tf('Education')}</option>
+            <option value="Agriculture & Allied">{tf('Agriculture & Allied')}</option>
+            <option value="Construction">{tf('Construction')}</option>
+            <option value="Retail">{tf('Retail')}</option>
+            <option value="Hospitality & Tourism">{tf('Hospitality & Tourism')}</option>
+            <option value="Transport & Logistics">{tf('Transport & Logistics')}</option>
+            <option value="Real Estate">{tf('Real Estate')}</option>
+            <option value="Energy & Power">{tf('Energy & Power')}</option>
+            <option value="Chemicals & Pharmaceuticals">{tf('Chemicals & Pharmaceuticals')}</option>
+            <option value="Metal & Engineering">{tf('Metal & Engineering')}</option>
+            <option value="Leather & Leather Products">{tf('Leather & Leather Products')}</option>
+            <option value="Paper & Paper Products">{tf('Paper & Paper Products')}</option>
+            <option value="Rubber & Plastic Products">{tf('Rubber & Plastic Products')}</option>
+            <option value="Wood & Wood Products">{tf('Wood & Wood Products')}</option>
+            <option value="Printing & Publishing">{tf('Printing & Publishing')}</option>
+            <option value="Electronics & Electrical">{tf('Electronics & Electrical')}</option>
+            <option value="Gems & Jewellery">{tf('Gems & Jewellery')}</option>
+            <option value="Other">{tf('Other')}</option>
           </select>
           <p className="text-xs text-muted-foreground mt-1">{t('dprBuilder.businessOverview.industrySectorHint')}</p>
         </div>
@@ -5058,13 +5078,13 @@ const BusinessOverviewStep: React.FC<{ data: any; onChange: (data: any) => void;
           <div className="group relative">
             <Info className="h-4 w-4 text-muted-foreground cursor-help" />
             <div className="absolute right-0 top-6 w-72 p-3 bg-foreground text-background text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-              <p className="font-semibold mb-1">What to include:</p>
+              <p className="font-semibold mb-1">{tf('What to include:')}</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Products/services you will offer</li>
-                <li>Business model and operations</li>
-                <li>Unique selling points</li>
-                <li>Production capacity</li>
-                <li>Business objectives</li>
+                <li>{tf('Products/services you will offer')}</li>
+                <li>{tf('Business model and operations')}</li>
+                <li>{tf('Unique selling points')}</li>
+                <li>{tf('Production capacity')}</li>
+                <li>{tf('Business objectives')}</li>
               </ul>
             </div>
           </div>
@@ -5089,7 +5109,7 @@ const BusinessOverviewStep: React.FC<{ data: any; onChange: (data: any) => void;
           rows={6}
           value={data?.businessDescription || ''}
           onChange={(e) => onChange({...data, businessDescription: e.target.value})}
-          placeholder="Describe your business, products/services, objectives, and unique value proposition..."
+          placeholder={tf('Describe your business, products/services, objectives, and unique value proposition...')}
         />
       </div>
     </div>
@@ -5098,6 +5118,7 @@ const BusinessOverviewStep: React.FC<{ data: any; onChange: (data: any) => void;
 
 const MarketAnalysisStep: React.FC<any> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const isStructured = suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions);
   
   const handleApplySuggestion = (fieldName: string) => {
@@ -5113,7 +5134,7 @@ const MarketAnalysisStep: React.FC<any> = ({ data, onChange, suggestions, loadin
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.marketAnalysis.title')}</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('dprBuilder.marketAnalysis.title')}</h2>
             <p className="text-sm text-muted-foreground">
               {t('dprBuilder.marketAnalysis.description')}
             </p>
@@ -5254,23 +5275,23 @@ const MarketAnalysisStep: React.FC<any> = ({ data, onChange, suggestions, loadin
           rows={5}
           value={data?.targetMarket || ''}
           onChange={(e) => onChange({...data, targetMarket: e.target.value})}
-          placeholder="Describe your target customers, market segments, demographics, and market size..."
+          placeholder={tf('Describe your target customers, market segments, demographics, and market size...')}
         />
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-semibold text-foreground">Competitor Analysis *</label>
+          <label className="block text-sm font-semibold text-foreground">{tf('Competitor Analysis *')}</label>
           <div className="group relative">
             <Info className="h-4 w-4 text-muted-foreground cursor-help" />
             <div className="absolute right-0 top-6 w-72 p-3 bg-foreground text-background text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-              <p className="font-semibold mb-1">What to include:</p>
+              <p className="font-semibold mb-1">{tf('What to include:')}</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Main competitors and their market share</li>
-                <li>Competitor strengths and weaknesses</li>
-                <li>Pricing strategies</li>
-                <li>Your competitive advantages</li>
-                <li>Market positioning</li>
+                <li>{tf('Main competitors and their market share')}</li>
+                <li>{tf('Competitor strengths and weaknesses')}</li>
+                <li>{tf('Pricing strategies')}</li>
+                <li>{tf('Your competitive advantages')}</li>
+                <li>{tf('Market positioning')}</li>
               </ul>
             </div>
           </div>
@@ -5295,7 +5316,7 @@ const MarketAnalysisStep: React.FC<any> = ({ data, onChange, suggestions, loadin
           rows={5}
           value={data?.competitorAnalysis || ''}
           onChange={(e) => onChange({...data, competitorAnalysis: e.target.value})}
-          placeholder="Analyze your competitors, their strengths and weaknesses, and your competitive advantages..."
+          placeholder={tf('Analyze your competitors, their strengths and weaknesses, and your competitive advantages...')}
         />
       </div>
     </div>
@@ -5303,6 +5324,7 @@ const MarketAnalysisStep: React.FC<any> = ({ data, onChange, suggestions, loadin
 };
 
 const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; project?: any; suggestions?: string; loading?: boolean; onGetSuggestions: () => void }> = ({ data, onChange, suggestions, loading, onGetSuggestions }) => {
+  const tf = useClusterFormText();
   const isStructured = suggestions && typeof suggestions === 'object' && !Array.isArray(suggestions) && suggestions.capex;
   
   const handleApplyAll = () => {
@@ -5318,7 +5340,7 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
           salaries: String(suggestions.opex.salaries || data?.opex?.salaries || ''),
         },
       });
-      toast.success('Applied AI suggestions to all cost fields');
+      toast.success(tf('Applied AI suggestions to all cost fields'));
     }
   };
 
@@ -5331,7 +5353,7 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
           [field]: String(suggestions[category][field]),
         },
       });
-      toast.success(`Applied AI suggestion to ${category.toUpperCase()} - ${field.replace(/([A-Z])/g, ' $1').trim()}`);
+      toast.success(tf('Applied AI suggestion to {field}').replace('{field}', `${category.toUpperCase()} - ${field.replace(/([A-Z])/g, ' $1').trim()}`));
     }
   };
 
@@ -5340,9 +5362,9 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">Cost Structure</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{tf('Cost Structure')}</h2>
             <p className="text-sm text-muted-foreground">
-              Define your CAPEX (Capital Expenditure) and OPEX (Operating Expenditure) requirements. Use AI to generate sample values.
+              {tf('Define your CAPEX (Capital Expenditure) and OPEX (Operating Expenditure) requirements. Use AI to generate sample values.')}
             </p>
           </div>
           {!suggestions && (
@@ -5356,12 +5378,12 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Loading...
+                  {tf('Loading...')}
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Generate Sample Values
+                  {tf('Generate Sample Values')}
                 </>
               )}
             </Button>
@@ -5378,11 +5400,11 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
                   <Sparkles className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-base font-bold text-primary mb-2">AI-Generated Sample Values</p>
+                  <p className="text-base font-bold text-primary mb-2">{tf('AI-Generated Sample Values')}</p>
                   <p className="text-sm text-muted-foreground">
                     {isStructured 
-                      ? 'Click "Apply" next to each field or "Apply All" to use the AI-generated values. You can edit them after applying.'
-                      : 'Review the suggestions below.'}
+                      ? tf('Click "Apply" next to each field or "Apply All" to use the AI-generated values. You can edit them after applying.')
+                      : tf('Review the suggestions below.')}
                   </p>
                 </div>
               </div>
@@ -5393,7 +5415,7 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
                     onClick={handleApplyAll}
                     className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
                   >
-                    Apply All
+                    {tf('Apply All')}
                   </Button>
                 )}
                 <Button
@@ -5401,13 +5423,13 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
                   size="sm"
                   onClick={onGetSuggestions}
                   disabled={loading}
-                  title="Generate new sample values"
+                  title={tf('Generate new sample values')}
                   className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
                 >
                   {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    'Refresh'
+                    tf('Refresh')
                   )}
                 </Button>
               </div>
@@ -5417,31 +5439,31 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
               <div className="space-y-4">
                 {suggestions.capex && (
                   <div className="bg-white/50 rounded-lg p-4 border border-primary/20">
-                    <p className="text-sm font-semibold text-foreground mb-3">CAPEX Suggestions:</p>
+                    <p className="text-sm font-semibold text-foreground mb-3">{tf('CAPEX Suggestions:')}</p>
                     <div className="space-y-2">
                       {suggestions.capex.landBuilding && (
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-foreground">Land & Building: ₹{parseFloat(String(suggestions.capex.landBuilding)).toLocaleString('en-IN')}</span>
+                          <span className="text-sm text-foreground">{tf('Land & Building:')} ₹{parseFloat(String(suggestions.capex.landBuilding)).toLocaleString('en-IN')}</span>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleApplyField('capex', 'landBuilding')}
                             className="text-xs border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
                           >
-                            Apply
+                            {tf('Apply')}
                           </Button>
                         </div>
                       )}
                       {suggestions.capex.machinery && (
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-foreground">Machinery: ₹{parseFloat(String(suggestions.capex.machinery)).toLocaleString('en-IN')}</span>
+                          <span className="text-sm text-foreground">{tf('Machinery:')} ₹{parseFloat(String(suggestions.capex.machinery)).toLocaleString('en-IN')}</span>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleApplyField('capex', 'machinery')}
                             className="text-xs border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
                           >
-                            Apply
+                            {tf('Apply')}
                           </Button>
                         </div>
                       )}
@@ -5450,31 +5472,31 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
                 )}
                 {suggestions.opex && (
                   <div className="bg-white/50 rounded-lg p-4 border border-primary/20">
-                    <p className="text-sm font-semibold text-foreground mb-3">OPEX Suggestions (Monthly):</p>
+                    <p className="text-sm font-semibold text-foreground mb-3">{tf('OPEX Suggestions (Monthly):')}</p>
                     <div className="space-y-2">
                       {suggestions.opex.rawMaterials && (
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-foreground">Raw Materials: ₹{parseFloat(String(suggestions.opex.rawMaterials)).toLocaleString('en-IN')}/month</span>
+                          <span className="text-sm text-foreground">{tf('Raw Materials:')} ₹{parseFloat(String(suggestions.opex.rawMaterials)).toLocaleString('en-IN')}/{tf('month')}</span>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleApplyField('opex', 'rawMaterials')}
                             className="text-xs border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
                           >
-                            Apply
+                            {tf('Apply')}
                           </Button>
                         </div>
                       )}
                       {suggestions.opex.salaries && (
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-foreground">Salaries: ₹{parseFloat(String(suggestions.opex.salaries)).toLocaleString('en-IN')}/month</span>
+                          <span className="text-sm text-foreground">{tf('Salaries:')} ₹{parseFloat(String(suggestions.opex.salaries)).toLocaleString('en-IN')}/{tf('month')}</span>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleApplyField('opex', 'salaries')}
                             className="text-xs border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
                           >
-                            Apply
+                            {tf('Apply')}
                           </Button>
                         </div>
                       )}
@@ -5492,8 +5514,8 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="border-2 border-primary/20 shadow-lg">
           <CardHeader className="bg-primary/5 border-b-2 border-primary/10">
-            <CardTitle className="text-lg font-bold text-foreground">CAPEX (Capital Expenditure)</CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">One-time investments</p>
+            <CardTitle className="text-lg font-bold text-foreground">{tf('CAPEX (Capital Expenditure)')}</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">{tf('One-time investments')}</p>
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
             <Card className="mb-4 bg-blue-50/50 border-blue-200">
@@ -5501,20 +5523,20 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
                 <div className="flex items-start gap-2">
                   <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div className="text-xs text-foreground">
-                    <p className="font-semibold mb-1">CAPEX includes:</p>
+                    <p className="font-semibold mb-1">{tf('CAPEX includes:')}</p>
                     <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
-                      <li>Land purchase or lease costs</li>
-                      <li>Building construction or renovation</li>
-                      <li>Machinery and equipment purchase</li>
-                      <li>Installation and setup costs</li>
-                      <li>Pre-operative expenses (licenses, registration)</li>
+                      <li>{tf('Land purchase or lease costs')}</li>
+                      <li>{tf('Building construction or renovation')}</li>
+                      <li>{tf('Machinery and equipment purchase')}</li>
+                      <li>{tf('Installation and setup costs')}</li>
+                      <li>{tf('Pre-operative expenses (licenses, registration)')}</li>
                     </ul>
                   </div>
                 </div>
               </CardContent>
             </Card>
             <div>
-              <label className="block text-sm font-semibold mb-2 text-foreground">Land & Building (₹)</label>
+              <label className="block text-sm font-semibold mb-2 text-foreground">{tf('Land & Building (₹)')}</label>
               <Input
                 type="number"
                 value={data?.capex?.landBuilding || ''}
@@ -5522,13 +5544,13 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
                   ...data,
                   capex: {...data?.capex, landBuilding: e.target.value}
                 })}
-                placeholder="Enter amount"
+                placeholder={tf('Enter amount')}
                 className="h-12 border-2 focus:border-primary"
               />
-              <p className="text-xs text-muted-foreground mt-1">Include land cost, building construction, and related infrastructure</p>
+              <p className="text-xs text-muted-foreground mt-1">{tf('Include land cost, building construction, and related infrastructure')}</p>
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-2 text-foreground">Machinery & Equipment (₹)</label>
+              <label className="block text-sm font-semibold mb-2 text-foreground">{tf('Machinery & Equipment (₹)')}</label>
               <Input
                 type="number"
                 value={data?.capex?.machinery || ''}
@@ -5536,18 +5558,18 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
                   ...data,
                   capex: {...data?.capex, machinery: e.target.value}
                 })}
-                placeholder="Enter amount"
+                placeholder={tf('Enter amount')}
                 className="h-12 border-2 focus:border-primary"
               />
-              <p className="text-xs text-muted-foreground mt-1">Include all production machinery, tools, and equipment costs</p>
+              <p className="text-xs text-muted-foreground mt-1">{tf('Include all production machinery, tools, and equipment costs')}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-2 border-secondary/20 shadow-lg">
           <CardHeader className="bg-secondary/5 border-b-2 border-secondary/10">
-            <CardTitle className="text-lg font-bold text-foreground">OPEX (Operating Expenditure)</CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">Recurring monthly expenses</p>
+            <CardTitle className="text-lg font-bold text-foreground">{tf('OPEX (Operating Expenditure)')}</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">{tf('Recurring monthly expenses')}</p>
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
             <Card className="mb-4 bg-blue-50/50 border-blue-200">
@@ -5555,20 +5577,20 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
                 <div className="flex items-start gap-2">
                   <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div className="text-xs text-foreground">
-                    <p className="font-semibold mb-1">OPEX includes:</p>
+                    <p className="font-semibold mb-1">{tf('OPEX includes:')}</p>
                     <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
-                      <li>Raw materials and inventory</li>
-                      <li>Employee salaries and wages</li>
-                      <li>Utilities (electricity, water, gas)</li>
-                      <li>Rent and maintenance</li>
-                      <li>Marketing and administrative expenses</li>
+                      <li>{tf('Raw materials and inventory')}</li>
+                      <li>{tf('Employee salaries and wages')}</li>
+                      <li>{tf('Utilities (electricity, water, gas)')}</li>
+                      <li>{tf('Rent and maintenance')}</li>
+                      <li>{tf('Marketing and administrative expenses')}</li>
                     </ul>
                   </div>
                 </div>
               </CardContent>
             </Card>
             <div>
-              <label className="block text-sm font-semibold mb-2 text-foreground">Raw Materials (₹/Month)</label>
+              <label className="block text-sm font-semibold mb-2 text-foreground">{tf('Raw Materials (₹/Month)')}</label>
               <Input
                 type="number"
                 value={data?.opex?.rawMaterials || ''}
@@ -5576,13 +5598,13 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
                   ...data,
                   opex: {...data?.opex, rawMaterials: e.target.value}
                 })}
-                placeholder="Enter monthly amount"
+                placeholder={tf('Enter monthly amount')}
                 className="h-12 border-2 focus:border-secondary"
               />
-              <p className="text-xs text-muted-foreground mt-1">Monthly cost of raw materials needed for production</p>
+              <p className="text-xs text-muted-foreground mt-1">{tf('Monthly cost of raw materials needed for production')}</p>
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-2 text-foreground">Salaries (₹/Month)</label>
+              <label className="block text-sm font-semibold mb-2 text-foreground">{tf('Salaries (₹/Month)')}</label>
               <Input
                 type="number"
                 value={data?.opex?.salaries || ''}
@@ -5590,10 +5612,10 @@ const CostStructureStep: React.FC<{ data: any; onChange: (data: any) => void; pr
                   ...data,
                   opex: {...data?.opex, salaries: e.target.value}
                 })}
-                placeholder="Enter monthly amount"
+                placeholder={tf('Enter monthly amount')}
                 className="h-12 border-2 focus:border-secondary"
               />
-              <p className="text-xs text-muted-foreground mt-1">Total monthly salary for all employees</p>
+              <p className="text-xs text-muted-foreground mt-1">{tf('Total monthly salary for all employees')}</p>
             </div>
           </CardContent>
         </Card>
@@ -5691,6 +5713,7 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
   businessData,
   costData
 }) => {
+  const tf = useClusterFormText();
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [hasAutoGenerated, setHasAutoGenerated] = React.useState(false);
   
@@ -5738,9 +5761,9 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">Financial Projections</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{tf('Financial Projections')}</h2>
             <p className="text-sm text-muted-foreground">
-              Project your revenue, costs, and cash flow for the next 3-5 years. AI-generated projections are pre-filled based on your project details. You can edit any values as needed.
+              {tf('Project your revenue, costs, and cash flow for the next 3-5 years. AI-generated projections are pre-filled based on your project details. You can edit any values as needed.')}
             </p>
           </div>
           <div className="flex gap-2 ml-4">
@@ -5755,12 +5778,12 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Loading...
+                    {tf('Loading...')}
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Get AI Suggestions
+                    {tf('Get AI Suggestions')}
                   </>
                 )}
               </Button>
@@ -5772,17 +5795,17 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                 onClick={handleRegenerate}
                 disabled={isGenerating}
                 className="border-2 border-secondary bg-white hover:bg-secondary hover:text-white text-secondary"
-                title="Regenerate projections based on current project data"
+                title={tf('Regenerate projections based on current project data')}
               >
                 {isGenerating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Regenerating...
+                    {tf('Regenerating...')}
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4 mr-2" />
-                    Regenerate
+                    {tf('Regenerate')}
                   </>
                 )}
               </Button>
@@ -5797,8 +5820,8 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
             <div className="flex items-center gap-4">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
               <div>
-                <p className="text-base font-bold text-primary mb-1">Generating Financial Projections</p>
-                <p className="text-sm text-muted-foreground">Creating realistic projections based on your project details...</p>
+                <p className="text-base font-bold text-primary mb-1">{tf('Generating Financial Projections')}</p>
+                <p className="text-sm text-muted-foreground">{tf('Creating realistic projections based on your project details...')}</p>
               </div>
             </div>
           </CardContent>
@@ -5837,12 +5860,12 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                         <div className="h-10 w-10 rounded-lg bg-green-500/20 flex items-center justify-center">
                           <TrendingUp className="h-5 w-5 text-green-600" />
                         </div>
-                        <p className="text-sm font-semibold text-muted-foreground">Revenue Growth</p>
+                        <p className="text-sm font-semibold text-muted-foreground">{tf('Revenue Growth')}</p>
                       </div>
                       <p className="text-2xl font-bold text-green-700 mb-1">
                         {totalRevenueGrowth > 0 ? `+${totalRevenueGrowth.toFixed(1)}%` : `${totalRevenueGrowth.toFixed(1)}%`}
                       </p>
-                      <p className="text-xs text-muted-foreground">Over 5 years</p>
+                      <p className="text-xs text-muted-foreground">{tf('Over 5 years')}</p>
                     </div>
                     <ArrowUp className="h-6 w-6 text-green-600" />
                   </div>
@@ -5876,7 +5899,7 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                               : 'text-red-600'
                           }`} />
                         </div>
-                        <p className="text-sm font-semibold text-muted-foreground">Break-Even</p>
+                        <p className="text-sm font-semibold text-muted-foreground">{tf('Break-Even')}</p>
                       </div>
                       <p className={`text-2xl font-bold mb-1 ${
                         breakEvenYear && breakEvenYear <= 3 
@@ -5885,14 +5908,14 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                           ? 'text-yellow-700'
                           : 'text-red-700'
                       }`}>
-                        {breakEvenYear ? `Year ${breakEvenYear}` : 'Beyond Year 5'}
+                        {breakEvenYear ? `${tf('Year')} ${breakEvenYear}` : tf('Beyond Year 5')}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {breakEvenYear && breakEvenYear <= 3 
-                          ? 'Excellent timeline' 
+                          ? tf('Excellent timeline') 
                           : breakEvenYear && breakEvenYear <= 5
-                          ? 'Good timeline'
-                          : 'Needs adjustment'}
+                          ? tf('Good timeline')
+                          : tf('Needs adjustment')}
                       </p>
                     </div>
                     {breakEvenYear && breakEvenYear <= 3 ? (
@@ -5921,7 +5944,7 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                         }`}>
                           <DollarSign className={`h-5 w-5 ${year5Profit > 0 ? 'text-green-600' : 'text-red-600'}`} />
                         </div>
-                        <p className="text-sm font-semibold text-muted-foreground">Year 5 Profit</p>
+                        <p className="text-sm font-semibold text-muted-foreground">{tf('Year 5 Profit')}</p>
                       </div>
                       <p className={`text-2xl font-bold mb-1 ${
                         year5Profit > 0 ? 'text-green-700' : 'text-red-700'
@@ -5929,7 +5952,7 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                         ₹{Math.abs(year5Profit).toLocaleString('en-IN')}
                       </p>
                       <p className={`text-xs ${year5Profit > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {year5Profit > 0 ? 'Profitable' : 'Loss'}
+                        {year5Profit > 0 ? tf('Profitable') : tf('Loss')}
                       </p>
                     </div>
                     {year5Profit > 0 ? (
@@ -5951,7 +5974,7 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                     <div className="h-10 w-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
                       <Info className="h-5 w-5 text-blue-600" />
                     </div>
-                    <CardTitle className="text-lg font-bold text-foreground">How These Projections Work</CardTitle>
+                    <CardTitle className="text-lg font-bold text-foreground">{tf('How These Projections Work')}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -5960,9 +5983,9 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                       <span className="text-xs font-bold text-blue-600">1</span>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground mb-1">Revenue Calculation</p>
+                      <p className="text-sm font-semibold text-foreground mb-1">{tf('Revenue Calculation')}</p>
                       <p className="text-xs text-muted-foreground">
-                        Based on your project cost, we estimate Year 1 revenue at ~70% of total investment, growing at 12% annually.
+                        {tf('Based on your project cost, we estimate Year 1 revenue at ~70% of total investment, growing at 12% annually.')}
                       </p>
                     </div>
                   </div>
@@ -5971,9 +5994,9 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                       <span className="text-xs font-bold text-blue-600">2</span>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground mb-1">Cost Structure</p>
+                      <p className="text-sm font-semibold text-foreground mb-1">{tf('Cost Structure')}</p>
                       <p className="text-xs text-muted-foreground">
-                        Includes your operating expenses (OPEX), depreciation on fixed assets, and loan interest payments.
+                        {tf('Includes your operating expenses (OPEX), depreciation on fixed assets, and loan interest payments.')}
                       </p>
                     </div>
                   </div>
@@ -5982,9 +6005,9 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                       <span className="text-xs font-bold text-blue-600">3</span>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground mb-1">Profit Calculation</p>
+                      <p className="text-sm font-semibold text-foreground mb-1">{tf('Profit Calculation')}</p>
                       <p className="text-xs text-muted-foreground">
-                        Profit = Revenue - Costs. Positive values mean profit, negative values indicate initial losses (common in early years).
+                        {tf('Profit = Revenue - Costs. Positive values mean profit, negative values indicate initial losses (common in early years).')}
                       </p>
                     </div>
                   </div>
@@ -5998,34 +6021,34 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                     <div className="h-10 w-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
                       <HelpCircle className="h-5 w-5 text-purple-600" />
                     </div>
-                    <CardTitle className="text-lg font-bold text-foreground">Tips for Success</CardTitle>
+                    <CardTitle className="text-lg font-bold text-foreground">{tf('Tips for Success')}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-start gap-3">
                     <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-semibold text-foreground mb-1">Aim for Break-Even</p>
+                      <p className="text-sm font-semibold text-foreground mb-1">{tf('Aim for Break-Even')}</p>
                       <p className="text-xs text-muted-foreground">
-                        Try to achieve break-even (revenue = costs) by Year 2-3 for better bank approval chances.
+                        {tf('Try to achieve break-even (revenue = costs) by Year 2-3 for better bank approval chances.')}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-semibold text-foreground mb-1">Review Regularly</p>
+                      <p className="text-sm font-semibold text-foreground mb-1">{tf('Review Regularly')}</p>
                       <p className="text-xs text-muted-foreground">
-                        Update projections as you get more accurate cost estimates or market data.
+                        {tf('Update projections as you get more accurate cost estimates or market data.')}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-semibold text-foreground mb-1">Be Realistic</p>
+                      <p className="text-sm font-semibold text-foreground mb-1">{tf('Be Realistic')}</p>
                       <p className="text-xs text-muted-foreground">
-                        Conservative projections are better than overly optimistic ones for loan applications.
+                        {tf('Conservative projections are better than overly optimistic ones for loan applications.')}
                       </p>
                     </div>
                   </div>
@@ -6045,13 +6068,13 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                   <Sparkles className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-base font-bold text-primary mb-2">AI-Powered Suggestion</p>
+                  <p className="text-base font-bold text-primary mb-2">{tf('AI-Powered Suggestion')}</p>
                   <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium">
                     {typeof suggestions === 'object' && suggestions.guidance 
                       ? suggestions.guidance 
                       : typeof suggestions === 'string' 
                       ? suggestions 
-                      : 'Financial Projections Guidance for ' + (businessData?.industrySector || 'your project')}
+                      : tf('Financial Projections Guidance for {sector}').replace('{sector}', businessData?.industrySector || tf('your project'))}
                   </p>
                 </div>
               </div>
@@ -6062,12 +6085,12 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                     onClick={() => {
                       if (suggestions.projections) {
                         onChange(suggestions.projections);
-                        toast.success('Applied AI suggestions to financial projections');
+                        toast.success(tf('Applied AI suggestions to financial projections'));
                       }
                     }}
                     className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-white"
                   >
-                    Apply Suggestions
+                    {tf('Apply Suggestions')}
                   </Button>
                 )}
                 <Button
@@ -6075,13 +6098,13 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                   size="sm"
                   onClick={onGetSuggestions}
                   disabled={loading}
-                  title="Get updated suggestions based on your current data"
+                  title={tf('Get updated suggestions based on your current data')}
                   className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
                 >
                   {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    'Refresh'
+                    tf('Refresh')
                   )}
                 </Button>
               </div>
@@ -6090,15 +6113,15 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
             {/* Preview Table for Suggested Projections */}
             {typeof suggestions === 'object' && suggestions.projections && (
               <div className="mt-4 p-4 bg-white/50 rounded-lg border-2 border-primary/20">
-                <p className="text-sm font-semibold text-primary mb-3">Suggested Financial Projections Preview:</p>
+                <p className="text-sm font-semibold text-primary mb-3">{tf('Suggested Financial Projections Preview:')}</p>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-primary/10">
-                        <th className="p-2 text-left font-semibold">Year</th>
-                        <th className="p-2 text-right font-semibold">Revenue (₹)</th>
-                        <th className="p-2 text-right font-semibold">Costs (₹)</th>
-                        <th className="p-2 text-right font-semibold">Profit (₹)</th>
+                        <th className="p-2 text-left font-semibold">{tf('Year')}</th>
+                        <th className="p-2 text-right font-semibold">{tf('Revenue (₹)')}</th>
+                        <th className="p-2 text-right font-semibold">{tf('Costs (₹)')}</th>
+                        <th className="p-2 text-right font-semibold">{tf('Profit (₹)')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -6110,7 +6133,7 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                         const profit = revenue - costs;
                         return (
                           <tr key={year} className="border-b border-primary/10">
-                            <td className="p-2 font-medium">Year {year}</td>
+                            <td className="p-2 font-medium">{tf('Year')} {year}</td>
                             <td className="p-2 text-right">₹{revenue.toLocaleString('en-IN')}</td>
                             <td className="p-2 text-right">₹{costs.toLocaleString('en-IN')}</td>
                             <td className={`p-2 text-right font-semibold ${profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
@@ -6123,7 +6146,7 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                   </table>
                 </div>
                 <p className="text-xs text-muted-foreground mt-3 italic">
-                  Click "Apply Suggestions" above to populate the main table with these values.
+                  {tf('Click "Apply Suggestions" above to populate the main table with these values.')}
                 </p>
               </div>
             )}
@@ -6136,18 +6159,18 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
         <div className="flex items-center justify-between">
           <h4 className="text-lg font-bold text-foreground flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
-            5-Year Financial Projections
+            {tf('5-Year Financial Projections')}
           </h4>
-          <p className="text-xs text-muted-foreground">Edit values directly in the table below</p>
+          <p className="text-xs text-muted-foreground">{tf('Edit values directly in the table below')}</p>
         </div>
         <div className="overflow-x-auto border-2 border-primary/20 rounded-lg shadow-lg">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-gradient-to-r from-primary/10 to-secondary/10">
-              <th className="border-2 border-primary/20 p-4 text-left font-bold text-foreground">Year</th>
-              <th className="border-2 border-primary/20 p-4 text-right font-bold text-foreground">Revenue (₹)</th>
-              <th className="border-2 border-primary/20 p-4 text-right font-bold text-foreground">Costs (₹)</th>
-              <th className="border-2 border-primary/20 p-4 text-right font-bold text-foreground">Profit (₹)</th>
+              <th className="border-2 border-primary/20 p-4 text-left font-bold text-foreground">{tf('Year')}</th>
+              <th className="border-2 border-primary/20 p-4 text-right font-bold text-foreground">{tf('Revenue (₹)')}</th>
+              <th className="border-2 border-primary/20 p-4 text-right font-bold text-foreground">{tf('Costs (₹)')}</th>
+              <th className="border-2 border-primary/20 p-4 text-right font-bold text-foreground">{tf('Profit (₹)')}</th>
             </tr>
           </thead>
           <tbody>
@@ -6171,14 +6194,14 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
                 >
                   <td className="border-2 border-primary/20 p-4 font-semibold text-foreground">
                     <div className="flex items-center gap-2">
-                      <span>Year {year}</span>
+                      <span>{tf('Year')} {year}</span>
                       {hasData && (
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                           isProfit 
                             ? 'bg-green-100 text-green-700' 
                             : 'bg-red-100 text-red-700'
                         }`}>
-                          {isProfit ? 'Profit' : 'Loss'}
+                          {isProfit ? tf('Profit') : tf('Loss')}
                         </span>
                       )}
                     </div>
@@ -6237,6 +6260,7 @@ const FinancialProjectionsStep: React.FC<{ data: any; onChange: (data: any) => v
 };
 
 const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestions, loading: suggestionsLoading, onGetSuggestions, onClearSuggestions, businessData }) => {
+  const tf = useClusterFormText();
   const [schemes, setSchemes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -6302,9 +6326,9 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-foreground mb-2">Eligible Schemes</h3>
+            <h2 className="text-xl font-bold text-foreground mb-2">{tf('Eligible Schemes')}</h2>
             <p className="text-sm text-muted-foreground">
-              Review and select applicable government schemes for your project. These will be included in your DPR.
+              {tf('Review and select applicable government schemes for your project. These will be included in your DPR.')}
             </p>
           </div>
           {!suggestions && (
@@ -6318,12 +6342,12 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
               {suggestionsLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Loading...
+                  {tf('Loading...')}
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Get AI Suggestions
+                  {tf('Get AI Suggestions')}
                 </>
               )}
             </Button>
@@ -6369,7 +6393,7 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
                     <Sparkles className="h-6 w-6 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-base font-bold text-primary mb-2">AI-Powered Scheme Suggestions</p>
+                    <p className="text-base font-bold text-primary mb-2">{tf('AI-Powered Scheme Suggestions')}</p>
                     {guidance && (
                       <p className="text-sm text-foreground whitespace-pre-line leading-relaxed font-medium mb-3">
                         {guidance}
@@ -6383,13 +6407,13 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
                     size="sm"
                     onClick={onGetSuggestions}
                     disabled={suggestionsLoading}
-                    title="Get updated suggestions based on your current data"
+                    title={tf('Get updated suggestions based on your current data')}
                     className="flex-shrink-0 border-2 border-primary bg-white hover:bg-primary hover:text-white text-primary"
                   >
                     {suggestionsLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      'Refresh'
+                      tf('Refresh')
                     )}
                   </Button>
                 </div>
@@ -6398,7 +6422,7 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
               {/* Display AI Suggested Schemes as Selectable Options */}
               {aiSuggestedSchemes.length > 0 ? (
                 <div className="mt-4 space-y-4">
-                  <p className="text-sm font-semibold text-foreground mb-3">Select schemes to apply to your project:</p>
+                  <p className="text-sm font-semibold text-foreground mb-3">{tf('Select schemes to apply to your project:')}</p>
                   {aiSuggestedSchemes.map((scheme: any, index: number) => {
                     const schemeCode = scheme.schemeCode || scheme.code || `ai_scheme_${index}`;
                     const schemeName = scheme.schemeName || scheme.name || 'Unnamed Scheme';
@@ -6472,7 +6496,7 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
                                   <h4 className="font-bold text-lg text-foreground">{schemeName}</h4>
                                   <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded-full font-medium flex items-center gap-1">
                                     <Sparkles className="h-3 w-3" />
-                                    AI Suggested
+                                    {tf('AI Suggested')}
                                   </span>
                                   {schemeCode && schemeCode !== `ai_scheme_${index}` && (
                                     <span className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded">
@@ -6534,10 +6558,10 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
                               {isSelected ? (
                                 <>
                                   <CheckCircle className="h-4 w-4 mr-2" />
-                                  Selected
+                                  {tf('Selected')}
                                 </>
                               ) : (
-                                'Select'
+                                tf('Select')
                               )}
                             </Button>
                           </div>
@@ -6548,7 +6572,7 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground italic text-center py-4">
-                  No schemes found in suggestions. Try refreshing to get new suggestions.
+                  {tf('No schemes found in suggestions. Try refreshing to get new suggestions.')}
                 </p>
               )}
             </CardContent>
@@ -6559,14 +6583,14 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
       {loading ? (
         <div className="text-center py-12">
           <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary mb-4" />
-          <p className="text-muted-foreground">Loading eligible schemes...</p>
+          <p className="text-muted-foreground">{tf('Loading eligible schemes...')}</p>
         </div>
       ) : schemes.length === 0 ? (
         <Card className="border-2 border-primary/20">
           <CardContent className="py-12 text-center">
             <Award className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-50" />
             <p className="text-muted-foreground font-medium">
-              No eligible schemes found. You can continue to generate your DPR.
+              {tf('No eligible schemes found. You can continue to generate your DPR.')}
             </p>
           </CardContent>
         </Card>
@@ -6601,7 +6625,7 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
                         {scheme.isAISuggested && (
                           <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded-full font-medium flex items-center gap-1">
                             <Sparkles className="h-3 w-3" />
-                            AI Suggested
+                            {tf('AI Suggested')}
                           </span>
                         )}
                       </div>
@@ -6656,10 +6680,10 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
                     {data?.selectedSchemes?.includes(scheme.schemeCode) ? (
                       <>
                         <CheckCircle className="h-4 w-4 mr-2" />
-                        Selected
+                        {tf('Selected')}
                       </>
                     ) : (
-                      'Select'
+                      tf('Select')
                     )}
                   </Button>
                 </div>
@@ -6673,6 +6697,7 @@ const EligibleSchemesStep: React.FC<any> = ({ data, onChange, project, suggestio
 };
 
 const AIReviewStep: React.FC<any> = () => {
+  const tf = useClusterFormText();
   const [qualityScore, setQualityScore] = useState<number | null>(null);
 
   useEffect(() => {
@@ -6685,9 +6710,9 @@ const AIReviewStep: React.FC<any> = () => {
   return (
     <div className="space-y-6">
       <div className="bg-primary/5 border-l-4 border-l-primary p-4 rounded-r-lg">
-        <h3 className="text-xl font-bold text-foreground mb-2">AI Review & Quality Check</h3>
+        <h2 className="text-xl font-bold text-foreground mb-2">{tf('AI Review & Quality Check')}</h2>
         <p className="text-sm text-muted-foreground">
-          Review your DPR completeness and quality before generation. Our AI analyzes all sections for accuracy.
+          {tf('Review your DPR completeness and quality before generation. Our AI analyzes all sections for accuracy.')}
         </p>
       </div>
 
@@ -6702,7 +6727,7 @@ const AIReviewStep: React.FC<any> = () => {
           <CardContent className="pt-6 pb-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold mb-2 text-muted-foreground">DPR Quality Score</p>
+                <p className="text-sm font-semibold mb-2 text-muted-foreground">{tf('DPR Quality Score')}</p>
                 <p className={`text-4xl font-bold ${
                   qualityScore >= 80 
                     ? 'text-success' 
@@ -6736,7 +6761,7 @@ const AIReviewStep: React.FC<any> = () => {
                     ? 'text-warning' 
                     : 'text-destructive'
                 }`}>
-                  {qualityScore >= 80 ? 'Excellent' : qualityScore >= 60 ? 'Good' : 'Needs Improvement'}
+                  {qualityScore >= 80 ? tf('Excellent') : qualityScore >= 60 ? tf('Good') : tf('Needs Improvement')}
                 </p>
               </div>
             </div>
@@ -6746,16 +6771,16 @@ const AIReviewStep: React.FC<any> = () => {
 
       <Card className="border-2 border-primary/20 shadow-lg">
         <CardHeader className="bg-primary/5 border-b-2 border-primary/10">
-          <CardTitle className="text-lg font-bold">Completeness Check</CardTitle>
+          <CardTitle className="text-lg font-bold">{tf('Completeness Check')}</CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
           <div className="space-y-3">
             {['Business Overview', 'Market Analysis', 'Cost Structure', 'Financial Projections'].map((section) => (
               <div key={section} className="flex items-center justify-between p-3 rounded-lg bg-success/5 border border-success/20">
-                <span className="text-sm font-semibold text-foreground">{section}</span>
+                <span className="text-sm font-semibold text-foreground">{tf(section)}</span>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-success" />
-                  <span className="text-xs font-medium text-success">Complete</span>
+                  <span className="text-xs font-medium text-success">{tf('Complete')}</span>
                 </div>
               </div>
             ))}
@@ -6769,9 +6794,9 @@ const AIReviewStep: React.FC<any> = () => {
             <CheckCircle className="h-7 w-7 text-success" />
           </div>
           <div className="flex-1">
-            <p className="text-lg font-bold text-success mb-2">Ready to Generate!</p>
+            <p className="text-lg font-bold text-success mb-2">{tf('Ready to Generate!')}</p>
             <p className="text-sm text-foreground font-medium">
-              Your DPR is complete and ready for generation. Click "Generate DPR" below to create your professional Detailed Project Report in both English and Telugu.
+              {tf('Your DPR is complete and ready for generation. Click "Generate DPR" below to create your professional Detailed Project Report in both English and Telugu.')}
             </p>
           </div>
         </div>

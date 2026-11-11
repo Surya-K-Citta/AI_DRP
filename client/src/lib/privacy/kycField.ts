@@ -1,4 +1,4 @@
-export type KycRef = {
+type KycRef = {
   status?: string;
   fileId?: string;
   originalName?: string;

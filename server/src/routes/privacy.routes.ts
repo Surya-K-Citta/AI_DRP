@@ -11,6 +11,7 @@ router.patch('/consent', PrivacyController.updateConsent);
 router.put('/nominee', PrivacyController.saveNominee);
 router.delete('/account', PrivacyController.deleteMyAccount);
 router.post('/complaint', PrivacyController.submitComplaint);
+router.get('/complaints', PrivacyController.myComplaints);
 router.get('/activity', PrivacyController.myActivity);
 router.get('/notifications', PrivacyController.listNotifications);
 router.post('/notifications/:id/read', PrivacyController.markNotificationRead);

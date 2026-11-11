@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { staffMayViewUserFiles } from '../lib/staffScope';
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { APMSMEService } from '../services/apmsme.service';
@@ -9,13 +10,17 @@ export class APMSMEController {
    */
   static async getSchemes(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const schemes = await APMSMEService.getAvailableSchemes();
+      const result = await APMSMEService.getAvailableSchemesWithMeta();
+      const schemes = result.data;
 
       res.status(200).json({
         success: true,
         data: {
           schemes,
           total: schemes.length,
+          source: result.source,
+          stale: result.stale,
+          fetchedAt: result.fetchedAt,
         },
       });
     } catch (error: any) {
@@ -173,6 +178,20 @@ export class APMSMEController {
           message: 'Entrepreneur ID is required',
         });
         return;
+      }
+
+      // Own profile, or staff with scope (admin: anyone; reviewer: applicants in their district).
+      const callerId = req.user?.userId;
+      if (String(callerId) !== String(entrepreneurId)) {
+        const allowed = await staffMayViewUserFiles(callerId, String(entrepreneurId));
+        if (!allowed) {
+          res.status(403).json({
+            success: false,
+            code: 'FORBIDDEN',
+            message: 'Forbidden: you cannot view this profile',
+          });
+          return;
+        }
       }
 
       const profile = await APMSMEService.getEntrepreneurProfile(entrepreneurId);

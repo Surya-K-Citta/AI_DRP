@@ -30,7 +30,7 @@ function catalog(
 }
 
 /** Vanilla / full individual bank DPR — 18 consecutive steps (contentStep === n). */
-export const VANILLA_STEPS: SchemeStepDef[] = catalog([
+const VANILLA_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Step 1: Your unit – basic details', contentStep: 1 },
   { id: 'sector', title: 'Step 2: Sector overview', contentStep: 2 },
   { id: 'location', title: 'Step 3: District & location', contentStep: 3 },
@@ -55,7 +55,7 @@ export const VANILLA_STEPS: SchemeStepDef[] = catalog([
  * PMEGP bank-unit DPR — 14 consecutive steps (KVIC profile structure).
  * Spec: docs/schemes/PMEGP/pmegp.md
  */
-export const PMEGP_STEPS: SchemeStepDef[] = catalog([
+const PMEGP_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & entrepreneur', contentStep: 1 },
   { id: 'intro', title: 'Executive summary & process', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -76,7 +76,7 @@ export const PMEGP_STEPS: SchemeStepDef[] = catalog([
  * MUDRA (PMMY) bank-unit pack — 12 consecutive steps.
  * Spec: docs/schemes/MUDRA/mudra.md
  */
-export const MUDRA_STEPS: SchemeStepDef[] = catalog([
+const MUDRA_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & category', contentStep: 1 },
   { id: 'intro', title: 'Business activity', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -95,7 +95,7 @@ export const MUDRA_STEPS: SchemeStepDef[] = catalog([
  * Stand-Up India bank-unit pack — 13 consecutive steps (₹10 L–₹1 Cr composite).
  * Spec: docs/schemes/STANDUP/standup.md
  */
-export const STANDUP_STEPS: SchemeStepDef[] = catalog([
+const STANDUP_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & eligibility', contentStep: 1 },
   { id: 'intro', title: 'Business activity & process', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -115,7 +115,7 @@ export const STANDUP_STEPS: SchemeStepDef[] = catalog([
  * PMFME food-unit pack — 14 consecutive steps (NIFTEM / MoFPI individual path).
  * Spec: docs/schemes/PMFME/pmfme.md
  */
-export const PMFME_STEPS: SchemeStepDef[] = catalog([
+const PMFME_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & formalisation', contentStep: 1 },
   { id: 'intro', title: 'Introduction & process', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -136,7 +136,7 @@ export const PMFME_STEPS: SchemeStepDef[] = catalog([
  * PMEGP 2nd loan (upgrade) — 14 consecutive steps (brownfield PMEGP/REGP/MUDRA).
  * Spec: docs/schemes/PMEGP_2ND/pmegp2nd.md
  */
-export const PMEGP_2ND_STEPS: SchemeStepDef[] = catalog([
+const PMEGP_2ND_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & prior assistance', contentStep: 1 },
   { id: 'intro', title: 'Introduction & upgrade process', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -157,7 +157,7 @@ export const PMEGP_2ND_STEPS: SchemeStepDef[] = catalog([
  * SCLCSS (SC/ST capital subsidy) — 13 consecutive steps (tech / P&M focused).
  * Spec: docs/schemes/SCLCSS/sclcss.md
  */
-export const SCLCSS_STEPS: SchemeStepDef[] = catalog([
+const SCLCSS_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & SC/ST eligibility', contentStep: 1 },
   { id: 'intro', title: 'Technology upgrade story', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -177,7 +177,7 @@ export const SCLCSS_STEPS: SchemeStepDef[] = catalog([
  * AP Technology Upgradation — 13 consecutive steps (MSME-EDP 4.0 brownfield FCI).
  * Spec: docs/schemes/AP_TECH_UPGRADE/apTechUpgrade.md
  */
-export const AP_TECH_UPGRADE_STEPS: SchemeStepDef[] = catalog([
+const AP_TECH_UPGRADE_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & AP eligibility', contentStep: 1 },
   { id: 'intro', title: 'Technology upgrade story', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -197,7 +197,7 @@ export const AP_TECH_UPGRADE_STEPS: SchemeStepDef[] = catalog([
  * AP MSME-EDP 4.0 — 13 consecutive steps (new-unit capital subsidy on FCI).
  * Spec: docs/schemes/AP_EDP/apEdp.md
  */
-export const AP_EDP_STEPS: SchemeStepDef[] = catalog([
+const AP_EDP_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & AP eligibility', contentStep: 1 },
   { id: 'intro', title: 'Introduction & process', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -217,7 +217,7 @@ export const AP_EDP_STEPS: SchemeStepDef[] = catalog([
  * PM Vishwakarma — 12 consecutive steps (artisan toolkit + training + enterprise loan).
  * Spec: docs/schemes/VISHWAKARMA/vishwakarma.md
  */
-export const VISHWAKARMA_STEPS: SchemeStepDef[] = catalog([
+const VISHWAKARMA_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & craft eligibility', contentStep: 1 },
   { id: 'intro', title: 'Trade story & process', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -236,7 +236,7 @@ export const VISHWAKARMA_STEPS: SchemeStepDef[] = catalog([
  * PM SVANidhi — 11 consecutive steps (street-vendor WC micro-credit).
  * Spec: docs/schemes/SVANIDHI/svanidhi.md
  */
-export const SVANIDHI_STEPS: SchemeStepDef[] = catalog([
+const SVANIDHI_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & vending eligibility', contentStep: 1 },
   { id: 'intro', title: 'Vending activity', contentStep: 2 },
   { id: 'location', title: 'Location / pitch', contentStep: 3 },
@@ -254,7 +254,7 @@ export const SVANIDHI_STEPS: SchemeStepDef[] = catalog([
  * ECLGS 5.0 — 7 consecutive steps (additional WC liquidity).
  * Spec: docs/schemes/ECLGS/eclgs.md
  */
-export const ECLGS_STEPS: SchemeStepDef[] = catalog([
+const ECLGS_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & existing facility', contentStep: 1 },
   { id: 'unit', title: 'Unit profile', contentStep: 4 },
   { id: 'applicant', title: 'Applicant / firm', contentStep: 11 },
@@ -268,7 +268,7 @@ export const ECLGS_STEPS: SchemeStepDef[] = catalog([
  * MSME Sustainable ZED — 8 consecutive steps (certification note).
  * Spec: docs/schemes/ZED/zed.md
  */
-export const ZED_STEPS: SchemeStepDef[] = catalog([
+const ZED_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & ZED levels', contentStep: 1 },
   { id: 'unit', title: 'Unit profile', contentStep: 4 },
   { id: 'market', title: 'Quality / market need', contentStep: 6 },
@@ -283,7 +283,7 @@ export const ZED_STEPS: SchemeStepDef[] = catalog([
  * Competitive LEAN — 8 consecutive steps (process consulting note).
  * Spec: docs/schemes/LEAN/lean.md
  */
-export const LEAN_STEPS: SchemeStepDef[] = catalog([
+const LEAN_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & bottleneck', contentStep: 1 },
   { id: 'unit', title: 'Unit / shop-floor profile', contentStep: 4 },
   { id: 'market', title: 'Process / market need', contentStep: 6 },
@@ -298,7 +298,7 @@ export const LEAN_STEPS: SchemeStepDef[] = catalog([
  * MSME Innovative IPR — 8 consecutive steps (IP filing note).
  * Spec: docs/schemes/MSME_IPR/msmeIpr.md
  */
-export const MSME_IPR_STEPS: SchemeStepDef[] = catalog([
+const MSME_IPR_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & IP type', contentStep: 1 },
   { id: 'unit', title: 'Unit / invention profile', contentStep: 4 },
   { id: 'market', title: 'IP / market need', contentStep: 6 },
@@ -313,7 +313,7 @@ export const MSME_IPR_STEPS: SchemeStepDef[] = catalog([
  * PMS — 8 consecutive steps (trade-fair / marketing annex).
  * Spec: docs/schemes/PMS/pms.md
  */
-export const PMS_STEPS: SchemeStepDef[] = catalog([
+const PMS_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & fair details', contentStep: 1 },
   { id: 'unit', title: 'Unit / product profile', contentStep: 4 },
   { id: 'market', title: 'Market / fair offtake', contentStep: 6 },
@@ -328,7 +328,7 @@ export const PMS_STEPS: SchemeStepDef[] = catalog([
  * National SC/ST Hub — 8 consecutive steps (procurement readiness).
  * Spec: docs/schemes/SCST_HUB/scstHub.md
  */
-export const SCST_HUB_STEPS: SchemeStepDef[] = catalog([
+const SCST_HUB_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & GeM readiness', contentStep: 1 },
   { id: 'unit', title: 'Unit profile', contentStep: 4 },
   { id: 'market', title: 'Procurement focus', contentStep: 6 },
@@ -343,7 +343,7 @@ export const SCST_HUB_STEPS: SchemeStepDef[] = catalog([
  * ASPIRE — 11 consecutive steps (rural innovation / livelihood).
  * Spec: docs/schemes/ASPIRE/aspire.md
  */
-export const ASPIRE_STEPS: SchemeStepDef[] = catalog([
+const ASPIRE_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & incubator', contentStep: 1 },
   { id: 'intro', title: 'Innovation / livelihood story', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -361,7 +361,7 @@ export const ASPIRE_STEPS: SchemeStepDef[] = catalog([
  * NHDP — 11 consecutive steps (weaver / handloom).
  * Spec: docs/schemes/NHDP/nhdp.md
  */
-export const NHDP_STEPS: SchemeStepDef[] = catalog([
+const NHDP_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & loom eligibility', contentStep: 1 },
   { id: 'intro', title: 'Handloom / process story', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -380,7 +380,7 @@ export const NHDP_STEPS: SchemeStepDef[] = catalog([
  * Coir Vikas Yojana — 12 consecutive steps.
  * Spec: docs/schemes/CVY/cvy.md
  */
-export const CVY_STEPS: SchemeStepDef[] = catalog([
+const CVY_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & eligibility', contentStep: 1 },
   { id: 'intro', title: 'Business / activity story', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -400,7 +400,7 @@ export const CVY_STEPS: SchemeStepDef[] = catalog([
  * MSE-GIFT (green investment) — 12 consecutive steps.
  * Spec: docs/schemes/MSE_GIFT/mseGift.md
  */
-export const MSE_GIFT_STEPS: SchemeStepDef[] = catalog([
+const MSE_GIFT_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & eligibility', contentStep: 1 },
   { id: 'intro', title: 'Business / activity story', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -420,7 +420,7 @@ export const MSE_GIFT_STEPS: SchemeStepDef[] = catalog([
  * PTUAS (pharma technology upgrade) — 13 consecutive steps.
  * Spec: docs/schemes/PTUAS/ptuas.md
  */
-export const PTUAS_STEPS: SchemeStepDef[] = catalog([
+const PTUAS_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & eligibility', contentStep: 1 },
   { id: 'intro', title: 'Upgrade / process story', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -441,7 +441,7 @@ export const PTUAS_STEPS: SchemeStepDef[] = catalog([
  * PMPDS (pharma & medical devices) — 8 consecutive steps.
  * Spec: docs/schemes/PMPDS/pmpds.md
  */
-export const PMPDS_STEPS: SchemeStepDef[] = catalog([
+const PMPDS_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & scheme inputs', contentStep: 1 },
   { id: 'unit', title: 'Unit / product profile', contentStep: 4 },
   { id: 'market', title: 'Market / need', contentStep: 6 },
@@ -457,7 +457,7 @@ export const PMPDS_STEPS: SchemeStepDef[] = catalog([
  * CGTMSE (credit guarantee) — 12 consecutive steps.
  * Spec: docs/schemes/CGTMSE/cgtmse.md
  */
-export const CGTMSE_STEPS: SchemeStepDef[] = catalog([
+const CGTMSE_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & eligibility', contentStep: 1 },
   { id: 'intro', title: 'Business / activity story', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -477,7 +477,7 @@ export const CGTMSE_STEPS: SchemeStepDef[] = catalog([
  * AP Food Processing Policy 4.0 — 13 consecutive steps.
  * Spec: docs/schemes/AP_FPP/apFpp.md
  */
-export const AP_FPP_STEPS: SchemeStepDef[] = catalog([
+const AP_FPP_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & eligibility', contentStep: 1 },
   { id: 'intro', title: 'Upgrade / process story', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -498,7 +498,7 @@ export const AP_FPP_STEPS: SchemeStepDef[] = catalog([
  * AP CMEP — 13 consecutive steps.
  * Spec: docs/schemes/AP_CMEP/apCmep.md
  */
-export const AP_CMEP_STEPS: SchemeStepDef[] = catalog([
+const AP_CMEP_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & eligibility', contentStep: 1 },
   { id: 'intro', title: 'Executive summary & process', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -519,7 +519,7 @@ export const AP_CMEP_STEPS: SchemeStepDef[] = catalog([
  * AP OBMMS welfare self-employment — 11 consecutive steps.
  * Spec: docs/schemes/OBMMS/obmms.md
  */
-export const OBMMS_STEPS: SchemeStepDef[] = catalog([
+const OBMMS_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & eligibility', contentStep: 1 },
   { id: 'intro', title: 'Activity story', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -538,7 +538,7 @@ export const OBMMS_STEPS: SchemeStepDef[] = catalog([
  * RAMP MSE-SPICE — 12 consecutive steps.
  * Spec: docs/schemes/MSE_SPICE/mseSpice.md
  */
-export const MSE_SPICE_STEPS: SchemeStepDef[] = catalog([
+const MSE_SPICE_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & eligibility', contentStep: 1 },
   { id: 'intro', title: 'Business / activity story', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -558,7 +558,7 @@ export const MSE_SPICE_STEPS: SchemeStepDef[] = catalog([
  * AP MSME-PARKS land rebate — 11 consecutive steps.
  * Spec: docs/schemes/AP_PARKS/apParks.md
  */
-export const AP_PARKS_STEPS: SchemeStepDef[] = catalog([
+const AP_PARKS_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & eligibility', contentStep: 1 },
   { id: 'intro', title: 'Activity story', contentStep: 2 },
   { id: 'location', title: 'Location', contentStep: 3 },
@@ -577,7 +577,7 @@ export const AP_PARKS_STEPS: SchemeStepDef[] = catalog([
  * RAMP TEAM (ONDC) — 8 consecutive steps.
  * Spec: docs/schemes/RAMP_TEAM/rampTeam.md
  */
-export const RAMP_TEAM_STEPS: SchemeStepDef[] = catalog([
+const RAMP_TEAM_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & scheme inputs', contentStep: 1 },
   { id: 'unit', title: 'Unit / product profile', contentStep: 4 },
   { id: 'market', title: 'Market / need', contentStep: 6 },
@@ -593,7 +593,7 @@ export const RAMP_TEAM_STEPS: SchemeStepDef[] = catalog([
  * EPM Niryat Protsahan — 7 consecutive steps.
  * Spec: docs/schemes/EPM_NIRYAT/epmNiryat.md
  */
-export const EPM_NIRYAT_STEPS: SchemeStepDef[] = catalog([
+const EPM_NIRYAT_STEPS: SchemeStepDef[] = catalog([
   { id: 'cover', title: 'Cover & eligibility', contentStep: 1 },
   { id: 'unit', title: 'Unit / export profile', contentStep: 4 },
   { id: 'applicant', title: 'Applicant / firm', contentStep: 11 },
@@ -604,7 +604,7 @@ export const EPM_NIRYAT_STEPS: SchemeStepDef[] = catalog([
 ]);
 
 /** Scheme code → catalog. Missing codes fall back to vanilla. */
-export const SCHEME_STEP_CATALOGS: Record<string, SchemeStepDef[]> = {
+const SCHEME_STEP_CATALOGS: Record<string, SchemeStepDef[]> = {
   PMEGP: PMEGP_STEPS,
   MUDRA: MUDRA_STEPS,
   STANDUP: STANDUP_STEPS,
@@ -669,16 +669,4 @@ export function contentToLocal(
   return getSchemeSteps(schemeCode).find((s) => s.contentStep === contentStep)?.n;
 }
 
-/** Last local step (usually uploads). */
-export function getLastLocalStep(schemeCode?: string | null): number {
-  const steps = getSchemeSteps(schemeCode);
-  return steps[steps.length - 1]?.n ?? 1;
-}
 
-export function isUploadsLocalStep(
-  schemeCode: string | null | undefined,
-  localStep: number
-): boolean {
-  const def = getStepDef(schemeCode, localStep);
-  return def?.id === 'uploads' || def?.contentStep === 18;
-}

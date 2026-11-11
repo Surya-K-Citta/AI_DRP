@@ -11,7 +11,6 @@ export const MSE_GIFT_EXTRA_FIELDS = [
   'eeEquipment',
 ] as const;
 
-export type MseGiftExtraField = (typeof MSE_GIFT_EXTRA_FIELDS)[number];
 
 export const MSE_GIFT_IMPACT_BULLETS = [
   'Own 12-step green-upgrade pack for MSE-GIFT.',

@@ -12,7 +12,6 @@ export const PMS_EXTRA_FIELDS = [
   'estimatedFairCost',
 ] as const;
 
-export type PmsExtraField = (typeof PMS_EXTRA_FIELDS)[number];
 
 export const PMS_IMPACT_BULLETS = [
   'Own 5-step marketing / trade-fair annex for PMS — not a plant DPR.',

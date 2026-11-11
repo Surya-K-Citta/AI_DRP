@@ -52,6 +52,20 @@ const dprVersionSchema = new Schema<IDPRVersion>(
       enum: ['english', 'telugu', 'bilingual'],
       default: 'bilingual',
     },
+    /**
+     * Set by an admin when the department requires this report to be kept past the usual 12 months
+     * (bank process, DIC process, scheme application still open). The retention job leaves held reports alone.
+     */
+    retentionHold: {
+      active: { type: Boolean, default: false },
+      reason: String,
+      /** Written instruction from the department (letter or file number). */
+      reference: String,
+      /** Keep until this date at the latest; empty means until an admin lifts the hold. */
+      until: Date,
+      setBy: String,
+      setAt: Date,
+    },
     status: {
       type: String,
       enum: ['draft', 'submitted', 'approved', 'rejected'],
@@ -75,6 +89,15 @@ const dprVersionSchema = new Schema<IDPRVersion>(
     },
     approvedAt: Date,
     approvedBy: String,
+    // Decision by a District Reviewer (or an admin) on a submitted DPR.
+    review: {
+      decision: { type: String, enum: ['approve', 'reject'] },
+      remarks: String,
+      reviewerId: String,
+      reviewerName: String,
+      district: String,
+      reviewedAt: Date,
+    },
     retentionWarningAt: Date,
   },
   {

@@ -26,7 +26,7 @@ export function isCostSuggestionField(field: string): boolean {
 }
 
 /** True when earlier answers already contain a rupee or lakh figure. */
-export function previousStepsMentionMoney(previous: unknown): boolean {
+function previousStepsMentionMoney(previous: unknown): boolean {
   const text = JSON.stringify(previous || {});
   if (/\d+(?:\.\d+)?\s*(lakh|lakhs|₹|rs\.?|rupees)/i.test(text)) return true;
   return /"(land|building|machinery|workingCapitalMargin|workingCapital|bankLoan|unitCost|investmentPerUnit|turnoverPerUnit|spvContribution|governmentGrant)"\s*:\s*[1-9]/.test(

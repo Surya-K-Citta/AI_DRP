@@ -9,7 +9,7 @@ import React, { useId, useState } from 'react';
  * vertically and closed ones show the title horizontally.
  */
 
-export interface Benefit {
+interface Benefit {
   icon: React.ElementType;
   title: string;
   description: string;

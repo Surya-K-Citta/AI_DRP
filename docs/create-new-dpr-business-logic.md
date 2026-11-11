@@ -42,6 +42,48 @@ Changing the scheme dropdown mid-flow updates `matchedSchemeCode`, visible steps
 
 ## 3. Entry & lifecycle
 
+### Draft saving and resuming
+
+- **Automatic save every 30 seconds** (`useDraftAutosave`) while the form is open, but only when something changed since the last save and a unit name exists (the server needs it to create the draft). It is silent: the stepper badge shows **Saving…**, **Saved 10:42**, **Unsaved changes. Auto-saves every 30 seconds.** or **Could not save. Will retry.** A failed automatic save shows one toast, then keeps retrying every 30 seconds.
+- **Manual save** is still the **Save Draft** button; moving between steps and generating also save. All saves go through one queue, so they never overlap (no duplicate drafts) and each sends the newest answers.
+- **Nothing is lost on the way out:** signing out saves an open draft first and, if that fails, asks before logging out (`lib/draftFlush.ts`); a draft is also saved when the tab is hidden or the page is left, and the browser warns if the tab is closed with unsaved changes.
+- **Resume:** the scheme picker shows **Continue where you left off** with the latest unfinished drafts (**Resume** opens one at the step it was left on). Dashboard and DPR-management **Edit** do the same. Opening another report from the picker loads it in place.
+- **Restored exactly:** a report is loaded onto a clean slate (nothing from the previous draft or user is merged in), long text, Telugu, tables, decimals and report style come back as saved, and the step reached is restored. Signing out clears the draft on screen, cached DPR / project lists, chat and cached API answers (`lib/sessionReset.ts`), so the next person on the same browser sees none of it. The one deliberate difference: Aadhaar / PAN numbers typed into ID-number fields are blanked on save (DPDP), so they do not come back.
+- **Server:** the draft save (`POST /dpr/cluster/draft/save`) now actually stores every save. Before, only the first save was stored (the project's `stepData` and the DPR's Mixed `content` were changed in place without being marked modified, so later saves returned success but kept the old data), and a draft with no town chosen yet was rejected. Both are fixed; an unset town is stored as “Unknown”. Auto-save counts against the API rate limit (default 100 requests per 15 minutes per address): at most 30 saves per 15 minutes, only while changing things.
+
+### Form mode and Document mode
+
+A **mode dropdown** (Form mode / Document mode) above the form and the live report (and at the left of the editor toolbar when styling) chooses **where the person fills in**, one place at a time (`store/editModeStore.ts`, `EditModeToggle.tsx`). The choice is remembered on the device; the default is Form.
+
+- **Form mode:** the step-by-step questions are active. The live report next to them is a **read-only preview** (no inputs in it).
+- **Document mode:** the report is editable in place and shows every field, including empty ones. The form is folded away completely; the mode dropdown is the only way back to it (plus the per-section **Open in form** buttons). The step strip follows where you type, clicking a step scrolls the report to that section without the required-answer gate, and **Generate DPR** is available as soon as all required answers are in (not only on the last step).
+- **Floating field guide (Document mode only): the report is the form.** When the cursor is in an answer in the report, a small guide floats beside that answer (`DocFieldGuide`; it is outside the report, so it is never printed or exported and does not move the page breaks). It shows what the answer means, an example and the unit (the same plain-language text as the form's field notes), a **Required / Optional** tag, what the data checks say about it, and the AI tools for that one answer when **AI assist** is on: **Suggest an answer** (with Apply / Regenerate / Discard), **Improve this** on written answers, **Match me** on Nature of Business, and a link to fill the whole section with AI (the form's "Fill this step with AI" card, in a dialog). It follows the answer as the report scrolls or zooms, always stays inside the report's own visible area (never over the toolbar, the step strip or the side pane; it disappears at once when its answer scrolls out of the report), goes under (or above) the answer when there is no room beside it, and closes with Esc or a click away. Its pointer is always a small triangle on the card's edge, turned to point at the answer: straight at it when the card is level with the answer, tilting toward it when the card has been held inside the window (answer near the top or bottom edge) or sits above or below the answer. Required answers that are still empty have a **red input box** (red border and light red fill) until something is entered, and carry a small red **Required** tag fixed to the corner of the box (it lives inside the report's own layout, so it scrolls with the answer with no lag), and a chip at the foot of the report ("N required left · Jump to next") walks through them. Same rules as the form: no AI on step 1 (the cover is typed by hand); with AI assist off the AI tools give way to a link to Privacy settings. Answers applied from the guide go through the same rules as typed ones (`applyFieldValue`).
+- Each section of the report carries an **Open in form** button in Document mode, for what only the form can fill in (file uploads, finance calculators, asset lists). It switches to Form mode on that step.
+- While styling (the editor) there is **one toolbar row** with the same controls in the same place in both modes. From the left: the tabs **Form (or Document) | Sections | Style** (an underlined tab strip, `role=tablist`, fixed width so nothing shifts between modes), undo/redo/reset, then on the right the live report's zoom / fit / preview, the **mode dropdown** (Form mode / Document mode) and **Save on this DPR**. There is no language dropdown here: the language is switched from the header. The first button is the home view: **Form** shows the form in the side pane (the default in Form mode), **Document** shows the report alone (the default in Document mode). **Sections** and **Style** open the side pane beside the report, which moves right and narrows, so changes show while you work. There is no separate Minimise button: pressing the open button again goes back to the home view (the form, or the report alone). Below 1024 px the pane is a slide-over that closes on an outside click, Esc, or the same button.
+- Both modes write to the same store, so nothing is converted or lost when switching.
+
+### Progress stepper (section-wise percentage and milestones)
+
+The step strip on the Create DPR page (`AuthoringStepper`, logic in `lib/individualDpr/authoringProgress.ts` and the pure maths in `authoringMath.ts`) shows how far the DPR is, live:
+
+- **Per section:** each step button carries a ring and a percentage = answered questions ÷ asked questions for that section. “Answered” means a real entry (blank, a dash and a bare 0 do not count, nor do pre-filled year labels in tables). The questions are the same ones the live report lists for that scheme (`getIndividualDocFields`); the uploads section counts uploaded documents. A section turns green with a tick at 100%.
+- **Overall:** the average of the sections (each section counts equally), shown as “N% complete · x / y sections done”, with a progress bar and milestone markers at **25% Getting started, 50% Halfway, 75% Almost there, 100% Complete** and a line for the next milestone. Progress is read from the answers as typed in the store, not the outgoing payload, which adds defaults like the unit name.
+- **Saved vs on screen:** the bar has two layers: the solid part is the percentage of the last *saved* copy, the lighter part is what is typed but not saved yet. A badge reads **Saved** or **Unsaved changes**, and a section whose answers differ from the saved copy shows an amber dot. “Saved” moves when a save succeeds (Save Draft, moving to another step, generate) and for a report opened from the server it starts as saved. There is no automatic background save.
+- **Required answers:** a line counts the required answers still missing (the same rule that blocks moving forward and generating), and says when all are in.
+- Percentages update on every keystroke; they never block anything.
+
+### Editing an existing DPR
+
+The **Edit** and **Delete** buttons on the dashboard cards and on the DPR management (All DPRs) cards behave the same (shared code in `lib/dprActions.tsx`); on DPR management, staff see them only on their own DPRs. Back from the edit page returns to the screen it was opened from (**Back to Dashboard** or **Back to All DPRs**). On a DPR’s view page (`/dpr/view/:id`) the **Edit this DPR** button (it replaced “Style this report”) does the same, and styling is done in the Create DPR page under **Customise / Style**; Back from there returns to the DPR view. The dashboard’s **Edit** button opens the Create DPR page on that report (`/individual-dpr/create?projectId=…&dprId=…`, plus `&scheme=CODE`; cluster reports open `/cluster-dpr/create` the same way). When `projectId` is in the URL the page title reads **Edit DPR** (**Edit Cluster DPR** for clusters) instead of the create title. The dashboard lists only the latest 5 reports (newest first by last update) with a “View all DPRs” button for the rest.
+
+### Dev mode (super admin only)
+
+The **Dev mode** switch lives in the left side tool bar, not in the page header. It shows only for a super admin and only on the Create DPR pages (individual and cluster), as a flask icon that expands to a labelled switch when the bar opens. While it is on, the required-field checks are skipped so steps can be stepped through quickly. State is shared through `store/devModeStore.ts`, starts off each time the page opens, and turns off again when the page is left.
+
+### Back button
+
+Back is named and routed from where the person came (`lib/navHistory.tsx`, `useBackTarget`): arriving from Scheme Finder shows **Back to Scheme Finder**, from the dashboard **Back to Dashboard**, and so on; a page opened directly falls back to the dashboard. On the scheme-picker step the button uses that label. When the page was opened on a scheme brief (`?new=true&scheme=CODE`, e.g. Scheme Finder → Know more & create), Back on the brief returns straight to that screen instead of the scheme list. When the person picked the scheme in the picker, Back on the brief is **All Schemes**. On the form it is **Previous**, except when the page was opened straight onto a saved report (Edit from the dashboard, or a resumed draft with `projectId` in the URL): then Back leaves the page and is named after the screen the person came from (**Back to Dashboard**), and it returns there.
+
 ### New draft
 
 `/individual-dpr/create?new=true` (± `&scheme=CODE`)
@@ -55,7 +97,7 @@ Changing the scheme dropdown mid-flow updates `matchedSchemeCode`, visible steps
    - No `scheme` in URL → **pick** (scheme cards grid).  
    - `?scheme=CODE` (e.g. from Scheme Finder) → **brief** (description box for that scheme).  
    - Tap a card → **brief** for that scheme.  
-   - **Next** on brief → **form** (step strip + live preview).  
+   - **Next** on brief → **form** (step strip + live preview). If the person arrived from **Start with a guide** (`?guide=1` and a pending choice set), the form opens with that look already applied and the **Form** tab selected. **Match the scheme** shows Gazette on the guide sample until a scheme is chosen. On the form it uses the scheme’s saved look when one exists, otherwise the built-in scheme look, then the other four choices (paper, type, colours, page extras) are applied on top. A named look (Gazette, Ledger, and the rest) wins over the scheme’s usual look. **Start with the usual report** does not send choices, so the form still starts from the scheme default. Editing an existing DPR (`projectId` in the URL) does not use the guide. The guide page shows a sample report that updates with each choice and scrolls to the first place that choice appears.  
    - Resume with `projectId` → **form** directly.
 
 ### Resume / load
@@ -64,7 +106,7 @@ Changing the scheme dropdown mid-flow updates `matchedSchemeCode`, visible steps
 
 ### Persist
 
-Drafts save via cluster DPR draft API using `toClusterPayload(data)`:
+Drafts save via cluster DPR draft API using `toIndividualPayload(data)`:
 
 - `isIndividualDPR: true`
 - `matchedSchemeCode` on root + `metadata`
@@ -147,6 +189,14 @@ Configured in `client/src/lib/individualDpr/schemeStepCatalog.ts`. UI shows cons
 
 `IndividualDPRDocumentView` (not `ClusterDPRDocumentView`) is the only document for this flow. Cover + TOC + **one Q&A section per catalog step**. Fields come from `individualDocModel.ts` (asked questions only). No cluster / SPV / CFC / enterprise-count chapters. Cluster DPR stays on `/cluster-dpr/create`.
 
+**Filled vs empty content.** The live document inside the customise view (`StyleEditor`) renders with `showEmpty`: every visible section, field, table (one blank row when there are no rows), upload (marked “Not uploaded”) and cover line is listed, whether or not the user has answered it, so it can be edited in place. The final preview (`/dpr/view/:id`, plain preview) and the generated PDF leave `showEmpty` off and show only answered content; sections with no answers are dropped from the body and the table of contents. Sections the user hid stay hidden in both.
+
+**Editing in the live report.** Each field in the live document uses the same kind of control as its question on the form (`lib/individualDpr/docFieldInput.ts`): dropdowns for select questions (District and its dependent Location list, scheme-specific option lists such as premises, category, yes/no), number boxes for numeric questions and table cells, date pickers for dates (same 1990–2100 and Start ≤ Commitment checks as the form), and free text for the rest. Changing District clears a Location that is not in the new district. Edits write to the same store fields as the form (`liveDocEdit.ts`), so the form and the live report stay in step. A field whose scheme-specific list is not in `docFieldInput.ts` falls back to free text.
+
+**Preview button.** The **Preview** button above the live report opens the *final* document in a full-screen, read-only view: no `showEmpty`, no editing controls, only answered content, with the saved style, section order and hidden sections applied, plus zoom / fit-page and **Close preview** (Esc also closes). It matches what the PDF prints; the editable live report stays behind it.
+
+**Page numbers.** The guide sample, the style preview, and the live report each draw a number at the bottom of every sheet: 1, 2, 3, or “Page 2 of 8” when that style is chosen. The total is the number of sheets on screen. The printed PDF counts the same way with the print page counter.
+
 ---
 
 ## 5. Scheme overlay (`matchedSchemeCode`)
@@ -228,6 +278,10 @@ If scheme is `PMEGP` or `PMEGP_2ND` and project cost (lakhs) exceeds:
 ---
 
 ## 6. Scheme pick → brief → form
+
+### Suggestions on the scheme cards
+
+On the scheme picker (`SchemePickerGrid`), if the person has **finished** Scheme Finder, the cards carry tags from their own answers (`lib/ventureMatch/savedSuggestion.ts`): **Suggested for you** on the lead schemes of the Scheme Finder plan (`analyzeCombinations(...).core`), and **May also suit you** on other schemes that still matched. A note above the cards says the tags come from their Scheme Finder answers, are suggestions only, and links to **Change my answers**. If Scheme Finder was never finished (nothing saved, or stopped part-way), or nothing matched, the cards show no tags and no note. The answers are read from the browser’s saved Scheme Finder progress for the signed-in user (`venture-match-progress:<userId>`); they are not stored on the server, so another browser or device shows no tags until Scheme Finder is run there. Copy avoids “best” / “guaranteed” wording (see the no-guarantee rule in `venture-match-business-logic.md`).
 
 - **Form header:** scheme **dropdown** (`SCHEME_OPTIONS`) switches `matchedSchemeCode` without leaving the form; selected scheme name is shown under the page title.  
 - Yellow scheme-impact bar shows from **step 1** onward (scheme name + how steps/uploads change).
@@ -317,3 +371,41 @@ Form: `IndividualDPRForm.tsx`
 - Eligibility matching stays in Scheme Finder; this page trusts `matchedSchemeCode` (or vanilla).  
 - Brochure text is a drafting aid — confirm live GOs / ceilings with the agency.  
 - Cluster DPR (`/cluster-dpr/create`) is a separate multi-unit flow; this doc is **individual only**.
+
+## Field validation, masks and tooltips
+
+- `client/src/lib/validation/formats.ts` holds pure masks and checks (PAN, GSTIN incl. check character, Udyam, mobile, IFSC, pincode, email, numeric ranges). Every message is bilingual (EN/TE).
+- `components/ui/Input.tsx` takes `format`, `firmPanOnly`, `hint`, and numeric `min`/`max`. It masks while typing (upper-casing, stripping bad characters, auto hyphens, max length), and shows a red inline `role="alert"` message as soon as a value is wrong. "Incomplete" messages wait until the field is left (blur).
+- Step 11 has optional GSTIN, Firm PAN, Udyam and Contact mobile fields, with tooltips in `data/fieldDescriptions.ts`.
+- Pre-submission gate: `lib/validation/stepFormats.ts` (`invalidFormats`) runs in `guardForward` and before Generate. Filled-but-invalid values block moving forward, are focused/flagged, and a toast names them. Blank optional fields pass.
+- DPDP: only firm PANs are kept. A personal PAN (4th letter P) is rejected in the form and blanked by `sanitizeStoredPayload` on the server.
+
+## Reusing details across sections
+
+Details are entered once and carried forward (`client/src/lib/individualDpr/contextReuse.ts`, applied inside the draft store on every change):
+
+- **Copied into later fields:** step 11 applicant / firm name starts as the unit name (for proprietor packs, the entrepreneur name); step 11 correspondence address starts as "town, district" from step 1. A copied field keeps following its source until the person types something different, after that it is theirs and is never touched. Copies are remembered in `schemeExtras.autoFilled`, and the form says where a field was filled from.
+- **Shown on the schedules:** the project cost (content step 12) and means of finance / bank loan (content step 13) sections show promoter / applicant, unit, address and GSTIN, in the form (read-only card) and as a table in the live document, preview and export. They are read from steps 1 and 11 and never stored separately, so editing step 11 updates every schedule.
+- Never copied: GSTIN, PAN, Udyam number and mobile (typed once, validated, step 11). Only firm PANs are stored.
+
+## Fields that depend on the kind of business and its size
+
+`client/src/lib/individualDpr/businessKind.ts` decides what the cost step and the document show:
+
+- **Kind of business.** Chosen by the person in the "What kind of business is this?" box on the project cost step; otherwise from the Scheme Finder activity (mfg, food, craft, mixed, crop → manufacturing; service, knowledge → service; trade, vending → trading); otherwise a guess from the words in "Nature of Business"; otherwise manufacturing. The choice is saved in `schemeExtras.businessKind`.
+- **Manufacturing:** the plant and machinery table (`step12.machineryItems`, total feeds machinery). The CMEP scheme keeps its own detailed tables.
+- **Service and trading:** an assets list instead (`step12.assetItems`: asset, type, qty, unit cost; the total feeds the equipment line). Labels change too: Equipment & assets, Materials & supplies, Annual service volume, How the service is delivered (traders: cost of goods for resale, annual sales volume, how you buy and sell).
+- **Size.** From the project cost once entered (under ₹5 lakh tiny, under ₹50 lakh small, under ₹2 crore medium, above that large), otherwise from the Scheme Finder budget. For tiny projects without a lean scheme pack the list is optional (collapsed, or hidden for manufacturing vanilla DPRs). Schemes that already hid heavy capex tables (`hideComplexCapex`) are unchanged.
+- The live DPR, preview and export follow the same choice (Assets list or Machinery list table, matching labels).
+
+## One DPR per draft (no copies)
+
+Saving, re-saving and generating a Latest (individual) DPR all write to the same DPR record:
+
+- The client sends the id of the DPR that is open (`dprId`, taken from the address when a draft is opened or resumed) with the answers.
+- `findEditableDraft` (`server/src/lib/dprDraftLookup.ts`) picks that DPR; if none is sent, the project's most recently changed draft. Both `POST /dpr/cluster/draft/save` and `POST /dpr/cluster/generate` use it, so generating again (for example once for PDF and once for Word) updates the DPR instead of listing it once per click.
+- A submitted, approved or rejected DPR is never overwritten: generating after that creates a new version.
+- Cluster DPRs keep their own flow.
+- Test: `npm run test:dpr-versions` in `server` (needs the API running).
+- Existing copies: `npx ts-node --transpile-only src/scripts/mergeDuplicateDrafts.ts` lists them (a dry run); add `--apply` to remove the older drafts of each individual project and keep the one changed last.
+

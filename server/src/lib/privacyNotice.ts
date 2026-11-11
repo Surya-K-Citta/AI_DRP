@@ -1,11 +1,26 @@
-export const PRIVACY_NOTICE_VERSION = '2026-09-4';
+export const PRIVACY_NOTICE_VERSION = '2026-10-1';
 
-export const DATA_FIDUCIARY_NAME = 'MSME One Department';
+/** Legal name and address as supplied by the department (DPDP_Doc.md, Oct 2026). */
+export const DATA_FIDUCIARY_NAME = 'AP MSME Development Corporation';
+export const DATA_FIDUCIARY_ADDRESS =
+  'AP MSME Development Corporation, 2nd Floor, PVS Landmark, Mangalagiri, Guntur District – 522503';
 
-/** Mock inbox until Stage 4 replaces it with a mailbox a person reads. */
-export const GRIEVANCE_EMAIL = 'privacy.grievance@msmeone.gov.in';
+/** Mailbox the department confirmed is monitored. Override per deployment with GRIEVANCE_EMAIL. */
+export const GRIEVANCE_EMAIL = (process.env.GRIEVANCE_EMAIL || 'apmsmedc@gmail.com').trim();
+
+/** Person who answers privacy requests and complaints. */
+export const PRIVACY_OFFICER_NAME = 'A Sudhakar';
+export const PRIVACY_OFFICER_ROLE = 'Executive Director, AP MSME Development Corporation';
+
+/** Rights requests and complaints are answered within this many days (DPDP Rules). */
+export const GRIEVANCE_RESPONSE_DAYS = 90;
+
+/** The Board must get a detailed report within this many hours of a breach being declared. */
+export const BREACH_BOARD_REPORT_HOURS = 72;
 
 export const DRAFT_RETENTION_MONTHS = 12;
+export const AUDIT_RETENTION_MONTHS = 24;
+export const DELETION_WARNING_DAYS = 15;
 
 export const UNDER_18_CODE = 'UNDER_18';
 

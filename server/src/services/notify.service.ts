@@ -1,6 +1,6 @@
 import { UserNotification } from '../models/UserNotification.model';
 
-export type NotifyKind = 'retention_warning';
+export type NotifyKind = 'retention_warning' | 'complaint_update' | 'breach_notice';
 
 export type NotifyInput = {
   userId: string;
@@ -66,6 +66,9 @@ async function sendEmail(to: string, subject: string, body: string): Promise<'mo
 
 export const NotifyService = {
   twilioReady: twilioConfigured,
+
+  /** One email without an in-app row (used to tell the department mailbox). Mocked until a mailer exists. */
+  sendMail: sendEmail,
 
   async notify(input: NotifyInput): Promise<void> {
     const phone = (input.phone || '').trim();

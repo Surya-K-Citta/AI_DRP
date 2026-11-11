@@ -1,9 +1,21 @@
+/* Keeps text the same size before and after the web font arrives, so the page does not jump. */
+@font-face {
+  font-family: 'Plus Jakarta Sans Fallback';
+  src: local('Arial');
+  size-adjust: 106%;
+  ascent-override: 98%;
+  descent-override: 25%;
+  line-gap-override: 0%;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
+  :root,
+  .theme-light,
+  .dpr-document {
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
@@ -15,18 +27,22 @@
     --primary-foreground: 0 0% 98%;
     /* Secondary: Orange - #fd7933 - Matching export-flow theme */
     --secondary: 18 98% 60%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary-foreground: 0 0% 9%;
     /* Success: Professional Green - #059669 (Emerald 600) - Growth, Success */
     --success: 160 84% 30%;
     --success-foreground: 0 0% 100%;
     /* Warning: Professional Amber - #D97706 (Amber 600) - Caution, Attention */
+    --success-text: 160 90% 20%;
     --warning: 32 95% 44%;
+    --warning-text: 30 95% 26%;
+    --secondary-text: 18 90% 36%;
+    --destructive-text: 354 100% 34%;
     --warning-foreground: 0 0% 100%;
     /* Error: Red - #e40014 - Matching export-flow theme */
     --destructive: 354 100% 45%;
     --destructive-foreground: 0 0% 100%;
     --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+    --muted-foreground: 0 0% 38%;
     --accent: 18 98% 60%;
     --accent-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
@@ -51,37 +67,53 @@
     --surface-raised: 0 0% 100%;
     --line: 180 11% 88%;
     --line-strong: 194 7% 53%;
+    color-scheme: light;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    /* Primary: Lighter for dark mode */
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    /* Secondary: Lighter for dark mode */
-    --secondary: 173 80% 40%;
-    --secondary-foreground: 0 0% 100%;
-    /* Success: Lighter for dark mode */
-    --success: 160 84% 45%;
+    color-scheme: dark;
+    --background: 195 24% 8%;
+    --foreground: 180 14% 93%;
+    --card: 195 22% 11%;
+    --card-foreground: 180 14% 93%;
+    --popover: 195 22% 11%;
+    --popover-foreground: 180 14% 93%;
+    /* Teal, lifted so it reads on a dark surface */
+    --primary: 172 42% 52%;
+    --primary-foreground: 195 30% 8%;
+    --secondary: 18 90% 58%;
+    --secondary-foreground: 0 0% 9%;
+    --success: 160 70% 42%;
     --success-foreground: 0 0% 100%;
-    /* Warning: Lighter for dark mode */
-    --warning: 32 95% 55%;
-    --warning-foreground: 0 0% 100%;
-    /* Error: Lighter for dark mode */
-    --destructive: 0 84% 60%;
+    --success-text: 160 70% 58%;
+    --warning: 38 92% 55%;
+    --warning-text: 38 92% 62%;
+    --secondary-text: 18 90% 64%;
+    --destructive-text: 0 85% 72%;
+    --warning-foreground: 30 40% 10%;
+    --destructive: 0 78% 64%;
     --destructive-foreground: 0 0% 100%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 217 91% 60%;
+    --muted: 195 18% 16%;
+    --muted-foreground: 190 10% 66%;
+    --accent: 18 90% 58%;
+    --accent-foreground: 0 0% 100%;
+    --border: 195 16% 22%;
+    --input: 195 16% 22%;
+    --ring: 172 42% 52%;
+    --brand: 172 40% 50%;
+    --brand-strong: 172 42% 66%;
+    --brand-tint: 195 22% 13%;
+    --brand-soft: 195 20% 20%;
+    --saffron-tint: 24 40% 15%;
+    --saffron-text: 24 90% 65%;
+    --ink: 180 14% 93%;
+    --ink-muted: 190 10% 78%;
+    --ink-subtle: 190 9% 70%;
+    --ink-soft: 190 8% 60%;
+    --surface: 195 22% 10%;
+    --surface-raised: 195 22% 12%;
+    --line: 195 16% 22%;
+    --line-strong: 195 10% 42%;
   }
 }
 
@@ -177,27 +209,112 @@
 }
 
 .dpr-inline-edit {
-  display: inline;
-  min-width: 1.25em;
+  /* An answer typed straight into the report looks like a proper text box: visible border and fill, padding, a clear focus ring. */
+  display: inline-block;
+  box-sizing: border-box;
+  min-width: 10rem;
+  max-width: 100%;
+  min-height: 2.1rem;
+  padding: 5px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  line-height: 1.45;
+  vertical-align: middle;
   cursor: text;
   white-space: pre-wrap;
-  border-radius: 2px;
+  overflow-wrap: anywhere;
   outline: none;
-  box-decoration-break: clone;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
-.dpr-inline-edit:hover,
+.dpr-inline-edit:hover {
+  border-color: #94a3b8;
+}
 .dpr-inline-edit:focus {
-  background: rgba(15, 118, 110, 0.08);
-  box-shadow: inset 0 -1px 0 #0f766e;
+  border-color: #0f766e;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.2);
 }
 .dpr-inline-edit:empty:before {
   content: attr(data-placeholder);
-  color: #9ca3af;
+  color: #94a3b8;
   font-style: italic;
 }
+/* Long answers (the question-and-answer blocks) get a taller, full-width box, like a text area. */
 .individual-qa-a .dpr-inline-edit {
   display: block;
-  min-height: 1.4em;
+  width: 100%;
+  min-height: 5.5rem;
+}
+/* In a table cell the box fills the cell. */
+.individual-particulars td .dpr-inline-edit {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+.dpr-inline-select,
+.dpr-inline-input {
+  max-width: 100%;
+  min-width: 6rem;
+  min-height: 2.1rem;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  padding: 4px 10px;
+}
+.dpr-inline-input[type='number'] {
+  width: 9rem;
+}
+/* Inside the live document's tables the boxes must shrink with the column: fixed widths made wide tables overflow
+   the page and squeezed the label column to one letter per line. */
+.individual-particulars td .dpr-inline-input,
+.individual-particulars td .dpr-inline-select,
+.individual-particulars td .dpr-inline-input[type='number'] {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 3.25rem;
+  padding: 3px 6px;
+  font-size: 0.95em;
+}
+.individual-particulars td .dpr-inline-input[type='date'] {
+  min-width: 7.5rem;
+}
+.individual-particulars th,
+.individual-particulars td:not(.part) {
+  min-width: 4.5em;
+}
+.individual-particulars th {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+/* Tables with 8+ columns (e.g. AP CMEP sales and costs) tighten up so every template keeps them inside the page. */
+.individual-particulars:has(th:nth-child(8)) th,
+.individual-particulars:has(th:nth-child(8)) td {
+  font-size: 9pt;
+  padding: 4pt 4pt;
+  letter-spacing: 0;
+}
+.individual-particulars:has(th:nth-child(8)) th,
+.individual-particulars:has(th:nth-child(8)) td:not(.part) {
+  min-width: 0;
+}
+.dpr-inline-select:hover,
+.dpr-inline-input:hover {
+  border-color: #94a3b8;
+}
+.dpr-inline-select:focus,
+.dpr-inline-input:focus {
+  border-color: #0f766e;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.2);
+}
+.dpr-inline-select:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
 }
 
 /* Latest DPR scheme form banners (PMEGP / AP CMEP) */
@@ -216,7 +333,7 @@
 
 
 .landing-page {
-  font-family: 'Plus Jakarta Sans', 'Noto Sans Telugu', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', 'Noto Sans Telugu', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 @layer components {
@@ -555,4 +672,722 @@ html.a11y-hc .pattern-lattice, html.a11y-hc .pattern-dots { background-image: no
 }
 .fill-edit-scroll button {
   flex-shrink: 0;
+}
+
+/* Scheme Finder motion — short, eased, and switched off for people who ask for less motion. */
+@keyframes vm-in-forward {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes vm-in-back {
+  from { opacity: 0; transform: translateX(-28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes vm-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes vm-pop {
+  0% { opacity: 0; transform: scale(0.4); }
+  70% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.vm-step-forward, .motion-slide-forward { animation: vm-in-forward 0.38s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.vm-step-back, .motion-slide-back { animation: vm-in-back 0.38s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.vm-rise,
+.motion-rise {
+  /* backwards, not both: once it ends, hover lift can take over the transform */
+  animation: vm-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--vm-delay, 0ms);
+}
+.vm-pop, .motion-pop { animation: vm-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .vm-step-forward, .vm-step-back, .vm-rise, .vm-pop,
+  .motion-slide-forward, .motion-slide-back, .motion-rise, .motion-pop,
+  .motion-page, .motion-overlay, .motion-overlay > *, .motion-stagger > * { animation: none !important; }
+  .vm-lift, .motion-lift { transition: none !important; transform: none !important; }
+}
+.vm-lift,
+.motion-lift {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+.vm-lift:hover,
+.motion-lift:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -10px rgba(15, 118, 110, 0.35); }
+.vm-lift:active,
+.motion-lift:active { transform: translateY(0) scale(0.99); box-shadow: none; }
+
+/* App-wide motion: page entrance, staggered lists, modal pop-in, and softer form controls. */
+@keyframes motion-page-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes motion-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes motion-modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.motion-page { animation: motion-page-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.motion-overlay { animation: motion-fade 0.2s ease-out backwards; }
+.motion-overlay > * { animation: motion-modal-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.motion-stagger > * { animation: vm-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.motion-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.motion-stagger > *:nth-child(2) { animation-delay: 60ms; }
+.motion-stagger > *:nth-child(3) { animation-delay: 120ms; }
+.motion-stagger > *:nth-child(4) { animation-delay: 180ms; }
+.motion-stagger > *:nth-child(5) { animation-delay: 240ms; }
+.motion-stagger > *:nth-child(6) { animation-delay: 300ms; }
+.motion-stagger > *:nth-child(7) { animation-delay: 360ms; }
+.motion-stagger > *:nth-child(8) { animation-delay: 420ms; }
+.motion-stagger > *:nth-child(n + 9) { animation-delay: 480ms; }
+
+@layer base {
+  input,
+  select,
+  textarea {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  }
+  a {
+    transition: color 0.15s ease, opacity 0.15s ease;
+  }
+}
+
+/* Theme switch ripple (see lib/themeTransition.ts). The browser's default cross-fade is replaced by the
+   circular reveal drawn from script; the ring layer is captured separately so it stays on top. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(theme-rings) { display: none; }
+::view-transition-new(theme-rings) { animation: none; }
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.theme-switching, html.theme-switching * { transition: none !important; }
+}
+
+/* Dark mode, part 2: Tailwind colours that were written as fixed light values are remapped to the theme.
+   Each remap reads a variable. Light values (Tailwind's originals) are declared for the app and for the
+   locked-light areas; dark values only under .dark. The live DPR document, its preview and the export live
+   inside .dpr-document / .theme-light, which keep the light values, so nothing in them changes.
+   Plain class selectors on purpose: they are cheap, so the theme switch does not stall. */
+:root, .theme-light, .dpr-document {
+  --r-bg-white: #ffffff;
+  --r-bg-white-95: rgb(255 255 255 / .95);
+  --r-bg-white-90: rgb(255 255 255 / .9);
+  --r-bg-white-50: rgb(255 255 255 / .5);
+  --r-bg-gray-50: #f9fafb;
+  --r-bg-slate-50: #f8fafc;
+  --r-bg-gray-100: #f3f4f6;
+  --r-bg-slate-100: #f1f5f9;
+  --r-bg-gray-200: #e5e7eb;
+  --r-bg-amber-50: #fffbeb;
+  --r-bg-yellow-50: #fefce8;
+  --r-bg-amber-100: #fef3c7;
+  --r-bg-red-50: #fef2f2;
+  --r-bg-red-100: #fee2e2;
+  --r-bg-blue-50: #eff6ff;
+  --r-bg-emerald-50: #ecfdf5;
+  --r-bg-green-50: #f0fdf4;
+  --r-bg-green-100: #dcfce7;
+  --r-bg-teal-50: #f0fdfa;
+  --r-bg-indigo-50: #eef2ff;
+  --r-text-gray-900: #111827;
+  --r-text-gray-800: #1f2937;
+  --r-text-gray-700: #374151;
+  --r-text-slate-700: #334155;
+  --r-text-gray-600: #4b5563;
+  --r-text-slate-600: #475569;
+  --r-text-gray-500: #6b7280;
+  --r-text-slate-500: #64748b;
+  --r-text-gray-400: #9ca3af;
+  --r-text-slate-400: #94a3b8;
+  --r-text-red-600: #dc2626;
+  --r-text-red-700: #b91c1c;
+  --r-text-red-800: #991b1b;
+  --r-text-red-500: #ef4444;
+  --r-text-green-600: #16a34a;
+  --r-text-green-700: #15803d;
+  --r-text-emerald-700: #047857;
+  --r-text-emerald-800: #065f46;
+  --r-text-amber-700: #b45309;
+  --r-text-amber-800: #92400e;
+  --r-text-amber-900: #78350f;
+  --r-text-amber-950: #451a03;
+  --r-text-yellow-600: #ca8a04;
+  --r-text-blue-600: #2563eb;
+  --r-text-blue-800: #1e40af;
+  --r-text-teal-900: #134e4a;
+  --r-text-indigo-950: #1e1b4b;
+  --r-border-gray-300: #d1d5db;
+  --r-border-gray-200: #e5e7eb;
+  --r-border-slate-200: #e2e8f0;
+  --r-border-gray-800: #1f2937;
+  --r-border-red-300: #fca5a5;
+  --r-border-red-500: #ef4444;
+  --r-border-blue-200: #bfdbfe;
+  --r-border-emerald-200: #a7f3d0;
+  --r-border-amber-300: #fcd34d;
+  --r-border-amber-400: #fbbf24;
+  --r-bg-eef5f4: #eef5f4;
+  --r-bg-d4e6e4: #d4e6e4;
+  --r-bg-e3e9e9: #e3e9e9;
+  --r-text-2a5956: #2a5956;
+  --r-h-bg-gray-50: #f9fafb;
+  --r-h-bg-gray-100: #f3f4f6;
+  --r-h-bg-slate-50: #f8fafc;
+  --r-h-bg-slate-100: #f1f5f9;
+  --r-h-bg-white: #ffffff;
+}
+html.dark {
+  --r-bg-white: hsl(var(--card));
+  --r-bg-white-95: hsl(var(--background)/.95);
+  --r-bg-white-90: hsl(var(--background)/.95);
+  --r-bg-white-50: hsl(var(--card)/.5);
+  --r-bg-gray-50: hsl(var(--muted)/.5);
+  --r-bg-slate-50: hsl(var(--muted)/.5);
+  --r-bg-gray-100: hsl(var(--muted));
+  --r-bg-slate-100: hsl(var(--muted));
+  --r-bg-gray-200: hsl(var(--border));
+  --r-bg-amber-50: rgb(245,158,11 / .12);
+  --r-bg-yellow-50: rgb(245,158,11 / .12);
+  --r-bg-amber-100: rgb(245,158,11 / .2);
+  --r-bg-red-50: rgb(239,68,68 / .12);
+  --r-bg-red-100: rgb(239,68,68 / .2);
+  --r-bg-blue-50: rgb(59,130,246 / .12);
+  --r-bg-emerald-50: rgb(16,185,129 / .12);
+  --r-bg-green-50: rgb(16,185,129 / .12);
+  --r-bg-green-100: rgb(16,185,129 / .2);
+  --r-bg-teal-50: rgb(20,184,166 / .12);
+  --r-bg-indigo-50: rgb(99,102,241 / .12);
+  --r-text-gray-900: hsl(var(--foreground));
+  --r-text-gray-800: hsl(var(--foreground));
+  --r-text-gray-700: hsl(var(--foreground)/.85);
+  --r-text-slate-700: hsl(var(--foreground)/.85);
+  --r-text-gray-600: hsl(var(--foreground)/.75);
+  --r-text-slate-600: hsl(var(--foreground)/.75);
+  --r-text-gray-500: hsl(var(--muted-foreground));
+  --r-text-slate-500: hsl(var(--muted-foreground));
+  --r-text-gray-400: hsl(var(--muted-foreground));
+  --r-text-slate-400: hsl(var(--muted-foreground));
+  --r-text-red-600: #fca5a5;
+  --r-text-red-700: #fca5a5;
+  --r-text-red-800: #fca5a5;
+  --r-text-red-500: #f87171;
+  --r-text-green-600: #6ee7b7;
+  --r-text-green-700: #6ee7b7;
+  --r-text-emerald-700: #6ee7b7;
+  --r-text-emerald-800: #6ee7b7;
+  --r-text-amber-700: #fcd34d;
+  --r-text-amber-800: #fcd34d;
+  --r-text-amber-900: #fcd34d;
+  --r-text-amber-950: #fcd34d;
+  --r-text-yellow-600: #fde047;
+  --r-text-blue-600: #93c5fd;
+  --r-text-blue-800: #93c5fd;
+  --r-text-teal-900: #5eead4;
+  --r-text-indigo-950: #a5b4fc;
+  --r-border-gray-300: hsl(var(--border));
+  --r-border-gray-200: hsl(var(--border));
+  --r-border-slate-200: hsl(var(--border));
+  --r-border-gray-800: hsl(var(--border));
+  --r-border-red-300: rgb(239,68,68 / .5);
+  --r-border-red-500: rgb(239,68,68 / .5);
+  --r-border-blue-200: rgb(59,130,246 / .4);
+  --r-border-emerald-200: rgb(16,185,129 / .4);
+  --r-border-amber-300: rgb(245,158,11 / .5);
+  --r-border-amber-400: rgb(245,158,11 / .5);
+  --r-bg-eef5f4: hsl(var(--brand-tint));
+  --r-bg-d4e6e4: hsl(var(--brand-soft));
+  --r-bg-e3e9e9: hsl(var(--brand-soft));
+  --r-text-2a5956: hsl(var(--brand-strong));
+  --r-h-bg-gray-50: hsl(var(--muted));
+  --r-h-bg-gray-100: hsl(var(--muted));
+  --r-h-bg-slate-50: hsl(var(--muted));
+  --r-h-bg-slate-100: hsl(var(--muted));
+  --r-h-bg-white: hsl(var(--muted));
+}
+html.dark .theme-light, html.dark .dpr-document {
+  --r-bg-white: #ffffff;
+  --r-bg-white-95: rgb(255 255 255 / .95);
+  --r-bg-white-90: rgb(255 255 255 / .9);
+  --r-bg-white-50: rgb(255 255 255 / .5);
+  --r-bg-gray-50: #f9fafb;
+  --r-bg-slate-50: #f8fafc;
+  --r-bg-gray-100: #f3f4f6;
+  --r-bg-slate-100: #f1f5f9;
+  --r-bg-gray-200: #e5e7eb;
+  --r-bg-amber-50: #fffbeb;
+  --r-bg-yellow-50: #fefce8;
+  --r-bg-amber-100: #fef3c7;
+  --r-bg-red-50: #fef2f2;
+  --r-bg-red-100: #fee2e2;
+  --r-bg-blue-50: #eff6ff;
+  --r-bg-emerald-50: #ecfdf5;
+  --r-bg-green-50: #f0fdf4;
+  --r-bg-green-100: #dcfce7;
+  --r-bg-teal-50: #f0fdfa;
+  --r-bg-indigo-50: #eef2ff;
+  --r-text-gray-900: #111827;
+  --r-text-gray-800: #1f2937;
+  --r-text-gray-700: #374151;
+  --r-text-slate-700: #334155;
+  --r-text-gray-600: #4b5563;
+  --r-text-slate-600: #475569;
+  --r-text-gray-500: #6b7280;
+  --r-text-slate-500: #64748b;
+  --r-text-gray-400: #9ca3af;
+  --r-text-slate-400: #94a3b8;
+  --r-text-red-600: #dc2626;
+  --r-text-red-700: #b91c1c;
+  --r-text-red-800: #991b1b;
+  --r-text-red-500: #ef4444;
+  --r-text-green-600: #16a34a;
+  --r-text-green-700: #15803d;
+  --r-text-emerald-700: #047857;
+  --r-text-emerald-800: #065f46;
+  --r-text-amber-700: #b45309;
+  --r-text-amber-800: #92400e;
+  --r-text-amber-900: #78350f;
+  --r-text-amber-950: #451a03;
+  --r-text-yellow-600: #ca8a04;
+  --r-text-blue-600: #2563eb;
+  --r-text-blue-800: #1e40af;
+  --r-text-teal-900: #134e4a;
+  --r-text-indigo-950: #1e1b4b;
+  --r-border-gray-300: #d1d5db;
+  --r-border-gray-200: #e5e7eb;
+  --r-border-slate-200: #e2e8f0;
+  --r-border-gray-800: #1f2937;
+  --r-border-red-300: #fca5a5;
+  --r-border-red-500: #ef4444;
+  --r-border-blue-200: #bfdbfe;
+  --r-border-emerald-200: #a7f3d0;
+  --r-border-amber-300: #fcd34d;
+  --r-border-amber-400: #fbbf24;
+  --r-bg-eef5f4: #eef5f4;
+  --r-bg-d4e6e4: #d4e6e4;
+  --r-bg-e3e9e9: #e3e9e9;
+  --r-text-2a5956: #2a5956;
+  --r-h-bg-gray-50: #f9fafb;
+  --r-h-bg-gray-100: #f3f4f6;
+  --r-h-bg-slate-50: #f8fafc;
+  --r-h-bg-slate-100: #f1f5f9;
+  --r-h-bg-white: #ffffff;
+}
+html.dark .bg-white { background-color: var(--r-bg-white); }
+html.dark .bg-white\/95 { background-color: var(--r-bg-white-95); }
+html.dark .bg-white\/90 { background-color: var(--r-bg-white-90); }
+html.dark .bg-white\/50 { background-color: var(--r-bg-white-50); }
+html.dark .bg-gray-50 { background-color: var(--r-bg-gray-50); }
+html.dark .bg-slate-50 { background-color: var(--r-bg-slate-50); }
+html.dark .bg-gray-100 { background-color: var(--r-bg-gray-100); }
+html.dark .bg-slate-100 { background-color: var(--r-bg-slate-100); }
+html.dark .bg-gray-200 { background-color: var(--r-bg-gray-200); }
+html.dark .bg-amber-50 { background-color: var(--r-bg-amber-50); }
+/* The same tints written with an opacity (bg-amber-50/50) are light colours laid over dark; they take the dark tint too. */
+html.dark [class*="bg-amber-50/"] { background-color: var(--r-bg-amber-50); }
+html.dark [class*="bg-blue-50/"] { background-color: var(--r-bg-blue-50); }
+html.dark [class*="bg-red-50/"] { background-color: var(--r-bg-red-50); }
+html.dark [class*="bg-teal-50/"] { background-color: var(--r-bg-teal-50); }
+html.dark [class*="bg-indigo-50/"] { background-color: var(--r-bg-indigo-50); }
+html.dark [class*="bg-green-50/"] { background-color: var(--r-bg-green-50); }
+html.dark .bg-yellow-50 { background-color: var(--r-bg-yellow-50); }
+html.dark .bg-amber-100 { background-color: var(--r-bg-amber-100); }
+html.dark .bg-red-50 { background-color: var(--r-bg-red-50); }
+html.dark .bg-red-100 { background-color: var(--r-bg-red-100); }
+html.dark .bg-blue-50 { background-color: var(--r-bg-blue-50); }
+html.dark .bg-emerald-50 { background-color: var(--r-bg-emerald-50); }
+html.dark .bg-green-50 { background-color: var(--r-bg-green-50); }
+html.dark .bg-green-100 { background-color: var(--r-bg-green-100); }
+html.dark .bg-teal-50 { background-color: var(--r-bg-teal-50); }
+html.dark .bg-indigo-50 { background-color: var(--r-bg-indigo-50); }
+html.dark .text-gray-900 { color: var(--r-text-gray-900); }
+html.dark .text-gray-800 { color: var(--r-text-gray-800); }
+html.dark .text-gray-700 { color: var(--r-text-gray-700); }
+html.dark .text-slate-700 { color: var(--r-text-slate-700); }
+html.dark .text-gray-600 { color: var(--r-text-gray-600); }
+html.dark .text-slate-600 { color: var(--r-text-slate-600); }
+html.dark .text-gray-500 { color: var(--r-text-gray-500); }
+html.dark .text-slate-500 { color: var(--r-text-slate-500); }
+html.dark .text-gray-400 { color: var(--r-text-gray-400); }
+html.dark .text-slate-400 { color: var(--r-text-slate-400); }
+html.dark .text-red-600 { color: var(--r-text-red-600); }
+html.dark .text-red-700 { color: var(--r-text-red-700); }
+html.dark .text-red-800 { color: var(--r-text-red-800); }
+html.dark .text-red-500 { color: var(--r-text-red-500); }
+html.dark .text-green-600 { color: var(--r-text-green-600); }
+html.dark .text-green-700 { color: var(--r-text-green-700); }
+html.dark .text-emerald-700 { color: var(--r-text-emerald-700); }
+html.dark .text-emerald-800 { color: var(--r-text-emerald-800); }
+html.dark .text-amber-700 { color: var(--r-text-amber-700); }
+html.dark .text-amber-800 { color: var(--r-text-amber-800); }
+html.dark .text-amber-900 { color: var(--r-text-amber-900); }
+html.dark .text-amber-950 { color: var(--r-text-amber-950); }
+html.dark .text-yellow-600 { color: var(--r-text-yellow-600); }
+html.dark .text-blue-600 { color: var(--r-text-blue-600); }
+html.dark .text-blue-800 { color: var(--r-text-blue-800); }
+html.dark .text-teal-900 { color: var(--r-text-teal-900); }
+html.dark .text-indigo-950 { color: var(--r-text-indigo-950); }
+html.dark .border-gray-300 { border-color: var(--r-border-gray-300); }
+html.dark .border-gray-200 { border-color: var(--r-border-gray-200); }
+html.dark .border-slate-200 { border-color: var(--r-border-slate-200); }
+html.dark .border-gray-800 { border-color: var(--r-border-gray-800); }
+html.dark .border-red-300 { border-color: var(--r-border-red-300); }
+html.dark .border-red-500 { border-color: var(--r-border-red-500); }
+html.dark .border-blue-200 { border-color: var(--r-border-blue-200); }
+html.dark .border-emerald-200 { border-color: var(--r-border-emerald-200); }
+html.dark .border-amber-300 { border-color: var(--r-border-amber-300); }
+html.dark .border-amber-400 { border-color: var(--r-border-amber-400); }
+html.dark .bg-\[\#eef5f4\] { background-color: var(--r-bg-eef5f4); }
+html.dark .bg-\[\#d4e6e4\] { background-color: var(--r-bg-d4e6e4); }
+html.dark .bg-\[\#e3e9e9\] { background-color: var(--r-bg-e3e9e9); }
+html.dark .text-\[\#2a5956\] { color: var(--r-text-2a5956); }
+html.dark .hover\:bg-gray-50:hover { background-color: var(--r-h-bg-gray-50); }
+html.dark .hover\:bg-gray-100:hover { background-color: var(--r-h-bg-gray-100); }
+html.dark .hover\:bg-slate-50:hover { background-color: var(--r-h-bg-slate-50); }
+html.dark .hover\:bg-slate-100:hover { background-color: var(--r-h-bg-slate-100); }
+html.dark .hover\:bg-white:hover { background-color: var(--r-h-bg-white); }
+
+html.dark body { background-color: hsl(var(--background)); color: hsl(var(--foreground)); }
+html.dark ::selection { background: hsl(var(--primary) / 0.35); }
+
+/* Soft, translucent ripple edge: the new theme is revealed through a feathered radial mask whose radius
+   (--ripple-r) is animated from script. Needs @property so the radius can animate smoothly. */
+@property --ripple-r {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+html.theme-ripple-soft::view-transition-new(root) {
+  --ripple-r: 0px;
+  -webkit-mask-image: radial-gradient(
+    circle at var(--ripple-x) var(--ripple-y),
+    #000 calc(var(--ripple-r) - var(--ripple-feather)),
+    transparent var(--ripple-r)
+  );
+  mask-image: radial-gradient(
+    circle at var(--ripple-x) var(--ripple-y),
+    #000 calc(var(--ripple-r) - var(--ripple-feather)),
+    transparent var(--ripple-r)
+  );
+}
+
+/* Home page section background and locked areas' default text colour. */
+:root, .theme-light, .dpr-document { --r-bg-f2f6f5: #f2f6f5; }
+html.dark { --r-bg-f2f6f5: hsl(var(--surface)); }
+html.dark .theme-light, html.dark .dpr-document { --r-bg-f2f6f5: #f2f6f5; }
+html.dark .bg-\[\#f2f6f5\] { background-color: var(--r-bg-f2f6f5); }
+@layer base {
+  .theme-light { color: hsl(var(--foreground)); }
+}
+
+/* Home page in dark mode: the greys written as fixed colours follow the theme; the sample screens inside the page stay light on purpose. */
+html.dark .landing-page .text-\[\#5c676d\] { color: hsl(var(--ink-muted)); }
+html.dark .landing-page .bg-\[\#f3f7f6\] { background-color: hsl(var(--surface)); }
+
+
+/* Interaction polish: step changes, collapsing groups, pop-up exit, loading placeholders. */
+@keyframes motion-step-forward {
+  from { opacity: 0; transform: translateX(14px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes motion-step-back {
+  from { opacity: 0; transform: translateX(-14px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.motion-step-forward { animation: motion-step-forward 0.26s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.motion-step-back { animation: motion-step-back 0.26s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+
+/* A group that opens and closes by height. The inner box must be the only child. */
+.motion-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.motion-collapse[data-open='true'] { grid-template-rows: 1fr; }
+.motion-collapse > * { min-height: 0; overflow: hidden; }
+
+@keyframes motion-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes motion-modal-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
+.motion-overlay.is-closing { animation: motion-fade-out 0.16s ease-in forwards; pointer-events: none; }
+.motion-overlay.is-closing > * { animation: motion-modal-out 0.16s ease-in forwards; }
+
+@keyframes motion-shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+.motion-skeleton {
+  background: linear-gradient(90deg, #eef2f6 0%, #f8fafc 40%, #eef2f6 80%) no-repeat #eef2f6;
+  background-size: 200px 100%;
+  animation: motion-shimmer 1.2s ease-in-out infinite;
+}
+.motion-fade-in { animation: motion-fade 0.25s ease-out backwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-step-forward, .motion-step-back, .motion-skeleton, .motion-fade-in,
+  .motion-overlay.is-closing, .motion-overlay.is-closing > * { animation: none !important; }
+  .motion-collapse { transition: none !important; }
+}
+
+
+/* Back-button name tag: shows under the icon on hover (after a short pause) and at once on keyboard focus. */
+.tt-wrap { position: relative; display: inline-flex; }
+.tt-bubble {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 80;
+  max-width: 18rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-3px);
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: #111827;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  box-shadow: 0 6px 16px -6px rgba(15, 23, 42, 0.45);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+.tt-wrap:hover > .tt-bubble,
+.tt-wrap:focus-within > .tt-bubble {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.3s;
+}
+.tt-wrap:has(:focus-visible) > .tt-bubble { transition-delay: 0s; }
+.tt-end > .tt-bubble { left: auto; right: 0; }
+@media (hover: none) { .tt-bubble { display: none; } }
+@media (prefers-reduced-motion: reduce) { .tt-bubble { transition: none; } }
+
+/* Tab panels fade and rise a little when the tab changes. Give the panel a key that changes with the tab. */
+@keyframes motion-tab-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.motion-tab { animation: motion-tab-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+@media (prefers-reduced-motion: reduce) { .motion-tab { animation: none !important; } }
+
+/* App-wide touch and click feel. Low specificity (:where) so any component that sets its own transform or transition wins. */
+html { scrollbar-gutter: stable; }
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+:where(a, button, [role='button'], [role='tab'], summary, select, label[for], input[type='checkbox'], input[type='radio']) {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+:where([role='tab']) {
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+/* Press feedback shrinks what is inside the button, not the button. Scaling the button itself pulled its edges in while it
+   was pressed, so on a wide button the arrow or icon at the edge ended up outside it, the release landed on the parent
+   and the click was lost. Zero specificity, so a child that sets its own transform (a rotated arrow) keeps it. */
+:where(button:not(:disabled):active, [role='button']:active) > * {
+  transform: scale(0.97);
+}
+:where(button, [role='button']) {
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity;
+  transition-duration: 0.15s;
+  transition-timing-function: ease-out;
+}
+:where(button, [role='button']) > * {
+  transition: transform 0.15s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(button:not(:disabled):active, [role='button']:active) > * { transform: none; }
+}
+
+
+/* Microphone button inside a text box: a soft ring that follows how loud the voice is. */
+@keyframes mic-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45); }
+  70% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+.mic-listening { animation: mic-pulse 1.4s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { .mic-listening { animation: none; } }
+
+
+/* "Open in form" button on each section of the report in Document mode: out of the flow, so layout and page breaks do not change. */
+.individual-sec.has-open-form { position: relative; }
+.dpr-open-in-form {
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 3;
+  padding: 2px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f766e;
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+.individual-sec.has-open-form:hover > .dpr-open-in-form,
+.individual-sec.has-open-form:focus-within > .dpr-open-in-form,
+.dpr-open-in-form:focus-visible { opacity: 1; }
+.dpr-open-in-form:hover { background: #f0fdfa; }
+@media (hover: none) { .dpr-open-in-form { opacity: 1; } }
+@media print { .dpr-open-in-form { display: none !important; } }
+
+
+/* Sections / Style slide-over: slides in from the left, and back out when minimised. */
+@keyframes motion-panel-in {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes motion-panel-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-16px); }
+}
+.motion-panel { animation: motion-panel-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.motion-panel.is-closing { animation: motion-panel-out 0.2s ease-in forwards; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .motion-panel, .motion-panel.is-closing { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .motion-mode { transition: none !important; } }
+
+/* Side-by-side fields: when the labels and hints above the boxes wrap to different heights, the boxes still sit on one line.
+   A grid that top-aligns its cells (`items-start`) opts out: its fields keep their own height and the normal label spacing,
+   instead of being stretched to a taller neighbour with the box pushed to the bottom (a large gap under the label). */
+@media (min-width: 768px) {
+  .grid:is([class*='sm:grid-cols-'], [class*='md:grid-cols-']):not(.items-start) > div:has(> div.w-full:last-child) {
+    display: flex;
+    flex-direction: column;
+  }
+  .grid:is([class*='sm:grid-cols-'], [class*='md:grid-cols-']):not(.items-start) > div:has(> div.w-full:last-child) > div.w-full:last-child {
+    margin-top: auto;
+  }
+}
+
+/* Form-mode report: a section that appears (its step got its first answer) fades in instead of popping in. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  #dpr-preview .individual-sec {
+    animation: dpr-sec-in 0.28s ease-out both;
+  }
+}
+@keyframes dpr-sec-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Form mode: soft depth and gentle motion on the questions. */
+#individual-dpr-form input:not([type='checkbox']):not([type='radio']),
+#individual-dpr-form select,
+#individual-dpr-form textarea {
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+  box-shadow: 0 1px 1px rgba(16, 24, 40, 0.03);
+}
+#individual-dpr-form input:not([type='checkbox']):not([type='radio']):hover,
+#individual-dpr-form select:hover,
+#individual-dpr-form textarea:hover {
+  border-color: hsl(var(--primary) / 0.45);
+}
+#individual-dpr-form input:not([type='checkbox']):not([type='radio']):focus-visible,
+#individual-dpr-form select:focus-visible,
+#individual-dpr-form textarea:focus-visible {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 4px hsl(var(--primary) / 0.14), 0 1px 2px rgba(16, 24, 40, 0.06);
+}
+#individual-dpr-form .fill-edit-scroll {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+}
+#individual-dpr-form button:not(:disabled) {
+  transition: transform 0.15s ease, box-shadow 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+}
+#individual-dpr-form button:not(:disabled):hover {
+  box-shadow: 0 4px 10px -4px rgba(16, 24, 40, 0.22);
+}
+@media (prefers-reduced-motion: reduce) {
+  #individual-dpr-form * { transition: none !important; }
+}
+
+/* Form <-> Document: the incoming screen fades and rises into place. */
+@media (prefers-reduced-motion: no-preference) {
+  .dpr-layout-in {
+    animation: dpr-layout-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+}
+@keyframes dpr-layout-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+
+/* Accessibility: keep a focused answer clear of the bars that float over the scrolling areas, and keep key cues in forced-colors mode. */
+#individual-dpr-form .fill-edit-scroll { scroll-padding-block: 1rem 5rem; }
+[data-dpr-scroll] { scroll-padding-top: 4.5rem; }
+@media (forced-colors: active) {
+  [data-step-dot]:focus-visible { outline: 2px solid Highlight; outline-offset: 2px; }
+  [role='progressbar'] > div { forced-color-adjust: none; background: Highlight; }
+  .dpr-layout-in { animation: none; }
+}
+
+/* Move up / down buttons in the Sections list: out of the way until the row is pointed at or focused (always shown without a mouse). */
+.a11y-move { opacity: 0; width: 0; overflow: hidden; transition: opacity 0.15s ease; }
+li:hover .a11y-move, li:focus-within .a11y-move { opacity: 1; width: auto; overflow: visible; }
+@media (hover: none) { .a11y-move { opacity: 1; width: auto; overflow: visible; } }
+
+/* Dark theme: hard-coded white text on the (lighter, in dark mode) primary colour fails contrast; use the theme's own foreground instead. */
+.dark .bg-primary.text-white,
+.dark .bg-primary .text-white,
+.dark .bg-primary\/90.text-white,
+.dark button.bg-primary { color: hsl(var(--primary-foreground)); }
+.dark .bg-blue-50\/50 { background-color: hsl(210 35% 15%); }
+
+/* A step in the Form-mode list opening: its questions fade and slide down a little. */
+@media (prefers-reduced-motion: no-preference) {
+  .dpr-step-open { animation: dpr-step-open 0.26s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+}
+@keyframes dpr-step-open {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The guided tour: an outline on what is being explained, a pulse on the button to press, and a bouncing arrow above it. */
+[data-tour-active] {
+  outline: 3px solid hsl(var(--primary));
+  outline-offset: 4px;
+  border-radius: 14px;
+}
+[data-tour-active='click'] {
+  animation: tour-pulse 1.4s ease-out infinite;
+}
+.tour-arrow { animation: tour-bounce 0.9s ease-in-out infinite; }
+.tour-arrow-up { animation-name: tour-bounce-up; }
+@keyframes tour-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
+@keyframes tour-bounce-up { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes tour-pulse {
+  0% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.45); }
+  100% { box-shadow: 0 0 0 14px hsl(var(--primary) / 0); }
+}
+/* Words and the "Click here" label fade over when the tour moves to the next stop; the panel fades in when it opens. */
+.tour-fade { animation: tour-fade-in 0.38s ease both; }
+.tour-panel { animation: tour-appear 0.3s ease both; }
+@keyframes tour-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes tour-appear { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  [data-tour-active='click'], .tour-arrow, .tour-fade, .tour-panel { animation: none; }
 }

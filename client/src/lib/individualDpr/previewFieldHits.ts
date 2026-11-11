@@ -38,7 +38,7 @@ export function diffPayloadFieldPaths(
   return Array.from(new Set(paths));
 }
 
-export function expandFieldPaths(paths: string[]): string[] {
+function expandFieldPaths(paths: string[]): string[] {
   const out = new Set<string>();
   paths.forEach((p) => {
     if (!p) return;

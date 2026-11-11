@@ -1,0 +1,20 @@
+{
+  "name": "msme-dpr-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Playwright browser end-to-end tests (Chromium, WebKit; Firefox where it can launch) for the MSME DPR application, at phone/tablet/laptop/desktop sizes, run against an isolated QA stack (see qa-stack.sh).",
+  "scripts": {
+    "stack:up": "./qa-stack.sh up && node seed-qa.mjs",
+    "stack:down": "./qa-stack.sh down",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "test:smoke": "node --test --test-concurrency=1 tests/01-smoke-routes.test.mjs",
+    "browsers:install": "playwright install chromium webkit firefox",
+    "test:matrix": "./run-matrix.sh",
+    "test:phone": "E2E_DEVICE=phone ./run-all.sh /tmp/qa-e2e-phone",
+    "test:webkit": "E2E_BROWSER=webkit ./run-all.sh /tmp/qa-e2e-webkit"
+  },
+  "devDependencies": {
+    "axe-core": "4.10.2",
+    "playwright": "^1.49.1"
+  }
+}

@@ -62,6 +62,3 @@ export function toIndividualPayload(data: any) {
     },
   };
 }
-
-/** @deprecated Use toIndividualPayload — kept so older imports keep working. */
-export const toClusterPayload = toIndividualPayload;

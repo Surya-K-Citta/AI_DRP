@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { uploadGuard } from '../lib/security/uploadGuard';
 import { Router } from 'express';
 import { body } from 'express-validator';
 import { AIController } from '../controllers/ai.controller';
@@ -24,6 +25,7 @@ router.post(
 router.post(
   '/transcribe',
   AIController.getUploadMiddleware(),
+  uploadGuard(['audio']),
   AIController.transcribe
 );
 
@@ -31,6 +33,13 @@ router.post(
 router.post(
   '/tts',
   AIController.textToSpeech
+);
+
+// Telugu view of the person's own typed answers
+router.post(
+  '/translate-texts',
+  validate([body('texts').isArray({ min: 1, max: 60 }).withMessage('texts must be a list of 1 to 60 entries')]),
+  AIController.translateUserTexts
 );
 
 // Scheme Finder option helper

@@ -4,10 +4,10 @@
  * Step list: PMEGP_2ND_STEPS in schemeStepCatalog.ts (14 consecutive steps).
  */
 
-export type Pmegp2ndPriorScheme = 'PMEGP' | 'REGP' | 'MUDRA';
-export type Pmegp2ndAgency = 'KVIC' | 'KVIB' | 'DIC';
-export type Pmegp2ndSectorBand = 'manufacturing' | 'service';
-export type Pmegp2ndYesNo = 'yes' | 'no';
+type Pmegp2ndPriorScheme = 'PMEGP' | 'REGP' | 'MUDRA';
+type Pmegp2ndAgency = 'KVIC' | 'KVIB' | 'DIC';
+type Pmegp2ndSectorBand = 'manufacturing' | 'service';
+type Pmegp2ndYesNo = 'yes' | 'no';
 
 export const PMEGP_2ND_EXTRA_FIELDS = [
   'priorScheme',
@@ -34,7 +34,6 @@ export const PMEGP_2ND_EXTRA_FIELDS = [
   'impactNote',
 ] as const;
 
-export type Pmegp2ndExtraField = (typeof PMEGP_2ND_EXTRA_FIELDS)[number];
 
 export const PMEGP_2ND_PRIOR_SCHEME_OPTIONS: { value: Pmegp2ndPriorScheme; label: string }[] = [
   { value: 'PMEGP', label: 'PMEGP (1st loan)' },
@@ -67,7 +66,7 @@ export function pmegp2ndSubsidyPercent(nerHill?: string): number {
 }
 
 /** Max project cost (₹ lakhs) by sector band. */
-export function pmegp2ndMaxProjectLakhs(sectorBand?: string): number {
+function pmegp2ndMaxProjectLakhs(sectorBand?: string): number {
   return sectorBand === 'service' ? 25 : 100;
 }
 

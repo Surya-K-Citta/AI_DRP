@@ -11,7 +11,6 @@ export const CVY_EXTRA_FIELDS = [
   'premisesType',
 ] as const;
 
-export type CvyExtraField = (typeof CVY_EXTRA_FIELDS)[number];
 
 export const CVY_BOARD_STATUS_OPTIONS = [
   { value: 'registered', label: 'Registered with Coir Board' },

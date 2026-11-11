@@ -6,7 +6,7 @@ import { User } from '../models/User.model';
 import { AuditService } from './audit.service';
 import { NotifyService } from './notify.service';
 import { retentionIdleDays, retentionWarningDays, auditRetentionDays } from '../lib/kycStorage';
-import { AuditEvent } from '../models/AuditEvent.model';
+import { purgeAuditEvents } from '../lib/auditChain';
 import { CloudinaryService } from './cloudinary.service';
 import fs from 'fs';
 import path from 'path';
@@ -18,6 +18,8 @@ export type RetentionResult = {
   idleDays: number;
   warningDays: number;
   auditDays: number;
+  /** Idle reports left alone because of a retention hold. */
+  held: number;
   details: Array<{ dprId: string; action: 'warn' | 'purge'; userId?: string }>;
 };
 
@@ -130,11 +132,23 @@ export async function runRetentionJob(): Promise<RetentionResult> {
     idleDays,
     warningDays,
     auditDays,
+    held: 0,
     details: [],
   };
 
   // No status filter: submitted copies use the same last-edit clock as drafts.
-  const idle = await DPRVersion.find({ updatedAt: { $lte: warnAgeBefore } });
+  // A report the department has asked in writing to keep (retentionHold) is skipped until the hold is lifted or its
+  // end date passes. Setting a hold clears any earlier warning, so a released report is warned again before deletion.
+  const now = new Date();
+  const idle = await DPRVersion.find({
+    updatedAt: { $lte: warnAgeBefore },
+    $nor: [
+      {
+        'retentionHold.active': true,
+        $or: [{ 'retentionHold.until': null }, { 'retentionHold.until': { $gt: now } }],
+      },
+    ],
+  });
 
   for (const dpr of idle) {
     const userId = dpr.userId?.toString();
@@ -201,9 +215,15 @@ export async function runRetentionJob(): Promise<RetentionResult> {
     result.details.push({ dprId, action: 'purge', userId });
   }
 
+  result.held = await DPRVersion.countDocuments({
+    updatedAt: { $lte: warnAgeBefore },
+    'retentionHold.active': true,
+    $or: [{ 'retentionHold.until': null }, { 'retentionHold.until': { $gt: now } }],
+  });
+
   const auditCutoff = new Date(Date.now() - auditDays * dayMs);
-  const auditDelete = await AuditEvent.deleteMany({ at: { $lt: auditCutoff } });
-  result.auditPurged = auditDelete.deletedCount || 0;
+  // The only place audit rows are removed; it keeps an anchor so the hash chain still verifies.
+  result.auditPurged = await purgeAuditEvents(auditCutoff);
   if (result.auditPurged) {
     console.info(`[retention] erased ${result.auditPurged} audit rows older than ${auditDays} days`);
   }

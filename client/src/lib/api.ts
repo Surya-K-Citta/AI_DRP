@@ -1,8 +1,20 @@
 // @ts-nocheck
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
-import { MockDataService } from './mockData';
+// The offline sample data is large and only used when the server cannot be reached, so it loads on first use.
+const MockDataService: any = new Proxy(
+  {},
+  {
+    get: (_target, method: string) => (...args: unknown[]) =>
+      import('./mockData').then((module: any) => module.MockDataService[method](...args)),
+  }
+);
 import { OfflineDetector } from './offlineDetector';
+import { useAuthStore } from '@/store/authStore';
+import { useSessionClock } from './sessionClock';
+import { sanitizeDeep } from './security/sanitizeText';
+import { checkUploadFile, type UploadKind } from './security/fileGuard';
+import { translateNow } from './clusterDprFormText';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true' || false;
@@ -73,6 +85,8 @@ class APIClient {
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
+      // The refresh cookie is httpOnly and only sent to /api/auth.
+      withCredentials: true,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -86,6 +100,12 @@ class APIClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
         
+        // Clean every JSON body before it leaves the browser (operator keys, script markup, control characters).
+        // The page-capture HTML for PDF and Word export is cleaned by the server's stricter document sanitiser instead.
+        if (config.data && typeof config.data === 'object' && !(config.data instanceof FormData) && !/\/download\/(pdf|docx)\/html$/.test(config.url || '')) {
+          config.data = sanitizeDeep(config.data);
+        }
+
         // Remove Content-Type header for FormData - let axios set it automatically with boundary
         if (config.data instanceof FormData) {
           delete config.headers['Content-Type'];
@@ -100,6 +120,18 @@ class APIClient {
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
+        // An expired access token: renew it quietly and repeat the request once.
+        const original: any = error.config;
+        const authCall = /\/auth\/(login|register|refresh|logout)/.test(original?.url || '');
+        if (error.response?.status === 401 && original && !original._retried && !authCall && localStorage.getItem('token')) {
+          original._retried = true;
+          const fresh = await this.refreshSession();
+          if (fresh) {
+            original.headers = { ...original.headers, Authorization: `Bearer ${fresh}` };
+            return this.client(original);
+          }
+        }
+
         // Check if it's a network error and we should use mock data
         const isNetworkError = OfflineDetector.isNetworkError(error) || !OfflineDetector.getStatus();
         
@@ -247,6 +279,39 @@ class APIClient {
     );
   }
 
+  private refreshing: Promise<string | null> | null = null;
+
+  /**
+   * Swap the refresh cookie for a new token. One call at a time, shared by everyone waiting.
+   * Returns the new token, or null when the session has ended (then the re-sign-in screen opens).
+   */
+  refreshSession(): Promise<string | null> {
+    if (this.refreshing) return this.refreshing;
+    // Once the session has ended only signing in again can start a new one.
+    if (useSessionClock.getState().phase === 'expired') return Promise.resolve(null);
+    this.refreshing = (async () => {
+      try {
+        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+        const data = response.data?.data;
+        if (!data?.token) throw new Error('No token');
+        const { token, expiresInSeconds, ...user } = data;
+        localStorage.setItem('token', token);
+        useAuthStore.setState((state: any) => ({ token, user: state.user ? { ...state.user, ...user } : state.user }));
+        useSessionClock.getState().setToken(token);
+        return token as string;
+      } catch (error: any) {
+        const code = error?.response?.data?.code;
+        if (error?.response?.status === 401) {
+          useSessionClock.getState().markExpired(code === 'SESSION_IDLE' ? 'idle' : code === 'ACCOUNT_DEACTIVATED' ? 'deactivated' : 'expired');
+        }
+        return null;
+      } finally {
+        this.refreshing = null;
+      }
+    })();
+    return this.refreshing;
+  }
+
   async login(email: string, password: string) {
     this.clearCache('/auth/profile');
     return this.handleRequest(
@@ -256,6 +321,11 @@ class APIClient {
       },
       () => MockDataService.login(email, password)
     );
+  }
+
+  /** Drop every cached response (cached lists belong to the person who just signed out). */
+  resetSession(): void {
+    this.clearCache();
   }
 
   async logout() {
@@ -329,6 +399,16 @@ class APIClient {
     return response.data;
   }
 
+  async translateUserTexts(texts: string[]) {
+    const response = await this.client.post('/ai/translate-texts', { texts });
+    return response.data;
+  }
+
+  async getMyPrivacyRequests() {
+    const response = await this.client.get('/privacy/complaints');
+    return response.data;
+  }
+
   async getPrivacyActivity() {
     const response = await this.client.get('/privacy/activity');
     return response.data;
@@ -366,6 +446,57 @@ class APIClient {
       params,
       responseType: 'blob',
     });
+    return response.data;
+  }
+
+  // DPDP operations (admin): privacy requests, breach register, retention holds, readiness
+  async adminListComplaints(status?: string) {
+    const response = await this.client.get('/admin/complaints', { params: status ? { status } : undefined });
+    return response.data;
+  }
+
+  async adminUpdateComplaint(id: string, data: { status?: string; response?: string; assignedTo?: string; internalNote?: string }) {
+    const response = await this.client.patch(`/admin/complaints/${id}`, data);
+    return response.data;
+  }
+
+  async adminListIncidents() {
+    const response = await this.client.get('/admin/incidents');
+    return response.data;
+  }
+
+  async adminCreateIncident(data: Record<string, unknown>) {
+    const response = await this.client.post('/admin/incidents', data);
+    return response.data;
+  }
+
+  async adminUpdateIncident(id: string, data: Record<string, unknown>) {
+    const response = await this.client.patch(`/admin/incidents/${id}`, data);
+    return response.data;
+  }
+
+  async adminNotifyIncidentUsers(id: string, message: string) {
+    const response = await this.client.post(`/admin/incidents/${id}/notify-users`, { message });
+    return response.data;
+  }
+
+  async adminListRetentionHolds() {
+    const response = await this.client.get('/admin/retention/holds');
+    return response.data;
+  }
+
+  async adminSetRetentionHold(dprId: string, data: { reason: string; reference: string; until?: string }) {
+    const response = await this.client.post(`/admin/dprs/${dprId}/retention-hold`, data);
+    return response.data;
+  }
+
+  async adminLiftRetentionHold(dprId: string) {
+    const response = await this.client.delete(`/admin/dprs/${dprId}/retention-hold`);
+    return response.data;
+  }
+
+  async adminComplianceStatus() {
+    const response = await this.client.get('/admin/compliance/status');
     return response.data;
   }
 
@@ -544,7 +675,7 @@ class APIClient {
     return response.data;
   }
 
-  async downloadPDF(dprId: string, language: string = 'english', enhancedParagraphs?: Record<string, string>) {
+  async downloadPDF(dprId: string, language: string = 'english', enhancedParagraphs?: Record<string, string>, signal?: AbortSignal) {
     // Use POST if enhanced paragraphs are provided, otherwise use GET for backward compatibility
     if (enhancedParagraphs && Object.keys(enhancedParagraphs).length > 0) {
       const response = await this.client.post(`/dpr/${dprId}/download/pdf`, 
@@ -559,6 +690,8 @@ class APIClient {
       const response = await this.client.get(`/dpr/${dprId}/download/pdf`, {
         params: { language },
         responseType: 'blob',
+        timeout: 150000,
+        signal,
       });
       return response.data;
     }
@@ -568,30 +701,44 @@ class APIClient {
    * Download PDF generated from client-rendered HTML (exact match with preview).
    * Primarily used for Cluster DPRs rendered by `ClusterDPRDocumentView`.
    */
-  async downloadPDFExactFromHTML(dprId: string, html: string, language: string = 'english') {
+  async downloadPDFExactFromHTML(dprId: string, html: string, language: string = 'english', signal?: AbortSignal) {
     const response = await this.client.post(
       `/dpr/${dprId}/download/pdf/html`,
       { html },
       {
         params: { language },
         responseType: 'blob',
+        timeout: 150000,
+        signal,
       }
     );
     return response.data;
   }
 
-  async downloadDOCX(dprId: string, language: string = 'english') {
-    const response = await this.client.get(`/dpr/${dprId}/download/docx`, {
-      params: { language },
-      responseType: 'blob',
-    });
+  /**
+   * The Word file built from the same on-screen report HTML the PDF is printed from, so both have the same content
+   * and structure.
+   */
+  async downloadDOCXExactFromHTML(dprId: string, html: string, language: string = 'english', signal?: AbortSignal) {
+    const response = await this.client.post(
+      `/dpr/${dprId}/download/docx/html`,
+      { html },
+      {
+        params: { language },
+        responseType: 'blob',
+        timeout: 90000,
+        signal,
+      }
+    );
     return response.data;
   }
 
-  async downloadXLS(dprId: string, language: string = 'english') {
-    const response = await this.client.get(`/dpr/${dprId}/download/xls`, {
+  async downloadDOCX(dprId: string, language: string = 'english', signal?: AbortSignal) {
+    const response = await this.client.get(`/dpr/${dprId}/download/docx`, {
       params: { language },
       responseType: 'blob',
+      timeout: 90000,
+      signal,
     });
     return response.data;
   }
@@ -817,7 +964,18 @@ class APIClient {
     return response.data as Blob;
   }
 
+  /** Stops a bad file on the device with a clear message; the server checks again. */
+  private async guardFile(file: File, accepted: UploadKind[]): Promise<void> {
+    const verdict = await checkUploadFile(file, accepted);
+    if (!verdict.ok) {
+      const message = translateNow(verdict.reason);
+      toast.error(message);
+      throw new Error(message);
+    }
+  }
+
   async uploadClusterDPRImage(file: File) {
+    await this.guardFile(file, ['image']);
     return this.handleRequest(
       async () => {
         const formData = new FormData();
@@ -985,6 +1143,7 @@ class APIClient {
   }
 
   async uploadClusterDPRDocument(file: File) {
+    await this.guardFile(file, ['document', 'image', 'text']);
     return this.handleRequest(
       async () => {
         const formData = new FormData();
@@ -1068,7 +1227,15 @@ class APIClient {
     );
   }
 
+  async deleteDPR(dprId: string) {
+    this.clearCache('/dpr');
+    this.clearCache('/projects');
+    const response = await this.client.delete(`/dpr/${dprId}`);
+    return response.data;
+  }
+
   async uploadDPR(file: File) {
+    await this.guardFile(file, ['document', 'text']);
     const formData = new FormData();
     formData.append('file', file);
     
@@ -1209,6 +1376,7 @@ class APIClient {
   }
 
   async transcribeAudio(audioFile: File, language?: 'en' | 'te') {
+    await this.guardFile(audioFile, ['audio']);
     const formData = new FormData();
     formData.append('audio', audioFile);
     if (language) {
@@ -1243,6 +1411,12 @@ class APIClient {
       },
       () => MockDataService.getAnalytics()
     );
+  }
+
+  /** The Analytics tab: all its numbers, charts and recent activity for one set of filters. Real data only (no offline stand-in). */
+  async getAnalyticsOverview(params?: Record<string, string | number | undefined>) {
+    const response = await this.client.get('/admin/analytics/overview', { params });
+    return response.data;
   }
 
   async getAllUsers(params?: any) {
@@ -1316,6 +1490,7 @@ class APIClient {
 
   // Document management endpoints
   async uploadDocument(file: File, metadata: any) {
+    await this.guardFile(file, ['document', 'text']);
     const formData = new FormData();
     formData.append('file', file);
     Object.keys(metadata).forEach(key => {
@@ -1436,6 +1611,61 @@ class APIClient {
   }
 
   // Admin user management endpoints
+  async getReviewSummary() {
+    const response = await this.client.get('/reviewer/summary');
+    return response.data;
+  }
+
+  async getReviewQueue(params: { status?: string; district?: string } = {}) {
+    const response = await this.client.get('/reviewer/dprs', { params });
+    return response.data;
+  }
+
+  async reviewDPR(dprId: string, decision: 'approve' | 'reject', remarks?: string) {
+    const response = await this.client.post(`/reviewer/dprs/${dprId}/review`, { decision, remarks });
+    return response.data;
+  }
+
+  async inviteUser(data: { name: string; email: string; role: string; reviewDistrict?: string }) {
+    const response = await this.client.post('/admin/users/invite', data);
+    return response.data;
+  }
+
+  async deactivateUser(userId: string, reason: string) {
+    const response = await this.client.post(`/admin/users/${userId}/deactivate`, { reason });
+    return response.data;
+  }
+
+  async reactivateUser(userId: string) {
+    const response = await this.client.post(`/admin/users/${userId}/reactivate`);
+    return response.data;
+  }
+
+  async revokeUserSessions(userId: string) {
+    const response = await this.client.post(`/admin/users/${userId}/revoke-sessions`);
+    return response.data;
+  }
+
+  async verifyAuditLog() {
+    const response = await this.client.get('/admin/audit/verify');
+    return response.data;
+  }
+
+  async getAiStatus() {
+    const response = await this.client.get('/admin/ai/status');
+    return response.data;
+  }
+
+  async getInvite(token: string) {
+    const response = await this.client.get(`/auth/invite/${encodeURIComponent(token)}`);
+    return response.data;
+  }
+
+  async acceptInvite(data: Record<string, unknown>) {
+    const response = await this.client.post('/auth/accept-invite', data);
+    return response.data;
+  }
+
   async updateUserAdmin(userId: string, data: any) {
     const response = await this.client.put(`/admin/users/${userId}`, data);
     return response.data;

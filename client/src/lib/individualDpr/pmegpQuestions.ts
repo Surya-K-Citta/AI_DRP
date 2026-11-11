@@ -4,9 +4,9 @@
  * Step list: PMEGP_STEPS in schemeStepCatalog.ts (14 consecutive steps).
  */
 
-export type PmegpCategory = 'general' | 'special';
-export type PmegpArea = 'rural' | 'urban';
-export type PmegpAgency = 'KVIC' | 'KVIB' | 'DIC';
+type PmegpCategory = 'general' | 'special';
+type PmegpArea = 'rural' | 'urban';
+type PmegpAgency = 'KVIC' | 'KVIB' | 'DIC';
 
 /** Extra fields collected for PMEGP (stored in schemeExtras). */
 export const PMEGP_EXTRA_FIELDS = [
@@ -28,7 +28,6 @@ export const PMEGP_EXTRA_FIELDS = [
   'impactNote',
 ] as const;
 
-export type PmegpExtraField = (typeof PMEGP_EXTRA_FIELDS)[number];
 
 export const PMEGP_CATEGORY_OPTIONS: { value: PmegpCategory; label: string }[] = [
   { value: 'general', label: 'General category' },

@@ -1,4 +1,8 @@
 // @ts-nocheck
+import { basicMissing, financeBlockers } from '../lib/financeGuard';
+import { contentDisposition, fileResponseHeaders } from '../lib/security/http';
+import { extensionForMime, safeFileName } from '../lib/security/uploadGuard';
+import { staffMayViewProject, staffMayViewUserFiles } from '../lib/staffScope';
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import { ClusterDPRService } from '../services/clusterDPR.service';
@@ -8,6 +12,7 @@ import { Project } from '../models/Project.model';
 import { DPRVersion } from '../models/DPRVersion.model';
 import { ClusterSection } from '../models/ClusterSection.model';
 import { payloadHasUnder18Applicant, under18Response } from '../lib/under18';
+import { findEditableDraft } from '../lib/dprDraftLookup';
 import { AuditService } from '../services/audit.service';
 import { KycFile } from '../models/KycFile.model';
 import {
@@ -100,6 +105,23 @@ export class ClusterDPRController {
         return;
       }
 
+      // An individual DPR is only generated when its required answers are in and the money side holds together.
+      const generatingIndividual = Boolean(clusterData.isIndividualDPR || clusterData.metadata?.isIndividualDPR);
+      if (generatingIndividual && req.user?.role !== 'admin') {
+        const missing = basicMissing(clusterData);
+        const blockers = financeBlockers(clusterData);
+        if (missing.length || blockers.length) {
+          res.status(422).json({
+            success: false,
+            code: 'DPR_NOT_READY',
+            message: 'The DPR cannot be generated yet. Fix the items listed and try again.',
+            missing,
+            blockers,
+          });
+          return;
+        }
+      }
+
       console.log(`📝 Generating Cluster DPR for user ${userId}...`);
       
       // Log complete data being sent for generation
@@ -175,7 +197,12 @@ export class ClusterDPRController {
       }
 
       const isOwner = dpr.userId?.toString() === userId.toString();
-      const isStaff = req.user?.role === 'admin' || req.user?.role === 'officer';
+      let isStaff = false;
+      if (!isOwner) {
+        const { Project: ProjectModel } = await import('../models/Project.model');
+        const owningProject = await ProjectModel.findById(dpr.projectId).lean();
+        isStaff = await staffMayViewProject(userId, owningProject);
+      }
       if (!isOwner && !isStaff) {
         res.status(403).json({
           success: false,
@@ -309,7 +336,7 @@ export class ClusterDPRController {
         },
         filename: (req, file, cb) => {
           const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-          cb(null, uniqueSuffix + path.extname(file.originalname));
+          cb(null, uniqueSuffix + extensionForMime(file.mimetype));
         },
       }),
       limits: {
@@ -341,7 +368,7 @@ export class ClusterDPRController {
         },
         filename: (req, file, cb) => {
           const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-          cb(null, uniqueSuffix + path.extname(file.originalname));
+          cb(null, uniqueSuffix + extensionForMime(file.mimetype));
         },
       }),
       limits: {
@@ -723,6 +750,11 @@ export class ClusterDPRController {
         return;
       }
 
+      if (String(unitName).length > 200) {
+        res.status(400).json({ success: false, message: 'The unit / project name must be 200 characters or fewer' });
+        return;
+      }
+
       if (payloadHasUnder18Applicant(clusterData)) {
         res.status(403).json(under18Response());
         return;
@@ -734,34 +766,46 @@ export class ClusterDPRController {
       const projectType = isIndividual ? 'individual' : 'cluster';
 
       // Find or create project for this draft
+      // A project id sent by the caller is honoured only for the caller's own project (BUG-009); otherwise it is "not found".
       let project = clusterData.projectId
-        ? await Project.findById(clusterData.projectId)
+        ? await Project.findOne({ _id: clusterData.projectId, userId })
         : await Project.findOne({
             userId,
             projectName: unitName,
             projectType,
           });
 
+      if (clusterData.projectId && !project) {
+        res.status(404).json({ success: false, message: 'Project not found' });
+        return;
+      }
+
       // Calculate total cost from step 12 if available
+      // Amounts may arrive as text ("2.4"); adding text with + would join it ("0.002.4") and the project would not save.
+      const amount = (value: unknown) => {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : 0;
+      };
       const totalCost = clusterData.step12
-        ? (clusterData.step12.land || 0) +
-        (clusterData.step12.building || 0) +
-        (clusterData.step12.machinery || 0) +
-        (clusterData.step12.utilitiesAndInfrastructure || 0) +
-        (clusterData.step12.preliminaryAndPreOperative || 0) +
-        (clusterData.step12.workingCapitalMargin || 0)
+        ? amount(clusterData.step12.land) +
+          amount(clusterData.step12.building) +
+          amount(clusterData.step12.machinery) +
+          amount(clusterData.step12.utilitiesAndInfrastructure) +
+          amount(clusterData.step12.preliminaryAndPreOperative) +
+          amount(clusterData.step12.workingCapitalMargin)
         : 0;
 
       // Calculate own contribution from step 13 if available
-      const ownContribution = clusterData.step13?.spvContribution || 0;
-      const loanAmount = clusterData.step13?.bankLoan || 0;
+      const ownContribution = amount(clusterData.step13?.spvContribution);
+      const loanAmount = amount(clusterData.step13?.bankLoan);
 
       if (!project) {
         project = await Project.create({
           userId,
           projectName: unitName,
           industrySector: clusterData.step2?.sectorType || (isIndividual ? 'Individual unit' : 'Cluster Development'),
-          location: clusterData.step1?.location || '',
+          // A draft may be saved before the town is chosen; "Unknown" is the placeholder the lists already hide.
+          location: clusterData.step1?.location || 'Unknown',
           district: clusterData.step1?.district || '',
           projectType,
           totalCost: totalCost || 0,
@@ -773,7 +817,11 @@ export class ClusterDPRController {
         console.log('✅ Created new cluster project for draft:', project._id);
       } else {
         // Update existing project
-        project.stepData = clusterData;
+        // Project has `strict: false` and no declared stepData path, so a plain assignment is silently not saved.
+        project.set('stepData', clusterData);
+        project.markModified('stepData');
+        if (clusterData.step1?.location) project.location = clusterData.step1.location;
+        if (clusterData.step1?.district) project.district = clusterData.step1.district;
         project.totalCost = totalCost || project.totalCost || 0;
         project.ownContribution = ownContribution || project.ownContribution || 0;
         project.loanAmount = loanAmount || project.loanAmount || 0;
@@ -783,11 +831,8 @@ export class ClusterDPRController {
       }
 
       // Create or update DPRVersion record
-      let dprVersion = await DPRVersion.findOne({
-        projectId: project._id.toString(),
-        userId,
-        status: 'draft',
-      }).sort({ createdAt: -1 });
+      // The DPR the person has open (its id is sent with their answers), else the latest draft of the project.
+      let dprVersion = await findEditableDraft(project._id.toString(), userId, clusterData.dprId);
 
       if (!dprVersion) {
         // Create base DPRVersion record
@@ -829,6 +874,10 @@ export class ClusterDPRController {
         dprVersion.content.telugu.isIndividualDPR = isIndividual;
         dprVersion.content.telugu.matchedSchemeCode = clusterData.matchedSchemeCode || null;
         dprVersion.content.telugu.clusterData = clusterData;
+        // content.english / content.telugu are Mixed: changing them in place is not noticed unless marked,
+        // which left every save after the first one unsaved.
+        dprVersion.markModified('content.english');
+        dprVersion.markModified('content.telugu');
         await dprVersion.save();
         console.log('✅ Updated DPRVersion record:', dprVersion._id);
       }
@@ -1706,8 +1755,8 @@ export class ClusterDPRController {
         res.status(404).json({ success: false, message: 'File not found' });
         return;
       }
-      const staff = role === 'admin' || role === 'officer';
-      if (file.userId !== userId && !staff) {
+      const staff = file.userId === userId ? true : await staffMayViewUserFiles(userId, String(file.userId));
+      if (!staff) {
         res.status(403).json({ success: false, message: 'Not allowed' });
         return;
       }
@@ -1717,6 +1766,8 @@ export class ClusterDPRController {
       }
       const bytes = readKycBytes(file.storagePath);
       res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', contentDisposition('inline', file.originalName || 'file'));
+      fileResponseHeaders(res);
       res.setHeader('Cache-Control', 'private, max-age=60');
       res.send(bytes);
     } catch (error: any) {

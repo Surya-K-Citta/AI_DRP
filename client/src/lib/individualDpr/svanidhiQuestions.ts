@@ -4,9 +4,9 @@
  * Step list: SVANIDHI_STEPS in schemeStepCatalog.ts (10 consecutive steps).
  */
 
-export type SvanidhiProof = 'cov' | 'lor';
-export type SvanidhiLoanTranche = 'first' | 'second' | 'third';
-export type SvanidhiVendingType =
+type SvanidhiProof = 'cov' | 'lor';
+type SvanidhiLoanTranche = 'first' | 'second' | 'third';
+type SvanidhiVendingType =
   | 'footpath'
   | 'cart'
   | 'stall'
@@ -28,7 +28,6 @@ export const SVANIDHI_EXTRA_FIELDS = [
   'powerRequirement',
 ] as const;
 
-export type SvanidhiExtraField = (typeof SVANIDHI_EXTRA_FIELDS)[number];
 
 export const SVANIDHI_PROOF_OPTIONS: { value: SvanidhiProof; label: string }[] = [
   { value: 'cov', label: 'Certificate of Vending / Vendor ID (ULB / TVC)' },
@@ -57,9 +56,9 @@ export const SVANIDHI_VENDING_OPTIONS: {
 ];
 
 /** Tranche ceilings in ₹ lakhs (restructured MoHUA guidelines). */
-export const SVANIDHI_TRANCHE1_LAKHS = 0.15;
-export const SVANIDHI_TRANCHE2_LAKHS = 0.25;
-export const SVANIDHI_TRANCHE3_LAKHS = 0.5;
+const SVANIDHI_TRANCHE1_LAKHS = 0.15;
+const SVANIDHI_TRANCHE2_LAKHS = 0.25;
+const SVANIDHI_TRANCHE3_LAKHS = 0.5;
 
 /** Interest subsidy % p.a. credited quarterly when account is Standard. */
 export const SVANIDHI_INTEREST_SUBSIDY_PERCENT = 7;

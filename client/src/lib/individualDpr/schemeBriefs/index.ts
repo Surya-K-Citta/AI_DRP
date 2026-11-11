@@ -19,6 +19,3 @@ export function briefLangFromI18n(language: string | undefined): BriefLang {
   return language?.startsWith('te') ? 'te' : 'en';
 }
 
-export function listBriefCodes(): string[] {
-  return Object.keys(ALL);
-}

@@ -3,9 +3,9 @@
  * Only PMEGP and AP CMEP have distinct skins for now; others use the default shell.
  */
 
-export type SchemeUiTemplateId = 'PMEGP' | 'AP_CMEP';
+type SchemeUiTemplateId = 'PMEGP' | 'AP_CMEP';
 
-export type SchemeUiTemplate = {
+type SchemeUiTemplate = {
   id: SchemeUiTemplateId;
   /** Short badge on form banner + document cover */
   badge: string;

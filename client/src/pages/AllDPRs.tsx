@@ -1,7 +1,8 @@
 // @ts-nocheck
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 import { api } from '@/lib/api';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -10,20 +11,24 @@ import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/store/authStore';
 import { isSuperAdmin } from '@/lib/rbac';
 import { useDPRStore } from '@/store/dprStore';
+import { useDprActions } from '@/lib/dprActions';
 import { 
   FileText, 
   Search,
   Download,
   Eye,
+  Pencil,
+  Trash2,
   CheckCircle,
   Clock,
-  AlertCircle,
+  Send,
   BarChart3,
   X,
   Sparkles,
   Upload,
   Loader2,
   XCircle,
+  Wand2,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
@@ -48,15 +53,31 @@ type StatusFilter = 'all' | 'draft' | 'analyzed' | 'submitted' | 'approved' | 'r
 
 export const AllDPRs: React.FC = () => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const isAdmin = isSuperAdmin(user?.role);
   const { dprs: cachedDPRs, setDPRs, isStale } = useDPRStore();
   const [dprs, setDprs] = useState<DPR[]>(cachedDPRs);
+  const { edit: editDpr, askDelete, deleteDialog } = useDprActions((dprId: string) => {
+    setDprs((current: DPR[]) => {
+      const remaining = current.filter((item) => item._id !== dprId);
+      setDPRs(remaining);
+      return remaining;
+    });
+  });
+  // Staff see everyone's DPRs here; only the owner can edit or delete one.
+  const ownsDpr = (dpr: DPR) =>
+    !isAdmin || !dpr.projectId?.userId || String(dpr.projectId.userId) === String(user?.userId);
   const [filteredDprs, setFilteredDprs] = useState<DPR[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  // The dashboard cards link here with ?status=draft (etc.), so the list opens already filtered.
+  const [urlParams] = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(() => {
+    const wanted = urlParams.get('status');
+    return (['draft', 'analyzed', 'submitted', 'approved', 'rejected'] as const).find((s) => s === wanted) ?? 'all';
+  });
   const [activeTag, setActiveTag] = useState('');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -125,11 +146,11 @@ export const AllDPRs: React.FC = () => {
       
       // Check if it's a connection error
       if (error.code === 'ERR_NETWORK' || error.message?.includes('ERR_CONNECTION_REFUSED')) {
-        toast.error('Cannot connect to server. Please make sure the backend server is running on port 5000.', {
+        toast.error(tf('Cannot connect to server. Please make sure the backend server is running on port 5000.'), {
           duration: 5000,
         });
       } else {
-        toast.error(error.response?.data?.message || 'Failed to load DPRs');
+        toast.error(error.response?.data?.message || tf('Failed to load DPRs'));
       }
       // Set empty array on error to prevent iteration errors
       setDprs([]);
@@ -141,22 +162,22 @@ export const AllDPRs: React.FC = () => {
   const handleApproveDPR = async (dprId: string) => {
     try {
       await api.approveDPR(dprId);
-      toast.success('DPR approved successfully');
+      toast.success(tf('DPR approved successfully'));
       loadDPRs();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to approve DPR');
+      toast.error(error.response?.data?.message || tf('Failed to approve DPR'));
     }
   };
 
   const handleRejectDPR = async (dprId: string) => {
-    const reason = prompt('Please provide a reason for rejection:');
+    const reason = prompt(tf('Please provide a reason for rejection:'));
     if (!reason) return;
     try {
       await api.rejectDPR(dprId, reason);
-      toast.success('DPR rejected successfully');
+      toast.success(tf('DPR rejected successfully'));
       loadDPRs();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to reject DPR');
+      toast.error(error.response?.data?.message || tf('Failed to reject DPR'));
     }
   };
 
@@ -238,15 +259,15 @@ export const AllDPRs: React.FC = () => {
     if (!status) return 'bg-muted/50 text-muted-foreground';
     switch (status) {
       case 'approved':
-        return 'bg-success/10 text-success border border-success/20';
+        return 'bg-success/10 text-success-text border border-success/20';
       case 'submitted':
-        return 'bg-secondary/10 text-secondary border border-secondary/20';
+        return 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20';
       case 'draft':
-        return 'bg-warning/10 text-warning border border-warning/20';
+        return 'bg-warning/10 text-warning-text border border-warning/20';
       case 'analyzed':
         return 'bg-primary/10 text-primary border border-primary/20';
       case 'rejected':
-        return 'bg-destructive/10 text-destructive border border-destructive/20';
+        return 'bg-destructive/10 text-destructive-text border border-destructive/20';
       default:
         return 'bg-muted/50 text-muted-foreground border border-border';
     }
@@ -258,7 +279,7 @@ export const AllDPRs: React.FC = () => {
       case 'approved':
         return <CheckCircle className="h-4 w-4" />;
       case 'submitted':
-        return <AlertCircle className="h-4 w-4" />;
+        return <Send className="h-4 w-4" />;
       case 'draft':
         return <Clock className="h-4 w-4" />;
       case 'analyzed':
@@ -276,10 +297,10 @@ export const AllDPRs: React.FC = () => {
   };
 
   const getQualityLabel = (score?: number) => {
-    if (!score) return 'Not Analyzed';
-    if (score >= 80) return 'Excellent';
-    if (score >= 60) return 'Good';
-    return 'Needs Improvement';
+    if (!score) return tf('Not Analyzed');
+    if (score >= 80) return tf('Excellent');
+    if (score >= 60) return tf('Good');
+    return tf('Needs Improvement');
   };
 
   const handleDownloadPDF = async (dpr: DPR, language: 'english' | 'telugu' = 'english') => {
@@ -299,10 +320,10 @@ export const AllDPRs: React.FC = () => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success('PDF downloaded successfully');
+      toast.success(tf('PDF downloaded successfully'));
     } catch (error) {
       console.error('Failed to download PDF:', error);
-      toast.error('Failed to download PDF');
+      toast.error(tf('Failed to download PDF'));
     }
   };
 
@@ -332,13 +353,13 @@ export const AllDPRs: React.FC = () => {
                        file.type === ''; // Some browsers don't report MIME type for .doc files
 
     if (!isValidType) {
-      toast.error('Invalid file type. Please upload PDF, DOC, DOCX, TXT, or MD files.');
+      toast.error(tf('Invalid file type. Please upload PDF, DOC, DOCX, TXT, or MD files.'));
       return;
     }
 
     // Validate file size (50MB limit)
     if (file.size > 50 * 1024 * 1024) {
-      toast.error('File size exceeds 50MB limit.');
+      toast.error(tf('File size exceeds 50MB limit.'));
       return;
     }
 
@@ -365,7 +386,7 @@ export const AllDPRs: React.FC = () => {
 
       if (response.success) {
         setUploadResult(response.data);
-        toast.success('DPR uploaded and analyzed successfully!');
+        toast.success(tf('DPR uploaded and analyzed successfully!'));
         
         // Reload DPRs list
         await loadDPRs();
@@ -384,30 +405,30 @@ export const AllDPRs: React.FC = () => {
       if (error.code === 'ERR_NETWORK' || 
           error.message?.includes('ERR_CONNECTION_REFUSED') ||
           error.code === 'ECONNREFUSED') {
-        toast.error('Cannot connect to server. Please make sure the backend server is running on port 5000.', {
+        toast.error(tf('Cannot connect to server. Please make sure the backend server is running on port 5000.'), {
           duration: 6000,
         });
       } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        toast.error('Upload timeout. The file may be too large or the server is taking too long to process.', {
+        toast.error(tf('Upload timeout. The file may be too large or the server is taking too long to process.'), {
           duration: 5000,
         });
       } else if (error.response?.status === 400) {
         // Bad Request - likely file validation issue
         const errorMessage = error.response?.data?.message || 
                             error.response?.data?.error || 
-                            'Invalid file. Please check the file format and try again.';
+                            tf('Invalid file. Please check the file format and try again.');
         toast.error(errorMessage, {
           duration: 5000,
         });
       } else if (error.response?.status === 401) {
-        toast.error('Please log in again to upload DPRs.', {
+        toast.error(tf('Please log in again to upload DPRs.'), {
           duration: 5000,
         });
       } else {
         const errorMessage = error.response?.data?.message || 
                             error.response?.data?.error || 
                             error.message || 
-                            'Failed to upload DPR. Please check the file format and try again.';
+                            tf('Failed to upload DPR. Please check the file format and try again.');
         toast.error(errorMessage, {
           duration: 5000,
         });
@@ -449,9 +470,9 @@ export const AllDPRs: React.FC = () => {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading DPRs...</p>
+            <p className="text-muted-foreground">{tf('Loading DPRs...')}</p>
             <p className="text-xs text-muted-foreground mt-2">
-              If this takes too long, make sure the backend server is running
+              {tf('If this takes too long, make sure the backend server is running')}
             </p>
           </div>
         </div>
@@ -473,7 +494,7 @@ export const AllDPRs: React.FC = () => {
               }
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <input
               ref={fileInputRef}
               type="file"
@@ -491,12 +512,12 @@ export const AllDPRs: React.FC = () => {
               {uploading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Uploading...
+                  {tf('Uploading...')}
                 </>
               ) : (
                 <>
                   <Upload className="h-4 w-4 mr-2" />
-                  Upload DPR
+                  {tf('Upload DPR')}
                 </>
               )}
             </Button>
@@ -513,7 +534,15 @@ export const AllDPRs: React.FC = () => {
               className="bg-primary hover:bg-primary/90 text-white"
             >
               <FileText className="h-4 w-4 mr-2" />
-              Create DPR
+              {tf('Create DPR')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/individual-dpr/guide')}
+              className="border-2"
+            >
+              <Wand2 className="h-4 w-4 mr-2" />
+              {t('reportGuide.open')}
             </Button>
           </div>
         </div>
@@ -524,7 +553,7 @@ export const AllDPRs: React.FC = () => {
             <CardContent className="pt-6">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Uploading and analyzing DPR...</span>
+                  <span className="text-sm font-medium">{tf('Uploading and analyzing DPR...')}</span>
                   <span className="text-sm text-muted-foreground">{uploadProgress}%</span>
                 </div>
                 <div className="w-full bg-muted rounded-full h-2">
@@ -534,7 +563,7 @@ export const AllDPRs: React.FC = () => {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  AI is extracting content, analyzing structure, and calculating quality score...
+                  {tf('AI is extracting content, analyzing structure, and calculating quality score...')}
                 </p>
               </div>
             </CardContent>
@@ -548,14 +577,14 @@ export const AllDPRs: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-success" />
-                  <h3 className="font-semibold text-lg">DPR Uploaded Successfully!</h3>
+                  <h2 className="font-semibold text-lg">{tf('DPR Uploaded Successfully!')}</h2>
                 </div>
                 
                 {uploadResult.qualityAnalysis && (
                   <div className="space-y-3">
                     <div className="p-4 rounded-lg bg-white border-2 border-primary/20">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium">Quality Score</span>
+                        <span className="font-medium">{tf('Quality Score')}</span>
                         <span className={`text-2xl font-bold ${getQualityColor(uploadResult.qualityAnalysis.score)}`}>
                           {uploadResult.qualityAnalysis.score}/100
                         </span>
@@ -569,7 +598,7 @@ export const AllDPRs: React.FC = () => {
 
                 {uploadResult.suggestions && uploadResult.suggestions.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="font-semibold">AI Suggestions for Improvement:</h4>
+                    <h4 className="font-semibold">{tf('AI Suggestions for Improvement:')}</h4>
                     <ul className="space-y-2">
                       {uploadResult.suggestions.map((suggestion: string, index: number) => (
                         <li key={index} className="flex items-start gap-2 text-sm">
@@ -587,13 +616,13 @@ export const AllDPRs: React.FC = () => {
                     className="bg-primary hover:bg-primary/90 text-white"
                   >
                     <Eye className="h-4 w-4 mr-2" />
-                    View DPR
+                    {tf('View DPR')}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => setUploadResult(null)}
                   >
-                    Dismiss
+                    {tf('Dismiss')}
                   </Button>
                 </div>
               </div>
@@ -608,7 +637,7 @@ export const AllDPRs: React.FC = () => {
             <div className="relative w-full sm:w-1/2">
               <Search className="absolute left-4 top-1/2 z-10 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
               <Input
-                placeholder="Search name, sector, location, scheme, or keywords…"
+                placeholder={tf('Search name, sector, location, scheme, or keywords…')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-12 pl-12 text-base"
@@ -616,18 +645,20 @@ export const AllDPRs: React.FC = () => {
             </div>
             <div className="flex flex-wrap items-center gap-2">
                 <select
+                  aria-label={tf('Status')}
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
                   className="px-3 py-2 border-2 border-primary/20 rounded-lg focus:outline-none focus:border-primary bg-white text-sm"
                 >
-                  <option value="all">All Status</option>
-                  <option value="draft">Draft</option>
-                  <option value="analyzed">Analyzed</option>
-                  <option value="submitted">Submitted</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
+                  <option value="all">{tf('All Status')}</option>
+                  <option value="draft">{tf('Draft')}</option>
+                  <option value="analyzed">{tf('Analyzed')}</option>
+                  <option value="submitted">{tf('Submitted')}</option>
+                  <option value="approved">{tf('Approved')}</option>
+                  <option value="rejected">{tf('Rejected')}</option>
                 </select>
                 <select
+                  aria-label={tf('Sort by')}
                   value={`${sortField}-${sortOrder}`}
                   onChange={(e) => {
                     const [field, order] = e.target.value.split('-');
@@ -636,26 +667,26 @@ export const AllDPRs: React.FC = () => {
                   }}
                   className="px-3 py-2 border-2 border-primary/20 rounded-lg focus:outline-none focus:border-primary bg-white text-sm"
                 >
-                  <option value="date-desc">Newest First</option>
-                  <option value="date-asc">Oldest First</option>
-                  <option value="name-asc">Name (A-Z)</option>
-                  <option value="name-desc">Name (Z-A)</option>
-                  <option value="quality-desc">Quality (High to Low)</option>
-                  <option value="quality-asc">Quality (Low to High)</option>
-                  <option value="status-asc">Status (A-Z)</option>
-                  <option value="status-desc">Status (Z-A)</option>
+                  <option value="date-desc">{tf('Newest First')}</option>
+                  <option value="date-asc">{tf('Oldest First')}</option>
+                  <option value="name-asc">{tf('Name (A-Z)')}</option>
+                  <option value="name-desc">{tf('Name (Z-A)')}</option>
+                  <option value="quality-desc">{tf('Quality (High to Low)')}</option>
+                  <option value="quality-asc">{tf('Quality (Low to High)')}</option>
+                  <option value="status-asc">{tf('Status (A-Z)')}</option>
+                  <option value="status-desc">{tf('Status (Z-A)')}</option>
                 </select>
                 {filtersActive && (
                   <Button variant="outline" size="sm" onClick={clearFilters}>
                     <X className="h-4 w-4 mr-1" />
-                    Clear
+                    {tf('Clear')}
                   </Button>
                 )}
             </div>
             </div>
             {popularTags.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Keywords</span>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{tf('Keywords')}</span>
                 {popularTags.map((tag) => {
                   const selected = activeTag.toLowerCase() === tag.toLowerCase();
                   return (
@@ -686,19 +717,25 @@ export const AllDPRs: React.FC = () => {
                 <div className="h-20 w-20 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center">
                   <FileText className="h-10 w-10 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">
-                  {filtersActive ? 'No DPRs found' : 'No DPRs yet'}
-                </h3>
+                <h2 className="text-xl font-semibold mb-2">
+                  {filtersActive ? tf('No DPRs found') : tf('No DPRs yet')}
+                </h2>
                 <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                   {filtersActive
-                    ? 'Try adjusting your search, keyword, or filter criteria'
-                    : 'Create your first Detailed Project Report to get started'}
+                    ? tf('Try adjusting your search, keyword, or filter criteria')
+                    : tf('Create your first Detailed Project Report to get started')}
                 </p>
                 {!filtersActive && (
-                  <Button onClick={() => navigate('/individual-dpr/create?new=true')} size="lg">
-                    <FileText className="h-5 w-5 mr-2" />
-                    Create DPR
-                  </Button>
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <Button onClick={() => navigate('/individual-dpr/create?new=true')} size="lg">
+                      <FileText className="h-5 w-5 mr-2" />
+                      {tf('Create DPR')}
+                    </Button>
+                    <Button variant="outline" onClick={() => navigate('/individual-dpr/guide')} size="lg">
+                      <Wand2 className="h-5 w-5 mr-2" />
+                      {t('reportGuide.open')}
+                    </Button>
+                  </div>
                 )}
                 {filtersActive && (
                   <Button
@@ -706,14 +743,14 @@ export const AllDPRs: React.FC = () => {
                     onClick={clearFilters}
                   >
                     <X className="h-4 w-4 mr-2" />
-                    Clear Filters
+                    {tf('Clear Filters')}
                   </Button>
                 )}
               </div>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="motion-stagger space-y-4">
             {filteredDprs.map((dpr) => (
               <Card
                 key={dpr._id}
@@ -721,30 +758,30 @@ export const AllDPRs: React.FC = () => {
               >
                 <CardContent className="pt-6">
                   <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div className="flex-1 flex items-start gap-4">
-                      <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <div className="min-w-0 flex-1 flex items-start gap-4">
+                      <div className="h-14 w-14 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                         <FileText className="h-7 w-7 text-primary" />
                       </div>
-                      <div className="flex-1">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-3 mb-2 flex-wrap">
-                          <h3 className="font-semibold text-xl">
-                            {dpr.projectId?.projectName || 'Untitled Project'}
-                          </h3>
+                          <h2 className="min-w-0 font-semibold text-xl break-words [overflow-wrap:anywhere]">
+                            {dpr.projectId?.projectName || tf('Untitled Project')}
+                          </h2>
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(getEffectiveStatus(dpr))}`}>
                             {getStatusIcon(getEffectiveStatus(dpr))}
                             {(() => {
                               const effectiveStatus = getEffectiveStatus(dpr);
                               if (effectiveStatus === 'analyzed') {
-                                return `Analyzed (${dpr.qualityScore}/100)`;
+                                return tf('Analyzed ({n}/100)').replace('{n}', String(dpr.qualityScore));
                               }
-                              return effectiveStatus ? (effectiveStatus.charAt(0).toUpperCase() + effectiveStatus.slice(1)) : 'Unknown';
+                              return effectiveStatus ? tf(effectiveStatus.charAt(0).toUpperCase() + effectiveStatus.slice(1)) : tf('Unknown');
                             })()}
                           </span>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-1">
-                            <span className="font-medium">Sector:</span>
-                            {dpr.projectId?.industrySector || 'Unknown'}
+                            <span className="font-medium">{tf('Sector:')}</span>
+                            {tf(dpr.projectId?.industrySector || 'Unknown')}
                           </span>
                           {dpr.projectId?.location && dpr.projectId.location !== 'Unknown' && (
                             <>
@@ -760,14 +797,14 @@ export const AllDPRs: React.FC = () => {
                           )}
                           <span>•</span>
                           <span className="flex items-center gap-1">  
-                            <span className="font-medium">Created:</span>
+                            <span className="font-medium">{tf('Created:')}</span>
                             {formatDate(dpr.generatedAt || dpr.createdAt || new Date())}
                           </span>
                           {dpr.qualityScore !== undefined && (
                             <>
                               <span>•</span>
                               <span className={`flex items-center gap-1 font-medium ${getQualityColor(dpr.qualityScore)}`}>
-                                <span>Quality:</span>
+                                <span>{tf('Quality:')}</span>
                                 {dpr.qualityScore}/100 ({getQualityLabel(dpr.qualityScore)})
                               </span>
                             </>
@@ -797,8 +834,31 @@ export const AllDPRs: React.FC = () => {
                         className="border-2"
                       >
                         <Eye className="h-4 w-4 mr-2" />
-                        View
+                        {tf('View')}
                       </Button>
+                      {ownsDpr(dpr) && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => editDpr(dpr)}
+                            className="border-2"
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            {tf('Edit')}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => askDelete(dpr)}
+                            data-no-auto-confirm
+                            className="border-2 border-destructive text-destructive hover:bg-destructive hover:text-white"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            {tf('Delete')}
+                          </Button>
+                        </>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -817,7 +877,7 @@ export const AllDPRs: React.FC = () => {
                             onClick={() => handleApproveDPR(dpr._id)}
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
-                            Approve
+                            {tf('Approve')}
                           </Button>
                           <Button
                             variant="outline"
@@ -826,7 +886,7 @@ export const AllDPRs: React.FC = () => {
                             onClick={() => handleRejectDPR(dpr._id)}
                           >
                             <XCircle className="h-4 w-4 mr-2" />
-                            Reject
+                            {tf('Reject')}
                           </Button>
                         </>
                       )}
@@ -838,6 +898,7 @@ export const AllDPRs: React.FC = () => {
           </div>
         )}
       </div>
+      {deleteDialog}
     </Layout>
   );
 };

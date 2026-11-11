@@ -1,4 +1,4 @@
-import { CMEP_LINE_ITEMS, type CmepYearColumn, normalizeCmepProjections } from '@/lib/individualDpr/cmepProjections';
+import { type CmepYearColumn, normalizeCmepProjections } from '@/lib/individualDpr/cmepProjections';
 
 export type CmepPromoter = {
   name: string;
@@ -28,7 +28,7 @@ export type ProductMixRow = { name: string; sharePercent: number; sellingPrice: 
 export type RawMaterialRow = { name: string; use: string; basis: string };
 export type StaffRoleRow = { role: string; count: number; monthlyPay: number };
 export type RiskRow = { risk: string; mitigation: string };
-export type UtilisationYear = { label: string; percent: number };
+type UtilisationYear = { label: string; percent: number };
 
 export type CmepCostCell = { incurred: number; proposed: number };
 
@@ -145,7 +145,7 @@ function textRows<T>(raw: unknown, blank: () => T, fill: (row: T, item: Record<s
 }
 
 export function normalizeProductMix(raw: unknown): ProductMixRow[] {
-  return textRows(raw, () => ({ name: '', sharePercent: 0, sellingPrice: 0 }), (row, item) => ({
+  return textRows(raw, () => ({ name: '', sharePercent: 0, sellingPrice: 0 }), (_row, item) => ({
     name: String(item.name ?? ''),
     sharePercent: num(item.sharePercent),
     sellingPrice: num(item.sellingPrice),
@@ -153,7 +153,7 @@ export function normalizeProductMix(raw: unknown): ProductMixRow[] {
 }
 
 export function normalizeRawMaterials(raw: unknown): RawMaterialRow[] {
-  return textRows(raw, () => ({ name: '', use: '', basis: '' }), (row, item) => ({
+  return textRows(raw, () => ({ name: '', use: '', basis: '' }), (_row, item) => ({
     name: String(item.name ?? item.material ?? ''),
     use: String(item.use ?? ''),
     basis: String(item.basis ?? ''),
@@ -161,7 +161,7 @@ export function normalizeRawMaterials(raw: unknown): RawMaterialRow[] {
 }
 
 export function normalizeStaffRoles(raw: unknown): StaffRoleRow[] {
-  return textRows(raw, () => ({ role: '', count: 0, monthlyPay: 0 }), (row, item) => ({
+  return textRows(raw, () => ({ role: '', count: 0, monthlyPay: 0 }), (_row, item) => ({
     role: String(item.role ?? ''),
     count: num(item.count),
     monthlyPay: num(item.monthlyPay),
@@ -169,14 +169,14 @@ export function normalizeStaffRoles(raw: unknown): StaffRoleRow[] {
 }
 
 export function normalizeRisks(raw: unknown): RiskRow[] {
-  return textRows(raw, () => ({ risk: '', mitigation: '' }), (row, item) => ({
+  return textRows(raw, () => ({ risk: '', mitigation: '' }), (_row, item) => ({
     risk: String(item.risk ?? ''),
     mitigation: String(item.mitigation ?? ''),
   }));
 }
 
 export function normalizeUtilisationYears(raw: unknown): UtilisationYear[] {
-  return textRows(raw, () => ({ label: '', percent: 0 }), (row, item) => ({
+  return textRows(raw, () => ({ label: '', percent: 0 }), (_row, item) => ({
     label: String(item.label ?? ''),
     percent: num(item.percent),
   }));
@@ -191,7 +191,7 @@ export function totalsFromCostPhasing(phasing: Record<string, CmepCostCell>): Re
   return totals;
 }
 
-export type CmepDerived = {
+type CmepDerived = {
   depreciation: Array<{ asset: string; rate: number; years: Array<{ label: string; opening: number; additions: number; depreciation: number; closing: number }> }>;
   dscr: Array<{ label: string; cashProfit: number; repayment: number; ratio: number }>;
   averageDscr: number;
@@ -278,14 +278,4 @@ export function deriveCmepBankSheets(input: {
   };
 }
 
-export const CMEP_NARRATIVE_FIELDS = new Set([
-  'executiveSummary',
-  'processOfManufacture',
-  'sectorDescription',
-  'presentActivities',
-  'targetMarket',
-  'existingDemand',
-  'geography',
-]);
 
-export const CMEP_AI_LINE_HINT = CMEP_LINE_ITEMS.map((line) => line.key).join(', ');

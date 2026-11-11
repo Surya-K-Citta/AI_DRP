@@ -1,28 +1,34 @@
 // @ts-nocheck
 import axios from 'axios';
+import { readThrough, registerIntegration } from '../lib/integrations/readThrough';
 
 export class APMSMEService {
   private static readonly AP_MSME_API_URL = process.env.AP_MSME_API_URL || 'https://apmsme.ap.gov.in/api';
   private static readonly AP_MSME_API_KEY = process.env.AP_MSME_API_KEY || '';
 
-  /**
-   * Get available schemes from AP MSME ONE Portal
-   */
-  static async getAvailableSchemes(): Promise<any[]> {
-    try {
-      const response = await axios.get(`${this.AP_MSME_API_URL}/schemes`, {
-        headers: {
-          'Authorization': `Bearer ${this.AP_MSME_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      });
+  static registerReadIntegration() {
+    registerIntegration({
+      name: 'apmsme',
+      baseUrl: this.AP_MSME_API_URL,
+      apiKey: this.AP_MSME_API_KEY,
+      ratePerMinute: parseInt(process.env.APMSME_RATE_PER_MINUTE || '30', 10),
+      timeoutMs: parseInt(process.env.APMSME_TIMEOUT_MS || '8000', 10),
+      ttlMs: parseInt(process.env.APMSME_CACHE_TTL_MS || String(6 * 60 * 60 * 1000), 10),
+    });
+  }
 
-      return response.data.schemes || [];
-    } catch (error) {
-      console.error('Error fetching AP MSME schemes:', error);
-      // Return mock data for development
-      return this.getMockSchemes();
-    }
+  /**
+   * Scheme directory, read-first: fresh cache, then the registry, then the last good answer, then built-in sample data.
+   */
+  static async getAvailableSchemesWithMeta() {
+    return readThrough<any[]>('apmsme', '/schemes', {
+      pick: (body) => (Array.isArray(body?.schemes) ? body.schemes : undefined),
+      fallback: () => this.getMockSchemes(),
+    });
+  }
+
+  static async getAvailableSchemes(): Promise<any[]> {
+    return (await this.getAvailableSchemesWithMeta()).data;
   }
 
   /**
@@ -86,40 +92,27 @@ export class APMSMEService {
    * Get sector-specific guidelines from AP MSME ONE Portal
    */
   static async getSectorGuidelines(sector: string): Promise<any> {
-    try {
-      const response = await axios.get(`${this.AP_MSME_API_URL}/guidelines/${sector}`, {
-        headers: {
-          'Authorization': `Bearer ${this.AP_MSME_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      });
+    return (await this.getSectorGuidelinesWithMeta(sector)).data;
+  }
 
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching sector guidelines:', error);
-      // Return mock data for development
-      return this.getMockSectorGuidelines(sector);
-    }
+  static async getSectorGuidelinesWithMeta(sector: string) {
+    return readThrough<any>('apmsme', `/guidelines/${encodeURIComponent(sector)}`, {
+      fallback: () => this.getMockSectorGuidelines(sector),
+    });
   }
 
   /**
    * Get financial institutions and banks
    */
   static async getFinancialInstitutions(): Promise<any[]> {
-    try {
-      const response = await axios.get(`${this.AP_MSME_API_URL}/financial-institutions`, {
-        headers: {
-          'Authorization': `Bearer ${this.AP_MSME_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      });
+    return (await this.getFinancialInstitutionsWithMeta()).data;
+  }
 
-      return response.data.institutions || [];
-    } catch (error) {
-      console.error('Error fetching financial institutions:', error);
-      // Return mock data for development
-      return this.getMockFinancialInstitutions();
-    }
+  static async getFinancialInstitutionsWithMeta() {
+    return readThrough<any[]>('apmsme', '/financial-institutions', {
+      pick: (body) => (Array.isArray(body?.institutions) ? body.institutions : undefined),
+      fallback: () => this.getMockFinancialInstitutions(),
+    });
   }
 
   /**
@@ -309,3 +302,5 @@ export class APMSMEService {
     ];
   }
 }
+
+APMSMEService.registerReadIntegration();

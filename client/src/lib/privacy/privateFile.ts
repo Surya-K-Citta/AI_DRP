@@ -1,4 +1,4 @@
-export const FILE_REF_PREFIX = 'file:';
+const FILE_REF_PREFIX = 'file:';
 
 export function isPrivateFileRef(value: unknown): value is string {
   return typeof value === 'string' && value.startsWith(FILE_REF_PREFIX) && value.length > 5;

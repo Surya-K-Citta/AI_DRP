@@ -4,8 +4,8 @@
  * Step list: MUDRA_STEPS in schemeStepCatalog.ts (12 consecutive steps).
  */
 
-export type MudraCategory = 'shishu' | 'kishore' | 'tarun' | 'tarunPlus';
-export type MudraPremises = 'owned' | 'rented';
+type MudraCategory = 'shishu' | 'kishore' | 'tarun' | 'tarunPlus';
+type MudraPremises = 'owned' | 'rented';
 
 export const MUDRA_EXTRA_FIELDS = [
   'mudraCategory',
@@ -16,7 +16,6 @@ export const MUDRA_EXTRA_FIELDS = [
   'loanPurpose',
 ] as const;
 
-export type MudraExtraField = (typeof MUDRA_EXTRA_FIELDS)[number];
 
 export const MUDRA_CATEGORY_OPTIONS: { value: MudraCategory; label: string }[] = [
   { value: 'shishu', label: 'Shishu (up to ₹50,000)' },
@@ -36,10 +35,6 @@ export const MUDRA_LOAN_PURPOSE_OPTIONS = [
   { value: 'both', label: 'Term loan + working capital' },
 ];
 
-/** True when category (or fallback) is the light Shishu/Kishore band. */
-export function isMudraLightCategory(category?: string): boolean {
-  return category === 'shishu' || category === 'kishore' || !category;
-}
 
 export const MUDRA_IMPACT_BULLETS = [
   'Own 12-step bank-unit PMMY pack (not the vanilla 18-step skeleton). Steps numbered 1–12.',

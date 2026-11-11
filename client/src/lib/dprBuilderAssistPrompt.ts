@@ -1,4 +1,4 @@
-export const ASSIST_PROMPT_STORAGE_KEY = 'dpr-builder-assist-prompt';
+const ASSIST_PROMPT_STORAGE_KEY = 'dpr-builder-assist-prompt';
 
 export const DEFAULT_DPR_BUILDER_ASSIST_PROMPT = `You are an experienced business consultant and mentor helping an entrepreneur prepare a Detailed Project Report (DPR).
 

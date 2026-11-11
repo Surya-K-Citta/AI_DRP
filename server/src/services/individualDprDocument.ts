@@ -6,7 +6,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { Document, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType, HeadingLevel, AlignmentType, BorderStyle } from 'docx';
+import { aiDisclaimerDocxFooters } from '../lib/aiDisclaimer';
+import { Document, Packer, Paragraph, ShadingType, Table, TableCell, TableRow, TextRun, WidthType, HeadingLevel, AlignmentType, BorderStyle } from 'docx';
 import catalogs from './individualDprCatalog.json';
 
 export type SchemeStepDef = {
@@ -1986,150 +1987,244 @@ function cmepDocxTable(json: string): Table {
   });
 }
 
+// ---- DOCX: the same structure as the PDF (renderIndividualDprHtml) ----------------------------------------------
+// Cover block, table of contents, numbered section headings, "Particular | Details" tables for short answers,
+// question-and-answer blocks for narrative answers, real tables for the data tables, A4 with 14 mm margins,
+// Times New Roman, and page numbers. Page width in twips (1/20 pt) minus the margins, used for table widths.
+const DOCX_PAGE = { width: 11906, height: 16838 };
+const DOCX_MARGIN = 794; // 14 mm
+const DOCX_CONTENT_WIDTH = DOCX_PAGE.width - 2 * DOCX_MARGIN;
+const DOCX_TEAL = '0F766E';
+const DOCX_TEAL_LIGHT = 'ECFDF5';
+const DOCX_GREY = '9CA3AF';
+const docxLine = { style: BorderStyle.SINGLE, size: 4, color: DOCX_TEAL };
+const docxCellBorders = { top: docxLine, bottom: docxLine, left: docxLine, right: docxLine };
+const docxIsEmpty = (value: unknown) => !value || String(value).trim() === '' || String(value).trim() === '—';
+
+/** One paragraph per line of the text, so line breaks in an answer stay line breaks. */
+function docxLines(text: string, run: { size?: number; bold?: boolean; italics?: boolean; color?: string }, paragraph: { spacing?: { before?: number; after?: number } } = {}): Paragraph[] {
+  return String(text).split(/\n/).map(
+    (line) => new Paragraph({ ...paragraph, children: [new TextRun({ text: line || ' ', ...run })] })
+  );
+}
+
+function docxCell(
+  text: string,
+  width: number,
+  opts: { bold?: boolean; fill?: string; size?: number; empty?: boolean; align?: (typeof AlignmentType)[keyof typeof AlignmentType]; span?: number } = {}
+): TableCell {
+  return new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    borders: docxCellBorders,
+    columnSpan: opts.span,
+    shading: opts.fill ? { type: ShadingType.CLEAR, fill: opts.fill, color: 'auto' } : undefined,
+    margins: { top: 60, bottom: 60, left: 100, right: 100 },
+    children: docxLines(text, { size: opts.size ?? 20, bold: opts.bold, italics: opts.empty, color: opts.empty ? DOCX_GREY : undefined }, { spacing: { after: 0 } }),
+  });
+}
+
+/** "Particular | Details": the short answers of a section, as in the PDF. */
+function docxParticularsTable(rows: DocRow[]): Table {
+  const first = Math.round(DOCX_CONTENT_WIDTH * 0.46);
+  const second = DOCX_CONTENT_WIDTH - first;
+  return new Table({
+    width: { size: DOCX_CONTENT_WIDTH, type: WidthType.DXA },
+    columnWidths: [first, second],
+    rows: [
+      new TableRow({
+        tableHeader: true,
+        cantSplit: true,
+        children: [docxCell('Particular', first, { bold: true, fill: DOCX_TEAL_LIGHT }), docxCell('Details', second, { bold: true, fill: DOCX_TEAL_LIGHT })],
+      }),
+      ...rows.map((row) => {
+        const empty = docxIsEmpty(row.value);
+        return new TableRow({
+          cantSplit: true,
+          children: [docxCell(row.label, first, { bold: true }), docxCell(empty ? '—' : row.value, second, { empty })],
+        });
+      }),
+    ],
+  });
+}
+
+/** A data table (headers + rows), as in the PDF: grey header row, smaller type when there are many columns. */
+function docxGridTable(headers: string[], rows: string[][], caption?: string): (Paragraph | Table)[] {
+  const columns = Math.max(headers.length, ...rows.map((row) => row.length), 1);
+  const width = Math.floor(DOCX_CONTENT_WIDTH / columns);
+  const size = columns > 8 ? 14 : columns > 5 ? 16 : 18;
+  const pad = (row: string[]) => Array.from({ length: columns }, (_, i) => row[i] ?? '');
+  const out: (Paragraph | Table)[] = [];
+  if (caption) {
+    out.push(new Paragraph({ keepNext: true, spacing: { before: 80, after: 40 }, shading: { type: ShadingType.CLEAR, fill: DOCX_TEAL_LIGHT, color: 'auto' }, children: [new TextRun({ text: caption, bold: true, size: 20 })] }));
+  }
+  out.push(
+    new Table({
+      width: { size: width * columns, type: WidthType.DXA },
+      columnWidths: Array.from({ length: columns }, () => width),
+      rows: [
+        new TableRow({ tableHeader: true, cantSplit: true, children: pad(headers).map((h) => docxCell(h, width, { bold: true, fill: 'F3F4F6', size })) }),
+        ...(rows.length ? rows : [[]]).map(
+          (row) => new TableRow({ cantSplit: true, children: pad(row.length ? row : ['—']).map((cell) => docxCell(String(cell ?? ''), width, { size })) })
+        ),
+      ],
+    })
+  );
+  out.push(new Paragraph({ spacing: { after: 80 }, children: [] }));
+  return out;
+}
+
+function docxDataTable(json: string): (Paragraph | Table)[] {
+  let parsed: { headers?: string[]; rows?: string[][]; caption?: string } = {};
+  try {
+    parsed = JSON.parse(json || '{}');
+  } catch {
+    parsed = {};
+  }
+  return docxGridTable(parsed.headers || [], parsed.rows || [], parsed.caption);
+}
+
+const decodeEntities = (text: string) =>
+  text.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/[ \t]+/g, ' ').trim();
+
+/** The tables inside an embed's HTML become Word tables; any other text in it stays as paragraphs. */
+function docxFromEmbedHtml(html: string): (Paragraph | Table)[] {
+  const out: (Paragraph | Table)[] = [];
+  const tableRe = /<table[\s\S]*?<\/table>/gi;
+  let last = 0;
+  const text = (chunk: string) => {
+    const plain = decodeEntities(chunk);
+    if (plain) out.push(...docxLines(plain, { size: 20 }, { spacing: { after: 60 } }));
+  };
+  for (const match of html.matchAll(tableRe)) {
+    text(html.slice(last, match.index));
+    last = (match.index || 0) + match[0].length;
+    const caption = /<caption[^>]*>([\s\S]*?)<\/caption>/i.exec(match[0]);
+    const trs = Array.from(match[0].matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)).map((tr) =>
+      Array.from(tr[1].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi)).map((cell) => decodeEntities(cell[1]))
+    );
+    const headRow = /<thead/i.test(match[0]) && trs.length ? trs[0] : [];
+    out.push(...docxGridTable(headRow, headRow.length ? trs.slice(1) : trs, caption ? decodeEntities(caption[1]) : undefined));
+  }
+  text(html.slice(last));
+  return out;
+}
+
 export async function generateIndividualDprDocx(doc: IndividualDocument): Promise<Buffer> {
+  const isPmegp = doc.schemeCode === 'PMEGP';
+  const namedUnit = doc.unitName && doc.unitName !== 'UNIT NAME' ? doc.unitName : '';
+  const centre = AlignmentType.CENTER;
+
   const sectionBlocks = (rows: DocRow[]): (Paragraph | Table)[] => {
-    if (!rows.length) {
-      return [new Paragraph({ children: [new TextRun({ text: '—', italics: true, color: '9CA3AF' })] })];
-    }
-    const stacked = doc.schemeCode === 'AP_CMEP';
-    const embeds = rows.filter((row) => !!row.embed);
-    const rest = rows.filter((row) => !row.embed);
-    const shortRows: DocRow[] = [];
-    const longRows: DocRow[] = [];
-    for (const row of rest) {
-      if (stacked || isExpansiveRow(row)) longRows.push(row);
-      else shortRows.push(row);
-    }
+    if (!rows.length) return [new Paragraph({ children: [new TextRun({ text: '—', italics: true, color: DOCX_GREY })] })];
     const out: (Paragraph | Table)[] = [];
-
-    // Compact facts as stacked label-above-value (not side-by-side Q|A)
-    for (const row of shortRows) {
-      out.push(
-        new Paragraph({
-          spacing: { before: 120, after: 40 },
-          children: [new TextRun({ text: row.label.toUpperCase(), bold: true, size: 16, color: '4B5563' })],
-        })
-      );
-      out.push(
-        new Paragraph({
-          spacing: { after: 80 },
-          children: [
-            new TextRun({
-              text: !row.value || row.value === '—' ? 'Not filled' : row.value,
-              bold: true,
-              size: 22,
-              italics: !row.value || row.value === '—',
-              color: !row.value || row.value === '—' ? '9CA3AF' : '111827',
-            }),
-          ],
-        })
-      );
-    }
-
-    for (const row of longRows) {
-      out.push(
-        new Paragraph({
-          spacing: { before: 160, after: 60 },
-          shading: { type: 'clear', fill: 'F3F4F6' },
-          border: {
-            bottom: { style: BorderStyle.SINGLE, size: 6, color: 'D1D5DB' },
-          },
-          children: [new TextRun({ text: row.label, bold: true, size: 20 })],
-        })
-      );
-      const answer =
-        !row.value || row.value === '—'
-          ? 'Not filled yet — complete this in the form.'
-          : row.value;
-      for (const line of String(answer).split(/\n/)) {
+    let bucket: DocRow[] = [];
+    const flush = () => {
+      if (!bucket.length) return;
+      out.push(docxParticularsTable(bucket));
+      out.push(new Paragraph({ spacing: { after: 80 }, children: [] }));
+      bucket = [];
+    };
+    for (const row of rows) {
+      if (row.embed) {
+        flush();
+        if (row.embed === 'cmep-projections') {
+          out.push(cmepDocxTable(row.value), new Paragraph({ spacing: { after: 80 }, children: [] }));
+        } else if (row.embed === 'data-table') {
+          out.push(...docxDataTable(row.value));
+        } else {
+          out.push(...docxFromEmbedHtml(renderCmepEmbedHtml(row.embed, row.value)));
+        }
+      } else if (isNarrativeRow(row)) {
+        flush();
+        const empty = docxIsEmpty(row.value);
         out.push(
           new Paragraph({
-            spacing: { after: 60 },
-            children: [
-              new TextRun({
-                text: line || ' ',
-                size: 22,
-                italics: !row.value || row.value === '—',
-                color: !row.value || row.value === '—' ? '9CA3AF' : '1F2937',
-              }),
-            ],
-          })
+            keepNext: true,
+            spacing: { before: 120, after: 40 },
+            shading: { type: ShadingType.CLEAR, fill: 'F3F4F6', color: 'auto' },
+            border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: 'D1D5DB', space: 1 } },
+            children: [new TextRun({ text: row.label, bold: true, size: 20 })],
+          }),
+          ...docxLines(empty ? '—' : row.value, { size: 21, italics: empty, color: empty ? DOCX_GREY : '1F2937' }, { spacing: { after: 60 } })
         );
+      } else {
+        bucket.push(row);
       }
     }
-    for (const row of embeds) {
-      if (row.embed === 'cmep-projections') {
-        out.push(
-          new Paragraph({
-            spacing: { before: 160, after: 60 },
-            children: [new TextRun({ text: 'Financial projections (Rs. In Lakhs)', bold: true, size: 20 })],
-          })
-        );
-        out.push(cmepDocxTable(row.value));
-        continue;
-      }
-      const plain = renderCmepEmbedHtml(row.embed || '', row.value).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-      out.push(
-        new Paragraph({
-          spacing: { before: 160, after: 60 },
-          children: [new TextRun({ text: row.label, bold: true, size: 20 })],
-        })
-      );
-      out.push(new Paragraph({ children: [new TextRun({ text: plain || '—', size: 20 })] }));
-    }
+    flush();
     return out;
   };
 
+  const meta = [
+    doc.district ? ['District', doc.district] : null,
+    doc.location ? ['Location', doc.location] : null,
+    doc.entrepreneurName ? ['Entrepreneur name', doc.entrepreneurName] : null,
+  ].filter(Boolean) as string[][];
+
   const children: (Paragraph | Table)[] = [
-    new Paragraph({
-      text: 'DETAILED PROJECT REPORT',
-      heading: HeadingLevel.HEADING_1,
-      alignment: AlignmentType.CENTER,
-    }),
-    new Paragraph({ text: 'On', alignment: AlignmentType.CENTER }),
-    new Paragraph({ text: doc.actionLine, alignment: AlignmentType.CENTER }),
-    ...(doc.unitName && doc.unitName !== 'UNIT NAME'
-      ? [new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [new TextRun({ text: doc.unitName.toUpperCase(), bold: true, color: '059669', size: 36 })],
-      })]
+    ...(isPmegp
+      ? [
+          new Paragraph({ alignment: centre, spacing: { before: 120, after: 60 }, children: [new TextRun({ text: 'KVIC  ', bold: true, size: 17, color: DOCX_TEAL }), new TextRun({ text: 'KHADI & VILLAGE INDUSTRIES COMMISSION', bold: true, size: 17, color: '115E59' })] }),
+          new Paragraph({ alignment: centre, spacing: { after: 120 }, children: [new TextRun({ text: 'PMEGP · KVIC UNIT PACK', bold: true, size: 16, color: DOCX_TEAL })] }),
+        ]
       : []),
-    new Paragraph({ text: doc.underLine, alignment: AlignmentType.CENTER }),
-    ...(doc.district ? [new Paragraph({ text: `District: ${doc.district}` })] : []),
-    ...(doc.location ? [new Paragraph({ text: `Location: ${doc.location}` })] : []),
-    ...(doc.entrepreneurName
-      ? [new Paragraph({ text: `Entrepreneur name: ${doc.entrepreneurName}` })]
+    new Paragraph({ alignment: centre, spacing: { before: 120, after: 160 }, children: [new TextRun({ text: isPmegp ? 'PMEGP DETAILED PROJECT REPORT' : 'DETAILED PROJECT REPORT', bold: true, size: isPmegp ? 34 : 40, color: isPmegp ? '115E59' : undefined })] }),
+    new Paragraph({ alignment: centre, spacing: { after: 40 }, children: [new TextRun({ text: 'On', bold: true, size: 26 })] }),
+    new Paragraph({ alignment: centre, spacing: { after: 80 }, children: [new TextRun({ text: doc.actionLine, bold: true, size: 26 })] }),
+    ...(namedUnit
+      ? [new Paragraph({ alignment: centre, spacing: { before: 200, after: 160 }, children: [new TextRun({ text: namedUnit.toUpperCase(), bold: true, size: 40, color: isPmegp ? DOCX_TEAL : '059669' })] })]
       : []),
-    new Paragraph({ text: '' }),
-    new Paragraph({ text: 'Table of Contents', heading: HeadingLevel.HEADING_2 }),
+    new Paragraph({ alignment: centre, spacing: { before: 120, after: isPmegp ? 40 : 200 }, children: [new TextRun({ text: doc.underLine, bold: true, size: 24, color: isPmegp ? '115E59' : undefined })] }),
+    ...(isPmegp
+      ? [new Paragraph({ alignment: centre, spacing: { after: 200 }, children: [new TextRun({ text: 'Credit-linked margin money · bank-style single-unit DPR', italics: true, size: 19, color: DOCX_TEAL })] })]
+      : []),
+    ...meta.map(
+      ([label, value]) =>
+        new Paragraph({
+          alignment: centre,
+          spacing: { after: 40 },
+          children: [new TextRun({ text: `${label}: `, bold: true, size: 22 }), new TextRun({ text: value, size: 22 })],
+        })
+    ),
+    new Paragraph({ spacing: { before: 120, after: 240 }, border: { bottom: { style: BorderStyle.SINGLE, size: isPmegp ? 12 : 16, color: isPmegp ? DOCX_TEAL : '1F2937', space: 1 } }, children: [] }),
   ];
 
+  const heading = (number: number, title: string) =>
+    new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      keepNext: true,
+      spacing: { before: 200, after: 140 },
+      shading: { type: ShadingType.CLEAR, fill: 'F0FDFA', color: 'auto' },
+      border: { left: { style: BorderStyle.SINGLE, size: 28, color: DOCX_TEAL, space: 6 } },
+      children: [new TextRun({ text: `${number}   `, bold: true, size: 26, color: DOCX_TEAL }), new TextRun({ text: title, bold: true, size: 26, color: '0B2F2C' })],
+    });
+
   const shown = sectionsForReport(doc);
+  children.push(heading(0, 'Table of Contents'));
   shown.forEach((s, index) => {
     children.push(
       new Paragraph({
-        spacing: { after: 60 },
-        children: [
-          new TextRun({ text: `${index + 1}. `, bold: true }),
-          new TextRun({ text: s.title }),
-        ],
+        spacing: { before: 40, after: 40 },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'E5E7EB', space: 2 } },
+        children: [new TextRun({ text: `${index + 1}`, bold: true, size: 22 }), new TextRun({ text: `    ${s.title}`, size: 22 })],
       })
     );
   });
 
   shown.forEach((section, index) => {
-    children.push(new Paragraph({ text: '' }));
-    children.push(
-      new Paragraph({
-        text: `${index + 1}. ${section.title}`,
-        heading: HeadingLevel.HEADING_2,
-      })
-    );
+    children.push(heading(index + 1, section.title));
     children.push(...sectionBlocks(section.rows));
   });
 
   const word = new Document({
-    sections: [{ children }],
+    styles: { default: { document: { run: { font: 'Times New Roman', size: 21 } } } },
+    sections: [
+      {
+        properties: { page: { size: { width: DOCX_PAGE.width, height: DOCX_PAGE.height }, margin: { top: DOCX_MARGIN, bottom: DOCX_MARGIN, left: DOCX_MARGIN, right: DOCX_MARGIN } } },
+        footers: aiDisclaimerDocxFooters({ pageNumbers: true }),
+        children,
+      },
+    ],
   });
   return Packer.toBuffer(word);
 }

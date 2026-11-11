@@ -12,7 +12,6 @@ export const OBMMS_EXTRA_FIELDS = [
   'activityTrade',
 ] as const;
 
-export type ObmmsExtraField = (typeof OBMMS_EXTRA_FIELDS)[number];
 
 export const OBMMS_CORP_OPTIONS = [
   { value: 'sc', label: 'SC Corporation' },

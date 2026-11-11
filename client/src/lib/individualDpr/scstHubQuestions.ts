@@ -4,7 +4,7 @@
  * Step list: SCST_HUB_STEPS (5 consecutive steps).
  */
 
-export type GemExperience = 'none' | 'registered' | 'bidding' | 'won';
+type GemExperience = 'none' | 'registered' | 'bidding' | 'won';
 
 export const SCST_HUB_EXTRA_FIELDS = [
   'gemExperience',
@@ -13,7 +13,6 @@ export const SCST_HUB_EXTRA_FIELDS = [
   'procurementFocus',
 ] as const;
 
-export type ScstHubExtraField = (typeof SCST_HUB_EXTRA_FIELDS)[number];
 
 export const SCST_HUB_GEM_OPTIONS: { value: GemExperience; label: string }[] = [
   { value: 'none', label: 'Not on GeM yet' },

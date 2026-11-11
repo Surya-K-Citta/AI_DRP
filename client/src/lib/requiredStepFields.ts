@@ -1,6 +1,6 @@
 import { isLeanUnitScheme } from '@/lib/individualDpr/individualDocModel';
 
-export type RequiredField = { key: string; label: string };
+type RequiredField = { key: string; label: string };
 
 function isFilled(value: unknown): boolean {
   if (value == null) return false;

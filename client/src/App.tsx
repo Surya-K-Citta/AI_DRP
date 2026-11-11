@@ -1,27 +1,38 @@
 // @ts-nocheck
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
+import { RouteTracker, ScrollToTop } from '@/lib/navHistory';
+import { RouteAnnouncer } from '@/lib/routeA11y';
+import { PageLoading } from '@/components/ui/PageLoading';
+import { SessionManager } from '@/components/session/SessionManager';
+import { ProductTour } from '@/components/tour/ProductTour';
+import { ConfirmProvider } from '@/components/ui/ConfirmProvider';
+import { ThemeApplier } from '@/components/layout/ThemeToggle';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Landing } from './pages/Landing';
-import { Login } from './pages/Login';
-import { Register } from './pages/Register';
-import { Dashboard } from './pages/Dashboard';
-import { Projects } from './pages/Projects';
-import { ProjectForm } from './pages/ProjectForm';
-import { Chat } from './pages/Chat';
-import { DPRGeneration } from './pages/DPRGeneration';
-import { AIGuidedDPRBuilder } from './pages/AIGuidedDPRBuilder';
-import { DPRPreview } from './pages/DPRPreview';
-import { AllDPRs } from './pages/AllDPRs';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { AdminDocuments } from './pages/AdminDocuments';
-import { Profile } from './pages/Profile';
-import { ClusterDPRCreation } from './pages/ClusterDPRCreation';
-import { IndividualDPRCreation } from './pages/IndividualDPRCreation';
-import { VentureMatch } from './pages/VentureMatch';
-import { Privacy } from './pages/Privacy';
-import { AccountPrivacy } from './pages/AccountPrivacy';
+import { Accessibility } from './pages/Accessibility';
+const Login = lazy(() => import('./pages/Login').then((m) => ({ default: m.Login })));
+const Register = lazy(() => import('./pages/Register').then((m) => ({ default: m.Register })));
+const Dashboard = lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })));
+const Projects = lazy(() => import('./pages/Projects').then((m) => ({ default: m.Projects })));
+const ProjectForm = lazy(() => import('./pages/ProjectForm').then((m) => ({ default: m.ProjectForm })));
+const Chat = lazy(() => import('./pages/Chat').then((m) => ({ default: m.Chat })));
+const DPRGeneration = lazy(() => import('./pages/DPRGeneration').then((m) => ({ default: m.DPRGeneration })));
+const AIGuidedDPRBuilder = lazy(() => import('./pages/AIGuidedDPRBuilder').then((m) => ({ default: m.AIGuidedDPRBuilder })));
+const DPRPreview = lazy(() => import('./pages/DPRPreview').then((m) => ({ default: m.DPRPreview })));
+const AllDPRs = lazy(() => import('./pages/AllDPRs').then((m) => ({ default: m.AllDPRs })));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+const AdminDocuments = lazy(() => import('./pages/AdminDocuments').then((m) => ({ default: m.AdminDocuments })));
+const AcceptInvite = lazy(() => import('./pages/AcceptInvite').then((m) => ({ default: m.AcceptInvite })));
+const DistrictReview = lazy(() => import('./pages/DistrictReview').then((m) => ({ default: m.DistrictReview })));
+const Profile = lazy(() => import('./pages/Profile').then((m) => ({ default: m.Profile })));
+const ClusterDPRCreation = lazy(() => import('./pages/ClusterDPRCreation').then((m) => ({ default: m.ClusterDPRCreation })));
+const IndividualDPRCreation = lazy(() => import('./pages/IndividualDPRCreation').then((m) => ({ default: m.IndividualDPRCreation })));
+const ReportGuide = lazy(() => import('./pages/ReportGuide').then((m) => ({ default: m.ReportGuide })));
+const VentureMatch = lazy(() => import('./pages/VentureMatch').then((m) => ({ default: m.VentureMatch })));
+const Privacy = lazy(() => import('./pages/Privacy').then((m) => ({ default: m.Privacy })));
+const AccountPrivacy = lazy(() => import('./pages/AccountPrivacy').then((m) => ({ default: m.AccountPrivacy })));
 import './i18n/config';
 
 function App() {
@@ -32,6 +43,7 @@ function App() {
         v7_relativeSplatPath: true,
       }}
     >
+      <ConfirmProvider>
       <Toaster
         position="top-right"
         toastOptions={{
@@ -66,11 +78,20 @@ function App() {
           },
         }}
       />
+      <RouteTracker />
+      <ScrollToTop />
+      <RouteAnnouncer />
+      <SessionManager />
+      <ProductTour />
+      <ThemeApplier />
+      <Suspense fallback={<PageLoading />}>
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/privacy" element={<Privacy />} />
+        <Route path="/accessibility" element={<Accessibility />} />
+        <Route path="/accept-invite" element={<AcceptInvite />} />
         
         <Route
           path="/dashboard"
@@ -163,6 +184,15 @@ function App() {
         />
 
         <Route
+          path="/individual-dpr/guide"
+          element={
+            <ProtectedRoute>
+              <ReportGuide />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/individual-dpr/create"
           element={
             <ProtectedRoute>
@@ -225,8 +255,19 @@ function App() {
           }
         />
 
+        <Route
+          path="/reviewer"
+          element={
+            <ProtectedRoute allowedRoles={['govt_official', 'super_admin']}>
+              <DistrictReview />
+            </ProtectedRoute>
+          }
+        />
+
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      </Suspense>
+      </ConfirmProvider>
     </Router>
   );
 }

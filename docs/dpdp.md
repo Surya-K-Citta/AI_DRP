@@ -28,8 +28,9 @@ Keep `PRIVACY_NOTICE_VERSION` in sync on **both** sides when the notice text cha
 
 | Decision | Value |
 |----------|--------|
-| Data Fiduciary (product name) | MSME One Department |
-| Grievance email | `privacy.grievance@msmeone.gov.in` (**mock** until Stage 4) |
+| Data Fiduciary | AP MSME Development Corporation, 2nd Floor, PVS Landmark, Mangalagiri, Guntur District – 522503 (supplied by the department, Oct 2026) |
+| Privacy officer | A Sudhakar, Executive Director, AP MSME DC |
+| Grievance email | `apmsmedc@gmail.com` (department-confirmed; override with `GRIEVANCE_EMAIL`). Mail is still only logged until a mailer exists |
 | Unused draft life | **12 months after last edit of that DPR** (draft or submitted). Not first save, not last login. **15 days before delete**: in-app + mock SMS. Account stays. **Audit rows: 24 months from that event**, then erased. |
 | AI | Optional. KYC never in the model. If AI is off, say so: Fill with AI, model quality score, chat help will not run; type / save / download still work. |
 
@@ -38,7 +39,7 @@ Constants:
 - Server: `server/src/lib/privacyNotice.ts`
 - Client: `client/src/lib/privacy/constants.ts`
 
-Current notice version: **`2026-09-4`**. Bump this string when the privacy page content changes so old users re-consent.
+Current notice version: **`2026-10-1`**. Bump this string when the privacy page content changes so old users re-consent.
 
 ---
 
@@ -63,7 +64,7 @@ Stored on `User.privacy`:
 | `noticeVersion` / `noticeAcceptedAt` | Which notice they agreed to |
 | `dateOfBirth` | Register only; used to block under 18 |
 
-JWT / profile payload includes `privacy.needsNoticeAcceptance` when `noticeVersion !== 2026-09-4`.
+JWT / profile payload includes `privacy.needsNoticeAcceptance` when `noticeVersion !== 2026-10-1`.
 
 **APIs**
 
@@ -142,7 +143,7 @@ Cascade: Cloudinary public ids / upload URLs in projects and DPRs, local `/uploa
 
 ### 4.5 Grievance
 
-`POST /api/privacy/complaint` `{ subject, message }`. Saves `PrivacyComplaint` (inbox `privacy.grievance@msmeone.gov.in`). No SMTP yet — server log line only. Logs `complaint_submitted`. A human must still reply (~90 days for rights requests).
+`POST /api/privacy/complaint` `{ subject, message }`. Saves `PrivacyComplaint` (inbox `apmsmedc@gmail.com`, reply due in 90 days). No SMTP yet — the mail to the inbox is only logged; the request itself is stored and handled in Admin. Logs `complaint_submitted`. A human must still reply (~90 days for rights requests).
 
 ### 4.6 Full audit
 
@@ -172,6 +173,8 @@ Rows still store time, userId, role, action, optional targetType/targetId, IP. *
 
 | Env | Default | Meaning |
 |-----|---------|---------|
+> A blank value (for example `RETENTION_IDLE_DAYS=` in `.env`) counts as not set and uses the default. Only an explicit `0` means “right now”; never leave these keys blank-but-present expecting a default on older builds, where a blank read as 0.
+
 | `RETENTION_IDLE_DAYS` | 365 (12 months) | Delete after last **edit** of that DPR (`updatedAt`). Draft **and** submitted. |
 | `RETENTION_WARNING_DAYS` | **15** | Warn this many days **before** that delete |
 | `AUDIT_RETENTION_DAYS` | **730** (24 months) | Delete **that** audit row 24 months after it was written |
@@ -185,6 +188,20 @@ Rows still store time, userId, role, action, optional targetType/targetId, IP. *
 `NotifyService` is the Twilio plug. Do not add the Twilio SDK until those keys exist.
 
 ---
+
+### Sign-out clears the session
+
+`logout` in `authStore` calls `clearUserSession()` (`client/src/lib/sessionReset.ts`): the draft on screen, cached DPR / project lists, the chat and cached API answers are dropped, so nothing from one person’s session shows for the next on the same browser. Automatic draft saves count as edits for the 12-month retention clock (a save updates the DPR’s last-edit time).
+
+## 4.8 Oct 2026 additions (from the department's DPDP document)
+
+- **Notice** (EN/TE) now names the fiduciary and address, the privacy officer, the processors (database/cloud host, OpenAI, Cloudinary, SMS provider), "not used to train AI models", processing outside India, breach handling and the written retention hold. Version `2026-10-1` forces re-consent.
+- **Grievance workflow:** statuses `open / in_progress / resolved / closed`, officer reply, assignee, internal note, `dueAt` (90 days). Admin: `GET /api/admin/complaints`, `PATCH /api/admin/complaints/:id` (resolving needs a reply; the person is notified). User: `GET /api/privacy/complaints` (never returns the internal note). UI: Admin → **Privacy and incidents**, and `/account/privacy` → My privacy requests.
+- **Breach register** (`DataBreachIncident`): nature/scope, data affected, people affected, detection time, declare / not-a-breach with written reasoning, containment, Board intimation and 72-hour detailed-report clock (overdue flag), notice to affected people (`POST /api/admin/incidents/:id/notify-users`), corrective actions, timeline. Routes under `/api/admin/incidents`. Every change is audited (`incident_*`). Never purged by retention.
+- **Retention hold:** `POST/DELETE /api/admin/dprs/:id/retention-hold` (reason + written reference required, optional end date), `GET /api/admin/retention/holds`. The job skips held reports (no warning, no delete); lifting restarts with a fresh 15-day warning. Account erase is not blocked by a hold.
+- **Readiness:** `GET /api/admin/compliance/status` lists each item of the department's document as ready or action-needed. Env flags: `VENDOR_CONTRACTS_CONFIRMED`, `CROSS_BORDER_CONFIRMED`, `OPENAI_ZDR_CONFIRMED`.
+- **Telugu view of typed answers:** in Telugu the live report sends the person's own typed text (not identity files or numbers) to the AI translator, only when AI help is on, through the same scrubbing gateway. `POST /api/ai/translate-texts`.
+- **Tests:** `npm run test:privacy-ops` (needs the API running with `RETENTION_IDLE_DAYS=0 RETENTION_WARNING_DAYS=0`).
 
 ## 5. Key files
 
@@ -216,7 +233,7 @@ Use a **new email** for each register test so you do not fight old users.
 
 1. Open http://localhost:5173/privacy (logged out).
 2. Toggle English / Telugu — body language should change.
-3. Confirm it names **MSME One Department**, mock mail `privacy.grievance@msmeone.gov.in`, 12-month drafts, optional AI, under-18 guardian line.
+3. Confirm it names **AP MSME Development Corporation**, its address, officer A Sudhakar and `apmsmedc@gmail.com`, 12-month drafts, optional AI, under-18 guardian line.
 
 ### B. Register — adult, AI off
 
@@ -317,7 +334,7 @@ If an admin/officer opens another user’s DPR by id, expect `admin_view` in the
 
 ## 8. How to test Stage 3
 
-Old users will see the re-consent popup because the notice is now **`2026-09-4`**. Accept it, then:
+Old users will see the re-consent popup because the notice is now **`2026-10-1`**. Accept it, then:
 
 ### A. Private upload
 
@@ -364,3 +381,7 @@ We may say: we do not keep identity scans or cluster photos as public links; unu
 
 We must **not** say: legal compliance is complete. We must **not** say we comply with DPDP.
 
+
+## Firm PAN field
+
+The optional `firmPan` accepts company/firm PANs only. Individual PANs (4th letter P) are rejected client-side and stripped server-side in `sanitizeStoredPayload`.

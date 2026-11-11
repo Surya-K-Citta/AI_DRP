@@ -1,6 +1,6 @@
 const AGE_KEYS = /^(entrepreneurAge|promoterAge|applicantAge|age)$/i;
 
-export function isUnder18Age(value: unknown): boolean {
+function isUnder18Age(value: unknown): boolean {
   if (value == null || value === '') return false;
   const n = typeof value === 'number' ? value : parseInt(String(value).trim(), 10);
   return Number.isFinite(n) && n >= 0 && n < 18;

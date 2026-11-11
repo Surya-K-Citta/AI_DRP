@@ -9,8 +9,15 @@ import { AuditEvent } from '../models/AuditEvent.model';
 import { PrivacyComplaint } from '../models/PrivacyComplaint.model';
 import { UserNotification } from '../models/UserNotification.model';
 import { AuditService } from '../services/audit.service';
+import { NotifyService } from '../services/notify.service';
 import { eraseAccount } from '../services/accountErase.service';
-import { GRIEVANCE_EMAIL, PRIVACY_NOTICE_VERSION } from '../lib/privacyNotice';
+import {
+  GRIEVANCE_EMAIL,
+  GRIEVANCE_RESPONSE_DAYS,
+  PRIVACY_NOTICE_VERSION,
+  PRIVACY_OFFICER_NAME,
+  PRIVACY_OFFICER_ROLE,
+} from '../lib/privacyNotice';
 
 function publicPrivacyUser(user: any) {
   const noticeVersion = user.privacy?.noticeVersion || null;
@@ -55,6 +62,7 @@ const USER_ACTIVITY_ACTIONS = [
   'profile_change',
   'nominee_change',
   'complaint_submitted',
+  'complaint_update',
   'retention_warning',
   'retention_purge',
 ];
@@ -331,10 +339,14 @@ export class PrivacyController {
         message,
         inbox: GRIEVANCE_EMAIL,
         status: 'open',
+        dueAt: new Date(Date.now() + GRIEVANCE_RESPONSE_DAYS * 24 * 60 * 60 * 1000),
       });
 
-      console.info(
-        `[grievance] saved for ${user.email}; would email ${GRIEVANCE_EMAIL}: ${subject}`
+      // Tell the department mailbox. Until SMTP is configured this only logs (see NotifyService).
+      await NotifyService.sendMail(
+        GRIEVANCE_EMAIL,
+        `[Privacy request] ${subject}`,
+        `From: ${user.name || ''} <${user.email}>\nReference: ${complaint._id}\nReply due by: ${complaint.dueAt?.toISOString()}\n\n${message}`
       );
 
       await AuditService.log({
@@ -348,14 +360,13 @@ export class PrivacyController {
 
       res.status(201).json({
         success: true,
-        message:
-          'Your request was saved. A person must still reply. The mock inbox is ' +
-          GRIEVANCE_EMAIL +
-          ' until Stage 4.',
+        message: `Your request was saved. ${PRIVACY_OFFICER_NAME}, ${PRIVACY_OFFICER_ROLE}, will reply within ${GRIEVANCE_RESPONSE_DAYS} days. You can follow it on this page.`,
         data: {
           id: complaint._id,
           inbox: GRIEVANCE_EMAIL,
           createdAt: complaint.createdAt,
+          dueAt: complaint.dueAt,
+          status: complaint.status,
         },
       });
     } catch (error: any) {
@@ -365,6 +376,26 @@ export class PrivacyController {
         message: 'Failed to submit privacy request',
         error: error.message,
       });
+    }
+  }
+
+  /** The person's own requests with their status and the officer's answer. Internal notes are never returned. */
+  static async myComplaints(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({ success: false, message: 'User not authenticated' });
+        return;
+      }
+      const items = await PrivacyComplaint.find({ userId })
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .select('subject message status response respondedAt dueAt createdAt')
+        .lean();
+      res.status(200).json({ success: true, data: items });
+    } catch (error: any) {
+      console.error('List complaints error:', error);
+      res.status(500).json({ success: false, message: 'Failed to load privacy requests' });
     }
   }
 

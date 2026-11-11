@@ -12,7 +12,6 @@ export const MSE_SPICE_EXTRA_FIELDS = [
   'processOfManufacture',
 ] as const;
 
-export type MseSpiceExtraField = (typeof MSE_SPICE_EXTRA_FIELDS)[number];
 
 export const MSE_SPICE_SECTOR_OPTIONS = [
   { value: 'plastic', label: 'Plastic recycling / circular' },

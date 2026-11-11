@@ -13,7 +13,6 @@ export const ASPIRE_EXTRA_FIELDS = [
   'premisesType',
 ] as const;
 
-export type AspireExtraField = (typeof ASPIRE_EXTRA_FIELDS)[number];
 
 export const ASPIRE_PREMISES_OPTIONS = [
   { value: 'incubator', label: 'Incubator / LBI space' },

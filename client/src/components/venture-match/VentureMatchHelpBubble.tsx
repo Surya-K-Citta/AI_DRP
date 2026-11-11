@@ -45,14 +45,14 @@ export const VentureMatchHelpTrigger: React.FC<VentureMatchHelpTriggerProps> = (
       type="button"
       onClick={onClick}
       className={cn(
-        'inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground',
-        'px-3.5 py-2 text-sm font-medium shadow-md hover:bg-primary/90 whitespace-nowrap',
+        'inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground',
+        'h-11 w-11 text-sm font-medium shadow-md hover:bg-primary/90 whitespace-nowrap sm:h-auto sm:w-auto sm:px-3.5 sm:py-2',
         className
       )}
       aria-label={t('ventureMatch.help.open')}
     >
-      <HelpCircle className="h-4 w-4 shrink-0" />
-      <span>{t('ventureMatch.help.open')}</span>
+      <HelpCircle className="h-5 w-5 shrink-0 sm:h-4 sm:w-4" />
+      <span className="hidden sm:inline">{t('ventureMatch.help.open')}</span>
     </button>
   );
 };
@@ -72,7 +72,7 @@ export const VentureMatchHelpBubble: React.FC<VentureMatchHelpBubbleProps> = ({
   open,
   onOpenChange,
 }) => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const uiLang: HelpLang = i18n.language?.startsWith('te') ? 'te' : 'en';
   const [chatLang, setChatLang] = useState<HelpLang>(uiLang);
   const [draft, setDraft] = useState('');

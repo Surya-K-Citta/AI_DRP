@@ -208,6 +208,8 @@ export const HeroCarousel: React.FC<{ images?: HeroCarouselImage[] }> = ({ image
                   alt={card.repeat ? '' : card.alt}
                   className="h-full w-full object-cover"
                   loading={i < 9 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  {...({ fetchpriority: i < 4 ? 'high' : 'auto' } as Record<string, string>)} // lowercase: this React version warns about the camel-case prop
                   draggable={false}
                 />
               ) : (

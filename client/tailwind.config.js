@@ -60,18 +60,23 @@ export default {
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
+          text: 'hsl(var(--secondary-text))',
         },
         success: {
           DEFAULT: 'hsl(var(--success))',
           foreground: 'hsl(var(--success-foreground))',
+          text: 'hsl(var(--success-text))',
         },
         warning: {
           DEFAULT: 'hsl(var(--warning))',
           foreground: 'hsl(var(--warning-foreground))',
+          // Text colour for small labels on a pale warning tint (reaches 4.5:1)
+          text: 'hsl(var(--warning-text))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
+          text: 'hsl(var(--destructive-text))',
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',

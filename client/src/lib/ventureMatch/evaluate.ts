@@ -20,7 +20,7 @@ import {
 
 const STATUS_ORDER = { fail: 0, unknown: 1, pass: 2 } as const;
 
-export function sortCriteria(criteria: SchemeCriterion[]): SchemeCriterion[] {
+function sortCriteria(criteria: SchemeCriterion[]): SchemeCriterion[] {
   return [...criteria].sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
 }
 
@@ -84,6 +84,11 @@ export function evaluate(answers: VentureMatchAnswers): EvaluateResult {
         kind: scheme.kind,
         benefit: scheme.benefit(answers),
         dprRoute: scheme.dprRoute || 'full',
+        fit: {
+          passed: criteria.filter((c) => c.status === 'pass').length,
+          open: criteria.filter((c) => c.status === 'unknown').length,
+          total: criteria.length,
+        },
         ...(scheme.code === 'AP_CMEP' ? { boosted: cmepBoosted(answers) } : {}),
       });
     }

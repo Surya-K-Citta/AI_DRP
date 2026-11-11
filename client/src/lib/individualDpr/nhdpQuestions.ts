@@ -4,7 +4,7 @@
  * Step list: NHDP_STEPS (10 consecutive steps).
  */
 
-export type NhdpLoomType = 'pit' | 'frame' | 'jacquard' | 'other';
+type NhdpLoomType = 'pit' | 'frame' | 'jacquard' | 'other';
 
 export const NHDP_EXTRA_FIELDS = [
   'loomType',
@@ -16,7 +16,6 @@ export const NHDP_EXTRA_FIELDS = [
   'premisesType',
 ] as const;
 
-export type NhdpExtraField = (typeof NHDP_EXTRA_FIELDS)[number];
 
 export const NHDP_LOOM_OPTIONS: { value: NhdpLoomType; label: string }[] = [
   { value: 'pit', label: 'Pit loom' },

@@ -5,7 +5,7 @@
 
 // @ts-nocheck
 
-export interface DPRCreationStep {
+interface DPRCreationStep {
   step: number;
   totalSteps: number;
   question: string;
@@ -19,7 +19,7 @@ export interface DPRCreationStep {
 }
 
 // Match the StepData structure from AI-Guided DPR Builder
-export interface DPRCreationData {
+interface DPRCreationData {
   businessOverview?: {
     projectName?: string;
     industrySector?: string;
@@ -168,7 +168,7 @@ export interface DPRCreationData {
   };
 }
 
-export interface DPRCreationSession {
+interface DPRCreationSession {
   currentStep: number;
   totalSteps: number;
   data: DPRCreationData;

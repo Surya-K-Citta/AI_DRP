@@ -129,7 +129,7 @@ const te: typeof en = {
   },
 };
 
-export const LANDING_COPY = { en, te };
+const LANDING_COPY = { en, te };
 
 /** Returns the copy for the current UI language and a setter. */
 export const useLandingCopy = () => {

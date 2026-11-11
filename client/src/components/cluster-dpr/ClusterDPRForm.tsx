@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { VoiceProvider } from '@/components/ui/VoiceContext';
 import React from 'react';
 import { useClusterDPRStore } from '@/store/clusterDPRStore';
 import { Input } from '@/components/ui/Input';
@@ -19,7 +20,7 @@ interface ClusterDPRFormProps {
   onPrevious: () => void;
 }
 
-export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
+const ClusterDPRFormInner: React.FC<ClusterDPRFormProps> = ({
   currentStep,
   onNext,
   onPrevious,
@@ -1962,7 +1963,7 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
           }
         }
         handleInputChange('supportingDocuments', uploadedRefs);
-        toast.success(`${uploadedRefs.length} document(s) uploaded!`);
+        toast.success(tf('{n1} document(s) uploaded!').replace('{n1}', String(uploadedRefs.length)));
       } finally {
         setUploadingFiles(prev => ({ ...prev, supportingDocuments: false }));
       }
@@ -2106,8 +2107,16 @@ export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = ({
   return (
     <div className="space-y-6">
       <p className="text-muted-foreground">
-        Step {currentStep} form implementation in progress. Please check back soon.
+        
+        {tf('Step {n} form implementation in progress. Please check back soon.').replace('{n}', String(currentStep))}
       </p>
     </div>
   );
 };
+
+/** The microphone button shows on every text box of this form. */
+export const ClusterDPRForm: React.FC<ClusterDPRFormProps> = (props) => (
+  <VoiceProvider>
+    <ClusterDPRFormInner {...props} />
+  </VoiceProvider>
+);

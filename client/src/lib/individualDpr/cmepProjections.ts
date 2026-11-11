@@ -27,7 +27,7 @@ export const CMEP_LINE_ITEMS: { key: CmepLineKey; label: string }[] = [
   { key: 'netProfit', label: 'Net profit' },
 ];
 
-export const CMEP_PROJECTED_YEARS = 8;
+const CMEP_PROJECTED_YEARS = 8;
 
 export type CmepYearColumn = {
   label: string;

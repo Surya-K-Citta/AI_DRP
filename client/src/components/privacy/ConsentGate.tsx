@@ -109,7 +109,7 @@ export const ConsentGate: React.FC<ConsentGateProps> = ({ children }) => {
       <div className="pointer-events-none opacity-40" aria-hidden>
         {children}
       </div>
-      <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
+      <div className="motion-overlay fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
         <Card className="w-full max-w-xl max-h-[92vh] overflow-y-auto pointer-events-auto">
           <CardHeader>
             <CardTitle>{t('privacy.reconsentTitle')}</CardTitle>

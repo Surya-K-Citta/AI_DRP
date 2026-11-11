@@ -1,4 +1,4 @@
-export type DprSearchSource = {
+type DprSearchSource = {
   projectId?: {
     projectName?: string;
     industrySector?: string;
@@ -87,12 +87,3 @@ export function dprSchemeCode(dpr: DprSearchSource): string {
   );
 }
 
-export function dprProjectType(dpr: DprSearchSource): 'individual' | 'cluster' | '' {
-  const project = dpr.projectId || {};
-  if (project.projectType === 'individual' || project.projectType === 'cluster') return project.projectType;
-  const english = dpr.content?.english || {};
-  if (english.metadata?.isIndividualDPR || english.isIndividualDPR || english.clusterData?.isIndividualDPR) {
-    return 'individual';
-  }
-  return '';
-}

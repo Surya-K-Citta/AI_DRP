@@ -4,7 +4,7 @@
  * Step list: ZED_STEPS (5 consecutive steps).
  */
 
-export type ZedLevel = 'none' | 'bronze' | 'silver' | 'gold';
+type ZedLevel = 'none' | 'bronze' | 'silver' | 'gold';
 
 export const ZED_EXTRA_FIELDS = [
   'zedCurrentLevel',
@@ -13,7 +13,6 @@ export const ZED_EXTRA_FIELDS = [
   'qualityFocus',
 ] as const;
 
-export type ZedExtraField = (typeof ZED_EXTRA_FIELDS)[number];
 
 export const ZED_LEVEL_OPTIONS: { value: ZedLevel; label: string }[] = [
   { value: 'none', label: 'Not certified yet' },

@@ -6,7 +6,7 @@ import { VentureMatchHelpService } from '../services/ventureMatchHelp.service';
 import multer from 'multer';
 
 // Setup multer for audio file uploads
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024, files: 1 } });
 
 export class AIController {
   /**
@@ -206,8 +206,8 @@ export class AIController {
           audioFormat = 'wav';
         } else if (file.mimetype.includes('ogg')) {
           audioFormat = 'ogg';
-        } else if (file.mimetype.includes('m4a')) {
-          audioFormat = 'm4a';
+        } else if (file.mimetype.includes('m4a') || file.mimetype.includes('mp4')) {
+          audioFormat = 'm4a'; // Safari records audio/mp4
         }
       }
 
@@ -230,6 +230,35 @@ export class AIController {
         message: 'Failed to transcribe audio',
         error: error.message,
       });
+    }
+  }
+
+  /**
+   * Translate what the person typed into Telugu for the on-screen report.
+   * Limits keep one request small: up to 60 entries, 2000 characters each, 20000 in all.
+   */
+  static async translateUserTexts(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const texts = req.body?.texts;
+      if (
+        !Array.isArray(texts) ||
+        !texts.length ||
+        texts.length > 60 ||
+        texts.some((t) => typeof t !== 'string' || !t.trim() || t.length > 2000) ||
+        texts.reduce((n, t) => n + t.length, 0) > 20000
+      ) {
+        res.status(400).json({
+          success: false,
+          message: 'Send 1 to 60 non-empty texts, each up to 2000 characters (20000 in all).',
+        });
+        return;
+      }
+      const { TranslationService } = await import('../services/translation.service');
+      const translations = await TranslationService.translateUserTexts(texts);
+      res.status(200).json({ success: true, data: { translations } });
+    } catch (error: any) {
+      console.error('Translate user texts error:', error);
+      res.status(500).json({ success: false, message: 'Failed to translate' });
     }
   }
 

@@ -15,7 +15,6 @@ export const AP_FPP_EXTRA_FIELDS = [
   'premisesType',
 ] as const;
 
-export type ApFppExtraField = (typeof AP_FPP_EXTRA_FIELDS)[number];
 
 export const AP_FPP_SIZE_OPTIONS = [
   { value: 'micro', label: 'Micro' },

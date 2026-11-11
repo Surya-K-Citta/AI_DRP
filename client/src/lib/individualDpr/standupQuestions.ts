@@ -4,8 +4,8 @@
  * Step list: STANDUP_STEPS in schemeStepCatalog.ts (13 consecutive steps).
  */
 
-export type StandupCategory = 'woman' | 'sc' | 'st';
-export type StandupPremises = 'owned' | 'leased' | 'rented';
+type StandupCategory = 'woman' | 'sc' | 'st';
+type StandupPremises = 'owned' | 'leased' | 'rented';
 
 export const STANDUP_EXTRA_FIELDS = [
   'standupCategory',
@@ -19,7 +19,6 @@ export const STANDUP_EXTRA_FIELDS = [
   'premisesType',
 ] as const;
 
-export type StandupExtraField = (typeof STANDUP_EXTRA_FIELDS)[number];
 
 export const STANDUP_CATEGORY_OPTIONS: { value: StandupCategory; label: string }[] = [
   { value: 'woman', label: 'Woman entrepreneur' },

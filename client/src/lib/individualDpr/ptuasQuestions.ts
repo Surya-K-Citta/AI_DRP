@@ -13,7 +13,6 @@ export const PTUAS_EXTRA_FIELDS = [
   'processOfManufacture',
 ] as const;
 
-export type PtuasExtraField = (typeof PTUAS_EXTRA_FIELDS)[number];
 
 export const PTUAS_GMP_OPTIONS = [
   { value: 'gmp', label: 'WHO-GMP / Schedule M compliant' },

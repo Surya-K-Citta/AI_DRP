@@ -1,4 +1,7 @@
-import React, { useLayoutEffect, useRef } from 'react';
+import { FinanceDocSummary } from '@/components/individual-dpr/FinanceModel';
+import { businessKind, normalizeAssetItems } from '@/lib/individualDpr/businessKind';
+import { ScheduleDocParties } from '@/components/individual-dpr/ScheduleParties';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { getIndividualCoverLines } from '@/lib/individualDpr/coverTitle';
 import { useClusterFormText } from '@/lib/clusterDprFormText';
 import {
@@ -8,6 +11,7 @@ import {
   getIndividualDocFields,
   getIndividualUploads,
   getSchemeDocSteps,
+  isLeanUnitScheme,
   readDocField,
   sectionTitleFromStep,
   type IndividualDocField,
@@ -15,6 +19,7 @@ import {
 import { getSchemeUiTemplate } from '@/lib/individualDpr/schemeUiTemplate';
 import {
   layoutOrder,
+  layoutOfPreset,
   pageEdgeMm,
   pictureIdFromToken,
   resizeImageBox,
@@ -53,13 +58,28 @@ const NARRATIVE_FIELDS = new Set([
   'impactNote',
 ]);
 import { isKycUploaded } from '@/lib/privacy/kycField';
+import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
+import { useAuthStore } from '@/store/authStore';
+import { useUserTextTe } from '@/lib/i18n/useUserTextTe';
+import { toDateInputValue } from '@/lib/dprAiFieldNormalize';
+import { isReasonableIsoDate } from '@/lib/individualDpr/isoDate';
+import { getDocCellInput, getDocFieldInput, type DocFieldInput } from '@/lib/individualDpr/docFieldInput';
 
-export interface IndividualDPRDocumentViewProps {
+interface IndividualDPRDocumentViewProps {
   dpr: any;
   project?: any;
   viewLanguage?: 'english' | 'telugu';
   trackFieldHits?: boolean;
   onSectionClick?: (localStep: number) => void;
+  /** The user put the cursor in a field of this section (step number and section id). */
+  onSectionFocus?: (localStep: number, sectionId: string) => void;
+  /** Adds an "Open in form" button to each section (Document mode), for what only the form can fill in. */
+  onOpenInForm?: (localStep: number) => void;
+  /** Document mode guide: the field that has the cursor (its path, e.g. step1.district) and the section it is in. */
+  onFieldFocus?: (path: string, localStep: number) => void;
+  /** Document mode guide: paths of required answers still empty. Their input box turns red on screen until something is entered (never printed). */
+  guideMissing?: string[];
   /** When set, this DPR wears the saved style and section order. */
   documentStyle?: DocumentStyle | null;
   activeSectionId?: string | null;
@@ -69,6 +89,12 @@ export interface IndividualDPRDocumentViewProps {
   onEditField?: (path: string, text: string) => void;
   /** Type a text block that was inserted into a section. */
   onEditBlock?: (sectionId: string, blockId: string, text: string) => void;
+  /** Live editing view: list every section and field, filled or not. Preview and PDF leave this off. */
+  showEmpty?: boolean;
+  /** Form-mode report: every section up to this step is always drawn (this step's empty answers as dashes), so the section numbers and places line up with the steps. */
+  focusStep?: number;
+  /** Mark the first cover, paragraph, table, header, and watermark for the setup guide preview. */
+  markStyleSpots?: boolean;
 }
 
 const IMAGE_HANDLES: ImageHandle[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
@@ -159,9 +185,11 @@ function EditableDocText({
   onEdit,
   multiline,
   track,
+  label,
 }: {
   path: string;
   display: string;
+  label?: string;
   placeholder: string;
   onEdit: (path: string, text: string) => void;
   multiline?: boolean;
@@ -181,6 +209,8 @@ function EditableDocText({
       contentEditable
       suppressContentEditableWarning
       role="textbox"
+      aria-label={label}
+      aria-multiline={multiline ? true : undefined}
       spellCheck
       data-dpr-field={track ? path : undefined}
       data-placeholder={placeholder}
@@ -202,21 +232,174 @@ function EditableDocText({
   );
 }
 
+/**
+ * Picking from a dropdown or date box inside the zoomed live report can make the browser scroll the
+ * page to a wrong spot (it re-focuses the control and the update re-flows the page). Put the report back
+ * where it was for a moment after the change.
+ */
+function holdScroll(from: HTMLElement | null) {
+  const box = from?.closest('[data-dpr-scroll]') as HTMLElement | null;
+  if (!box) return;
+  const top = box.scrollTop;
+  const left = box.scrollLeft;
+  const restore = () => {
+    if (box.scrollTop !== top) box.scrollTop = top;
+    if (box.scrollLeft !== left) box.scrollLeft = left;
+  };
+  requestAnimationFrame(() => {
+    restore();
+    requestAnimationFrame(restore);
+  });
+  [60, 150, 300].forEach((ms) => window.setTimeout(restore, ms));
+}
+
+function DocControl({
+  path,
+  display,
+  raw,
+  input,
+  placeholder,
+  onEdit,
+  multiline,
+  track,
+  tf,
+  rangeCheck,
+  label,
+}: {
+  path: string;
+  display: string;
+  label?: string;
+  raw: unknown;
+  input: DocFieldInput;
+  placeholder: string;
+  onEdit: (path: string, text: string) => void;
+  multiline?: boolean;
+  track?: boolean;
+  tf: (text: string) => string;
+  rangeCheck?: (next: string) => string | null;
+}) {
+  const value = raw == null ? '' : String(raw);
+  const [draft, setDraft] = useState(value);
+  const typing = useRef(false);
+  useEffect(() => {
+    if (!typing.current) setDraft(value);
+  }, [value]);
+
+  if (input.kind === 'select') {
+    return (
+      <select
+        className="dpr-inline-select"
+        aria-label={label}
+        data-dpr-field={track ? path : undefined}
+        value={value}
+        disabled={input.disabled}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+        onChange={(event) => {
+          holdScroll(event.currentTarget);
+          onEdit(path, event.target.value);
+        }}
+      >
+        <option value="">{tf(input.blank)}</option>
+        {input.options.map((option) => (
+          <option key={option.value} value={option.value}>{tf(option.label)}</option>
+        ))}
+      </select>
+    );
+  }
+  if (input.kind === 'number') {
+    return (
+      <input
+        type="number"
+        inputMode="decimal"
+        step="any"
+        className="dpr-inline-input"
+        aria-label={label}
+        data-dpr-field={track ? path : undefined}
+        value={draft}
+        placeholder={placeholder}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+        onFocus={() => { typing.current = true; }}
+        onBlur={() => { typing.current = false; setDraft(value); }}
+        onChange={(event) => {
+          holdScroll(event.currentTarget);
+          setDraft(event.target.value);
+          onEdit(path, event.target.value);
+        }}
+      />
+    );
+  }
+  if (input.kind === 'date') {
+    return (
+      <input
+        type="date"
+        className="dpr-inline-input"
+        aria-label={label}
+        data-dpr-field={track ? path : undefined}
+        value={toDateInputValue(raw)}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+        onChange={(event) => {
+          const next = event.target.value;
+          if (next && !isReasonableIsoDate(next)) {
+            toast.error(tf('Enter a valid date between 1990 and 2100'));
+            return;
+          }
+          const problem = next && rangeCheck ? rangeCheck(next) : null;
+          if (problem) {
+            toast.error(tf(problem));
+            return;
+          }
+          holdScroll(event.currentTarget);
+          onEdit(path, next);
+        }}
+      />
+    );
+  }
+  return (
+    <EditableDocText
+      path={path}
+      display={display}
+      label={label}
+      placeholder={placeholder}
+      onEdit={onEdit}
+      multiline={multiline || input.kind === 'textarea'}
+      track={track}
+    />
+  );
+}
+
 export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps> = ({
   dpr,
   project,
   viewLanguage = 'english',
   trackFieldHits = false,
   onSectionClick,
+  onSectionFocus,
+  onOpenInForm,
+  onFieldFocus,
+  guideMissing,
   documentStyle,
   activeSectionId = null,
   onImageFrame,
   onEditField,
   onEditBlock,
+  showEmpty: showEmptyProp = false,
+  focusStep,
+  markStyleSpots = false,
 }) => {
   const tf = useClusterFormText();
-  const data = extractIndividualDocData(dpr, project);
-  const schemeCode = extractSchemeCode(dpr, project, data);
+  // Shown for every section when asked; the focused step's section also shows its empty answers (switched on only while that section is drawn).
+  let showEmpty = showEmptyProp;
+  const rawData = extractIndividualDocData(dpr, project);
+  const { i18n } = useTranslation();
+  const aiAllowed = !!useAuthStore((state) => state.user?.privacy?.aiAssist);
+  // In Telugu, the read-only report shows the person's own typed answers in Telugu too. The answers themselves stay in
+  // English (exports and the report logic read them); typing into the report (Advanced mode) always shows what was typed.
+  const teView = (viewLanguage === 'telugu' || i18n.language.startsWith('te')) && !onEditField;
+  const { data, status: userTextStatus } = useUserTextTe(rawData, teView, aiAllowed, (text) => tf(text) !== text);
+  const schemeCode = extractSchemeCode(dpr, project, rawData);
   const schemeUi = getSchemeUiTemplate(schemeCode);
   const catalogSteps = getSchemeDocSteps(schemeCode);
   const extras = data.schemeExtras || {};
@@ -229,10 +412,29 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
     viewLanguage === 'telugu' ? 'te' : 'en'
   );
   const budget = data.ventureMatchAnswers?.budget;
+  const kind = businessKind(rawData);
   const uploads = getIndividualUploads(schemeCode, data);
   const uploadStore = data.step18 || data.uploads || {};
+  const uploadedValue = (item: { id: string; label: string }) => uploadStore[item.id] || uploadStore[item.label];
 
   const typeHere = tf('Type here');
+  // Out of the page flow (absolute), so it never changes the layout or the page breaks; hidden when printed.
+  const openInFormButton = (n: number) =>
+    onOpenInForm ? (
+      <button type="button" className="dpr-open-in-form no-print" onClick={() => onOpenInForm(n)} title={tf('Open this section in the form (file uploads and calculators are filled in there)')}>
+        {tf('Open in form')}
+      </button>
+    ) : null;
+  const focusIn = (n: number, id: string) => onSectionFocus || onFieldFocus
+    ? (event: React.FocusEvent<HTMLElement>) => {
+        const target = event.target as HTMLElement;
+        if (!target.matches?.('input, select, textarea, [contenteditable="true"]')) return;
+        onSectionFocus?.(n, id);
+        const path = (target.closest?.('[data-dpr-field]') as HTMLElement | null)?.getAttribute('data-dpr-field');
+        if (path) onFieldFocus?.(path, n);
+      }
+    : undefined;
+  const coverDef = catalogSteps.find((step) => step.contentStep === 1);
   const renderBlocks = (sectionId: string) => {
     const blocks = style?.sectionBlocks?.[sectionId] || [];
     if (!blocks.length) return null;
@@ -245,6 +447,7 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
               <EditableDocText
                 path={`block:${sectionId}:${block.id}`}
                 display={block.text || '—'}
+                label={tf('Add text')}
                 placeholder={typeHere}
                 multiline
                 onEdit={(_path, text) => onEditBlock(sectionId, block.id, text)}
@@ -264,20 +467,66 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
       );
     });
   };
+  const lean = isLeanUnitScheme(schemeCode);
+  const fieldName = (path: string) => (path.match(/([A-Za-z0-9_]+)(?:\[\d+\])?$/)?.[1] || path);
+  const dateOrder = (path: string) => (next: string): string | null => {
+    const name = fieldName(path);
+    const stepData = data[path.split('.')[0]] || {};
+    if (name === 'commitmentDate') {
+      const start = toDateInputValue(stepData.yearOfEstablishment);
+      return start && next < start ? 'Commitment Date must be on or after Start Date' : null;
+    }
+    if (name === 'yearOfEstablishment' && lean) {
+      const commit = toDateInputValue(stepData.commitmentDate);
+      return commit && next > commit ? 'Commitment Date must be on or after Start Date' : null;
+    }
+    return null;
+  };
+  // The name a screen reader gives an answer typed straight into the report: the question's own label, with the row number for table cells.
+  const labelCache = new Map<string, string>();
+  const humanize = (word: string) => word.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
+  const answerLabel = (path: string): string => {
+    const cached = labelCache.get(path);
+    if (cached) return cached;
+    const step = /^step(\d+)\./.exec(path);
+    const names = [...path.matchAll(/([A-Za-z0-9_]+)(?:\[(\d+)\])?/g)].map((m) => ({ name: m[1], row: m[2] }));
+    const start = step ? 1 : 1;
+    const head = names[start];
+    const found = step && head ? getIndividualDocFields(Number(step[1]), schemeCode, budget, kind).find((f) => f.name === head.name) : undefined;
+    const base = found ? tf(found.label) : head ? tf(humanize(head.name)) : path;
+    const tail = names.slice(start + 1);
+    const text = tail.length
+      ? `${base}${head?.row != null ? ` ${Number(head.row) + 1}` : ''}: ${tail.map((n) => tf(humanize(n.name))).join(' ')}`
+      : base;
+    labelCache.set(path, text);
+    return text;
+  };
   const editableValue = (path: string, display: string, raw: unknown, multiline = false) => {
     if (onEditField && isPlainValue(raw)) {
       return (
-        <EditableDocText
+        <DocControl
           path={path}
           display={display}
+          raw={raw}
+          input={getDocFieldInput(fieldName(path), { path, schemeCode, lean, data, current: raw })}
+          label={answerLabel(path)}
           placeholder={typeHere}
           onEdit={onEditField}
           multiline={multiline}
           track={trackFieldHits}
+          tf={tf}
+          rangeCheck={dateOrder(path)}
         />
       );
     }
     return fieldHit(path, display === '—' ? '—' : tf(display), trackFieldHits);
+  };
+
+  const styleSpots = { body: false, table: false, money: false };
+  const claimSpot = (kind: 'body' | 'table' | 'money') => {
+    if (!markStyleSpots || styleSpots[kind]) return undefined;
+    styleSpots[kind] = true;
+    return kind;
   };
 
   const renderSectionFields = (fields: IndividualDocField[]) => {
@@ -287,11 +536,11 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
       let particulars: IndividualDocField[] = [];
       const flushParticulars = () => {
         if (!particulars.length) return;
-        const rows = particulars.filter((field) => formatDocValue(readDocField(field, data)) !== '—');
+        const rows = showEmpty ? particulars : particulars.filter((field) => formatDocValue(readDocField(field, data)) !== '—');
         particulars = [];
         if (!rows.length) return;
         blocks.push(
-          <table key={rows.map((field) => field.path).join('|')} className="individual-particulars">
+          <table key={rows.map((field) => field.path).join('|')} className="individual-particulars" data-style-spot={claimSpot('table')}>
             <thead>
               <tr>
                 <th>{tf('Particular')}</th>
@@ -316,7 +565,7 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
         );
       };
       const prose = (field: IndividualDocField, text: string) => (
-        <article key={field.path} className="individual-qa-block">
+        <article key={field.path} className="individual-qa-block" data-style-spot={claimSpot('body')}>
           <h3 className="individual-qa-q">{tf(field.label)}</h3>
           <div className={`individual-qa-a${text === '—' ? ' is-empty' : ''}`}>
             {editableValue(field.path, text, readDocField(field, data), true)}
@@ -333,10 +582,12 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
         keepAll = false
       ) => {
         const paired = body.map((row, index) => ({ row, paths: cellPaths?.[index] }));
-        const kept = keepAll ? paired : paired.filter(({ row }) => isEnteredDocRow(row, skipIndexes));
+        const kept = keepAll || showEmpty ? paired : paired.filter(({ row }) => isEnteredDocRow(row, skipIndexes));
+        if (!kept.length && showEmpty) kept.push({ row: headers.map(() => ''), paths: cellPaths?.[0] });
         if (!kept.length) return null;
+        const money = /yearProjection|machinery|costPhasing|means|finance|sales/i.test(key);
         return (
-        <table key={key} className="individual-particulars">
+        <table key={key} className="individual-particulars" data-style-spot={money ? claimSpot('money') : claimSpot('table')}>
           <caption className="individual-qa-q">{tf(title)}</caption>
           <thead>
             <tr>{headers.map((header) => <th key={header}>{tf(header)}</th>)}</tr>
@@ -348,7 +599,17 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
                 return (
                   <td key={cellIndex}>
                     {cellPath && onEditField ? (
-                      <EditableDocText path={cellPath} display={cell || '—'} placeholder={typeHere} onEdit={onEditField} track={trackFieldHits} />
+                      <DocControl
+                        path={cellPath}
+                        display={cell || '—'}
+                        raw={cell}
+                        input={getDocCellInput(fieldName(cellPath), cell)}
+                        label={`${tf(title)} ${index + 1}: ${tf(headers[cellIndex] || fieldName(cellPath))}`}
+                        placeholder={typeHere}
+                        onEdit={onEditField}
+                        track={trackFieldHits}
+                        tf={tf}
+                      />
                     ) : (cell || '—')}
                   </td>
                 );
@@ -392,7 +653,7 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
         if (field.name === 'yearProjections' && schemeCode === 'AP_CMEP') {
           flushParticulars();
           const columns = normalizeCmepProjections(raw);
-          if (!cmepProjectionsHaveFigures(columns)) continue;
+          if (!cmepProjectionsHaveFigures(columns) && !showEmpty) continue;
           const amount = (value: number) => (Number.isInteger(value) ? String(value) : String(Math.round(value * 100) / 100));
           blocks.push(dataTable(
             field.path,
@@ -419,7 +680,7 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
             derived.averageDscr,
           ].some((value) => Number(value) !== 0)
             || derived.depreciation.some((asset) => asset.years.some((year) => year.additions !== 0 || year.depreciation !== 0));
-          if (!derivedEntered) continue;
+          if (!derivedEntered && !showEmpty) continue;
           blocks.push(
             <table key="cmep-repay" className="individual-particulars">
               <caption className="individual-qa-q">{tf('Repayment, break-even and DSCR')}</caption>
@@ -439,7 +700,7 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
                   ['Break-even sales (₹ Lakhs)', amount(derived.breakEvenSales)],
                   ['Break-even capacity (%)', amount(derived.breakEvenCapacity)],
                   ['Average DSCR', amount(derived.averageDscr)],
-                ].filter(([, value]) => isEnteredDocText(value)).map(([label, value]) => (
+                ].filter(([, value]) => showEmpty || isEnteredDocText(value)).map(([label, value]) => (
                   <tr key={label}>
                     <td className="part">{tf(label)}</td>
                     <td>{value}</td>
@@ -506,7 +767,7 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
         }
         if (field.name === 'promoters') {
           flushParticulars();
-          const promoters = (Array.isArray(raw) ? normalizePromoters(raw) : []).filter((row) => isEnteredDocRow([
+          const promoters = (Array.isArray(raw) ? normalizePromoters(raw) : []).filter((row) => showEmpty || isEnteredDocRow([
             row.name, row.relationName, row.age, row.education, row.experienceYears, row.phone,
           ]));
           blocks.push(dataTable(field.path, field.label, ['Name', 'Relation', 'Age', 'Education', 'Experience (years)', 'Phone'], promoters.map((row) => [row.name, row.relationName, row.age, row.education, row.experienceYears, row.phone]), editPaths(field.path, ['name', 'relationName', 'age', 'education', 'experienceYears', 'phone'], promoters.length)));
@@ -514,7 +775,7 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
         }
         if (field.name === 'machineryItems') {
           flushParticulars();
-          const items = normalizeMachineryItems(raw).filter((row) => isEnteredDocRow([
+          const items = normalizeMachineryItems(raw).filter((row) => showEmpty || isEnteredDocRow([
             row.description,
             row.condition,
             row.supplier,
@@ -538,6 +799,12 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
           }), editPaths(field.path, machineKeys, items.length)));
           continue;
         }
+        if (field.name === 'assetItems') {
+          flushParticulars();
+          const assets = normalizeAssetItems(raw).filter((row) => showEmpty || isEnteredDocRow([row.item, row.quantity > 1 ? row.quantity : '', row.unitCost]));
+          blocks.push(dataTable(field.path, field.label, ['Asset', 'Type', 'Qty', 'Unit cost (₹ Lakhs)'], assets.map((row) => [row.item, row.category, String(row.quantity || ''), String(row.unitCost || '')])));
+          continue;
+        }
         if (field.name === 'costPhasing') {
           flushParticulars();
           const phasing = normalizeCostPhasing(raw, data.step12);
@@ -548,7 +815,7 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
           continue;
         }
         const text = formatDocValue(raw);
-        if (text === '—') continue;
+        if (text === '—' && !showEmpty) continue;
         if (NARRATIVE_FIELDS.has(field.name) || text.length > 160) {
           flushParticulars();
           blocks.push(prose(field, text));
@@ -595,6 +862,9 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
         row.gst, row.transport, row.installation, row.lifeYears, row.annualMaintenance,
       ]));
     }
+    if (field.name === 'assetItems') {
+      return normalizeAssetItems(raw).some((row) => isEnteredDocRow([row.item, row.quantity > 1 ? row.quantity : '', row.unitCost]));
+    }
     if (field.name === 'costPhasing') {
       const phasing = normalizeCostPhasing(raw, data.step12);
       return CMEP_COST_HEADS.some((head) => isEnteredDocRow([phasing[head.key]?.incurred, phasing[head.key]?.proposed]));
@@ -603,12 +873,15 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
   };
   const sectionHasAnswers = (def: (typeof catalogSteps)[number]) => {
     if (style?.hiddenSectionIds.includes(def.id)) return false;
+    if (showEmpty) return true;
+    if (focusStep !== undefined && def.n <= focusStep) return true;
     if (def.id === 'uploads' || def.contentStep === 18) {
-      return uploads.some((item) => isKycUploaded(uploadStore[item.id] || uploadStore[item.label])) || blockVisible(def.id);
+      return uploads.some((item) => isKycUploaded(uploadedValue(item))) || blockVisible(def.id);
     }
-    return getIndividualDocFields(def.contentStep, schemeCode, budget).some(fieldHasAnswers) || blockVisible(def.id);
+    return getIndividualDocFields(def.contentStep, schemeCode, budget, kind).some(fieldHasAnswers) || blockVisible(def.id);
   };
-  const reportEntries = (style ? layoutOrder(catalogSteps, style) : catalogSteps.map((step) => step.id)).flatMap((token) => {
+  type ReportEntry = { id: string; title: string; custom: boolean; n: number };
+  const reportEntries: ReportEntry[] = (style ? layoutOrder(catalogSteps, style) : catalogSteps.map((step) => step.id)).flatMap((token): ReportEntry[] => {
     if (pictureIdFromToken(token)) return [];
     const custom = style?.customSections?.find((item) => item.id === token);
     if (custom) {
@@ -620,45 +893,65 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
     return [{ id: def.id, title: sectionTitleFromStep(def), custom: false as const, n: def.n }];
   });
 
-  const pageNumber =
-    style?.pageNumberStyle === 'of' ? tf('Page 1 of …') : '1';
   const unitTitle = String(step1.unitName || step1.clusterName || '').trim();
 
   return (
     <div
       className={`dpr-document individual-dpr-document${schemeUi ? ` ${schemeUi.documentClass}` : ''}${
         style ? ' dpr-styled' : ''
-      }${style?.tableStriped ? ' dpr-striped' : ''}${style?.wideTablesLandscape ? ' dpr-wide-landscape' : ''}`}
+      }${style?.tableStriped ? ' dpr-striped' : ''}${style?.wideTablesLandscape ? ' dpr-wide-landscape' : ''}${
+        style ? ` dpr-density-${style.tableDensity} dpr-borders-${style.tableBorders}` : ''
+      }${style?.sectionBreak === 'newPage' ? ' dpr-section-newpage' : ''}${style && !style.headingNumbers ? ' dpr-no-heading-num' : ''}`}
       style={style ? styleCssVars(style) : undefined}
       data-dpr-styled={style ? '1' : undefined}
-      data-template={style?.preset}
+      data-template={style ? layoutOfPreset(style.preset) : undefined}
+      data-theme={style?.preset}
+      data-footer-text={style?.footerText || undefined}
       data-page-size={style?.pageSize}
       data-page-edge-top={style ? String(pageEdgeMm(style.marginMm.top)) : undefined}
       data-page-edge-bottom={style ? String(pageEdgeMm(style.marginMm.bottom)) : undefined}
       data-wide-landscape={style?.wideTablesLandscape ? '1' : undefined}
       data-page-numbers={style?.pageNumberStyle}
+      data-page-of-label={style ? tf('Page {n} of {total}') : undefined}
+      data-page-print-before={style?.pageNumberStyle === 'of' ? tf('Page ') : undefined}
+      data-page-print-mid={style?.pageNumberStyle === 'of' ? tf(' of ') : undefined}
     >
+      {guideMissing?.length ? (
+        <style data-doc-guide>{`@media screen{${guideMissing
+          .filter((path) => /^[A-Za-z0-9_.\[\]]+$/.test(path))
+          .map((path) => `.individual-dpr-document [data-dpr-field="${path}"]{border-color:#dc2626!important;background-color:#fef2f2!important}.individual-dpr-document [data-dpr-field="${path}"]:focus{box-shadow:0 0 0 3px rgba(220,38,38,.22)!important}`)
+          .join('')}}`}</style>
+      ) : null}
+      {teView && (userTextStatus === 'translating' || userTextStatus === 'unavailable') ? (
+        <p role="status" className="no-print mb-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          {userTextStatus === 'translating'
+            ? tf('Translating your entries into Telugu…')
+            : tf('Your own entries are shown as typed. Turn on AI help in Privacy settings to see them in Telugu.')}
+        </p>
+      ) : null}
+      {markStyleSpots ? <div data-style-spot="page" className="h-1" aria-hidden /> : null}
       {style?.watermark ? (
-        <div className="dpr-watermark" aria-hidden="true">
+        <div className="dpr-watermark" aria-hidden="true" data-style-spot={markStyleSpots ? 'watermark' : undefined}>
           {style.watermark}
         </div>
       ) : null}
       {style && (style.agencyName || style.logoDataUrl || style.headerLine) ? (
         <div
           className={`dpr-style-header is-${style.logoAlign}${style.headerLine ? ' has-line' : ''}`}
+          data-style-spot={markStyleSpots ? 'header' : undefined}
         >
           {style.logoDataUrl ? <img src={style.logoDataUrl} alt="" className="dpr-style-logo" /> : null}
           {style.agencyName ? <span>{style.agencyName}</span> : null}
         </div>
       ) : null}
-      <header className="individual-cover">
+      <header className="individual-cover" onFocusCapture={coverDef ? focusIn(coverDef.n, coverDef.id) : undefined}>
         {schemeUi?.id === 'PMEGP' ? (
           <>
             <div className="pmegp-flag-band" aria-hidden="true" />
             <div className="pmegp-cover-top">
               <div className="pmegp-agency">
-                <span className="pmegp-agency-mark">KVIC</span>
-                <span className="pmegp-agency-text">Khadi &amp; Village Industries Commission</span>
+                <span className="pmegp-agency-mark">{tf('KVIC')}</span>
+                <span className="pmegp-agency-text">{tf('Khadi & Village Industries Commission')}</span>
               </div>
               <p className="cover-pack-badge">{tf(schemeUi.badge)}</p>
             </div>
@@ -669,10 +962,10 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
         <p className="cover-kicker">{schemeUi ? tf(schemeUi.coverKicker) : 'DETAILED PROJECT REPORT'}</p>
         <p className="cover-on">{tf('On')}</p>
         <p className="cover-action">{tf(cover.actionLine)}</p>
-        {unitTitle ? (
-          <h1 className="cover-unit">
+        {unitTitle || showEmpty ? (
+          <h1 className="cover-unit" data-style-spot={markStyleSpots ? 'cover' : undefined}>
             {onEditField
-              ? editableValue('step1.unitName', unitTitle, step1.unitName || step1.clusterName || '')
+              ? editableValue('step1.unitName', unitTitle || '—', step1.unitName || step1.clusterName || '')
               : fieldHit('step1.unitName', unitTitle, trackFieldHits)}
           </h1>
         ) : null}
@@ -680,24 +973,24 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
           <p className="cover-scheme">{cover.underLine}</p>
           {schemeUi ? <p className="cover-tagline">{tf(schemeUi.tagline)}</p> : null}
         </div>
-        {(step1.district || step1.location || extras.entrepreneurName) ? (
+        {(showEmpty || step1.district || step1.location || extras.entrepreneurName) ? (
           <div className={`cover-meta${schemeUi?.id === 'PMEGP' ? ' pmegp-cover-meta' : ''}`}>
-            {step1.district ? (
+            {showEmpty || step1.district ? (
               <div>
                 <span>{tf('District')}</span>
-                {editableValue('step1.district', step1.district, step1.district)}
+                {editableValue('step1.district', step1.district || '—', step1.district)}
               </div>
             ) : null}
-            {step1.location ? (
+            {showEmpty || step1.location ? (
               <div>
                 <span>{tf('Location')}</span>
-                {editableValue('step1.location', step1.location, step1.location)}
+                {editableValue('step1.location', step1.location || '—', step1.location)}
               </div>
             ) : null}
-            {extras.entrepreneurName ? (
+            {showEmpty || extras.entrepreneurName ? (
               <div>
                 <span>{tf('Entrepreneur name')}</span>
-                {editableValue('schemeExtras.entrepreneurName', extras.entrepreneurName, extras.entrepreneurName)}
+                {editableValue('schemeExtras.entrepreneurName', extras.entrepreneurName || '—', extras.entrepreneurName)}
               </div>
             ) : null}
           </div>
@@ -705,7 +998,7 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
         {schemeUi?.id === 'PMEGP' ? <div className="pmegp-cover-rule" aria-hidden="true" /> : null}
       </header>
 
-      {reportEntries.length ? (
+      {reportEntries.length && (style ? style.showToc : true) ? (
       <section className="individual-toc">
         <h2 className="individual-sec-title">
           <span className="individual-sec-num">0</span>
@@ -760,9 +1053,12 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
         const num = reportEntries.findIndex((entry) => entry.id === def.id) + 1;
         const hot = activeSectionId === def.id;
         if (def.id === 'uploads' || def.contentStep === 18) {
-          const uploaded = uploads.filter((item) => isKycUploaded(uploadStore[item.id] || uploadStore[item.label]));
+          const uploaded = showEmptyProp || def.n === focusStep
+            ? uploads
+            : uploads.filter((item) => isKycUploaded(uploadedValue(item)));
           return (
-            <section key={def.id} id={`individual-section-${def.n}`} data-dpr-section={def.id} className={`individual-sec${hot ? ' dpr-sec-hot' : ''}`}>
+            <section key={def.id} id={`individual-section-${def.n}`} data-dpr-section={def.id} onFocusCapture={focusIn(def.n, def.id)} className={`individual-sec${hot ? ' dpr-sec-hot' : ''}${onOpenInForm ? ' has-open-form' : ''}`}>
+              {openInFormButton(def.n)}
               <h2 className="individual-sec-title">
                 <span className="individual-sec-num">{num}</span>
                 {title}
@@ -770,9 +1066,9 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
               {uploaded.length ? (
                 <ul className="individual-doc-list">
                   {uploaded.map((u) => (
-                    <li key={u.id} className="is-uploaded">
+                    <li key={u.id} className={isKycUploaded(uploadedValue(u)) ? 'is-uploaded' : undefined}>
                       <span className="doc-label">{tf(u.label)}</span>
-                      <span className="doc-status">{tf('Uploaded')}</span>
+                      <span className="doc-status">{isKycUploaded(uploadedValue(u)) ? tf('Uploaded') : tf('Not uploaded')}</span>
                     </li>
                   ))}
                 </ul>
@@ -781,30 +1077,37 @@ export const IndividualDPRDocumentView: React.FC<IndividualDPRDocumentViewProps>
             </section>
           );
         }
-        const fields = getIndividualDocFields(def.contentStep, schemeCode, budget);
+        const fields = getIndividualDocFields(def.contentStep, schemeCode, budget, kind);
+        showEmpty = showEmptyProp || (focusStep !== undefined && def.n === focusStep);
+        const fieldRows = renderSectionFields(fields);
+        const parties = def.contentStep === 12 || def.contentStep === 13 ? <ScheduleDocParties data={data} showEmpty={showEmpty} /> : null;
+        const finance = def.contentStep === 15 ? <FinanceDocSummary data={data} showEmpty={showEmpty} /> : null;
+        showEmpty = showEmptyProp;
         return (
-          <section key={def.id} id={`individual-section-${def.n}`} data-dpr-section={def.id} className={`individual-sec${hot ? ' dpr-sec-hot' : ''}`}>
+          <section key={def.id} id={`individual-section-${def.n}`} data-dpr-section={def.id} onFocusCapture={focusIn(def.n, def.id)} className={`individual-sec${hot ? ' dpr-sec-hot' : ''}${onOpenInForm ? ' has-open-form' : ''}`}>
+            {openInFormButton(def.n)}
             <h2 className="individual-sec-title">
               <span className="individual-sec-num">{num}</span>
               {title}
             </h2>
-            {renderSectionFields(fields)}
+            {parties}
+            {finance}
+            {fieldRows}
             {renderBlocks(def.id)}
           </section>
         );
       })}
 
-      {style ? (
+      {style?.agencyName ? (
         <footer className="dpr-style-footer">
           <span>{style.agencyName}</span>
-          <span>{pageNumber}</span>
         </footer>
       ) : null}
 
       {schemeUi?.id === 'PMEGP' && !style ? (
         <footer className="pmegp-doc-footer">
-          <span>PMEGP · Bank-unit Detailed Project Report</span>
-          <span>Confidential — for lending appraisal</span>
+          <span>{tf('PMEGP · Bank-unit Detailed Project Report')}</span>
+          <span>{tf('Confidential — for lending appraisal')}</span>
         </footer>
       ) : null}
     </div>

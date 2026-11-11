@@ -56,7 +56,7 @@ export const SCHEME_OPTIONS = [
   })),
 ];
 
-export const SCHEME_EXTRA_FIELDS: Record<string, string[]> = {
+const SCHEME_EXTRA_FIELDS: Record<string, string[]> = {
   VISHWAKARMA: [...VISHWAKARMA_EXTRA_FIELDS],
   SVANIDHI: [...SVANIDHI_EXTRA_FIELDS],
   PMFME: [...PMFME_EXTRA_FIELDS],
@@ -94,12 +94,6 @@ export function extraFieldsForScheme(schemeCode: string | null | undefined): str
   return SCHEME_EXTRA_FIELDS[schemeCode] || [];
 }
 
-export function isSchemeExtraField(field: string, schemeCode?: string | null): boolean {
-  const known = Object.values(SCHEME_EXTRA_FIELDS).flat();
-  if (!known.includes(field)) return false;
-  if (!schemeCode) return true;
-  return extraFieldsForScheme(schemeCode).includes(field);
-}
 
 export type UploadField = { id: string; label: string };
 
@@ -116,7 +110,7 @@ export function isMudraShishuKishore(code: string | null, budget?: Budget): bool
   return code === 'MUDRA' && !!budget && SHISHU_KISHORE.includes(budget);
 }
 
-export function isMudraTarunPlus(code: string | null, budget?: Budget): boolean {
+function isMudraTarunPlus(code: string | null, budget?: Budget): boolean {
   return code === 'MUDRA' && (budget === '50Lto1Cr' || budget === '1to10Cr' || budget === 'above10Cr');
 }
 
@@ -178,10 +172,6 @@ export function getContentStep(localStep: number, schemeCode?: string | null): n
   return localToContent(schemeCode, localStep);
 }
 
-/** @deprecated Prefer getSchemeSteps — kept for any leftover callers. */
-export function getHiddenSteps(_code: string | null): number[] {
-  return [];
-}
 
 export function getStep18Uploads(
   code: string | null,

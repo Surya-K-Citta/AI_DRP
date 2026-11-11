@@ -11,7 +11,6 @@ export const CGTMSE_EXTRA_FIELDS = [
   'proposedLimit',
 ] as const;
 
-export type CgtmseExtraField = (typeof CGTMSE_EXTRA_FIELDS)[number];
 
 export const CGTMSE_PURPOSE_OPTIONS = [
   { value: 'termLoan', label: 'Term loan (P&M / shed)' },

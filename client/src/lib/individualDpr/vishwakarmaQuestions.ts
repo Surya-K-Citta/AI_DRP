@@ -4,10 +4,10 @@
  * Step list: VISHWAKARMA_STEPS in schemeStepCatalog.ts (12 consecutive steps).
  */
 
-export type VishwakarmaTrainingStage = 'notStarted' | 'basicDone' | 'advancedDone';
-export type VishwakarmaLoanTranche = 'noneYet' | 'first' | 'second';
-export type VishwakarmaWorkplace = 'home' | 'rentedShop' | 'ownShop' | 'other';
-export type VishwakarmaYesNo = 'yes' | 'no';
+type VishwakarmaTrainingStage = 'notStarted' | 'basicDone' | 'advancedDone';
+type VishwakarmaLoanTranche = 'noneYet' | 'first' | 'second';
+type VishwakarmaWorkplace = 'home' | 'rentedShop' | 'ownShop' | 'other';
+type VishwakarmaYesNo = 'yes' | 'no';
 
 /** Official 18 trades (PIB / guidelines wording, form-friendly labels). */
 export const VISHWAKARMA_CRAFTS = [
@@ -46,7 +46,6 @@ export const VISHWAKARMA_EXTRA_FIELDS = [
   'powerRequirement',
 ] as const;
 
-export type VishwakarmaExtraField = (typeof VISHWAKARMA_EXTRA_FIELDS)[number];
 
 export const VISHWAKARMA_TRAINING_OPTIONS: {
   value: VishwakarmaTrainingStage;
@@ -85,8 +84,8 @@ export const VISHWAKARMA_YES_NO_OPTIONS: { value: VishwakarmaYesNo; label: strin
 export const VISHWAKARMA_TOOLKIT_LAKHS = 0.15;
 
 /** First / second enterprise-loan ceilings in ₹ lakhs. */
-export const VISHWAKARMA_TRANCHE1_LAKHS = 1;
-export const VISHWAKARMA_TRANCHE2_LAKHS = 2;
+const VISHWAKARMA_TRANCHE1_LAKHS = 1;
+const VISHWAKARMA_TRANCHE2_LAKHS = 2;
 
 /** Concessional interest charged to beneficiary (%). */
 export const VISHWAKARMA_INTEREST_PERCENT = 5;

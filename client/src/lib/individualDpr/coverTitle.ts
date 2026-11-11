@@ -13,7 +13,7 @@ const UPGRADE_SCHEMES = new Set([
 const TITLE_MAX_WORDS = 8;
 const TITLE_MAX_CHARS = 56;
 
-export interface CoverTitleInput {
+interface CoverTitleInput {
   clusterName?: string;
   unitName?: string;
   natureOfBusiness?: string;
@@ -23,14 +23,14 @@ export interface CoverTitleInput {
   craft?: string;
 }
 
-export interface IndividualCoverLines {
+interface IndividualCoverLines {
   actionLine: string;
   unitName: string;
   underLine: string;
 }
 
 /** Short scheme label for the cover “under …” line. */
-export function schemeCoverLabel(schemeCode: string | null | undefined, lang: 'en' | 'te' = 'en'): string {
+function schemeCoverLabel(schemeCode: string | null | undefined, lang: 'en' | 'te' = 'en'): string {
   if (!schemeCode) return lang === 'te' ? 'బ్యాంకు టర్మ్ లోన్' : 'Bank Term Loan';
   const brief = getSchemeBrief(schemeCode);
   const title = briefText(brief.title, lang);
@@ -42,7 +42,7 @@ export function schemeCoverLabel(schemeCode: string | null | undefined, lang: 'e
   return title || schemeCode;
 }
 
-export function individualActionLine(schemeCode: string | null | undefined): string {
+function individualActionLine(schemeCode: string | null | undefined): string {
   if (schemeCode && UPGRADE_SCHEMES.has(schemeCode)) return 'Upgradation of';
   if (schemeCode === 'ECLGS') return 'Working Capital Proposal for';
   if (schemeCode === 'ZED' || schemeCode === 'LEAN' || schemeCode === 'MSME_IPR') {

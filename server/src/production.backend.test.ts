@@ -6,7 +6,20 @@ import { fileURLToPath } from 'node:url';
 import { ageFromDob, isUnder18Age, payloadHasUnder18Applicant, under18Response } from './lib/under18.ts';
 import { sanitizeForAi } from './lib/sanitizeForAi.ts';
 import { getJwtSecret } from './lib/jwtSecret.ts';
-import { AI_REFUSED_MESSAGE, PRIVACY_NOTICE_VERSION, UNDER_18_CODE } from './lib/privacyNotice.ts';
+import {
+  AI_REFUSED_MESSAGE,
+  AUDIT_RETENTION_MONTHS,
+  DATA_FIDUCIARY_ADDRESS,
+  DATA_FIDUCIARY_NAME,
+  DELETION_WARNING_DAYS,
+  DRAFT_RETENTION_MONTHS,
+  GRIEVANCE_EMAIL,
+  PRIVACY_NOTICE_VERSION,
+  PRIVACY_OFFICER_NAME,
+  PRIVACY_OFFICER_ROLE,
+  UNDER_18_CODE,
+} from './lib/privacyNotice.ts';
+import { auditRetentionDays, retentionIdleDays, retentionWarningDays } from './lib/kycStorage.ts';
 import { pdfOptionsFromCapturedHtml } from './lib/pdfPageOptions.ts';
 import { canSaveSchemeDefault, cleanDocumentStyle, SCHEME_CODE } from './lib/schemeStyleRules.ts';
 import { roleAllowed } from './lib/roleGate.ts';
@@ -135,7 +148,25 @@ describe('AI sanitizer and secrets', () => {
 
 describe('privacy notice', () => {
   it('keeps the current notice version and the AI-off message', () => {
-    assert.equal(PRIVACY_NOTICE_VERSION, '2026-09-4');
+    assert.equal(PRIVACY_NOTICE_VERSION, '2026-10-1');
     assert.match(AI_REFUSED_MESSAGE, /AI features are off/);
+  });
+
+  it('names the department, officer, address and monitored mailbox it gave in writing', () => {
+    assert.equal(DATA_FIDUCIARY_NAME, 'AP MSME Development Corporation');
+    assert.match(DATA_FIDUCIARY_ADDRESS, /PVS Landmark, Mangalagiri, Guntur District – 522503/);
+    assert.equal(PRIVACY_OFFICER_NAME, 'A Sudhakar');
+    assert.match(PRIVACY_OFFICER_ROLE, /Executive Director/);
+    assert.equal(GRIEVANCE_EMAIL, 'apmsmedc@gmail.com');
+    assert.doesNotMatch(GRIEVANCE_EMAIL, /msmeone/);
+  });
+
+  it('keeps the approved retention policy: 12 months, 15-day warning, 24-month audit', () => {
+    assert.equal(DRAFT_RETENTION_MONTHS, 12);
+    assert.equal(DELETION_WARNING_DAYS, 15);
+    assert.equal(AUDIT_RETENTION_MONTHS, 24);
+    assert.equal(retentionIdleDays(), 365);
+    assert.equal(retentionWarningDays(), 15);
+    assert.equal(auditRetentionDays(), 730);
   });
 });

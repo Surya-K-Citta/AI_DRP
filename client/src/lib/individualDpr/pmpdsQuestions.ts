@@ -10,7 +10,6 @@ export const PMPDS_EXTRA_FIELDS = [
   'promotionNeed',
 ] as const;
 
-export type PmpdsExtraField = (typeof PMPDS_EXTRA_FIELDS)[number];
 
 export const PMPDS_FOCUS_OPTIONS = [
   { value: 'formulation', label: 'Formulation / pharma product' },

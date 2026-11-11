@@ -4,9 +4,9 @@
  * Step list: AP_EDP_STEPS in schemeStepCatalog.ts (13 consecutive steps).
  */
 
-export type ApEdpEnterpriseSize = 'micro' | 'small' | 'medium';
-export type ApEdpPremises = 'owned' | 'leased' | 'rented';
-export type ApEdpYesNo = 'yes' | 'no';
+type ApEdpEnterpriseSize = 'micro' | 'small' | 'medium';
+type ApEdpPremises = 'owned' | 'leased' | 'rented';
+type ApEdpYesNo = 'yes' | 'no';
 
 export const AP_EDP_EXTRA_FIELDS = [
   'enterpriseSize',
@@ -23,7 +23,6 @@ export const AP_EDP_EXTRA_FIELDS = [
   'powerRequirement',
 ] as const;
 
-export type ApEdpExtraField = (typeof AP_EDP_EXTRA_FIELDS)[number];
 
 export const AP_EDP_SIZE_OPTIONS: { value: ApEdpEnterpriseSize; label: string }[] = [
   { value: 'micro', label: 'Micro' },

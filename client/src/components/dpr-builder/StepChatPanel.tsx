@@ -39,7 +39,7 @@ export const StepChatPanel: React.FC<StepChatPanelProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="motion-overlay fixed inset-0 z-50 flex justify-end">
       <button
         type="button"
         className="absolute inset-0 bg-black/30"

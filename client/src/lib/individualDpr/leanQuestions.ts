@@ -11,7 +11,6 @@ export const LEAN_EXTRA_FIELDS = [
   'expectedLeanGain',
 ] as const;
 
-export type LeanExtraField = (typeof LEAN_EXTRA_FIELDS)[number];
 
 export const LEAN_IMPACT_BULLETS = [
   'Own 5-step process-improvement pack for Competitive LEAN — consulting note, not a plant DPR.',

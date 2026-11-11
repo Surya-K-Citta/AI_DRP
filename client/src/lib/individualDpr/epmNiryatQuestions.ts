@@ -12,7 +12,6 @@ export const EPM_NIRYAT_EXTRA_FIELDS = [
   'exportCreditSought',
 ] as const;
 
-export type EpmNiryatExtraField = (typeof EPM_NIRYAT_EXTRA_FIELDS)[number];
 
 export const EPM_NIRYAT_CREDIT_OPTIONS = [
   { value: 'pre', label: 'Pre-shipment' },

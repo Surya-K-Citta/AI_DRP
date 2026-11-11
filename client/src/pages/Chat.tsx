@@ -6,13 +6,16 @@ import { api } from '@/lib/api';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
+import { SkipLink } from '@/components/layout/SkipLink';
 import { Navbar } from '@/components/layout/Navbar';
 import { Send, Mic, MicOff, Trash2, Database, Bot, Languages, Loader2, Copy, Check, Sparkles, Volume2, VolumeX, Info } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ttsService, TTSLanguage } from '@/lib/tts';
 
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 export const Chat: React.FC = () => {
   const { t } = useTranslation();
+  const tf = useClusterFormText();
   const { user } = useAuthStore();
   const {
     messages,
@@ -370,10 +373,12 @@ export const Chat: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden max-[1528px]:pl-[4.75rem]">
-      <div className="max-[1528px]:-ml-[4.75rem] max-[1528px]:w-[calc(100%+4.75rem)]">
+    <div className="flex flex-col h-screen bg-background overflow-hidden md:max-[1528px]:pl-[4.75rem]">
+      <SkipLink />
+      <div className="md:max-[1528px]:-ml-[4.75rem] md:max-[1528px]:w-[calc(100%+4.75rem)]">
         <Navbar />
       </div>
+      <main id="main-content" tabIndex={-1} className="outline-none flex min-h-0 flex-1 flex-col overflow-hidden">
       {/* Header */}
       <div className="border-b border-border bg-white flex-shrink-0">
         <div className="max-w-4xl mx-auto px-4 py-3">
@@ -408,6 +413,11 @@ export const Chat: React.FC = () => {
                 variant="ghost"
                   size="sm"
                   onClick={clearMessages}
+                  aria-label={tf('Clear chat')}
+                  title={tf('Clear chat')}
+                  data-confirm-title={tf('Clear this conversation?')}
+                  data-confirm-body={tf('All messages in this chat will be removed. This cannot be undone.')}
+                  data-confirm-label={tf('Clear chat')}
                   disabled={messages.length === 0}
                 className="text-xs h-8"
                 >
@@ -448,7 +458,7 @@ export const Chat: React.FC = () => {
                     className="sr-only"
                   />
                   <span>{store.name}</span>
-                  <span className="opacity-70">({store.fileCount})</span>
+                  <span>({store.fileCount})</span>
                     </label>
                   ))}
                 </div>
@@ -473,7 +483,7 @@ export const Chat: React.FC = () => {
                   </p>
                 </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
+              <div className="motion-stagger grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl">
                     {exampleQuestions.map((question, index) => (
                   <button
                         key={index}
@@ -581,7 +591,7 @@ export const Chat: React.FC = () => {
                       {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                     {message.role === 'assistant' && useRAG && selectedVectorStores.length > 0 && message.ragContext === 'RAG used' && (
-                      <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-md font-medium">
+                      <span className="text-xs bg-success/10 text-success-text px-2 py-0.5 rounded-md font-medium">
                         {t('chat.enhanced')}
                           </span>
                     )}
@@ -593,7 +603,7 @@ export const Chat: React.FC = () => {
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <Sparkles className="h-4 w-4 text-primary" />
-                          <span className="text-xs font-semibold text-foreground">DPR Creation in Progress</span>
+                          <span className="text-xs font-semibold text-foreground">{tf('DPR Creation in Progress')}</span>
                         </div>
                         <span className="text-xs font-bold text-primary">
                           {message.dprAction.progress || 0}%
@@ -606,7 +616,7 @@ export const Chat: React.FC = () => {
                         ></div>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Step {message.dprAction.step} of 10 - Keep going! 🚀
+                        {tf('Step {n} of 10 - Keep going! 🚀').replace('{n}', String(message.dprAction.step))}
                       </p>
                     </div>
                   )}
@@ -700,6 +710,7 @@ export const Chat: React.FC = () => {
             <div className="flex-1 relative">
               <textarea
                 ref={inputRef}
+                aria-label={t('chat.messagePlaceholder')}
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyDown={handleKeyPress}
@@ -720,6 +731,7 @@ export const Chat: React.FC = () => {
               <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-border bg-background">
                 <Languages className="h-4 w-4 text-muted-foreground" />
                 <select
+                  aria-label={tf('Voice language')}
                   value={voiceLanguage}
                   onChange={(e) => setVoiceLanguage(e.target.value as 'en' | 'te')}
                   className="text-xs font-medium bg-transparent border-none outline-none cursor-pointer text-muted-foreground"
@@ -747,6 +759,8 @@ export const Chat: React.FC = () => {
               
               <Button
                 onClick={() => handleSend()}
+                aria-label={tf('Send')}
+                title={tf('Send')}
                 disabled={!inputMessage.trim() || isLoading || isRecording}
                 size="sm"
                 className="h-10 w-10 p-0 rounded-full"
@@ -764,6 +778,7 @@ export const Chat: React.FC = () => {
           </p>
         </div>
       </div>
-      </div>
+      </main>
+    </div>
   );
 };

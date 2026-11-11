@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { openai } from '../lib/openaiClient';
+import { findEditableDraft } from '../lib/dprDraftLookup';
 import { DPRVersion } from '../models/DPRVersion.model';
 import { Project } from '../models/Project.model';
 import { getStepFieldsMapping } from './stepFieldsMapping';
@@ -650,18 +651,23 @@ Return only valid JSON without markdown code blocks.`;
       }
 
       // Calculate total cost from step 12 if available
+      // Amounts may arrive as text ("2.4"); adding text with + would join it and the project would not save.
+      const amount = (value: unknown) => {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : 0;
+      };
       const totalCost = cleanClusterData.step12
-        ? (cleanClusterData.step12.land || 0) +
-        (cleanClusterData.step12.building || 0) +
-        (cleanClusterData.step12.machinery || 0) +
-        (cleanClusterData.step12.utilitiesAndInfrastructure || 0) +
-        (cleanClusterData.step12.preliminaryAndPreOperative || 0) +
-        (cleanClusterData.step12.workingCapitalMargin || 0)
+        ? amount(cleanClusterData.step12.land) +
+          amount(cleanClusterData.step12.building) +
+          amount(cleanClusterData.step12.machinery) +
+          amount(cleanClusterData.step12.utilitiesAndInfrastructure) +
+          amount(cleanClusterData.step12.preliminaryAndPreOperative) +
+          amount(cleanClusterData.step12.workingCapitalMargin)
         : 0;
 
       // Calculate own contribution from step 13 if available
-      const ownContribution = cleanClusterData.step13?.spvContribution || 0;
-      const loanAmount = cleanClusterData.step13?.bankLoan || 0;
+      const ownContribution = amount(cleanClusterData.step13?.spvContribution);
+      const loanAmount = amount(cleanClusterData.step13?.bankLoan);
 
       if (!project) {
         project = await Project.create({
@@ -680,7 +686,8 @@ Return only valid JSON without markdown code blocks.`;
         });
       } else {
         // Update existing project
-        project.stepData = cleanClusterData;
+        project.set('stepData', cleanClusterData);
+        project.markModified('stepData');
         project.totalCost = totalCost || project.totalCost || 100000;
         project.ownContribution = ownContribution || project.ownContribution || 0;
         project.loanAmount = loanAmount || project.loanAmount || 0;
@@ -695,11 +702,7 @@ Return only valid JSON without markdown code blocks.`;
       
       // Create DPR version with proper structure
       // Store cluster-specific sections as additional keys in content
-      const dprVersion = await DPRVersion.create({
-        projectId: project._id.toString(),
-        userId,
-        versionNumber: 1,
-        status: 'draft',
+      const dprFields: any = {
         content: {
           english: {
             executiveSummary: enhancedDPR.sections?.executiveSummary || '',
@@ -786,7 +789,30 @@ Return only valid JSON without markdown code blocks.`;
         },
         language,
         generatedAt: new Date(),
-      });
+      };
+
+      // Generating again for the same DPR updates it. Creating a new record every time listed the same DPR once per click.
+      // (Cluster DPRs keep their own flow.) A submitted or approved DPR is never overwritten: that gets a new version.
+      let dprVersion: any = isIndividual
+        ? await findEditableDraft(project._id.toString(), userId, cleanClusterData.dprId)
+        : null;
+      if (dprVersion) {
+        dprVersion.content = dprFields.content;
+        dprVersion.financials = dprFields.financials;
+        dprVersion.language = dprFields.language;
+        dprVersion.generatedAt = dprFields.generatedAt;
+        dprVersion.markModified('content');
+        dprVersion.markModified('financials');
+        await dprVersion.save();
+      } else {
+        dprVersion = await DPRVersion.create({
+          projectId: project._id.toString(),
+          userId,
+          versionNumber: 1,
+          status: 'draft',
+          ...dprFields,
+        });
+      }
 
       console.log(`✅ Cluster DPR generated and saved: ${dprVersion._id} for project ${project._id}`);
 

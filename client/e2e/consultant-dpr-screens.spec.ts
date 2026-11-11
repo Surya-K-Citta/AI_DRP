@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const email = process.env.E2E_EMAIL || 'rbac.consultant@msme.test';
-const password = process.env.E2E_PASSWORD || 'Rbac-Test-2026';
+const email = process.env.E2E_EMAIL || 'qa.consultant@msme.test';
+const password = process.env.E2E_PASSWORD || 'Qa-Test-2026!';
 
 const shopPng = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
@@ -48,7 +48,7 @@ test('consultant opens the style editor, advances a step, and names, resizes, hi
 
   await expect(page.getByRole('heading', { name: 'Create DPR' })).toBeVisible();
   await expect(page.getByText('Step 1 of')).toBeVisible();
-  await expect(page.getByRole('button', { name: '1 Step 1', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Step 1:/ })).toBeVisible();
   await expect(page.locator('.fill-edit-scroll').first()).toBeVisible();
 
   const edit = page.locator('.fill-edit-scroll:visible').first();
@@ -56,13 +56,18 @@ test('consultant opens the style editor, advances a step, and names, resizes, hi
   await edit.locator('[data-required-field="district"]').selectOption('Visakhapatnam');
   await expect(edit.locator('[data-required-field="location"]')).toBeEnabled();
   await edit.locator('[data-required-field="location"]').selectOption({ index: 1 });
-  await edit.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
 
   await expect(page.getByText('Step 2 of')).toBeVisible();
   await expect(page.getByRole('alert')).toHaveCount(0);
 
-  const pictures = page.locator('fieldset').filter({ has: page.getByText('Pictures', { exact: true }) });
-  await pictures.locator('input[type="file"]').setInputFiles({
+  // Pictures are added from the Style tab of Advanced mode (Basic mode has no style editor), then listed under Sections.
+  await page.getByLabel('Where to fill in').selectOption('document');
+  await page.getByRole('tab', { name: 'Style', exact: true }).click();
+  await page.getByRole('button', { name: /^Pictures/ }).click();
+  // The style panel holds more than one file input, so take the one right after the "Choose where a new picture starts" hint.
+  const pictures = page.getByText(/Choose where a new picture starts/).locator('xpath=following-sibling::input[@type="file"]').first();
+  await pictures.setInputFiles({
     name: 'shop-front.png',
     mimeType: 'image/png',
     buffer: shopPng,
@@ -74,7 +79,9 @@ test('consultant opens the style editor, advances a step, and names, resizes, hi
   await nameDialog.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(nameDialog).toBeHidden();
 
-  const pictureRow = page.locator('ol li').filter({ hasText: 'Shop front' });
+  await page.getByRole('tab', { name: 'Sections', exact: true }).click();
+  // The Sections list is drawn twice (one copy per screen size), so use the copy that is on screen.
+  const pictureRow = page.locator('ol li:visible').filter({ hasText: 'Shop front' }).first();
   await expect(pictureRow).toBeVisible();
 
   const frame = page.locator('.dpr-slot-box.is-live');

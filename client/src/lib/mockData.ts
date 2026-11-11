@@ -4,7 +4,7 @@
  */
 
 // Mock User Data
-export const mockUsers = {
+const mockUsers = {
   currentUser: {
     userId: 'user_001',
     name: 'Rajesh Kumar',
@@ -15,7 +15,7 @@ export const mockUsers = {
     udyamNumber: 'UDYAM-TG-01-0001234',
     createdAt: new Date('2024-01-15').toISOString(),
     privacy: {
-      noticeVersion: '2026-09-4',
+      noticeVersion: '2026-10-1',
       accountConsent: true,
       aiAssist: false,
       analytics: false,
@@ -32,7 +32,7 @@ export const mockUsers = {
     location: 'Amaravati, Andhra Pradesh',
     createdAt: new Date('2023-12-01').toISOString(),
     privacy: {
-      noticeVersion: '2026-09-4',
+      noticeVersion: '2026-10-1',
       accountConsent: true,
       aiAssist: false,
       analytics: false,
@@ -43,7 +43,7 @@ export const mockUsers = {
 };
 
 // Mock Projects Data
-export const mockProjects = [
+const mockProjects = [
   {
     _id: 'project_001',
     userId: 'user_001',
@@ -167,7 +167,7 @@ export const mockProjects = [
 ];
 
 // Mock DPR Data
-export const mockDPRs = [
+const mockDPRs = [
   {
     _id: 'dpr_001',
     projectId: {
@@ -325,7 +325,7 @@ With proper implementation and management, the unit is expected to achieve break
 ];
 
 // Mock Schemes Data
-export const mockSchemes = [
+const mockSchemes = [
   {
     _id: 'scheme_001',
     schemeCode: 'PMEGP',
@@ -397,61 +397,9 @@ export const mockSchemes = [
   },
 ];
 
-// Mock Chat Messages
-export const mockChatMessages = [
-  {
-    id: 'msg_001',
-    role: 'user',
-    content: 'I want to start a spice processing unit. Can you help me?',
-    timestamp: new Date('2024-02-01T10:00:00').toISOString(),
-  },
-  {
-    id: 'msg_002',
-    role: 'assistant',
-    content: `I'd be happy to help you set up a spice processing unit! Let me guide you through the process.
-
-To create a comprehensive DPR, I'll need some information:
-1. What type of spices do you want to process? (e.g., turmeric, chili, coriander)
-2. What is your estimated project cost?
-3. Where do you plan to set up the unit?
-4. Do you have any prior experience in this field?
-
-Once you provide these details, I can help you create a detailed project report.`,
-    timestamp: new Date('2024-02-01T10:00:05').toISOString(),
-  },
-  {
-    id: 'msg_003',
-    role: 'user',
-    content: 'I want to process organic turmeric, red chili, and coriander. My budget is around ₹25 lakhs. Location is Hyderabad.',
-    timestamp: new Date('2024-02-01T10:02:00').toISOString(),
-  },
-  {
-    id: 'msg_004',
-    role: 'assistant',
-    content: `Excellent! An organic spice processing unit in Hyderabad is a great choice. Based on your requirements:
-
-**Project Overview:**
-- Products: Organic Turmeric, Red Chili, Coriander
-- Investment: ₹25 lakhs
-- Location: Hyderabad
-
-**Key Components:**
-1. **Infrastructure**: Processing unit (1500-2000 sqft), storage facility
-2. **Machinery**: Grinding machines, packaging equipment, quality testing lab
-3. **Raw Materials**: Organic spices from certified farms
-4. **Manpower**: Production manager, quality control, operators
-
-**Financial Structure:**
-- Own contribution: 30% (₹7.5 lakhs)
-- Bank loan: 70% (₹17.5 lakhs)
-
-Would you like me to help you create a detailed DPR with all these components?`,
-    timestamp: new Date('2024-02-01T10:02:10').toISOString(),
-  },
-];
 
 // Mock Documents
-export const mockDocuments = [
+const mockDocuments = [
   {
     _id: 'doc_001',
     name: 'DPR Template - Food Processing',
@@ -489,7 +437,7 @@ export const mockDocuments = [
 ];
 
 // Mock Analytics Data
-export const mockAnalytics = {
+const mockAnalytics = {
   totalUsers: 1250,
   totalProjects: 3420,
   totalDPRs: 2890,
@@ -513,7 +461,7 @@ export const mockAnalytics = {
 };
 
 // Mock Feedback Data
-export const mockFeedback = [
+const mockFeedback = [
   {
     _id: 'feedback_001',
     projectId: 'project_001',
@@ -533,7 +481,7 @@ export const mockFeedback = [
 ];
 
 // Mock API Response Helpers
-export const createMockResponse = <T>(data: T, delay: number = 100): Promise<{ data: T }> => {
+const createMockResponse = <T>(data: T, delay: number = 100): Promise<{ data: T }> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({ data });

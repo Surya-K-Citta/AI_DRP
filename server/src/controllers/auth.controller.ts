@@ -1,4 +1,6 @@
 // @ts-nocheck
+import crypto from 'crypto';
+import { startSession, refreshSession, endSession } from '../lib/session';
 import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { User } from '../models/User.model';
@@ -11,16 +13,12 @@ import {
 } from '../lib/privacyNotice';
 import { ageFromDob } from '../lib/under18';
 
-function signToken(user: { _id: unknown; email: string; role: string }) {
-  return jwt.sign(
-    {
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role,
-    },
-    getJwtSecret(),
-    { expiresIn: '7d' } as SignOptions
-  );
+async function findInvitedUser(token: string) {
+  if (token.length < 20 || token.length > 200) return null;
+  const hash = crypto.createHash('sha256').update(token).digest('hex');
+  const user: any = await User.findOne({ 'invite.tokenHash': hash });
+  if (!user || !user.invite?.expiresAt || new Date(user.invite.expiresAt).getTime() < Date.now()) return null;
+  return user;
 }
 
 function publicUser(user: any) {
@@ -30,6 +28,7 @@ function publicUser(user: any) {
     name: user.name,
     email: user.email,
     role: user.role,
+    reviewDistrict: user.reviewDistrict,
     udyamNumber: user.udyamNumber,
     location: user.location,
     phoneNumber: user.phoneNumber,
@@ -78,7 +77,6 @@ export class AuthController {
         name,
         email,
         password,
-        role,
         udyamNumber,
         location,
         phoneNumber,
@@ -145,7 +143,8 @@ export class AuthController {
         name,
         email,
         passwordHash: password,
-        role: role || 'entrepreneur',
+        // Anyone can register, but only as an entrepreneur. An admin grants reviewer or admin access.
+        role: 'entrepreneur',
         udyamNumber,
         location,
         phoneNumber: phoneDigits,
@@ -192,7 +191,7 @@ export class AuthController {
         });
       }
 
-      const token = signToken(user);
+      const token = await startSession(user, req, res);
 
       res.status(201).json({
         success: true,
@@ -232,6 +231,7 @@ export class AuthController {
           action: 'login_failed',
           userId: user._id.toString(),
           role: user.role,
+          payload: { reason: 'wrong password', userAgent: String(req.headers['user-agent'] || '').slice(0, 160) },
           req,
         });
         res.status(401).json({
@@ -241,14 +241,31 @@ export class AuthController {
         return;
       }
 
+      if (user.isActive === false) {
+        await AuditService.log({
+          action: 'login_failed',
+          userId: user._id.toString(),
+          role: user.role,
+          payload: { reason: 'account deactivated' },
+          req,
+        });
+        res.status(403).json({
+          success: false,
+          code: 'ACCOUNT_DEACTIVATED',
+          message: 'This account has been deactivated. Please contact the APMSMEDC Admin.',
+        });
+        return;
+      }
+
       await AuditService.log({
         action: 'login_success',
         userId: user._id.toString(),
         role: user.role,
+        payload: { userAgent: String(req.headers['user-agent'] || '').slice(0, 160) },
         req,
       });
 
-      const token = signToken(user);
+      const token = await startSession(user, req, res);
 
       res.status(200).json({
         success: true,
@@ -268,17 +285,115 @@ export class AuthController {
     }
   }
 
+  /** What an invitation link is for (name, email, role), so the page can greet the person. Nothing secret is returned. */
+  static async inviteInfo(req: Request, res: Response): Promise<void> {
+    try {
+      const user: any = await findInvitedUser(String(req.params.token || ''));
+      if (!user) {
+        res.status(404).json({ success: false, message: 'This invitation is not valid or has expired. Ask the APMSMEDC Admin for a new one.' });
+        return;
+      }
+      res.status(200).json({ success: true, data: { name: user.name, email: user.email, role: user.role, reviewDistrict: user.reviewDistrict || null } });
+    } catch {
+      res.status(500).json({ success: false, message: 'Could not check the invitation' });
+    }
+  }
+
+  /** The invited person sets their own password and accepts the privacy notice. The link works once. */
+  static async acceptInvite(req: Request, res: Response): Promise<void> {
+    try {
+      const { token, password, phoneNumber, dateOfBirth, accountConsent, aiAssist, noticeVersion } = req.body || {};
+      const user: any = await findInvitedUser(String(token || ''));
+      if (!user) {
+        res.status(404).json({ success: false, message: 'This invitation is not valid or has expired. Ask the APMSMEDC Admin for a new one.' });
+        return;
+      }
+      if (typeof password !== 'string' || password.length < 8) {
+        res.status(400).json({ success: false, message: 'Choose a password of at least 8 characters.' });
+        return;
+      }
+      if (accountConsent !== true) {
+        res.status(400).json({ success: false, message: 'You must agree to the privacy notice to create an account.' });
+        return;
+      }
+      if (noticeVersion && noticeVersion !== PRIVACY_NOTICE_VERSION) {
+        res.status(400).json({ success: false, message: 'Please read the current privacy notice and try again.' });
+        return;
+      }
+      const phoneDigits = String(phoneNumber ?? '').replace(/\D/g, '');
+      if (!/^\d{10}$/.test(phoneDigits)) {
+        res.status(400).json({ success: false, message: 'Phone number must be exactly 10 digits.' });
+        return;
+      }
+      const age = ageFromDob(dateOfBirth);
+      if (age == null) {
+        res.status(400).json({ success: false, message: 'Date of birth is required.' });
+        return;
+      }
+      if (age < 18) {
+        res.status(403).json({ success: false, code: UNDER_18_CODE, message: GUARDIAN_MESSAGE });
+        return;
+      }
+      const now = new Date();
+      user.passwordHash = password;
+      user.phoneNumber = phoneDigits;
+      user.dateOfBirth = new Date(dateOfBirth);
+      user.invite = undefined;
+      user.privacy = {
+        noticeVersion: PRIVACY_NOTICE_VERSION,
+        noticeAcceptedAt: now,
+        accountConsent: true,
+        accountConsentAt: now,
+        aiAssist: aiAssist === true,
+        aiAssistAt: aiAssist === true ? now : undefined,
+      };
+      await user.save();
+      await AuditService.log({ action: 'invite_accepted', userId: String(user._id), role: user.role, targetType: 'user', targetId: String(user._id), req });
+      const sessionToken = await startSession(user, req, res);
+      res.status(200).json({ success: true, message: 'Your account is ready.', data: { ...publicUser(user), token: sessionToken } });
+    } catch (error: any) {
+      console.error('Accept invite error:', error);
+      res.status(500).json({ success: false, message: 'Could not finish setting up the account' });
+    }
+  }
+
+  /** New access token for a session that has been used within the last 6 minutes. */
+  static async refresh(req: Request, res: Response): Promise<void> {
+    try {
+      const outcome = await refreshSession(req, res);
+      if (!outcome.ok) {
+        res.status(401).json({
+          success: false,
+          code: outcome.code,
+          message: outcome.code === 'SESSION_IDLE' ? 'Signed out after 6 minutes without activity' : outcome.code === 'ACCOUNT_DEACTIVATED' ? 'This account has been deactivated' : 'Please sign in again',
+        });
+        return;
+      }
+      res.status(200).json({
+        success: true,
+        data: { ...publicUser(outcome.user), token: outcome.token, expiresInSeconds: outcome.expiresInSeconds },
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: 'Could not refresh the session' });
+    }
+  }
+
   static async logout(req: Request, res: Response): Promise<void> {
     try {
-      const authReq = req as any;
-      await AuditService.log({
-        action: 'logout',
-        userId: authReq.user?.userId,
-        role: authReq.user?.role,
-        req,
-      });
+      // No bearer needed: an expired token must still be able to sign out.
+      let userId: string | undefined;
+      let role: string | undefined;
+      const header = req.headers.authorization;
+      if (header?.startsWith('Bearer ')) {
+        const decoded: any = jwt.verify(header.substring(7), getJwtSecret(), { ignoreExpiration: true });
+        userId = decoded?.userId;
+        role = decoded?.role;
+      }
+      await endSession(req, res);
+      await AuditService.log({ action: 'logout', userId, role, req });
       res.status(200).json({ success: true, message: 'Logged out' });
     } catch (error: any) {
+      await endSession(req, res).catch(() => undefined);
       res.status(200).json({ success: true, message: 'Logged out' });
     }
   }

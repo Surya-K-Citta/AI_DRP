@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { Response } from 'express';
 import { Project } from '../models/Project.model';
+import { DPRVersion } from '../models/DPRVersion.model';
 import { AuthRequest } from '../types';
 import { OpenAIService } from '../services/openai.service';
 import { AuditService } from '../services/audit.service';
@@ -40,6 +41,10 @@ export class ProjectController {
       });
     } catch (error: any) {
       console.error('Create project error:', error);
+      if (error?.name === 'ValidationError' || error?.name === 'CastError') {
+        res.status(400).json({ success: false, message: 'The project details are not valid', error: error.message });
+        return;
+      }
       res.status(500).json({
         success: false,
         message: 'Failed to create project',
@@ -152,6 +157,10 @@ export class ProjectController {
       });
     } catch (error: any) {
       console.error('Update project error:', error);
+      if (error?.name === 'ValidationError' || error?.name === 'CastError') {
+        res.status(400).json({ success: false, message: 'The project details are not valid', error: error.message });
+        return;
+      }
       res.status(500).json({
         success: false,
         message: 'Failed to update project',
@@ -177,6 +186,10 @@ export class ProjectController {
         });
         return;
       }
+
+      // The project's saved DPRs go with it, so nothing unreachable is left behind holding personal data (BUG-010).
+      const removed = await DPRVersion.deleteMany({ projectId: String(id) });
+      console.log(`Deleted project ${id} and ${removed.deletedCount} DPR version(s)`);
 
       await AuditService.log({
         action: 'dpr_delete',

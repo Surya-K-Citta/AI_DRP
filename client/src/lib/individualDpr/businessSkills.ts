@@ -88,7 +88,7 @@ export const BUSINESS_SKILLS: readonly string[] = [
   'Other trade / retail',
 ] as const;
 
-export type BusinessSkill = (typeof BUSINESS_SKILLS)[number];
+type BusinessSkill = (typeof BUSINESS_SKILLS)[number];
 
 /** Keyword / phrase hints → skill (checked in order; first hit wins). */
 const SKILL_ALIASES: Array<{ skill: BusinessSkill; patterns: RegExp[] }> = [
@@ -165,6 +165,3 @@ export function matchBusinessSkillLocal(text: string): BusinessSkill | null {
   return null;
 }
 
-export function isBusinessSkill(value: string): boolean {
-  return BUSINESS_SKILLS.includes(value as BusinessSkill);
-}

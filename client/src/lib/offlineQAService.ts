@@ -5,7 +5,6 @@
 
 import qaDatabase from './offlineQA.json';
 import mockProjectExample from './mockProjectExample.json';
-import dprCreationDemo from './dprCreationDemo.json';
 
 interface QAEntry {
   question: string;
@@ -271,67 +270,9 @@ function enhanceAnswerWithMockData(answer: string, userQuestion: string, _workfl
   return answer;
 }
 
-/**
- * Get mock project example data
- */
-export function getMockProjectExample() {
-  return mockProjectExample;
-}
 
-/**
- * Get all questions from a specific category
- */
-export function getQuestionsByCategory(categoryName: string): QAEntry[] {
-  const db = qaDatabase as QADatabase;
-  const category = db.categories.find(cat => 
-    cat.name.toLowerCase().includes(categoryName.toLowerCase())
-  );
-  
-  return category ? category.questions : [];
-}
 
-/**
- * Get all available categories
- */
-export function getCategories(): string[] {
-  const db = qaDatabase as QADatabase;
-  return db.categories.map(cat => cat.name);
-}
 
-/**
- * Search questions by keyword
- */
-export function searchQuestions(keyword: string): QAEntry[] {
-  const db = qaDatabase as QADatabase;
-  const lowerKeyword = keyword.toLowerCase();
-  const results: QAEntry[] = [];
-  
-  // Search in categories
-  db.categories.forEach(category => {
-    category.questions.forEach(qa => {
-      if (
-        qa.question.toLowerCase().includes(lowerKeyword) ||
-        qa.keywords.some(k => k.toLowerCase().includes(lowerKeyword)) ||
-        qa.answer.toLowerCase().includes(lowerKeyword)
-      ) {
-        results.push(qa);
-      }
-    });
-  });
-  
-  // Search in general
-  db.general.forEach(qa => {
-    if (
-      qa.question.toLowerCase().includes(lowerKeyword) ||
-      qa.keywords.some(k => k.toLowerCase().includes(lowerKeyword)) ||
-      qa.answer.toLowerCase().includes(lowerKeyword)
-    ) {
-      results.push(qa);
-    }
-  });
-  
-  return results;
-}
 
 /**
  * Get example questions for offline mode
@@ -357,58 +298,10 @@ export function getExampleQuestions(count: number = 10): string[] {
   return shuffled.slice(0, count);
 }
 
-/**
- * Get DPR creation workflow demonstration data
- */
-export function getDPRCreationDemo() {
-  return dprCreationDemo;
-}
 
-/**
- * Get a specific workflow step by step number
- */
-export function getWorkflowStep(stepNumber: number) {
-  const demo = dprCreationDemo as any;
-  return demo.workflowSteps.find((step: any) => step.stepNumber === stepNumber) || null;
-}
 
-/**
- * Get all workflow steps
- */
-export function getAllWorkflowSteps() {
-  const demo = dprCreationDemo as any;
-  return demo.workflowSteps || [];
-}
 
-/**
- * Get workflow summary
- */
-export function getWorkflowSummary() {
-  const demo = dprCreationDemo as any;
-  return demo.summary || null;
-}
 
-/**
- * Get example project information
- */
-export function getExampleProjectInfo() {
-  const demo = dprCreationDemo as any;
-  return demo.exampleProject || null;
-}
 
-/**
- * Get key features of the workflow
- */
-export function getWorkflowKeyFeatures() {
-  const demo = dprCreationDemo as any;
-  return demo.keyFeatures || [];
-}
 
-/**
- * Get usage information for offline mode
- */
-export function getOfflineModeUsage() {
-  const demo = dprCreationDemo as any;
-  return demo.usageInOfflineMode || null;
-}
 

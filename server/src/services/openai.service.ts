@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { openai } from '../lib/openaiClient';
 import { WhisperTeluguService } from './whisper-telugu.service';
+import { SarvamSttService } from './sarvam-stt.service';
+import { OpenSttService } from './open-stt.service';
 import { IProject } from '../types';
 import { VectorStore } from '../models/VectorStore.model';
 import { RAGMetrics } from '../models/RAGMetrics.model';
@@ -1851,6 +1853,23 @@ Generate professional, comprehensive, and lender-ready content that inspires con
     audioFormat: string = 'webm'
   ): Promise<string> {
     try {
+      // Our own open-source speech server first (Telugu: the IIT Madras Whisper models), when one is configured.
+      if (OpenSttService.enabled) {
+        try {
+          const text = await OpenSttService.transcribe(audioFile, language, audioFormat);
+          if (text) return text;
+        } catch (error: any) {
+          console.error('❌ Self-hosted speech service failed, trying the next provider:', error?.message || error);
+        }
+      }
+      // Sarvam (a paid Indian-language service) only when someone has chosen to configure it.
+      if (SarvamSttService.enabled) {
+        try {
+          return await SarvamSttService.transcribe(audioFile, language, audioFormat);
+        } catch (error: any) {
+          console.error('❌ Sarvam transcription failed, trying the next provider:', error?.message || error);
+        }
+      }
       // Use Hugging Face Whisper Telugu model for Telugu language
       if (language === 'te') {
         console.log('🔊 Transcribing Telugu audio using Hugging Face Whisper Telugu model (vasista22/whisper-telugu-base)');

@@ -2,16 +2,19 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-interface CardProps {
+interface CardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children' | 'className'> {
   children: React.ReactNode;
   className?: string;
 }
 
-export const Card: React.FC<CardProps> = ({ children, className }) => {
+export const Card: React.FC<CardProps> = ({ children, className, ...rest }) => {
   return (
     <div
+      {...rest}
       className={cn(
-        'rounded-[14px] border border-border bg-card text-card-foreground shadow-sm transition-smooth',
+        'motion-rise rounded-[14px] border border-border bg-card text-card-foreground shadow-sm transition-smooth',
+        // Clickable cards lift on hover and press down on click.
+        className?.includes('cursor-pointer') && 'motion-lift',
         className
       )}
     >
@@ -28,11 +31,11 @@ export const CardHeader: React.FC<CardProps> = ({ children, className }) => {
   );
 };
 
-export const CardTitle: React.FC<CardProps> = ({ children, className }) => {
+export const CardTitle: React.FC<CardProps & { as?: 'h1' | 'h2' | 'h3' }> = ({ children, className, as: Tag = 'h2' }) => {
   return (
-    <h3 className={cn('text-2xl font-semibold leading-none tracking-tight', className)}>
+    <Tag className={cn('text-2xl font-semibold leading-none tracking-tight', className)}>
       {children}
-    </h3>
+    </Tag>
   );
 };
 

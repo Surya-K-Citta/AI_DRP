@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
+import { useClusterFormText } from '@/lib/clusterDprFormText';
 
 /*
  * Small building blocks for the animated product mock-ups on the homepage.
@@ -114,14 +115,17 @@ export const Tick: React.FC<{ delay: number; size?: number; color?: string }> = 
 );
 
 /** Small "Sample data" caption so illustrative figures are never read as real. */
-export const SampleTag: React.FC<{ className?: string; dark?: boolean }> = ({ className = '', dark }) => (
+export const SampleTag: React.FC<{ className?: string; dark?: boolean }> = ({ className = '', dark }) => {
+  const tf = useClusterFormText();
+  return (
   <span
     className={`absolute text-[9px] font-semibold uppercase tracking-wider ${className}`}
     style={{ color: dark ? 'rgba(255,255,255,0.75)' : T.muted }}
   >
-    Sample data
+    {tf('Sample data')}
   </span>
-);
+  );
+};
 
 /**
  * Lays a scene out at a fixed design size (w × h) and scales it down to fit

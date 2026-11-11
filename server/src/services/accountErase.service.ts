@@ -1,3 +1,4 @@
+import { RefreshSession } from '../models/RefreshSession.model';
 import fs from 'fs';
 import path from 'path';
 import { User } from '../models/User.model';
@@ -165,6 +166,7 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
     'metadata.isTemplate': { $ne: true },
   });
   await KycFile.deleteMany({ userId: uid });
+  await RefreshSession.deleteMany({ userId: uid });
   await UserNotification.deleteMany({ userId: uid });
   await DPRVersion.deleteMany({
     $or: [{ userId: uid }, { projectId: { $in: projectIds } }],

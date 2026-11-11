@@ -135,6 +135,10 @@ export function sanitizeStoredPayload<T>(value: T, key = '', depth = 0): T {
     if (FILE_KEY.test(key) && isPublicFileUrl(trimmed)) {
       return toUploadedRef(trimmed) as T;
     }
+    // A firm PAN is kept; a personal PAN (4th letter P) is dropped.
+    if (/^firmPan$/i.test(key) && /^[A-Z]{3}P[A-Z]\d{4}[A-Z]$/i.test(trimmed)) {
+      return '' as T;
+    }
     if (ID_NUMBER_KEY.test(key) && (AADHAAR_WHOLE.test(trimmed) || PAN_WHOLE.test(trimmed))) {
       return '' as T;
     }
@@ -157,21 +161,27 @@ export function sanitizeStoredPayload<T>(value: T, key = '', depth = 0): T {
   return value;
 }
 
+/** A number from the environment. A blank or missing value is "not set" (never 0). */
+function envNumber(name: string): number {
+  const raw = (process.env[name] || '').trim();
+  return raw === '' ? NaN : Number(raw);
+}
+
 export function retentionIdleDays(): number {
-  const n = Number(process.env.RETENTION_IDLE_DAYS);
+  const n = envNumber('RETENTION_IDLE_DAYS');
   if (Number.isFinite(n) && n >= 0) return n;
   return 365;
 }
 
 export function retentionWarningDays(): number {
-  const n = Number(process.env.RETENTION_WARNING_DAYS);
+  const n = envNumber('RETENTION_WARNING_DAYS');
   if (Number.isFinite(n) && n >= 0) return n;
   return 15;
 }
 
 /** Per-event audit lifetime. Default 24 months. Floor in the Rules is 1 year. */
 export function auditRetentionDays(): number {
-  const n = Number(process.env.AUDIT_RETENTION_DAYS);
+  const n = envNumber('AUDIT_RETENTION_DAYS');
   if (Number.isFinite(n) && n > 0) return n;
   return 730;
 }

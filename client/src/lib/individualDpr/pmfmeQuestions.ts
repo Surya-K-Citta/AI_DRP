@@ -4,10 +4,10 @@
  * Step list: PMFME_STEPS in schemeStepCatalog.ts (14 consecutive steps).
  */
 
-export type PmfmeUnitStage = 'new' | 'existing';
-export type PmfmeFssai = 'yes' | 'planned';
-export type PmfmePremises = 'owned' | 'leased' | 'rented';
-export type PmfmeOdop = 'yes' | 'no';
+type PmfmeUnitStage = 'new' | 'existing';
+type PmfmeFssai = 'yes' | 'planned';
+type PmfmePremises = 'owned' | 'leased' | 'rented';
+type PmfmeOdop = 'yes' | 'no';
 
 export const PMFME_EXTRA_FIELDS = [
   'fssai',
@@ -28,7 +28,6 @@ export const PMFME_EXTRA_FIELDS = [
   'impactNote',
 ] as const;
 
-export type PmfmeExtraField = (typeof PMFME_EXTRA_FIELDS)[number];
 
 export const PMFME_UNIT_STAGE_OPTIONS: { value: PmfmeUnitStage; label: string }[] = [
   { value: 'new', label: 'New micro food processing unit' },

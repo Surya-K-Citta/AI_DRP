@@ -13,7 +13,6 @@ export const AP_PARKS_EXTRA_FIELDS = [
   'apDomicile',
 ] as const;
 
-export type ApParksExtraField = (typeof AP_PARKS_EXTRA_FIELDS)[number];
 
 export const AP_PARKS_REBATE_OPTIONS = [
   { value: 'general', label: 'General rebate' },

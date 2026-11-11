@@ -1,4 +1,4 @@
-import React from 'react';
+import { FieldPrompt } from '@/components/ui/FieldPrompt';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -157,11 +157,11 @@ export function CmepMachineryEditor({
           </button>
           <div className="grid grid-cols-1 gap-3 pr-8">
             <div className="min-w-0">
-              <label className="mb-2 block text-sm font-medium">{tf('Description')}</label>
+              <label className="mb-2 block text-sm font-medium"><FieldPrompt label="Description" /></label>
               <Input value={row.description} placeholder={tf('Description')} onChange={(e) => update(index, { description: e.target.value })} />
             </div>
             <div className="min-w-0">
-              <label className="mb-2 block text-sm font-medium">{tf('Condition')}</label>
+              <label className="mb-2 block text-sm font-medium"><FieldPrompt label="Condition" /></label>
               <select
                 className="h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
                 value={row.condition}
@@ -172,37 +172,37 @@ export function CmepMachineryEditor({
               </select>
             </div>
             <div className="min-w-0">
-              <label className="mb-2 block text-sm font-medium">{tf('Supplier')}</label>
+              <label className="mb-2 block text-sm font-medium"><FieldPrompt label="Supplier" /></label>
               <Input value={row.supplier} placeholder={tf('Supplier')} onChange={(e) => update(index, { supplier: e.target.value })} />
             </div>
             <div className="min-w-0">
-              <label className="mb-2 block text-sm font-medium">{tf('Qty')}</label>
+              <label className="mb-2 block text-sm font-medium"><FieldPrompt label="Qty" /></label>
               <Input type="number" value={row.quantity || ''} placeholder={tf('Qty')} onChange={(e) => update(index, { quantity: parseFloat(e.target.value) || 0 })} />
             </div>
             <div className="min-w-0">
-              <label className="mb-2 block text-sm font-medium">{tf('Unit cost (₹ Lakhs)')}</label>
+              <label className="mb-2 block text-sm font-medium"><FieldPrompt label="Unit cost (₹ Lakhs)" /></label>
               <Input type="number" value={row.unitCost || ''} placeholder={tf('Unit cost (₹ Lakhs)')} onChange={(e) => update(index, { unitCost: parseFloat(e.target.value) || 0 })} />
             </div>
             {detailed && (
               <>
                 <div className="min-w-0">
-                  <label className="mb-2 block text-sm font-medium">{tf('GST (₹ Lakhs)')}</label>
+                  <label className="mb-2 block text-sm font-medium"><FieldPrompt label="GST (₹ Lakhs)" /></label>
                   <Input type="number" value={row.gst || ''} placeholder={tf('GST (₹ Lakhs)')} onChange={(e) => update(index, { gst: parseFloat(e.target.value) || 0 })} />
                 </div>
                 <div className="min-w-0">
-                  <label className="mb-2 block text-sm font-medium">{tf('Transport (₹ Lakhs)')}</label>
+                  <label className="mb-2 block text-sm font-medium"><FieldPrompt label="Transport (₹ Lakhs)" /></label>
                   <Input type="number" value={row.transport || ''} placeholder={tf('Transport (₹ Lakhs)')} onChange={(e) => update(index, { transport: parseFloat(e.target.value) || 0 })} />
                 </div>
                 <div className="min-w-0">
-                  <label className="mb-2 block text-sm font-medium">{tf('Installation (₹ Lakhs)')}</label>
+                  <label className="mb-2 block text-sm font-medium"><FieldPrompt label="Installation (₹ Lakhs)" /></label>
                   <Input type="number" value={row.installation || ''} placeholder={tf('Installation (₹ Lakhs)')} onChange={(e) => update(index, { installation: parseFloat(e.target.value) || 0 })} />
                 </div>
                 <div className="min-w-0">
-                  <label className="mb-2 block text-sm font-medium">{tf('Expected life (years)')}</label>
+                  <label className="mb-2 block text-sm font-medium"><FieldPrompt label="Expected life (years)" /></label>
                   <Input type="number" value={row.lifeYears || ''} placeholder={tf('Expected life (years)')} onChange={(e) => update(index, { lifeYears: parseFloat(e.target.value) || 0 })} />
                 </div>
                 <div className="min-w-0">
-                  <label className="mb-2 block text-sm font-medium">{tf('Yearly maintenance (₹ Lakhs)')}</label>
+                  <label className="mb-2 block text-sm font-medium"><FieldPrompt label="Yearly maintenance (₹ Lakhs)" /></label>
                   <Input type="number" value={row.annualMaintenance || ''} placeholder={tf('Yearly maintenance (₹ Lakhs)')} onChange={(e) => update(index, { annualMaintenance: parseFloat(e.target.value) || 0 })} />
                 </div>
               </>
@@ -236,7 +236,7 @@ export function CmepLoanTermsEditor({
   const tf = useClusterFormText();
   const numberField = (field: string, label: string) => (
     <div>
-      <label className="block text-sm font-medium mb-2">{tf(label)}</label>
+      <label className="block text-sm font-medium mb-2"><FieldPrompt label={label} /></label>
       <Input type="number" value={step[field] || ''} onChange={(e) => onChange(field, parseFloat(e.target.value) || 0)} />
     </div>
   );
@@ -245,7 +245,7 @@ export function CmepLoanTermsEditor({
       <h4 className="md:col-span-2 font-semibold">{tf(includeSubsidy ? 'Term loan and subsidy terms' : 'Term loan terms')}</h4>
       {includeSubsidy && numberField('cashCreditLimit', 'Cash credit / working capital limit (₹ Lakhs)')}
       <div>
-        <label className="block text-sm font-medium mb-2">{tf('Bank name')}</label>
+        <label className="block text-sm font-medium mb-2"><FieldPrompt label="Bank name" /></label>
         <Input value={step.bankName || ''} onChange={(e) => onChange('bankName', e.target.value)} />
       </div>
       {numberField('interestRate', 'Interest rate (% per year)')}
@@ -279,7 +279,7 @@ export function CmepAssumptionsEditor({
       <h4 className="md:col-span-2 font-semibold">{tf('Projection assumptions')}</h4>
       {fields.map(([field, label]) => (
         <div key={field}>
-          <label className="block text-sm font-medium mb-2">{tf(label)}</label>
+          <label className="block text-sm font-medium mb-2"><FieldPrompt label={label} /></label>
           <Input type="number" value={step[field] || ''} onChange={(e) => onChange(field, parseFloat(e.target.value) || 0)} />
         </div>
       ))}

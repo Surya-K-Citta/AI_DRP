@@ -10,9 +10,20 @@ const privacyComplaintSchema = new Schema(
     inbox: { type: String, required: true },
     status: {
       type: String,
-      enum: ['open', 'closed'],
+      enum: ['open', 'in_progress', 'resolved', 'closed'],
       default: 'open',
+      index: true,
     },
+    /** Answer to the person, written by the officer. Shown to them on the privacy page. */
+    response: { type: String, trim: true, maxlength: 4000 },
+    respondedAt: { type: Date },
+    respondedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    /** Officer or team looking after it. */
+    assignedTo: { type: String, trim: true, maxlength: 200 },
+    /** Internal note, never shown to the person. */
+    internalNote: { type: String, trim: true, maxlength: 4000 },
+    /** Last day to answer under the DPDP Rules. */
+    dueAt: { type: Date },
   },
   {
     timestamps: true,

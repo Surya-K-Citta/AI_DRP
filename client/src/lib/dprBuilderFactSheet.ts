@@ -1,4 +1,4 @@
-export const ASSIST_STEP_IDS = [
+const ASSIST_STEP_IDS = [
   'building-details',
   'machinery-details',
   'other-capital-costs',
@@ -20,9 +20,8 @@ export const ASSIST_STEP_IDS = [
   'eligible-schemes',
 ] as const;
 
-export type AssistStepId = (typeof ASSIST_STEP_IDS)[number];
 
-export const STEP_DATA_KEYS: Record<string, string> = {
+const STEP_DATA_KEYS: Record<string, string> = {
   'business-overview': 'businessOverview',
   'applicant-info': 'applicantInfo',
   'building-details': 'buildingDetails',
@@ -82,7 +81,7 @@ function hasAnyFilled(data: any, keys: string[]): boolean {
   });
 }
 
-export function compactValue(value: any): any {
+function compactValue(value: any): any {
   if (value === null || value === undefined) return undefined;
   if (typeof value === 'string') {
     const trimmed = value.trim();
@@ -188,7 +187,7 @@ export function isStepReadyForAnalyze(stepId: string, stepData: Record<string, a
   }
 }
 
-export interface ChatOpenerSuggestion {
+interface ChatOpenerSuggestion {
   title?: string;
   observation?: string;
   recommendation?: string;
@@ -267,7 +266,7 @@ function summarizeValue(value: any, depth = 0): string | null {
   return null;
 }
 
-export function summarizeCurrentStep(currentStep: any): string {
+function summarizeCurrentStep(currentStep: any): string {
   const compact = compactValue(currentStep);
   if (!compact || typeof compact !== 'object') return '';
   const parts: string[] = [];

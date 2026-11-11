@@ -1269,6 +1269,120 @@
   color: var(--dpr-header, #111827);
 }
 
+.dpr-footer-text {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  font-size: 9pt;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.dpr-page-number {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  font-size: 9pt;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* AI disclaimer at the foot of each page in the live view and the preview. Downloads get it from the server. */
+.dpr-ai-footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 1px;
+  padding-bottom: 2.5mm;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 7pt;
+  line-height: 1.25;
+  color: #4a5568;
+  pointer-events: none;
+  overflow: hidden;
+}
+.dpr-ai-footer::before {
+  content: '';
+  display: block;
+  order: 0;
+  border-top: 0.6pt solid #7a8494;
+  margin-bottom: 1.5pt;
+}
+
+/* Cluster DPR pages: the same footer, drawn at the foot of each page block. */
+.dpr-document:not(.individual-dpr-document) .page-break.relative::after {
+  content: 'AI-generated document. It may contain errors, so please double-check all details and figures before you use or submit it.';
+  position: absolute;
+  left: 12mm;
+  right: 12mm;
+  bottom: 2.5mm;
+  z-index: 3;
+  padding-top: 1.5pt;
+  border-top: 0.6pt solid #7a8494;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 7pt;
+  line-height: 1.25;
+  color: #4a5568;
+  pointer-events: none;
+}
+
+@media print {
+  .dpr-document:not(.individual-dpr-document) .page-break.relative::after { display: none !important; }
+  .dpr-ai-footer { display: none !important; }
+  .dpr-page-number { display: none !important; }
+  .dpr-footer-text { display: none !important; }
+  /* One fixed watermark: the browser repeats a fixed element on every printed page. The per-page copies used on screen are hidden. */
+  .individual-dpr-document .dpr-watermark:not(.dpr-watermark-page) {
+    display: block !important;
+    position: fixed;
+    left: 8%;
+    right: 8%;
+    top: 40%;
+  }
+  .dpr-watermark-page { display: none !important; }
+  .individual-dpr-document.dpr-styled[data-footer-text]::before {
+    content: attr(data-footer-text);
+    position: fixed;
+    bottom: 11mm;
+    left: 16mm;
+    z-index: 4;
+    font-size: 9pt;
+    line-height: 1;
+    color: var(--dpr-header, #111827);
+  }
+  .individual-dpr-document.dpr-styled[data-page-numbers='plain']::after,
+  .individual-dpr-document.dpr-styled[data-page-numbers='of']::after {
+    position: fixed;
+    bottom: 11mm;
+    right: 16mm;
+    z-index: 4;
+    font-size: 9pt;
+    line-height: 1;
+    color: var(--dpr-header, #111827);
+  }
+  .individual-dpr-document.dpr-styled[data-page-numbers='plain']::after {
+    content: counter(page);
+  }
+  .individual-dpr-document.dpr-styled[data-page-numbers='of']::after {
+    content: attr(data-page-print-before) counter(page) attr(data-page-print-mid) counter(pages);
+  }
+}
+
 /* Template outlines. Wording stays; only the frame around it changes. */
 .individual-dpr-document.dpr-styled[data-template='government'] .individual-cover {
   text-align: center;
@@ -1552,8 +1666,56 @@
   .dpr-inline-edit {
     background: none !important;
     box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    min-width: 0 !important;
   }
   .dpr-inline-edit:empty:before {
     content: none;
   }
+  .dpr-inline-select,
+  .dpr-inline-input {
+    border: none;
+    background: none;
+    padding: 0;
+    min-height: 0;
+    appearance: none;
+  }
+}
+
+
+/* Style panel options: table density, table lines and heading numbers. They sit after the template rules and match their weight. */
+.individual-dpr-document.dpr-styled.dpr-density-compact .individual-particulars th,
+.individual-dpr-document.dpr-styled.dpr-density-compact .individual-particulars td,
+.individual-dpr-document.dpr-styled.dpr-density-compact table.individual-qa th,
+.individual-dpr-document.dpr-styled.dpr-density-compact table.individual-qa td {
+  padding-top: 2pt;
+  padding-bottom: 2pt;
+}
+.individual-dpr-document.dpr-styled.dpr-density-roomy .individual-particulars th,
+.individual-dpr-document.dpr-styled.dpr-density-roomy .individual-particulars td,
+.individual-dpr-document.dpr-styled.dpr-density-roomy table.individual-qa th,
+.individual-dpr-document.dpr-styled.dpr-density-roomy table.individual-qa td {
+  padding-top: 8pt;
+  padding-bottom: 8pt;
+}
+.individual-dpr-document.dpr-styled.dpr-borders-grid .individual-particulars th,
+.individual-dpr-document.dpr-styled.dpr-borders-grid .individual-particulars td {
+  border: 1px solid var(--dpr-border, #1f2937);
+}
+.individual-dpr-document.dpr-styled.dpr-borders-rows .individual-particulars th,
+.individual-dpr-document.dpr-styled.dpr-borders-rows .individual-particulars td {
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  border-bottom: 1px solid var(--dpr-border, #1f2937);
+}
+.individual-dpr-document.dpr-styled.dpr-borders-none .individual-particulars,
+.individual-dpr-document.dpr-styled.dpr-borders-none .individual-particulars th,
+.individual-dpr-document.dpr-styled.dpr-borders-none .individual-particulars td {
+  border: none;
+}
+.individual-dpr-document.dpr-styled.dpr-no-heading-num .individual-sec-num {
+  display: none;
 }

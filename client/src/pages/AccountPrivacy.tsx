@@ -20,7 +20,12 @@ import { Input } from '@/components/ui/Input';
 import { api } from '@/lib/api';
 import { downloadBlob } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
-import { GRIEVANCE_EMAIL } from '@/lib/privacy/constants';
+import {
+  GRIEVANCE_EMAIL,
+  GRIEVANCE_RESPONSE_DAYS,
+  PRIVACY_OFFICER_NAME,
+  PRIVACY_OFFICER_ROLE,
+} from '@/lib/privacy/constants';
 
 const ACTION_LABELS: Record<string, string> = {
   login_success: 'Signed in',
@@ -39,6 +44,7 @@ const ACTION_LABELS: Record<string, string> = {
   profile_change: 'Profile changed',
   nominee_change: 'Nominee updated',
   complaint_submitted: 'Privacy request sent',
+  complaint_update: 'Reply to your privacy request',
   retention_warning: 'Draft expiry warning',
   retention_purge: 'Idle draft deleted',
 };
@@ -66,6 +72,9 @@ export const AccountPrivacy: React.FC = () => {
       emailStatus?: string;
     }>
   >([]);
+  const [requests, setRequests] = useState<
+    Array<{ _id: string; subject: string; status: string; response?: string; respondedAt?: string; dueAt?: string; createdAt: string }>
+  >([]);
   const [exporting, setExporting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -73,10 +82,11 @@ export const AccountPrivacy: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [profileRes, activityRes, notifyRes] = await Promise.all([
+        const [profileRes, activityRes, notifyRes, requestsRes] = await Promise.all([
           api.getProfile(),
           api.getPrivacyActivity(),
           api.getNotifications(50),
+          api.getMyPrivacyRequests().catch(() => ({ data: [] })),
         ]);
         const profile = profileRes.data || profileRes;
         if (profile) {
@@ -90,6 +100,7 @@ export const AccountPrivacy: React.FC = () => {
         }
         setActivity(activityRes.data || []);
         setNotifications(notifyRes.data?.items || []);
+        setRequests(requestsRes.data || []);
       } catch (error: any) {
         toast.error(error.response?.data?.message || t('privacy.loadFailed'));
       } finally {
@@ -158,8 +169,9 @@ export const AccountPrivacy: React.FC = () => {
       await api.submitPrivacyComplaint(complaint);
       setComplaint({ subject: '', message: '' });
       toast.success(t('privacy.complaintSent'));
-      const activityRes = await api.getPrivacyActivity();
+      const [activityRes, requestsRes] = await Promise.all([api.getPrivacyActivity(), api.getMyPrivacyRequests()]);
       setActivity(activityRes.data || []);
+      setRequests(requestsRes.data || []);
     } catch (error: any) {
       toast.error(error.response?.data?.message || t('privacy.saveFailed'));
     } finally {
@@ -338,7 +350,12 @@ export const AccountPrivacy: React.FC = () => {
               {t('privacy.complaintHeading')}
             </CardTitle>
             <CardDescription>
-              {t('privacy.complaintHint', { email: GRIEVANCE_EMAIL })}
+              {t('privacy.complaintHint', {
+                email: GRIEVANCE_EMAIL,
+                officer: PRIVACY_OFFICER_NAME,
+                role: PRIVACY_OFFICER_ROLE,
+                days: GRIEVANCE_RESPONSE_DAYS,
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -350,8 +367,9 @@ export const AccountPrivacy: React.FC = () => {
                 required
               />
               <div>
-                <label className="block text-sm font-medium mb-2">{t('privacy.complaintMessage')}</label>
+                <label htmlFor="complaint-message" className="block text-sm font-medium mb-2">{t('privacy.complaintMessage')}</label>
                 <textarea
+                  id="complaint-message"
                   className="flex min-h-[120px] w-full rounded-[10px] border border-input bg-background px-3 py-2 text-sm"
                   value={complaint.message}
                   onChange={(e) => setComplaint((prev) => ({ ...prev, message: e.target.value }))}
@@ -363,6 +381,41 @@ export const AccountPrivacy: React.FC = () => {
                 {t('privacy.sendComplaint')}
               </Button>
             </form>
+
+            <div className="mt-6 border-t pt-4" data-testid="my-privacy-requests">
+              <h3 className="text-base font-semibold">{t('privacy.myRequestsHeading')}</h3>
+              {requests.length === 0 ? (
+                <p className="mt-2 text-sm text-muted-foreground">{t('privacy.myRequestsEmpty')}</p>
+              ) : (
+                <ul className="mt-3 space-y-3">
+                  {requests.map((r) => (
+                    <li key={r._id} className="rounded-md border p-3 text-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-medium">{r.subject}</span>
+                        <span className="rounded-full border px-2 py-0.5 text-xs">{t(`privacy.requestStatus.${r.status}`)}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {new Date(r.createdAt).toLocaleDateString('en-IN')}
+                        {!r.response && r.dueAt
+                          ? ` · ${t('privacy.requestDue', { date: new Date(r.dueAt).toLocaleDateString('en-IN') })}`
+                          : ''}
+                      </p>
+                      {r.response ? (
+                        <p className="mt-2 whitespace-pre-wrap rounded bg-muted/50 p-2">
+                          <span className="font-medium">{t('privacy.requestReply')}: </span>
+                          {r.response}
+                        </p>
+                      ) : (
+                        <p className="mt-2 text-muted-foreground">{t('privacy.requestWaiting')}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <p className="mt-4 text-xs text-muted-foreground">
+              {t('privacy.officerLine', { name: PRIVACY_OFFICER_NAME, role: PRIVACY_OFFICER_ROLE })}
+            </p>
           </CardContent>
         </Card>
 
@@ -388,6 +441,7 @@ export const AccountPrivacy: React.FC = () => {
             <Button
               variant="destructive"
               onClick={handleDelete}
+              data-no-auto-confirm
               disabled={deleting || deleteConfirm !== 'DELETE'}
             >
               {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}

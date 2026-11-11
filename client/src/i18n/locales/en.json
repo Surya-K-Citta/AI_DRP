@@ -1,4 +1,17 @@
 {
+  "theme": {
+    "label": "Colour theme",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "confirmDelete": {
+    "title": "Delete this item?",
+    "body": "It will be removed. This cannot be undone.",
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "projectTitle": "Delete this project?",
+    "projectBody": "“{{name}}” and its reports will be removed. This cannot be undone."
+  },
   "common": {
     "welcome": "Welcome",
     "login": "Login",
@@ -22,6 +35,28 @@
     "sample": "Sample"
   },
   "nav": {
+    "backTo": "Back to {{name}}",
+    "pages": {
+      "dashboard": "Dashboard",
+      "schemeFinder": "Scheme Finder",
+      "newProject": "New Project",
+      "project": "Project",
+      "projects": "Projects",
+      "dprBuilder": "DPR Builder",
+      "dprView": "DPR",
+      "dprGeneration": "DPR Generation",
+      "allDprs": "All DPRs",
+      "clusterDpr": "Cluster DPR",
+      "createDpr": "Create DPR",
+      "reportGuide": "Report setup",
+      "chat": "Chat",
+      "profile": "Profile",
+      "accountPrivacy": "Privacy settings",
+      "adminDocuments": "Documents",
+      "admin": "Admin",
+      "home": "Home",
+      "review": "District review"
+    },
     "home": "Home",
     "dashboard": "Dashboard",
     "projects": "Projects",
@@ -34,7 +69,8 @@
     "allDPRs": "All DPRs",
     "documents": "Documents",
     "privacy": "Privacy",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "review": "District review"
   },
   "auth": {
     "loginTitle": "Login to Your Account",
@@ -107,19 +143,31 @@
     "activityHint": "Your logins, downloads, and exports. Not other people’s data.",
     "activityEmpty": "No activity recorded yet.",
     "complaintHeading": "Privacy request",
-    "complaintHint": "Saved in this app and intended for {{email}}. A person must still reply. Expect about 90 days for a rights request.",
+    "complaintHint": "Sent to {{officer}}, {{role}} ({{email}}). A person replies within {{days}} days and the answer appears below.",
     "complaintSubject": "Subject",
     "complaintMessage": "Message",
     "sendComplaint": "Send request",
     "complaintSent": "Your request was saved.",
+    "myRequestsHeading": "My privacy requests",
+    "myRequestsEmpty": "You have not sent a privacy request.",
+    "requestReply": "Reply",
+    "requestWaiting": "Waiting for a reply",
+    "requestDue": "Reply due by {{date}}",
+    "requestStatus": {
+      "open": "Open",
+      "in_progress": "Being looked at",
+      "resolved": "Answered",
+      "closed": "Closed"
+    },
+    "officerLine": "Privacy officer: {{name}}, {{role}}.",
     "notificationsHeading": "Notifications",
-    "notificationsHint": "We warn you 15 days before an unused DPR draft is deleted. The same text is logged as SMS (mocked until Twilio is connected) and shown here.",
+    "notificationsHint": "We warn you 15 days before an unused DPR draft is deleted, in the app and by SMS when an SMS service is switched on. Replies to your privacy requests also appear here.",
     "notificationsEmpty": "No notifications yet.",
     "bellTitle": "Notifications",
     "bellEmpty": "Nothing new.",
     "markAllRead": "Mark all read",
     "viewAllNotifications": "View all",
-    "phoneHint": "Idle-draft warnings go to this number. SMS is mocked in the server log until Twilio keys are set.",
+    "phoneHint": "Idle-draft warnings go to this number when an SMS service is switched on.",
     "smsStatus": {
       "mocked": "mocked (not sent)",
       "sent": "sent",
@@ -128,7 +176,7 @@
     },
     "deleteHeading": "Delete my account",
     "deleteHint": "Removes your projects, DPRs, and uploaded files. Audit records stay.",
-    "deleteWarning": "This cannot be undone. Cloudinary and local files are deleted with the account.",
+    "deleteWarning": "This cannot be undone. Your projects, DPRs and uploaded files are deleted with the account.",
     "deleteTypeDelete": "Type DELETE to confirm",
     "deleteAccount": "Delete my account",
     "accountDeleted": "Your account was deleted.",
@@ -150,6 +198,7 @@
       "profile_change": "Profile changed",
       "nominee_change": "Nominee updated",
       "complaint_submitted": "Privacy request sent",
+      "complaint_update": "Reply to your privacy request",
       "retention_warning": "Draft expiry warning",
       "retention_purge": "Idle draft deleted"
     }
@@ -157,39 +206,39 @@
   "rbac": {
     "selectRole": "Select your role",
     "accessControl": "Access Control",
-    "accessControlHint": "Preview of the three platform roles. Enforcement is UI-only for now.",
+    "accessControlHint": "The three platform roles. These are enforced by the server: anyone calling a route their role cannot use gets 403 Forbidden.",
     "permissions": "Permissions",
-    "roleCannotChange": "Your role is assigned by a Super Admin",
+    "roleCannotChange": "Your role is assigned by an APMSMEDC Admin",
     "updateRole": "Update role",
-    "roleUpdated": "Role updated in the UI",
-    "uiOnlyNote": "Role labels are shown in the UI. Full permission enforcement will come later.",
+    "roleUpdated": "Role updated",
+    "uiOnlyNote": "Roles are only changed by an APMSMEDC Admin. A District Reviewer must be assigned a district.",
     "roles": {
       "super_admin": {
-        "label": "Super Admin",
-        "description": "Full platform control, users, policies, and analytics.",
-        "p1": "Manage users and assign roles",
-        "p2": "Access admin console and documents",
-        "p3": "Review and approve all DPRs",
+        "label": "APMSMEDC Admin",
+        "description": "Runs the platform: users, roles, districts, policies and every district’s DPRs.",
+        "p1": "Manage users and assign roles and districts",
+        "p2": "Open the admin console and documents",
+        "p3": "Review and approve DPRs from every district",
         "p4": "Create and edit policies",
         "p5": "View platform-wide analytics"
       },
       "consultant": {
-        "label": "Consultant",
-        "description": "Create, edit, and generate DPRs for MSME clients.",
-        "p1": "Create and edit DPRs",
+        "label": "Entrepreneur",
+        "description": "Creates and owns DPRs for their own business.",
+        "p1": "Create and edit own DPRs",
         "p2": "Save drafts and generate documents",
-        "p3": "Use AI-guided builder and chat",
+        "p3": "Use the AI-guided builder and chat",
         "p4": "Match government schemes",
-        "p5": "View own projects and scores"
+        "p5": "See only own projects and scores"
       },
       "govt_official": {
-        "label": "Govt Official",
-        "description": "Review submitted DPRs and scheme alignment.",
-        "p1": "Review submitted DPRs",
-        "p2": "View completeness and quality scores",
-        "p3": "Access scheme and policy information",
-        "p4": "Cannot create or edit DPRs",
-        "p5": "Cannot manage users or admin settings"
+        "label": "District Reviewer",
+        "description": "Reviews submitted DPRs from the district they are assigned to.",
+        "p1": "Review DPRs submitted in the assigned district",
+        "p2": "Approve, or send back with remarks",
+        "p3": "See completeness and quality scores",
+        "p4": "Cannot see other districts",
+        "p5": "Cannot create DPRs or manage users"
       }
     }
   },
@@ -203,7 +252,10 @@
     "createNewProject": "Create New Project",
     "viewSchemes": "View Schemes",
     "chatWithAI": "Chat with AI Assistant",
-    "yourDPRs": "Your DPRs",
+    "yourDPRs": "My Detailed Project Reports",
+    "dprs": "DPRs",
+    "drafts": "drafts",
+    "showingLatest": "Showing your latest {{count}} of {{total}} reports",
     "manageDPRs": "Manage and track your Detailed Project Reports",
     "viewAllDPRs": "View All DPRs",
     "viewProjects": "View Projects",
@@ -228,6 +280,15 @@
     "createFirstDPR": "Create your first Detailed Project Report to get started with AI-powered business planning",
     "createYourFirstDPR": "Create Your First DPR",
     "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteTitle": "Delete this report?",
+    "deleteBody": "“{{name}}” will be removed permanently, with its answers. This cannot be undone.",
+    "deleteConfirm": "Delete report",
+    "deleteCancel": "Keep it",
+    "deleting": "Deleting…",
+    "deleted": "Report deleted",
+    "deleteFailed": "Could not delete the report. Try again.",
     "accessFrequentlyUsed": "Access frequently used features",
     "aiGuidedBuilder": "AI-Guided Builder",
     "getInstantHelp": "Get instant help",
@@ -738,12 +799,17 @@
     }
   },
   "ventureMatch": {
+    "noGuarantee": "This is guidance only. Scheme Finder does not guarantee or assure eligibility, approval, subsidy amount or timelines. The scheme authority or your bank takes the final decision. Amounts and rules on the cards are indicative and change, so confirm them with the agency or your bank.",
+    "inBestPlan": "In your suggested plan",
+    "knowMoreCreate": "Know more & create",
+    "backToDashboard": "Back to Dashboard",
     "title": "Scheme Finder",
     "progress": "Question {{current}} of {{total}}",
     "remaining": "{{count}} schemes still possible",
     "selectAll": "Select all that apply, then tap Next.",
-    "resultsTitle": "Schemes that fit your answers",
-    "resultsSubtitle": "{{count}} schemes match what you told us.",
+    "ownerPickOne": "Pick only one from each group: Woman, Transgender, Ex-serviceman or General category man; and SC, ST, BC or General category man. Disability can be added to any choice.",
+    "resultsTitle": "Schemes that may suit your answers",
+    "resultsSubtitle": "{{count}} schemes may match what you told us.",
     "noMatches": "No schemes match these answers.",
     "notEligible": "{{count}} schemes do not match",
     "createDpr": "Create DPR",
@@ -754,7 +820,7 @@
     "stepExclusionBecause": "{{name}} is not matching because {{reason}}.",
     "stepExclusionBecauseMany": "{{name}} is not matching because: {{reason}}.",
     "cmepBoosterTitle": "CMEP Special Booster Match",
-    "cmepBoosterBody": "As a Woman / Transgender / Ex-Serviceman / Specially-Abled promoter, you qualify for enhanced back-ended subsidy support under AP CMEP.",
+    "cmepBoosterBody": "As a Woman / Transgender / Ex-Serviceman / Specially-Abled promoter, you may be eligible for enhanced back-ended subsidy support under AP CMEP, subject to the scheme rules and the approving authority.",
     "help": {
       "open": "Need help choosing?",
       "close": "Close help",
@@ -948,10 +1014,10 @@
     "ownershipHint": {
       "title": "Think about putting the business in your wife’s or mother’s name",
       "body": "You said the main owner is a general category man. If your wife or mother owns 51% or more, you may get extra help:",
-      "subsidy": "Subsidy: AP EDP 4.0 / CMEP support can rise for women and special-category local entrepreneurs (building and machine cost).",
-      "debt": "Loan: A woman-owned unit can still use the remaining loan schemes, including PMEGP special category.",
-      "guarantee": "Guarantee: Bank guarantee cover can go up to 90%, with a lower yearly fee.",
-      "ecosystem": "Extra support: Free quality certificate (ZED) and a women’s quota in the RAMP TEAM online selling programme."
+      "subsidy": "Subsidy: AP EDP 4.0 / CMEP support may rise for women and special-category local entrepreneurs (building and machine cost).",
+      "debt": "Loan: A woman-owned unit may still be able to use the remaining loan schemes, including PMEGP special category.",
+      "guarantee": "Guarantee: Bank guarantee cover may go up to 90%, with a lower yearly fee.",
+      "ecosystem": "Extra support: Quality certification (ZED) support and a women’s quota in the RAMP TEAM online selling programme may be available."
     },
     "schemes": {
       "SVANIDHI": {
@@ -1343,6 +1409,7 @@
     "clusterRedirectHint": "This is a multi-unit / CFC cluster scheme. Use Cluster DPR, not the individual 18-step form."
   },
   "clusterDpr": {
+    "editTitle": "Edit Cluster DPR",
     "title": "Cluster DPR Creation",
     "stepOf": "Step {{current}} of {{total}}",
     "stepShort": "Step {{n}}",
@@ -1389,7 +1456,118 @@
       "18": "Step 18: Annexures & Document Uploads"
     }
   },
+  "reportGuide": {
+    "open": "Start with a guide",
+    "openHint": "Choose how the report looks, then fill it in",
+    "title": "Set up your report",
+    "intro": "Five short choices. One option is already selected on each step, so you can keep going.",
+    "stepOf": "Step {{current}} of {{total}}",
+    "next": "Next",
+    "back": "Back",
+    "start": "Start the report",
+    "skip": "Start with the usual report",
+    "skipHint": "Skip these choices. The report uses the usual look for the scheme you pick.",
+    "later": "You can still change any of this later, next to the form.",
+    "photosLater": "Photos and the order of sections can be changed after you start, on the same page as the form.",
+    "sample": "Sample report",
+    "sampleHint": "An example report. It updates as you choose. Your own answers come after you start.",
+    "lookAlso": "A look also changes the tables and the watermark. This shows the title first.",
+    "steps": {
+      "look": {
+        "title": "How should the report look?",
+        "hint": "This is the overall style. You can change colours and type on the next steps."
+      },
+      "paper": {
+        "title": "What paper should it use?",
+        "hint": "Most bank reports use a regular page."
+      },
+      "type": {
+        "title": "How should the words look?",
+        "hint": "One font is used for the whole report."
+      },
+      "colors": {
+        "title": "What colours should it use?",
+        "hint": "Pick a ready-made set. Shaded rows make tables easier to follow."
+      },
+      "page": {
+        "title": "What goes on every page?",
+        "hint": "Logo, office name, page numbers, and a faint watermark."
+      }
+    },
+    "look": {
+      "match": "Match the scheme",
+      "matchHint": "Default is Gazette. This becomes the scheme's usual look after you choose the scheme.",
+      "government": "Gazette",
+      "governmentHint": "A formal government report.",
+      "bank": "Ledger",
+      "bankHint": "A bank appraisal, with even edges.",
+      "pmegp": "Ribbon",
+      "pmegpHint": "The PMEGP report look.",
+      "apCmep": "Docket",
+      "apCmepHint": "The Andhra Pradesh CMEP look.",
+      "formal": "Manuscript",
+      "formalHint": "A quiet, traditional report.",
+      "minimal": "Quiet",
+      "minimalHint": "Very little decoration."
+    },
+    "paper": {
+      "A4": "Regular page",
+      "A4Hint": "The usual size for a bank report.",
+      "A3": "Large sheet",
+      "A3Hint": "More room for wide tables.",
+      "Letter": "Letter",
+      "LetterHint": "The size often used outside India.",
+      "Legal": "Long page",
+      "LegalHint": "A taller page.",
+      "wide": "Turn wide money tables on their side",
+      "wideHint": "Only those tables. The rest of the report stays upright."
+    },
+    "type": {
+      "preset": "Same as the look",
+      "presetHint": "Keep the font that belongs to the style you chose.",
+      "times": "Classic",
+      "timesHint": "Times New Roman.",
+      "arial": "Clear",
+      "arialHint": "Arial.",
+      "calibri": "Office",
+      "calibriHint": "Calibri.",
+      "helvetica": "Simple",
+      "helveticaHint": "Helvetica.",
+      "telugu": "Telugu",
+      "teluguHint": "Noto Sans Telugu, so Telugu text stays clear.",
+      "alignPreset": "Same alignment as the look",
+      "alignLeft": "Easier to read",
+      "alignLeftHint": "Words line up on the left.",
+      "alignJustify": "Even edges",
+      "alignJustifyHint": "Both edges of the paragraph line up."
+    },
+    "colors": {
+      "preset": "Same as the look",
+      "navy": "Navy",
+      "ink": "Ink",
+      "teal": "Teal",
+      "indigo": "Indigo",
+      "stone": "Stone",
+      "grey": "Grey",
+      "striped": "Shade every other table row"
+    },
+    "chrome": {
+      "logo": "Where should a logo sit?",
+      "left": "Left",
+      "center": "Centre",
+      "right": "Right",
+      "agency": "Office name",
+      "agencyHint": "Leave this blank if you do not want a name on each page.",
+      "agencyPlaceholder": "Optional",
+      "numbers": "Page numbers",
+      "plain": "Just the number",
+      "of": "Page 3 of 12",
+      "watermark": "Show a faint watermark",
+      "watermarkHint": "It reads “Confidential — for lending appraisal”."
+    }
+  },
   "individualDpr": {
+    "editTitle": "Edit DPR",
     "title": "Create DPR",
     "stepOf": "Step {{current}} of {{total}}",
     "stepShort": "Step {{n}}",

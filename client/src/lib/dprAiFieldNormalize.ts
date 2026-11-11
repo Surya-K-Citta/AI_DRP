@@ -171,7 +171,7 @@ function rowNumber(...candidates: unknown[]): number {
   return 0;
 }
 
-export function normalizeYearProjections(value: unknown): Array<{
+function normalizeYearProjections(value: unknown): Array<{
   year: number;
   sales: number;
   rm: number;
@@ -333,7 +333,7 @@ function asNumber(text: string): number | null {
 }
 
 /** Fields that must store a number in the Latest / cluster form. */
-export const NUMERIC_DPR_FIELDS = new Set([
+const NUMERIC_DPR_FIELDS = new Set([
   'yearOfEstablishment',
   'yearOfIncorporation',
   'land',

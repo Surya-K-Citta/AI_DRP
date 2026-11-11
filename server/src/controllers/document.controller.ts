@@ -6,6 +6,8 @@ import { VectorStore } from '../models/VectorStore.model';
 import { OpenAIService } from '../services/openai.service';
 import { openai } from '../lib/openaiClient';
 import multer from 'multer';
+import { contentDisposition, escapeRegex, fileResponseHeaders, isInside } from '../lib/security/http';
+import { extensionForMime } from '../lib/security/uploadGuard';
 import path from 'path';
 import fs from 'fs';
 
@@ -21,7 +23,7 @@ const upload = multer({
     },
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + path.extname(file.originalname));
+      cb(null, uniqueSuffix + extensionForMime(file.mimetype));
     },
   }),
   limits: {
@@ -617,15 +619,21 @@ export class DocumentController {
    */
   static async serveFile(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { filename } = req.params;
-      
+      // Only a bare file name is accepted: no folders, no "..", no regular expressions.
+      const requested = String(req.params.filename || '');
+      const filename = path.basename(requested);
+      if (!filename || filename !== requested || filename.includes('\0')) {
+        res.status(400).json({ success: false, message: 'Invalid file name' });
+        return;
+      }
+
       // Find document by filename or originalName
       const document = await Document.findOne({
         $or: [
           { name: filename },
           { originalName: filename },
-          { name: { $regex: filename, $options: 'i' } },
-          { originalName: { $regex: filename, $options: 'i' } }
+          { name: { $regex: escapeRegex(filename), $options: 'i' } },
+          { originalName: { $regex: escapeRegex(filename), $options: 'i' } }
         ]
       });
 
@@ -639,7 +647,7 @@ export class DocumentController {
         ];
         
         for (const filePath of possiblePaths) {
-          if (fs.existsSync(filePath)) {
+          if (isInside(path.join(process.cwd(), 'uploads'), filePath) && fs.existsSync(filePath)) {
             // Determine MIME type from file extension
             const ext = path.extname(filename).toLowerCase();
             const mimeTypes: Record<string, string> = {
@@ -656,7 +664,8 @@ export class DocumentController {
             
             const stats = fs.statSync(filePath);
             res.setHeader('Content-Type', contentType);
-            res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+            res.setHeader('Content-Disposition', contentDisposition('inline', filename));
+            fileResponseHeaders(res);
             res.setHeader('Content-Length', stats.size);
             res.sendFile(path.resolve(filePath));
             return;
@@ -681,7 +690,8 @@ export class DocumentController {
 
       // Set appropriate headers
       res.setHeader('Content-Type', document.mimeType || 'application/pdf');
-      res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
+      res.setHeader('Content-Disposition', contentDisposition('inline', document.originalName));
+      fileResponseHeaders(res);
       res.setHeader('Content-Length', document.fileSize);
 
       // Send file
@@ -724,7 +734,8 @@ export class DocumentController {
 
       // Set appropriate headers
       res.setHeader('Content-Type', document.mimeType || 'application/pdf');
-      res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
+      res.setHeader('Content-Disposition', contentDisposition('inline', document.originalName));
+      fileResponseHeaders(res);
       res.setHeader('Content-Length', document.fileSize);
 
       // Send file
